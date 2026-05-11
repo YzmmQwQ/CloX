@@ -12,9 +12,15 @@ class IconSettingsFragment : PreferenceFragmentCompat() {
 
         val packPref = findPreference<ListPreference>("icon_pack")
         val packs = IconPackLoader.getInstalledPacks(requireContext())
-        val entries = arrayOf("System default") + packs.map { it.second }.toTypedArray()
+        val entries = arrayOf(getString(R.string.pref_icon_pack_none)) + packs.map { it.second }.toTypedArray()
         val values = arrayOf("") + packs.map { it.first }.toTypedArray()
         packPref?.entries = entries
         packPref?.entryValues = values
+
+        // Invalidate icon pack cache and reload app list when selection changes
+        packPref?.setOnPreferenceChangeListener { _, newValue ->
+            IconPackLoader.setSelectedPack(requireContext(), (newValue as String).ifEmpty { null })
+            true
+        }
     }
 }

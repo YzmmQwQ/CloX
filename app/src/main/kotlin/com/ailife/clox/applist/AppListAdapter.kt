@@ -1,5 +1,6 @@
 package com.ailife.clox.applist
 
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -22,6 +23,8 @@ class AppListAdapter(
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var dragEnabled = false
     var onOrderChanged: ((List<AppItem>) -> Unit)? = null
+    /** Position to draw INVISIBLE during a Pages drag; -1 = none. Checked in onBindViewHolder. */
+    var dragHiddenPosition: Int = -1
 
     var touchHelper: ItemTouchHelper? = null
 
@@ -33,6 +36,22 @@ class AppListAdapter(
         super.submitList(list?.toList())
     }
 
+    /** Updates mutableItems without triggering any notify — caller must handle the notify. */
+    fun updateItemsDirect(list: List<AppItem>) {
+        mutableItems.clear()
+        mutableItems.addAll(list)
+    }
+
+    /** Bypasses AsyncListDiffer — updates items synchronously and calls notifyDataSetChanged.
+     *  Used by PagesBackend for cross-page drag reorders. */
+    fun setItemsDirectly(list: List<AppItem>) {
+        mutableItems.clear()
+        mutableItems.addAll(list)
+        notifyDataSetChanged()
+    }
+
+    override fun getItemCount(): Int = mutableItems.size
+
     fun onItemMove(from: Int, to: Int) {
         Collections.swap(mutableItems, from, to)
         notifyItemMoved(from, to)
@@ -40,76 +59,73 @@ class AppListAdapter(
 
     fun onDragEnd() = onOrderChanged?.invoke(mutableItems.toList())
 
+    fun getDragItem(position: Int): AppItem? = mutableItems.getOrNull(position)
+
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
 
-        private var longPressTriggered = false
-        private var dragStarted = false
         private var downX = 0f
         private var downY = 0f
+        private var longPressActive = false
 
         init {
             view.setOnClickListener {
-                if (!longPressTriggered) {
+                if (!AppContextMenu.isShowing) {
                     val pos = bindingAdapterPosition
                     if (pos != RecyclerView.NO_ID.toInt()) onAppClick?.invoke(mutableItems[pos])
                 }
-                longPressTriggered = false
             }
 
             if (hasDragHandle && dragHandleId != 0) {
-                // Drag handle path: touch on handle → startDrag immediately
                 view.post {
                     view.findViewById<View>(dragHandleId)?.setOnTouchListener { _, event ->
                         if (event.actionMasked == MotionEvent.ACTION_DOWN && dragEnabled) {
+                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             touchHelper?.startDrag(this)
                         }
                         false
                     }
                 }
-                // Long press on item body → context menu
-                view.setOnLongClickListener {
-                    val pos = bindingAdapterPosition
-                    if (pos != RecyclerView.NO_ID.toInt()) {
-                        longPressTriggered = true
-                        onAppLongPress?.invoke(mutableItems[pos], view)
-                    }
-                    true
-                }
-            } else {
-                // No drag handle: long press → if drag enabled start drag, else menu
                 view.setOnLongClickListener {
                     val pos = bindingAdapterPosition
                     if (pos == RecyclerView.NO_ID.toInt()) return@setOnLongClickListener true
-                    longPressTriggered = true
-                    dragStarted = false
-                    if (dragEnabled) {
-                        touchHelper?.startDrag(this)
-                        dragStarted = true
-                    } else {
-                        onAppLongPress?.invoke(mutableItems[pos], view)
-                    }
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    onAppLongPress?.invoke(mutableItems[pos], view)
                     true
                 }
-                // If drag started but finger didn't move → treat as long press menu on touch-up
+            } else {
                 view.setOnTouchListener { _, event ->
                     when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN -> { downX = event.x; downY = event.y }
-                        MotionEvent.ACTION_UP -> {
-                            if (longPressTriggered && dragStarted) {
-                                val dx = event.x - downX
-                                val dy = event.y - downY
-                                if (dx * dx + dy * dy < 100f) {
-                                    val pos = bindingAdapterPosition
-                                    if (pos != RecyclerView.NO_ID.toInt()) {
-                                        onAppLongPress?.invoke(mutableItems[pos], view)
-                                    }
+                        MotionEvent.ACTION_DOWN -> {
+                            // New press: dismiss any open popup
+                            AppContextMenu.dismissCurrent()
+                            downX = event.x; downY = event.y
+                            longPressActive = false
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            if (longPressActive) {
+                                val dx = event.x - downX; val dy = event.y - downY
+                                if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) {
+                                    longPressActive = false
+                                    AppContextMenu.dismissCurrent()
+                                    if (dragEnabled) touchHelper?.startDrag(this)
                                 }
-                                longPressTriggered = false
-                                dragStarted = false
                             }
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            longPressActive = false
                         }
                     }
                     false
+                }
+
+                // Long press: always show menu immediately; if drag enabled user can then move to drag
+                view.setOnLongClickListener {
+                    val pos = bindingAdapterPosition
+                    if (pos == RecyclerView.NO_ID.toInt()) return@setOnLongClickListener true
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    longPressActive = dragEnabled   // only track movement if drag is possible
+                    onAppLongPress?.invoke(mutableItems[pos], view)
+                    true
                 }
             }
         }
@@ -120,6 +136,7 @@ class AppListAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         binder(holder.itemView, mutableItems[position])
+        holder.itemView.visibility = if (position == dragHiddenPosition) View.INVISIBLE else View.VISIBLE
         if (hasDragHandle && dragHandleId != 0) {
             holder.itemView.findViewById<View>(dragHandleId)?.visibility =
                 if (dragEnabled) View.VISIBLE else View.GONE
@@ -127,6 +144,8 @@ class AppListAdapter(
     }
 
     companion object {
+        private const val DRAG_THRESHOLD_SQ = 400f  // ~20px before drag commits
+
         val DIFF = object : DiffUtil.ItemCallback<AppItem>() {
             override fun areItemsTheSame(a: AppItem, b: AppItem) = a.packageName == b.packageName
             override fun areContentsTheSame(a: AppItem, b: AppItem) =
@@ -135,7 +154,7 @@ class AppListAdapter(
     }
 }
 
-class AppListTouchCallback(private val adapter: AppListAdapter) : ItemTouchHelper.Callback() {
+open class AppListTouchCallback(private val adapter: AppListAdapter) : ItemTouchHelper.Callback() {
     override fun isLongPressDragEnabled() = false
     override fun isItemViewSwipeEnabled() = false
 

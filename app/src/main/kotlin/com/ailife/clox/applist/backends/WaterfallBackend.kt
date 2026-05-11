@@ -2,13 +2,14 @@ package com.ailife.clox.applist.backends
 
 import android.content.Context
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
 import com.ailife.clox.applist.AppListAdapter
 import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
+import com.ailife.clox.applist.AppListTouchCallback
 import com.ailife.clox.applist.WaterfallLayoutManager
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.applist.toCircle
@@ -22,17 +23,18 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     private val enable3d = AppListPrefs.waterfall3d(ctx)
     private var adapter: AppListAdapter? = null
     private var lm: WaterfallLayoutManager? = null
+    private var rv3d: RecyclerView? = null
+    private var effect3d: (() -> Unit)? = null
 
     override fun createContentView(context: Context): View {
         val wlm = WaterfallLayoutManager().also { lm = it }
-        val rv = RecyclerView(context).apply {
+        val rv = RecyclerView(context).also { rv3d = it }.apply {
             layoutManager = wlm
             clipToPadding = false
         }
 
         adapter = AppListAdapter(R.layout.item_app_icon) { view, item ->
             val iv = view.findViewById<ImageView>(R.id.appIcon)
-            // Defer circle clip until the view has been measured
             if (view.width > 0) {
                 iv.setImageDrawable(item.icon.toCircle(view.width))
             } else {
@@ -45,6 +47,9 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
             adp.onOrderChanged = { items ->
                 AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName })
             }
+            val touchHelper = ItemTouchHelper(AppListTouchCallback(adp))
+            adp.touchHelper = touchHelper
+            touchHelper.attachToRecyclerView(rv)
         }
         rv.adapter = adapter
 
@@ -55,6 +60,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     override fun bindItems(items: List<AppItem>) {
         lm?.reset()
         adapter?.submitList(items)
+        if (enable3d) rv3d?.post { effect3d?.invoke() }
     }
 
     override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
@@ -73,6 +79,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
                 child.scaleX = scale; child.scaleY = scale
             }
         }
+        effect3d = effect
         rv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(r: RecyclerView, dx: Int, dy: Int) = effect()
         })

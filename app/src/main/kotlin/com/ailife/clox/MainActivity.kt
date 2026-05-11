@@ -8,6 +8,7 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.commit
 import com.ailife.clox.applist.AppListFragment
+import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
 import com.ailife.clox.gesture.GestureInterceptorLayout
 import com.ailife.clox.gesture.SwipeDirection
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             frag.onRequestClose = { closeAppList() }
             frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
+            frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
             appListFragment = frag
             supportFragmentManager.commit { add(R.id.fragmentContainer, frag, "app_list") }
         } else {
@@ -58,6 +60,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     frag.onRequestClose = { closeAppList() }
                     frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
                     frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
+                    frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
                 }
             appListOpen = savedInstanceState.getBoolean("app_list_open", false)
         }
@@ -219,6 +222,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
         }
         appListSpring?.start()
+    }
+
+    // ── Activity result / permission ─────────────────────────────────────────
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == IconPickerDialog.GALLERY_REQUEST_CODE) {
+            IconPickerDialog.handleGalleryResult(this, resultCode, data)
+        }
     }
 
     // ── Keys ─────────────────────────────────────────────────────────────────

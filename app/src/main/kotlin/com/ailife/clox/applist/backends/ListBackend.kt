@@ -32,6 +32,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     private var allItems: List<AppItem> = emptyList()
     private val showSearch = AppListPrefs.listSearch(ctx)
     private val enable3d   = AppListPrefs.list3d(ctx)
+    private var effect3d: (() -> Unit)? = null
 
     override fun createContentView(context: Context): View {
         val root = LinearLayout(context).apply {
@@ -56,9 +57,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         }
 
         adapter = AppListAdapter(
-            itemLayoutRes = R.layout.item_app_list,
-            hasDragHandle = true,
-            dragHandleId  = R.id.dragHandle
+            itemLayoutRes = R.layout.item_app_list
         ) { view, item ->
             view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
             view.findViewById<TextView>(R.id.appLabel).text = item.label
@@ -85,6 +84,8 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         allItems = items
         val query = if (::searchField.isInitialized) searchField.text?.toString()?.trim()?.lowercase() ?: "" else ""
         adapter?.submitList(if (query.isEmpty()) items else items.filter { it.label.lowercase().contains(query) })
+        // Re-apply 3D scales after DiffUtil dispatches — post so layout is settled
+        if (enable3d) recyclerView.post { effect3d?.invoke() }
     }
 
     override fun setDragEnabled(enabled: Boolean) {
@@ -129,6 +130,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
                 child.scaleY = 1f - ratio * 0.55f
             }
         }
+        effect3d = effect
         rv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(r: RecyclerView, dx: Int, dy: Int) = effect()
         })

@@ -1,24 +1,27 @@
 package com.ailife.clox.applist
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.ProgressBar
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.ailife.clox.R
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.icon.IconPackLoader
@@ -28,87 +31,93 @@ import java.io.FileOutputStream
 object IconPickerDialog {
 
     fun show(context: Context, item: AppItem, onDone: () -> Unit) {
-        val packIcons = loadPackIcons(context)
+        val root = LayoutInflater.from(context).inflate(R.layout.dialog_icon_picker, null, false)
+        val searchField    = root.findViewById<TextInputEditText>(R.id.searchField)
+        val iconGrid       = root.findViewById<RecyclerView>(R.id.iconGrid)
+        val loadingSpinner = root.findViewById<ProgressBar>(R.id.loadingProgress)
+        val galleryBtn     = root.findViewById<MaterialButton>(R.id.galleryBtn)
 
-        val root = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            val p = 16.dp(context)
-            setPadding(p, p, p, 0)
-        }
+        iconGrid.layoutManager = GridLayoutManager(context, 5)
 
-        val search = EditText(context).apply {
-            hint = context.getString(R.string.icon_picker_search_hint)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-        root.addView(search)
-
-        val grid = RecyclerView(context).apply {
-            layoutManager = GridLayoutManager(context, 5)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 320.dp(context)
-            ).apply { topMargin = 8.dp(context) }
-        }
-        root.addView(grid)
-
-        val galleryBtn = TextView(context).apply {
-            text = context.getString(R.string.icon_picker_from_gallery)
-            textSize = 14f
-            val pv = 12.dp(context)
-            setPadding(0, pv, 0, pv)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-        root.addView(galleryBtn)
-
-        val dialog = AlertDialog.Builder(context)
+        val dialog = MaterialAlertDialogBuilder(context)
             .setTitle(R.string.icon_picker_title)
             .setView(root)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
 
-        val adapter = IconPackAdapter(packIcons) { name, drawable ->
+        // Adapter is set up empty; icons are filled in after background load
+        val adapter = IconPackAdapter(emptyList()) { _, drawable ->
             saveCustomIcon(context, item.packageName, drawable)
             onDone()
             dialog.dismiss()
         }
-        grid.adapter = adapter
+        iconGrid.adapter = adapter
 
-        search.addTextChangedListener(object : TextWatcher {
+        searchField.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                val q = s?.toString()?.trim()?.lowercase() ?: ""
-                adapter.filter(q)
+                adapter.filter(s?.toString()?.trim()?.lowercase() ?: "")
             }
         })
 
         galleryBtn.setOnClickListener {
             dialog.dismiss()
             if (context is Activity) {
-                context.startActivityForResult(
-                    Intent(Intent.ACTION_PICK).apply { type = "image/*" },
-                    GALLERY_REQUEST_CODE
-                )
                 pendingPackageName = item.packageName
                 pendingOnDone = onDone
+                launchImagePicker(context)
             }
         }
 
         dialog.show()
+
+        // Load pack icons off the main thread
+        val handler = Handler(Looper.getMainLooper())
+        Thread {
+            val icons = loadPackIcons(context)
+            handler.post {
+                if (dialog.isShowing) {
+                    loadingSpinner.visibility = View.GONE
+                    iconGrid.visibility = View.VISIBLE
+                    adapter.setItems(icons)
+                }
+            }
+        }.start()
     }
 
-    // Called from Activity.onActivityResult
+    /**
+     * Open the system image picker. Priority:
+     *  1. Android 13+: Photo Picker (ACTION_PICK_IMAGES) — sandboxed, no permission needed
+     *  2. Gallery intent with MediaStore URI — opens gallery/photos app directly
+     *  3. SAF fallback (ACTION_GET_CONTENT)
+     */
+    fun launchImagePicker(activity: Activity) {
+        val intent = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                Intent(MediaStore.ACTION_PICK_IMAGES)
+            else ->
+                Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        }
+        // If neither resolves (stripped ROM), fall back to SAF
+        val resolved = intent.resolveActivity(activity.packageManager) != null
+        val finalIntent = if (resolved) intent else Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        try {
+            @Suppress("DEPRECATION")
+            activity.startActivityForResult(finalIntent, GALLERY_REQUEST_CODE)
+        } catch (_: Exception) {
+            pendingPackageName = null; pendingOnDone = null
+        }
+    }
+
     fun handleGalleryResult(context: Context, resultCode: Int, data: Intent?) {
         if (resultCode != Activity.RESULT_OK || data?.data == null) return
-        val pkg = pendingPackageName ?: return
-        val onDone = pendingOnDone ?: return
+        val pkg   = pendingPackageName ?: return
+        val onDone = pendingOnDone     ?: return
         pendingPackageName = null; pendingOnDone = null
-
         try {
             val stream = context.contentResolver.openInputStream(data.data!!) ?: return
             val drawable = Drawable.createFromStream(stream, null) ?: return
@@ -141,43 +150,27 @@ object IconPickerDialog {
         return bmp
     }
 
+    /** Use the cached pack map from IconPackLoader — avoids re-parsing appfilter.xml. */
     private fun loadPackIcons(context: Context): List<Pair<String, Drawable>> {
         val packPkg = IconPackLoader.getSelectedPack(context) ?: return emptyList()
-        return try {
-            val pm = context.packageManager
-            val packRes = pm.getResourcesForApplication(packPkg)
-            val packCtx = context.createPackageContext(packPkg, 0)
-            val appfilter = packCtx.assets.open("appfilter.xml")
-            val parser = android.util.Xml.newPullParser()
-            parser.setInput(appfilter, "UTF-8")
-            val result = mutableListOf<Pair<String, Drawable>>()
-            while (parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                if (parser.eventType == org.xmlpull.v1.XmlPullParser.START_TAG && parser.name == "item") {
-                    val drawableName = parser.getAttributeValue(null, "drawable") ?: ""
-                    if (drawableName.isNotEmpty()) {
-                        val resId = packRes.getIdentifier(drawableName, "drawable", packPkg)
-                        if (resId != 0) {
-                            try {
-                                result.add(drawableName to packRes.getDrawable(resId, null))
-                            } catch (_: Exception) {}
-                        }
-                    }
-                }
-                parser.next()
-            }
-            appfilter.close()
-            result
-        } catch (_: Exception) { emptyList() }
+        return IconPackLoader.getPackMap(context, packPkg).entries.map { it.key to it.value }
     }
 
-    // ── Icon pack grid adapter ────────────────────────────────────────────────
+    // ── Icon grid adapter ─────────────────────────────────────────────────────
 
     class IconPackAdapter(
-        private val all: List<Pair<String, Drawable>>,
+        all: List<Pair<String, Drawable>>,
         private val onPick: (String, Drawable) -> Unit
     ) : RecyclerView.Adapter<IconPackAdapter.VH>() {
 
+        private var all      = all.toList()
         private var filtered = all.toList()
+
+        fun setItems(items: List<Pair<String, Drawable>>) {
+            all      = items
+            filtered = items
+            notifyDataSetChanged()
+        }
 
         fun filter(query: String) {
             filtered = if (query.isEmpty()) all
@@ -188,12 +181,17 @@ object IconPickerDialog {
         inner class VH(val iv: ImageView) : RecyclerView.ViewHolder(iv)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val density = parent.context.resources.displayMetrics.density
+            val size = (52 * density + 0.5f).toInt()
+            val pad  = (6  * density + 0.5f).toInt()
+            val ta = parent.context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
+            val ripple = ta.getDrawable(0)
+            ta.recycle()
             val iv = ImageView(parent.context).apply {
-                val s = 48.dp(parent.context)
-                layoutParams = ViewGroup.LayoutParams(s, s)
+                layoutParams = ViewGroup.LayoutParams(size, size)
                 scaleType = ImageView.ScaleType.FIT_CENTER
-                val p = 4.dp(parent.context)
-                setPadding(p, p, p, p)
+                setPadding(pad, pad, pad, pad)
+                background = ripple
             }
             return VH(iv)
         }
@@ -205,9 +203,5 @@ object IconPickerDialog {
             holder.iv.setImageDrawable(drawable)
             holder.iv.setOnClickListener { onPick(name, drawable) }
         }
-
-        private fun Int.dp(ctx: Context) = (this * ctx.resources.displayMetrics.density + 0.5f).toInt()
     }
-
-    private fun Int.dp(ctx: Context) = (this * ctx.resources.displayMetrics.density + 0.5f).toInt()
 }

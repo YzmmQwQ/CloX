@@ -21,12 +21,11 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
-            val pkg = intent.data?.schemeSpecificPart
-            if (intent.action == Intent.ACTION_PACKAGE_ADDED && pkg != null) {
-                // New apps go to bottom in custom sort
-                appendNewApp(pkg)
-            } else {
-                loadApps()
+            val pkg = intent.data?.schemeSpecificPart ?: return
+            val replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+            when (intent.action) {
+                Intent.ACTION_PACKAGE_ADDED -> if (!replacing) appendNewApp(pkg) else loadApps()
+                else -> loadApps()  // REMOVED or REPLACED
             }
         }
     }
@@ -35,7 +34,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
-            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
             addDataScheme("package")
         }
         app.registerReceiver(packageReceiver, filter)

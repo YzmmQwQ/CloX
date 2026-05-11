@@ -24,8 +24,10 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
             v.iconSizeDp   = AppListPrefs.grid2dIconSize(ctx)
             v.onAppClick      = { onAppClick?.invoke(it) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
+            v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName }) }
         }
     }
 
     override fun bindItems(items: List<AppItem>) = grid2dView?.bindItems(items) ?: Unit
+    override fun setDragEnabled(enabled: Boolean) { grid2dView?.dragReorderEnabled = enabled }
 }

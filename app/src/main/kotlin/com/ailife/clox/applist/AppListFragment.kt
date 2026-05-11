@@ -33,6 +33,9 @@ class AppListFragment : Fragment() {
     /** Called when Pages backend changes — MainActivity updates pagesCanScrollRight lambda. */
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
 
+    /** Called when Pages backend changes — MainActivity updates pagesBackendDragActive lambda. */
+    var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
+
     private val viewModel: AppListViewModel by viewModels()
     private var backend: AppListBackend? = null
     private lateinit var root: FrameLayout
@@ -79,9 +82,9 @@ class AppListFragment : Fragment() {
             AppContextMenu.show(ctx, anchor, item) { viewModel.loadApps() }
         }
         newBackend.onRequestClose = { onRequestClose?.invoke() }
-        newBackend.setDragEnabled(sort == AppListPrefs.SORT_CUSTOM)
 
         val contentView = newBackend.createContentView(ctx)
+        newBackend.setDragEnabled(sort == AppListPrefs.SORT_CUSTOM)
         root.removeAllViews()
         root.addView(contentView, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -90,8 +93,10 @@ class AppListFragment : Fragment() {
 
         backend = newBackend
         val isPages = style == AppListPrefs.STYLE_PAGES
+        val pagesBackend = if (isPages) newBackend as PagesBackend else null
         onPagesBackendActive?.invoke(isPages)
-        onSetPagesCanScrollRight(if (isPages) (newBackend as PagesBackend).canScrollRight else null)
+        onSetPagesCanScrollRight(pagesBackend?.canScrollRight)
+        onSetPagesDragActive(pagesBackend?.let { b -> { b.isDragActive } })
 
         // Bind current list immediately if already loaded
         val current = viewModel.apps.value

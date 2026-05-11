@@ -22,8 +22,10 @@ class HoneycombBackend(private val ctx: Context) : AppListBackend {
             v.iconSizeDp   = AppListPrefs.honeycombIconSize(ctx)
             v.onAppClick      = { onAppClick?.invoke(it) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
+            v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName }) }
         }
     }
 
     override fun bindItems(items: List<AppItem>) = honeycombView?.bindItems(items) ?: Unit
+    override fun setDragEnabled(enabled: Boolean) { honeycombView?.dragReorderEnabled = enabled }
 }
