@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.ailife.clox.gesture.GestureInterceptorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/gestureRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- HomeFragment / Axmol surface lives here (bottom layer) -->
+    <FrameLayout
+        android:id="@+id/homeContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- AppListFragment slides in/out over this container -->
+    <FrameLayout
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Overlays — GONE by default, above all fragments -->
+    <com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
+        android:id="@+id/quickSettingsOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <com.ailife.clox.overlay.widgets.WidgetsOverlay
+        android:id="@+id/widgetsOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <com.ailife.clox.overlay.notifications.NotificationOverlay
+        android:id="@+id/notificationsOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+</com.ailife.clox.gesture.GestureInterceptorLayout>

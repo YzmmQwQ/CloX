@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ListPreference
+        android:key="double_tap_action"
+        android:title="@string/pref_double_tap_title"
+        android:summary="%s"
+        android:entries="@array/double_tap_entries"
+        android:entryValues="@array/double_tap_values"
+        android:defaultValue="settings" />
+
+</PreferenceScreen>

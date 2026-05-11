@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="clox_bg">#FF000000</color>
+    <color name="clox_accent">#FF1E88E5</color>
+    <color name="overlay_scrim">#CC000000</color>
+</resources>
