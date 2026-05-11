@@ -39,7 +39,7 @@ function WatchfaceScene:onEnter()
 
     -- ── Touch test button (Axmol UI widget) ─────────────────────────────────
     local touchFeedback = cc.Label:createWithSystemFont("", "sans-serif", 20)
-    touchFeedback:setPosition(cx, 120)
+    touchFeedback:setPosition(cx, cy - 150)
     touchFeedback:setTextColor(cc.c4b(80, 220, 80, 255))
     self:addChild(touchFeedback, 3)
 
@@ -47,7 +47,7 @@ function WatchfaceScene:onEnter()
     btn:setTitleText("Touch Test")
     btn:setTitleFontSize(18)
     btn:setTitleColor(cc.c3b(255, 255, 255))
-    btn:setPosition(cx, 72)
+    btn:setPosition(cx, cy - 200)
     btn:addTouchEventListener(function(sender, eventType)
         if eventType == ccui.TouchEventType.ended then
             touchFeedback:setString("Touch works!")
