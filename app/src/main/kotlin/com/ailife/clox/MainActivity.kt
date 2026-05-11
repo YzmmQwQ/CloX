@@ -94,18 +94,25 @@ class MainActivity : AppCompatActivity() {
 
         gestureRoot.onSwipeStart = { _, _, _ -> }
 
-        gestureRoot.onSwipeUpdate = { direction, dx, dy ->
-            when {
-                appListOpen && direction == SwipeDirection.RIGHT ->
-                    appListFragment?.view?.translationX = dx.coerceAtLeast(0f)
-
-                !appListOpen && direction == SwipeDirection.LEFT ->
-                    appListFragment?.view?.translationX =
-                        (screenW + dx).coerceIn(0f, screenW)
-            }
-        }
+        gestureRoot.onSwipeUpdate = ::handleSwipeUpdate
 
         gestureRoot.onSwipeEnd = ::handleSwipeEnd
+    }
+
+    // ── Swipe-update routing ─────────────────────────────────────────────────
+
+    private fun handleSwipeUpdate(direction: SwipeDirection, dx: Float, dy: Float) {
+        // Never move the app list while an overlay is active —
+        // prevents "dismiss overlay + app list half-opens" dual-state bug.
+        if (overlayController.hasActiveOverlay()) return
+
+        when {
+            appListOpen && direction == SwipeDirection.RIGHT ->
+                appListFragment?.view?.translationX = dx.coerceAtLeast(0f)
+
+            !appListOpen && direction == SwipeDirection.LEFT ->
+                appListFragment?.view?.translationX = (screenW + dx).coerceIn(0f, screenW)
+        }
     }
 
     // ── Swipe-end routing ────────────────────────────────────────────────────
@@ -114,6 +121,11 @@ class MainActivity : AppCompatActivity() {
         // Priority 1: dismiss any open overlay on any swipe
         if (overlayController.hasActiveOverlay()) {
             overlayController.dismissActive()
+            // Safety: if app list drifted during the overlay-dismissal swipe, snap it back
+            val x = appListFragment?.view?.translationX ?: screenW
+            if (x != (if (appListOpen) 0f else screenW)) {
+                springAppList(if (appListOpen) 0f else screenW)
+            }
             return
         }
 
