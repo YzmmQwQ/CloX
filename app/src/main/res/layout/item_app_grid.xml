@@ -1,27 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<!-- Root is square (forced by GridBackend's SquareGridLayoutManager).
+     Icon fills the square; label overlays at the bottom when enabled. -->
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:gravity="center_horizontal"
-    android:padding="6dp"
+    android:layout_height="match_parent"
     android:background="?attr/selectableItemBackgroundBorderless">
 
     <ImageView
         android:id="@+id/appIcon"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp"
         android:scaleType="fitCenter" />
 
     <TextView
         android:id="@+id/appLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_gravity="bottom"
+        android:background="#99000000"
+        android:textColor="#FFFFFFFF"
+        android:textSize="9sp"
         android:gravity="center"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
         android:maxLines="1"
-        android:ellipsize="end" />
+        android:ellipsize="end"
+        android:visibility="gone" />
 
-</LinearLayout>
+</FrameLayout>

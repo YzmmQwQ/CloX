@@ -49,10 +49,20 @@ class HoneycombView @JvmOverloads constructor(
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+    private var pendingItems: List<AppItem> = emptyList()
+
     fun bindItems(items: List<AppItem>) {
-        content.removeAllViews()
-        if (items.isEmpty()) return
-        post { buildGrid(items) }
+        pendingItems = items
+        if (width > 0 && height > 0) {
+            buildGrid(items)
+        } else {
+            viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    buildGrid(pendingItems)
+                }
+            })
+        }
     }
 
     private fun buildGrid(items: List<AppItem>) {

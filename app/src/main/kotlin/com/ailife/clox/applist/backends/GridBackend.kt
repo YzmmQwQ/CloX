@@ -2,7 +2,6 @@ package com.ailife.clox.applist.backends
 
 import android.content.Context
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
@@ -27,14 +26,20 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     override fun createContentView(context: Context): View {
         val rv = RecyclerView(context).apply {
-            layoutManager = GridLayoutManager(context, cols)
+            layoutManager = SquareGridLayoutManager(context, cols)
             clipToPadding = false
         }
 
-        val itemRes = if (showNames) R.layout.item_app_grid else R.layout.item_app_icon
-        adapter = AppListAdapter(itemRes) { view, item ->
+        // Always use item_app_grid.xml; icon size is identical with or without label
+        adapter = AppListAdapter(R.layout.item_app_grid) { view, item ->
             view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
-            if (showNames) view.findViewById<TextView>(R.id.appLabel).text = item.label
+            val label = view.findViewById<TextView>(R.id.appLabel)
+            if (showNames) {
+                label.text = item.label
+                label.visibility = View.VISIBLE
+            } else {
+                label.visibility = View.GONE
+            }
         }.also { adp ->
             adp.onAppClick     = { onAppClick?.invoke(it) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
@@ -51,4 +56,16 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     override fun bindItems(items: List<AppItem>) = adapter?.submitList(items) ?: Unit
     override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
+
+    // Forces every item to be exactly (rvWidth/cols) × (rvWidth/cols)
+    private class SquareGridLayoutManager(context: Context, cols: Int) : GridLayoutManager(context, cols) {
+        override fun measureChildWithMargins(child: View, widthUsed: Int, heightUsed: Int) {
+            super.measureChildWithMargins(child, widthUsed, heightUsed)
+            val side = child.measuredWidth
+            child.measure(
+                View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY)
+            )
+        }
+    }
 }

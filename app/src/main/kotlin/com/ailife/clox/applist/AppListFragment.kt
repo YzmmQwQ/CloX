@@ -26,9 +26,11 @@ class AppListFragment : Fragment() {
     /** Called by MainActivity to close the app list (used by Pages backend). */
     var onRequestClose: (() -> Unit)? = null
 
-    /** Called when Pages mode activates/deactivates — MainActivity uses this to
-     *  toggle GestureInterceptorLayout.pagesBackendActive. */
+    /** Called when Pages mode activates/deactivates — MainActivity toggles pagesBackendActive. */
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
+
+    /** Called when Pages backend changes — MainActivity updates pagesCanScrollRight lambda. */
+    var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
 
     private val viewModel: AppListViewModel by viewModels()
     private var backend: AppListBackend? = null
@@ -85,7 +87,9 @@ class AppListFragment : Fragment() {
         ))
 
         backend = newBackend
-        onPagesBackendActive?.invoke(style == AppListPrefs.STYLE_PAGES)
+        val isPages = style == AppListPrefs.STYLE_PAGES
+        onPagesBackendActive?.invoke(isPages)
+        onSetPagesCanScrollRight(if (isPages) (newBackend as PagesBackend).canScrollRight else null)
 
         // Bind current list immediately if already loaded
         val current = viewModel.apps.value

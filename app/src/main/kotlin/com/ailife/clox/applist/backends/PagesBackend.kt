@@ -1,7 +1,10 @@
 package com.ailife.clox.applist.backends
 
 import android.content.Context
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -27,6 +30,10 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
 
     private var pager: ViewPager2? = null
     private var pagesAdapter: PagesAdapter? = null
+    private var currentPage = 0
+
+    /** Exposed for GestureInterceptorLayout: true when swipe-right should page back (not close list). */
+    val canScrollRight: () -> Boolean = { currentPage > 0 }
 
     override fun createContentView(context: Context): View {
         val vp = ViewPager2(context).apply {
@@ -38,20 +45,31 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
         }
         pager = vp
 
-        pagesAdapter = PagesAdapter(cols).also { vp.adapter = it }
+        vp.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) { currentPage = position }
+        })
 
-        // Detect swipe-right past page 0 → fire onRequestClose
+        pagesAdapter = PagesAdapter(cols, rows).also { vp.adapter = it }
+
+        // Detect swipe-RIGHT past page 0 (dx < 0 = content moves left = user swipes right).
+        // When currentPage == 0 and pagesCanScrollRight returns false, the gesture interceptor
+        // will already handle the RIGHT swipe to close the app list — this listener is a safety net.
+        val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
         val innerRv = vp.getChildAt(0) as? RecyclerView
-        innerRv?.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            private var dragging = false
-            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
-                dragging = newState == RecyclerView.SCROLL_STATE_DRAGGING
-            }
-            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-                if (dragging && vp.currentItem == 0 && dx > 0) {
-                    // scrolling content rightward = user swiped right at page 0
-                    onRequestClose?.invoke()
+        innerRv?.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            private var startX = 0f
+            private var fired = false
+            override fun onInterceptTouchEvent(rv: RecyclerView, ev: MotionEvent): Boolean {
+                when (ev.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> { startX = ev.x; fired = false }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (!fired && currentPage == 0 && ev.x - startX > touchSlop) {
+                            fired = true
+                            onRequestClose?.invoke()
+                        }
+                    }
                 }
+                return false  // never consume
             }
         })
 
@@ -63,9 +81,12 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
         pagesAdapter?.submitPages(pages)
     }
 
-    // ── Inner adapter ─────────────────────────────────────────────────────────
+    // ── Page adapter ──────────────────────────────────────────────────────────
 
-    inner class PagesAdapter(private val cols: Int) : RecyclerView.Adapter<PagesAdapter.PageVH>() {
+    inner class PagesAdapter(
+        private val cols: Int,
+        private val rows: Int
+    ) : RecyclerView.Adapter<PagesAdapter.PageVH>() {
 
         private var pages: List<List<AppItem>> = emptyList()
 
@@ -77,30 +98,39 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
         override fun getItemCount() = pages.size
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageVH {
-            val grid = RecyclerView(parent.context).apply {
-                layoutManager = GridLayoutManager(parent.context, cols)
+            // Wrap grid in a FrameLayout so we can centre it vertically
+            val wrapper = FrameLayout(parent.context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                isNestedScrollingEnabled = false
             }
-            return PageVH(grid)
+            val grid = RecyclerView(parent.context).apply {
+                layoutManager = SquarePagesGridLayoutManager(parent.context, cols)
+                isNestedScrollingEnabled = false
+                // WRAP_CONTENT + CENTER_VERTICAL centres the grid in the page
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER_VERTICAL
+                )
+            }
+            wrapper.addView(grid)
+            return PageVH(wrapper, grid)
         }
 
         override fun onBindViewHolder(holder: PageVH, position: Int) {
             holder.bind(pages[position])
         }
 
-        inner class PageVH(private val grid: RecyclerView) : RecyclerView.ViewHolder(grid) {
+        inner class PageVH(wrapper: FrameLayout, private val grid: RecyclerView) : RecyclerView.ViewHolder(wrapper) {
             private val iconAdapter = IconGridAdapter()
             init { grid.adapter = iconAdapter }
-
             fun bind(items: List<AppItem>) = iconAdapter.submitList(items)
         }
 
         inner class IconGridAdapter : androidx.recyclerview.widget.ListAdapter<AppItem,
-                IconGridAdapter.IVH>(AppListBackend_DIFF) {
+                IconGridAdapter.IVH>(DIFF) {
 
             inner class IVH(view: View) : RecyclerView.ViewHolder(view) {
                 init {
@@ -116,10 +146,8 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                 }
             }
 
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): IVH {
-                val cell = buildPageCell(parent.context)
-                return IVH(cell)
-            }
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+                IVH(buildCell(parent.context))
 
             override fun onBindViewHolder(holder: IVH, position: Int) {
                 val item = getItem(position)
@@ -127,33 +155,48 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                 holder.itemView.findViewById<TextView>(R.id.appLabel).text = item.label
             }
         }
+
+        // Forces square cells (same technique as GridBackend)
+        private inner class SquarePagesGridLayoutManager(context: Context, cols: Int) : GridLayoutManager(context, cols) {
+            override fun measureChildWithMargins(child: View, widthUsed: Int, heightUsed: Int) {
+                super.measureChildWithMargins(child, widthUsed, heightUsed)
+                val side = child.measuredWidth
+                child.measure(
+                    View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY)
+                )
+            }
+        }
     }
 
-    private fun buildPageCell(context: Context): View {
+    private fun buildCell(context: Context): View {
         val cell = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER_HORIZONTAL
             background = context.obtainStyledAttributes(
                 intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
-            ).getDrawable(0)
-            setPadding(4.dp(context), 8.dp(context), 4.dp(context), 8.dp(context))
+            ).also { it.recycle() }.let {
+                context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
+                    .getDrawable(0)
+            }
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
         val iv = ImageView(context).apply {
             id = R.id.appIcon
             scaleType = ImageView.ScaleType.FIT_CENTER
-            val s = 48.dp(context)
-            layoutParams = LinearLayout.LayoutParams(s, s)
+            layoutParams = LinearLayout.LayoutParams(0, 0, 1f).apply {
+                width = LinearLayout.LayoutParams.MATCH_PARENT
+            }.let { LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f) }
         }
         val tv = TextView(context).apply {
             id = R.id.appLabel
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
-            gravity = android.view.Gravity.CENTER
-            textSize = 10f
+            gravity = Gravity.CENTER
+            textSize = 9f
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -164,7 +207,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     }
 
     companion object {
-        private val AppListBackend_DIFF = object : androidx.recyclerview.widget.DiffUtil.ItemCallback<AppItem>() {
+        private val DIFF = object : androidx.recyclerview.widget.DiffUtil.ItemCallback<AppItem>() {
             override fun areItemsTheSame(a: AppItem, b: AppItem) = a.packageName == b.packageName
             override fun areContentsTheSame(a: AppItem, b: AppItem) = a.label == b.label
         }

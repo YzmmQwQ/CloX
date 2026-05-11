@@ -28,6 +28,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
 
     var appListOpen: Boolean = false
     var pagesBackendActive: Boolean = false
+    /** Returns true when ViewPager2 can scroll right (page > 0) — passes right swipe to child. */
+    var pagesCanScrollRight: (() -> Boolean)? = null
 
     var onSwipeStart: ((SwipeDirection, Float, Float) -> Unit)? = null
     var onSwipeUpdate: ((SwipeDirection, Float, Float) -> Unit)? = null
@@ -135,12 +137,14 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         }
     }
 
-    /** True when the direction should be passed through to a child (e.g. vertical list scroll). */
+    /** True when the direction should be passed through to a child. */
     private fun shouldBlock(dir: SwipeDirection) =
         appListOpen && (
             dir == SwipeDirection.UP || dir == SwipeDirection.DOWN ||
-            // Pages mode: let horizontal swipes reach the ViewPager2
-            (pagesBackendActive && (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT))
+            // Pages: always pass LEFT to ViewPager2 (go to next page)
+            (pagesBackendActive && dir == SwipeDirection.LEFT) ||
+            // Pages: pass RIGHT only when there's a page to go back to; at page 0 let gesture system close the list
+            (pagesBackendActive && dir == SwipeDirection.RIGHT && pagesCanScrollRight?.invoke() == true)
         )
 
     private fun commitDirection(dir: SwipeDirection) {
