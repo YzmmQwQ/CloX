@@ -125,8 +125,8 @@ class ListBackend(private val ctx: Context) : AppListBackend {
                 val child = rv.getChildAt(i)
                 val childCy = (child.top + child.bottom) / 2f
                 val ratio = (Math.abs(childCy - cy) / (cy + child.height / 2f)).coerceIn(0f, 1f)
-                child.scaleX = 1f - ratio * 0.3f
-                child.scaleY = 1f - ratio * 0.3f
+                child.scaleX = 1f - ratio * 0.55f
+                child.scaleY = 1f - ratio * 0.55f
             }
         }
         rv.addOnScrollListener(object : RecyclerView.OnScrollListener() {

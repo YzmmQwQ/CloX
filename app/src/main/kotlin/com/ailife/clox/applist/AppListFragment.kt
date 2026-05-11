@@ -19,6 +19,7 @@ import com.ailife.clox.applist.backends.HoneycombBackend
 import com.ailife.clox.applist.backends.ListBackend
 import com.ailife.clox.applist.backends.PagesBackend
 import com.ailife.clox.applist.backends.WaterfallBackend
+import android.util.Log
 import kotlinx.coroutines.launch
 
 class AppListFragment : Fragment() {
@@ -65,6 +66,7 @@ class AppListFragment : Fragment() {
         val ctx = requireContext()
         val style = AppListPrefs.style(ctx)
         val sort  = AppListPrefs.sort(ctx)
+        Log.d("CloX/AppList", "swapBackend style=$style sort=$sort")
 
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item ->

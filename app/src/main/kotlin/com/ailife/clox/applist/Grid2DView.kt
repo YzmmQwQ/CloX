@@ -2,20 +2,26 @@ package com.ailife.clox.applist
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
-import android.view.ViewGroup
+import android.view.ViewConfiguration
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.OverScroller
 import android.widget.TextView
 import com.ailife.clox.applist.model.AppItem
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * Regular grid of icons with 2D pan (OverScroller inertia).
- * Configurable columns, optional app name below icon, optional 3D depth effect.
+ * Square grid of icons with 2D pan.
+ *
+ * Cell size = iconPx + GAP_DP. Content is slightly wider and taller than the
+ * screen, so panning is available in both axes. Default scroll: centred.
+ *
+ * Pan gesture: onInterceptTouchEvent steals from child views once touchSlop exceeded.
  */
 class Grid2DView @JvmOverloads constructor(
     ctx: Context,
@@ -27,94 +33,100 @@ class Grid2DView @JvmOverloads constructor(
     var enable3d = false
     var showNames = false
     var columns = 4
-    var iconSizeDp = 0   // 0 = auto
-
-    private val content = FrameLayout(ctx)
+    var iconSizeDp = 0
 
     private val scroller = OverScroller(ctx)
+    private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
+
     private var velTracker: VelocityTracker? = null
     private var lastX = 0f; private var lastY = 0f
     private var scrollX_ = 0f; private var scrollY_ = 0f
     private var maxScrollX = 0f; private var maxScrollY = 0f
-
-    init { addView(content) }
-
+    private var isPanning = false
     private var pendingItems: List<AppItem> = emptyList()
+
+    init {
+        clipChildren = true
+        clipToPadding = true
+    }
+
+    // ── Public API ────────────────────────────────────────────────────────────
 
     fun bindItems(items: List<AppItem>) {
         pendingItems = items
-        if (width > 0 && height > 0) {
-            buildGrid(items)
-        } else {
-            viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    buildGrid(pendingItems)
-                }
-            })
-        }
+        if (width > 0 && height > 0) buildGrid(items)
+        else viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                viewTreeObserver.removeOnGlobalLayoutListener(this)
+                buildGrid(pendingItems)
+            }
+        })
     }
 
     private fun buildGrid(items: List<AppItem>) {
-        content.removeAllViews()
-        val cols = columns.coerceAtLeast(2)
+        removeAllViews()
+        // Auto mode: compute columns so grid is as square as possible
+        val cols = if (iconSizeDp > 0) columns.coerceAtLeast(2)
+                   else kotlin.math.sqrt(items.size.toFloat()).toInt().coerceIn(3, 10)
+        val gap = (GAP_DP * resources.displayMetrics.density + 0.5f).toInt()
         val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else width / cols
         if (iconPx <= 0) return
 
-        val labelH = if (showNames) dp(18) else 0
-        val cellH = iconPx + labelH + dp(if (showNames) 2 else 0)
+        val labelH = if (showNames) dp(LABEL_DP) else 0
+        val cellW = iconPx + gap
+        val cellH = iconPx + labelH + gap
 
+        var maxX = 0; var maxY = 0
         for ((idx, item) in items.withIndex()) {
-            val row = idx / cols
             val col = idx % cols
-            val x = (col * (width / cols)).toFloat()
-            val y = (row * cellH).toFloat()
+            val row = idx / cols
+            val x = col * cellW
+            val y = row * cellH
+            maxX = maxX.coerceAtLeast(x + cellW)
+            maxY = maxY.coerceAtLeast(y + cellH)
 
-            val cell = buildCell(item, iconPx, labelH)
-            content.addView(cell, FrameLayout.LayoutParams(width / cols, cellH).apply {
-                leftMargin = x.toInt(); topMargin = y.toInt()
+            val cell = buildCell(item, iconPx, labelH, cellW, cellH)
+            addView(cell, FrameLayout.LayoutParams(iconPx, iconPx + labelH).apply {
+                leftMargin = x + gap / 2
+                topMargin  = y + gap / 2
             })
         }
 
-        val rows = (items.size + cols - 1) / cols
-        val contentH = rows * cellH
-        maxScrollX = 0f
-        maxScrollY = (contentH - height).coerceAtLeast(0).toFloat()
+        maxScrollX = (maxX - width).toFloat().coerceAtLeast(0f)
+        maxScrollY = (maxY - height).toFloat().coerceAtLeast(0f)
+        // Start centred
+        scrollX_ = maxScrollX / 2f
+        scrollY_ = maxScrollY / 2f
         applyScroll()
-        if (enable3d) apply3d()
+        if (enable3d) post { apply3d() }
     }
 
-    private fun buildCell(item: AppItem, iconPx: Int, labelH: Int): ViewGroup {
-        val cell = FrameLayout(context)
-        cell.isClickable = true
-        cell.isFocusable = true
-        cell.background = context.obtainStyledAttributes(
-            intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
-        ).getDrawable(0)
-
+    private fun buildCell(item: AppItem, iconPx: Int, labelH: Int, cellW: Int, cellH: Int): View {
+        val cell = FrameLayout(context).apply {
+            isClickable = true; isFocusable = true
+            background = context.obtainStyledAttributes(
+                intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
+            ).getDrawable(0)
+        }
         val iv = ImageView(context).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
             setImageDrawable(item.icon)
         }
-        val ivParams = FrameLayout.LayoutParams(iconPx, iconPx).apply {
-            gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
-        }
-        cell.addView(iv, ivParams)
-
+        cell.addView(iv, FrameLayout.LayoutParams(iconPx, iconPx).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        })
         if (showNames && labelH > 0) {
             val tv = TextView(context).apply {
                 text = item.label
                 maxLines = 1
                 ellipsize = android.text.TextUtils.TruncateAt.END
-                gravity = android.view.Gravity.CENTER
-                textSize = 10f
+                gravity = Gravity.CENTER
+                textSize = 9f
             }
-            val tvParams = FrameLayout.LayoutParams(
+            cell.addView(tv, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, labelH
-            ).apply { topMargin = iconPx + dp(2) }
-            cell.addView(tv, tvParams)
+            ).apply { topMargin = iconPx + dp(2) })
         }
-
         cell.setOnClickListener { onAppClick?.invoke(item) }
         cell.setOnLongClickListener { onAppLongPress?.invoke(item, cell); true }
         return cell
@@ -122,13 +134,39 @@ class Grid2DView @JvmOverloads constructor(
 
     // ── Touch ─────────────────────────────────────────────────────────────────
 
-    override fun onTouchEvent(ev: MotionEvent): Boolean {
-        velTracker = velTracker ?: VelocityTracker.obtain()
-        velTracker!!.addMovement(ev)
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 scroller.forceFinished(true)
                 lastX = ev.x; lastY = ev.y
+                isPanning = false
+                initVelocity(ev)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                velTracker?.addMovement(ev)
+                if (!isPanning) {
+                    if (abs(ev.x - lastX) > touchSlop || abs(ev.y - lastY) > touchSlop) {
+                        isPanning = true
+                        parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                if (isPanning) return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isPanning = false
+                recycleVelocity()
+            }
+        }
+        return false
+    }
+
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        velTracker?.addMovement(ev)
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                scroller.forceFinished(true)
+                lastX = ev.x; lastY = ev.y
+                initVelocity(ev)
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
@@ -140,13 +178,16 @@ class Grid2DView @JvmOverloads constructor(
                 if (enable3d) apply3d()
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                velTracker!!.computeCurrentVelocity(1000)
+                velTracker?.computeCurrentVelocity(1000)
+                val vx = -(velTracker?.xVelocity ?: 0f)
+                val vy = -(velTracker?.yVelocity ?: 0f)
                 scroller.fling(
                     scrollX_.toInt(), scrollY_.toInt(),
-                    (-velTracker!!.xVelocity).toInt(), (-velTracker!!.yVelocity).toInt(),
+                    vx.toInt(), vy.toInt(),
                     0, maxScrollX.toInt(), 0, maxScrollY.toInt()
                 )
-                velTracker!!.recycle(); velTracker = null
+                recycleVelocity()
+                isPanning = false
                 post(flingRunnable)
             }
         }
@@ -166,24 +207,35 @@ class Grid2DView @JvmOverloads constructor(
     }
 
     private fun applyScroll() {
-        content.translationX = -scrollX_
-        content.translationY = -scrollY_
+        scrollTo(scrollX_.toInt(), scrollY_.toInt())
     }
 
     private fun apply3d() {
         val cx = scrollX_ + width / 2f
         val cy = scrollY_ + height / 2f
-        for (i in 0 until content.childCount) {
-            val child = content.getChildAt(i)
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
             val dx = child.left + child.width / 2f - cx
             val dy = child.top + child.height / 2f - cy
             val dist = sqrt(dx * dx + dy * dy)
             val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
-            val ratio = (dist / maxDist).coerceIn(0f, 1f)
-            val scale = 1f - ratio * 0.35f
+            val scale = 1f - (dist / maxDist).coerceIn(0f, 1f) * 0.55f
             child.scaleX = scale; child.scaleY = scale
         }
     }
 
+    private fun initVelocity(ev: MotionEvent) {
+        velTracker?.recycle()
+        velTracker = VelocityTracker.obtain()
+        velTracker?.addMovement(ev)
+    }
+
+    private fun recycleVelocity() { velTracker?.recycle(); velTracker = null }
+
     private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
+
+    companion object {
+        private const val GAP_DP   = 8
+        private const val LABEL_DP = 16
+    }
 }

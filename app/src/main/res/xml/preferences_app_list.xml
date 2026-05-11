@@ -88,14 +88,6 @@
         android:key="cat_grid2d"
         android:title="Grid 2D options">
 
-        <SeekBarPreference
-            android:key="grid2d_cols"
-            android:title="@string/pref_grid2d_cols_title"
-            android:defaultValue="4"
-            android:min="2"
-            android:max="6"
-            app:showSeekBarValue="true" />
-
         <SwitchPreferenceCompat
             android:key="grid2d_names"
             android:title="@string/pref_grid2d_names_title"
