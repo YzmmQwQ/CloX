@@ -26,7 +26,7 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     override fun createContentView(context: Context): View {
         val rv = RecyclerView(context).apply {
-            layoutManager = SquareGridLayoutManager(context, cols)
+            layoutManager = GridLayoutManager(context, cols)
             clipToPadding = false
         }
 
@@ -56,16 +56,4 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     override fun bindItems(items: List<AppItem>) = adapter?.submitList(items) ?: Unit
     override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
-
-    // Forces every item to be exactly (rvWidth/cols) × (rvWidth/cols)
-    private class SquareGridLayoutManager(context: Context, cols: Int) : GridLayoutManager(context, cols) {
-        override fun measureChildWithMargins(child: View, widthUsed: Int, heightUsed: Int) {
-            super.measureChildWithMargins(child, widthUsed, heightUsed)
-            val side = child.measuredWidth
-            child.measure(
-                View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY)
-            )
-        }
-    }
 }

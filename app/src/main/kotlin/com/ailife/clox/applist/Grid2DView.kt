@@ -29,17 +29,13 @@ class Grid2DView @JvmOverloads constructor(
     var columns = 4
     var iconSizeDp = 0   // 0 = auto
 
-    private val content = object : ViewGroup(ctx) {
-        override fun onMeasure(w: Int, h: Int) = setMeasuredDimension(contentW, contentH)
-        override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
-    }
+    private val content = FrameLayout(ctx)
 
     private val scroller = OverScroller(ctx)
     private var velTracker: VelocityTracker? = null
     private var lastX = 0f; private var lastY = 0f
     private var scrollX_ = 0f; private var scrollY_ = 0f
     private var maxScrollX = 0f; private var maxScrollY = 0f
-    private var contentW = 0; private var contentH = 0
 
     init { addView(content) }
 
@@ -75,14 +71,13 @@ class Grid2DView @JvmOverloads constructor(
             val y = (row * cellH).toFloat()
 
             val cell = buildCell(item, iconPx, labelH)
-            content.addView(cell, ViewGroup.LayoutParams(width / cols, cellH))
-            cell.x = x; cell.y = y
+            content.addView(cell, FrameLayout.LayoutParams(width / cols, cellH).apply {
+                leftMargin = x.toInt(); topMargin = y.toInt()
+            })
         }
 
         val rows = (items.size + cols - 1) / cols
-        contentW = width
-        contentH = rows * cellH
-        content.requestLayout()
+        val contentH = rows * cellH
         maxScrollX = 0f
         maxScrollY = (contentH - height).coerceAtLeast(0).toFloat()
         applyScroll()
@@ -180,8 +175,8 @@ class Grid2DView @JvmOverloads constructor(
         val cy = scrollY_ + height / 2f
         for (i in 0 until content.childCount) {
             val child = content.getChildAt(i)
-            val dx = child.x + child.width / 2f - cx
-            val dy = child.y + child.height / 2f - cy
+            val dx = child.left + child.width / 2f - cx
+            val dy = child.top + child.height / 2f - cy
             val dist = sqrt(dx * dx + dy * dy)
             val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
             val ratio = (dist / maxDist).coerceIn(0f, 1f)

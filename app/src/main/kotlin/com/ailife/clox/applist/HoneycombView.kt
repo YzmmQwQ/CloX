@@ -33,17 +33,14 @@ class HoneycombView @JvmOverloads constructor(
     var enable3d = false
     var iconSizeDp = 0   // 0 = auto (width / 4)
 
-    private val content = object : ViewGroup(ctx) {
-        override fun onMeasure(w: Int, h: Int) = setMeasuredDimension(contentW, contentH)
-        override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
-    }
+    // FrameLayout handles child layout correctly; children positioned via leftMargin/topMargin
+    private val content = FrameLayout(ctx)
 
     private val scroller = OverScroller(ctx)
     private var velTracker: VelocityTracker? = null
     private var lastX = 0f; private var lastY = 0f
     private var scrollX_ = 0f; private var scrollY_ = 0f
     private var maxScrollX = 0f; private var maxScrollY = 0f
-    private var contentW = 0; private var contentH = 0
 
     init { addView(content) }
 
@@ -70,7 +67,7 @@ class HoneycombView @JvmOverloads constructor(
         val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else width / 4
         if (iconPx <= 0) return
 
-        val rowH = (iconPx * 0.866f).toInt()   // hex row spacing: sin(60°)
+        val rowH = (iconPx * 0.866f).toInt()
 
         var maxX = 0; var maxY = 0
         for ((idx, item) in items.withIndex()) {
@@ -84,14 +81,14 @@ class HoneycombView @JvmOverloads constructor(
             }
             iv.setOnClickListener { onAppClick?.invoke(item) }
             iv.setOnLongClickListener { onAppLongPress?.invoke(item, iv); true }
-            content.addView(iv, ViewGroup.LayoutParams(iconPx, iconPx))
-            iv.x = x.toFloat(); iv.y = y.toFloat()
+            // FrameLayout.LayoutParams positions children — layout() is called properly
+            content.addView(iv, FrameLayout.LayoutParams(iconPx, iconPx).apply {
+                leftMargin = x; topMargin = y
+            })
         }
 
-        contentW = maxX; contentH = maxY
-        content.requestLayout()
-        maxScrollX = (contentW - width).coerceAtLeast(0).toFloat()
-        maxScrollY = (contentH - height).coerceAtLeast(0).toFloat()
+        maxScrollX = (maxX - width).coerceAtLeast(0).toFloat()
+        maxScrollY = (maxY - height).coerceAtLeast(0).toFloat()
         applyScroll()
         if (enable3d) apply3d()
     }
@@ -154,8 +151,8 @@ class HoneycombView @JvmOverloads constructor(
         val cy = scrollY_ + height / 2f
         for (i in 0 until content.childCount) {
             val child = content.getChildAt(i)
-            val dx = child.x + child.width / 2f - cx
-            val dy = child.y + child.height / 2f - cy
+            val dx = child.left + child.width / 2f - cx
+            val dy = child.top + child.height / 2f - cy
             val dist = sqrt(dx * dx + dy * dy)
             val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
             val ratio = (dist / maxDist).coerceIn(0f, 1f)

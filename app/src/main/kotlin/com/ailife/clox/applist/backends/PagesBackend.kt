@@ -1,6 +1,7 @@
 package com.ailife.clox.applist.backends
 
 import android.content.Context
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -10,7 +11,6 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.ailife.clox.R
@@ -32,7 +32,6 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     private var pagesAdapter: PagesAdapter? = null
     private var currentPage = 0
 
-    /** Exposed for GestureInterceptorLayout: true when swipe-right should page back (not close list). */
     val canScrollRight: () -> Boolean = { currentPage > 0 }
 
     override fun createContentView(context: Context): View {
@@ -44,16 +43,15 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
             )
         }
         pager = vp
+        Log.d("CloX/Pages", "createContentView cols=$cols rows=$rows pageSize=$pageSize")
 
         vp.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) { currentPage = position }
         })
 
-        pagesAdapter = PagesAdapter(cols, rows).also { vp.adapter = it }
+        pagesAdapter = PagesAdapter().also { vp.adapter = it }
 
-        // Detect swipe-RIGHT past page 0 (dx < 0 = content moves left = user swipes right).
-        // When currentPage == 0 and pagesCanScrollRight returns false, the gesture interceptor
-        // will already handle the RIGHT swipe to close the app list — this listener is a safety net.
+        // Swipe right at page 0 → close app list
         val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
         val innerRv = vp.getChildAt(0) as? RecyclerView
         innerRv?.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
@@ -69,7 +67,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                         }
                     }
                 }
-                return false  // never consume
+                return false
             }
         })
 
@@ -77,16 +75,12 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     }
 
     override fun bindItems(items: List<AppItem>) {
-        val pages = items.chunked(pageSize)
-        pagesAdapter?.submitPages(pages)
+        pagesAdapter?.submitPages(items.chunked(pageSize))
     }
 
-    // ── Page adapter ──────────────────────────────────────────────────────────
+    // ── Adapter ───────────────────────────────────────────────────────────────
 
-    inner class PagesAdapter(
-        private val cols: Int,
-        private val rows: Int
-    ) : RecyclerView.Adapter<PagesAdapter.PageVH>() {
+    inner class PagesAdapter : RecyclerView.Adapter<PagesAdapter.PageVH>() {
 
         private var pages: List<List<AppItem>> = emptyList()
 
@@ -98,120 +92,110 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
         override fun getItemCount() = pages.size
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageVH {
-            // Wrap grid in a FrameLayout so we can centre it vertically
-            val wrapper = FrameLayout(parent.context).apply {
+            // Full-screen page wrapper — no RecyclerView inside, just a plain ViewGroup
+            val page = FrameLayout(parent.context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
             }
-            val grid = RecyclerView(parent.context).apply {
-                layoutManager = SquarePagesGridLayoutManager(parent.context, cols)
-                isNestedScrollingEnabled = false
-                // WRAP_CONTENT + CENTER_VERTICAL centres the grid in the page
-                layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    Gravity.CENTER_VERTICAL
-                )
-            }
-            wrapper.addView(grid)
-            return PageVH(wrapper, grid)
+            return PageVH(page)
         }
 
         override fun onBindViewHolder(holder: PageVH, position: Int) {
             holder.bind(pages[position])
         }
 
-        inner class PageVH(wrapper: FrameLayout, private val grid: RecyclerView) : RecyclerView.ViewHolder(wrapper) {
-            private val iconAdapter = IconGridAdapter()
-            init { grid.adapter = iconAdapter }
-            fun bind(items: List<AppItem>) = iconAdapter.submitList(items)
-        }
+        inner class PageVH(private val page: FrameLayout) : RecyclerView.ViewHolder(page) {
 
-        inner class IconGridAdapter : androidx.recyclerview.widget.ListAdapter<AppItem,
-                IconGridAdapter.IVH>(DIFF) {
+            fun bind(items: List<AppItem>) {
+                page.removeAllViews()
+                val ctx = page.context
+                val screenW = page.resources.displayMetrics.widthPixels
+                val cellSize = screenW / cols
 
-            inner class IVH(view: View) : RecyclerView.ViewHolder(view) {
-                init {
-                    view.setOnClickListener {
-                        val pos = bindingAdapterPosition
-                        if (pos != RecyclerView.NO_ID.toInt()) onAppClick?.invoke(currentList[pos])
-                    }
-                    view.setOnLongClickListener {
-                        val pos = bindingAdapterPosition
-                        if (pos != RecyclerView.NO_ID.toInt()) onAppLongPress?.invoke(currentList[pos], view)
-                        true
-                    }
+                // Build rows of LinearLayouts
+                val grid = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        Gravity.CENTER_VERTICAL
+                    )
                 }
-            }
 
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                IVH(buildCell(parent.context))
+                for (rowIdx in 0 until rows) {
+                    val row = LinearLayout(ctx).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            cellSize
+                        )
+                        gravity = Gravity.CENTER_HORIZONTAL
+                    }
 
-            override fun onBindViewHolder(holder: IVH, position: Int) {
-                val item = getItem(position)
-                holder.itemView.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
-                holder.itemView.findViewById<TextView>(R.id.appLabel).text = item.label
-            }
-        }
+                    for (colIdx in 0 until cols) {
+                        val pos = rowIdx * cols + colIdx
+                        val item = items.getOrNull(pos)
+                        row.addView(buildCell(ctx, item, cellSize))
+                    }
+                    grid.addView(row)
+                }
 
-        // Forces square cells (same technique as GridBackend)
-        private inner class SquarePagesGridLayoutManager(context: Context, cols: Int) : GridLayoutManager(context, cols) {
-            override fun measureChildWithMargins(child: View, widthUsed: Int, heightUsed: Int) {
-                super.measureChildWithMargins(child, widthUsed, heightUsed)
-                val side = child.measuredWidth
-                child.measure(
-                    View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(side, View.MeasureSpec.EXACTLY)
-                )
+                page.addView(grid)
             }
         }
     }
 
-    private fun buildCell(context: Context): View {
-        val cell = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            background = context.obtainStyledAttributes(
-                intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
-            ).also { it.recycle() }.let {
-                context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
-                    .getDrawable(0)
+    // ── Cell builder ──────────────────────────────────────────────────────────
+
+    private fun buildCell(ctx: Context, item: AppItem?, cellSize: Int): View {
+        val cell = FrameLayout(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(cellSize, cellSize)
+            if (item != null) {
+                isClickable = true
+                isFocusable = true
+                background = ctx.obtainStyledAttributes(
+                    intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
+                ).getDrawable(0)
             }
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
         }
-        val iv = ImageView(context).apply {
+
+        if (item == null) return cell   // empty slot
+
+        val iconPad = (cellSize * 0.1f).toInt()
+        val labelH  = (cellSize * 0.22f).toInt()
+        val iconSize = cellSize - iconPad * 2 - labelH
+
+        val iv = ImageView(ctx).apply {
             id = R.id.appIcon
             scaleType = ImageView.ScaleType.FIT_CENTER
-            layoutParams = LinearLayout.LayoutParams(0, 0, 1f).apply {
-                width = LinearLayout.LayoutParams.MATCH_PARENT
-            }.let { LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f) }
+            layoutParams = FrameLayout.LayoutParams(cellSize - iconPad * 2, iconSize).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = iconPad
+            }
+            setImageDrawable(item.icon)
         }
-        val tv = TextView(context).apply {
+
+        val tv = TextView(ctx).apply {
             id = R.id.appLabel
+            text = item.label
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
             gravity = Gravity.CENTER
-            textSize = 9f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 2.dp(context) }
+            textSize = 8f
+            setTextColor(android.graphics.Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, labelH
+            ).apply { gravity = Gravity.BOTTOM }
         }
-        cell.addView(iv); cell.addView(tv)
+
+        cell.addView(iv)
+        cell.addView(tv)
+
+        cell.setOnClickListener { onAppClick?.invoke(item) }
+        cell.setOnLongClickListener { onAppLongPress?.invoke(item, cell); true }
+
         return cell
     }
-
-    companion object {
-        private val DIFF = object : androidx.recyclerview.widget.DiffUtil.ItemCallback<AppItem>() {
-            override fun areItemsTheSame(a: AppItem, b: AppItem) = a.packageName == b.packageName
-            override fun areContentsTheSame(a: AppItem, b: AppItem) = a.label == b.label
-        }
-    }
-
-    private fun Int.dp(ctx: Context) = (this * ctx.resources.displayMetrics.density + 0.5f).toInt()
 }

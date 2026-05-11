@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Root is square (forced by GridBackend's SquareGridLayoutManager).
+<!-- SquareFrameLayout forces height = width in onMeasure.
      Icon fills the square; label overlays at the bottom when enabled. -->
-<FrameLayout
+<com.ailife.clox.applist.SquareFrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -29,4 +29,4 @@
         android:ellipsize="end"
         android:visibility="gone" />
 
-</FrameLayout>
+</com.ailife.clox.applist.SquareFrameLayout>
