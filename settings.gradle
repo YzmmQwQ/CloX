@@ -15,3 +15,12 @@ dependencyResolutionManagement {
 
 rootProject.name = "CloX"
 include ':app'
+
+// Include Axmol Android Java library (AxmolGLSurfaceView, AxmolActivity, etc.)
+// Only when the submodule is present.
+def libaxmolDir = new File("${settingsDir}/axmol/core/platform/android/libaxmol")
+if (libaxmolDir.exists()) {
+    System.setProperty("AX_ROOT", new File("${settingsDir}/axmol").absolutePath)
+    include ':libaxmol'
+    project(':libaxmol').projectDir = libaxmolDir
+}

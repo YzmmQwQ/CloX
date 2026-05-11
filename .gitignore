@@ -16,7 +16,6 @@ gradle/wrapper/gradle-wrapper.jar
 
 # NDK / CMake generated
 .cxx/
-axmol/
 
 # Keys
 *.keystore
