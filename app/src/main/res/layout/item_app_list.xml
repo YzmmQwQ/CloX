@@ -6,7 +6,7 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingStart="16dp"
-    android:paddingEnd="16dp"
+    android:paddingEnd="8dp"
     android:background="?attr/selectableItemBackground">
 
     <ImageView
@@ -24,5 +24,14 @@
         android:textAppearance="?attr/textAppearanceBodyLarge"
         android:maxLines="1"
         android:ellipsize="end" />
+
+    <ImageView
+        android:id="@+id/dragHandle"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_drag_handle"
+        android:scaleType="center"
+        android:visibility="gone"
+        android:contentDescription="Drag to reorder" />
 
 </LinearLayout>

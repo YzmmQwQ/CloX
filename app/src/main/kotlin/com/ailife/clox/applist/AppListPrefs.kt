@@ -1,0 +1,111 @@
+package com.ailife.clox.applist
+
+import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
+
+object AppListPrefs {
+
+    const val PREFS_NAME = "app_list"
+
+    // ── Style ────────────────────────────────────────────────────────────────
+    const val KEY_STYLE = "style"
+    const val STYLE_LIST       = "list"
+    const val STYLE_GRID       = "grid"
+    const val STYLE_WATERFALL  = "waterfall"
+    const val STYLE_HONEYCOMB  = "honeycomb"
+    const val STYLE_GRID2D     = "grid2d"
+    const val STYLE_PAGES      = "pages"
+
+    // ── Sort ─────────────────────────────────────────────────────────────────
+    const val KEY_SORT      = "sort"
+    const val SORT_ALPHA    = "alpha"
+    const val SORT_CUSTOM   = "custom"
+
+    // ── Icon pack ────────────────────────────────────────────────────────────
+    const val KEY_ICON_PACK = "icon_pack"
+
+    // ── List sub-settings ────────────────────────────────────────────────────
+    const val KEY_LIST_SEARCH = "list_search"
+    const val KEY_LIST_3D     = "list_3d"
+
+    // ── Grid sub-settings ────────────────────────────────────────────────────
+    const val KEY_GRID_COLS  = "grid_cols"
+    const val KEY_GRID_NAMES = "grid_names"
+
+    // ── Waterfall sub-settings ───────────────────────────────────────────────
+    const val KEY_WATERFALL_3D = "waterfall_3d"
+
+    // ── Honeycomb sub-settings ───────────────────────────────────────────────
+    const val KEY_HONEYCOMB_3D        = "honeycomb_3d"
+    const val KEY_HONEYCOMB_ICON_SIZE = "honeycomb_icon_size"   // dp, 0 = auto
+
+    // ── Grid2D sub-settings ──────────────────────────────────────────────────
+    const val KEY_GRID2D_COLS      = "grid2d_cols"
+    const val KEY_GRID2D_NAMES     = "grid2d_names"
+    const val KEY_GRID2D_3D        = "grid2d_3d"
+    const val KEY_GRID2D_ICON_SIZE = "grid2d_icon_size"          // dp, 0 = auto
+
+    // ── Pages sub-settings ───────────────────────────────────────────────────
+    const val KEY_PAGES_COLS = "pages_cols"
+    const val KEY_PAGES_ROWS = "pages_rows"
+
+    // ── Persistence ──────────────────────────────────────────────────────────
+    const val KEY_CUSTOM_ORDER  = "custom_order"   // JSON array of package names
+    const val KEY_CUSTOM_ICONS  = "custom_icons"   // JSON object: pkg → file path
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    fun get(ctx: Context) = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    fun style(ctx: Context)    = get(ctx).getString(KEY_STYLE, STYLE_LIST) ?: STYLE_LIST
+    fun sort(ctx: Context)     = get(ctx).getString(KEY_SORT, SORT_ALPHA)  ?: SORT_ALPHA
+    fun iconPack(ctx: Context) = get(ctx).getString(KEY_ICON_PACK, "")     ?: ""
+
+    fun listSearch(ctx: Context) = get(ctx).getBoolean(KEY_LIST_SEARCH, true)
+    fun list3d(ctx: Context)     = get(ctx).getBoolean(KEY_LIST_3D, false)
+
+    fun gridCols(ctx: Context)  = get(ctx).getInt(KEY_GRID_COLS, 4)
+    fun gridNames(ctx: Context) = get(ctx).getBoolean(KEY_GRID_NAMES, true)
+
+    fun waterfall3d(ctx: Context) = get(ctx).getBoolean(KEY_WATERFALL_3D, false)
+
+    fun honeycomb3d(ctx: Context)       = get(ctx).getBoolean(KEY_HONEYCOMB_3D, false)
+    fun honeycombIconSize(ctx: Context) = get(ctx).getInt(KEY_HONEYCOMB_ICON_SIZE, 0)
+
+    fun grid2dCols(ctx: Context)      = get(ctx).getInt(KEY_GRID2D_COLS, 4)
+    fun grid2dNames(ctx: Context)     = get(ctx).getBoolean(KEY_GRID2D_NAMES, false)
+    fun grid2d3d(ctx: Context)        = get(ctx).getBoolean(KEY_GRID2D_3D, false)
+    fun grid2dIconSize(ctx: Context)  = get(ctx).getInt(KEY_GRID2D_ICON_SIZE, 0)
+
+    fun pagesCols(ctx: Context) = get(ctx).getInt(KEY_PAGES_COLS, 4)
+    fun pagesRows(ctx: Context) = get(ctx).getInt(KEY_PAGES_ROWS, 5)
+
+    // ── Custom order ─────────────────────────────────────────────────────────
+
+    fun customOrder(ctx: Context): List<String> {
+        val json = get(ctx).getString(KEY_CUSTOM_ORDER, "[]") ?: "[]"
+        return try {
+            val arr = JSONArray(json)
+            List(arr.length()) { arr.getString(it) }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    fun saveCustomOrder(ctx: Context, order: List<String>) {
+        get(ctx).edit().putString(KEY_CUSTOM_ORDER, JSONArray(order).toString()).apply()
+    }
+
+    // ── Per-app custom icons ─────────────────────────────────────────────────
+
+    fun customIconPath(ctx: Context, packageName: String): String? {
+        val json = get(ctx).getString(KEY_CUSTOM_ICONS, "{}") ?: "{}"
+        return try { JSONObject(json).optString(packageName, null) } catch (_: Exception) { null }
+    }
+
+    fun saveCustomIconPath(ctx: Context, packageName: String, path: String?) {
+        val json = get(ctx).getString(KEY_CUSTOM_ICONS, "{}") ?: "{}"
+        val obj = try { JSONObject(json) } catch (_: Exception) { JSONObject() }
+        if (path == null) obj.remove(packageName) else obj.put(packageName, path)
+        get(ctx).edit().putString(KEY_CUSTOM_ICONS, obj.toString()).apply()
+    }
+}

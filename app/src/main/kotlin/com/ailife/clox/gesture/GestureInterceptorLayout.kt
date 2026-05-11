@@ -27,6 +27,7 @@ class GestureInterceptorLayout @JvmOverloads constructor(
 ) : FrameLayout(ctx, attrs) {
 
     var appListOpen: Boolean = false
+    var pagesBackendActive: Boolean = false
 
     var onSwipeStart: ((SwipeDirection, Float, Float) -> Unit)? = null
     var onSwipeUpdate: ((SwipeDirection, Float, Float) -> Unit)? = null
@@ -136,7 +137,11 @@ class GestureInterceptorLayout @JvmOverloads constructor(
 
     /** True when the direction should be passed through to a child (e.g. vertical list scroll). */
     private fun shouldBlock(dir: SwipeDirection) =
-        appListOpen && (dir == SwipeDirection.UP || dir == SwipeDirection.DOWN)
+        appListOpen && (
+            dir == SwipeDirection.UP || dir == SwipeDirection.DOWN ||
+            // Pages mode: let horizontal swipes reach the ViewPager2
+            (pagesBackendActive && (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT))
+        )
 
     private fun commitDirection(dir: SwipeDirection) {
         dragDirection = dir

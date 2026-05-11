@@ -2,11 +2,18 @@ package com.ailife.clox.icon
 
 import android.content.Context
 import android.graphics.drawable.Drawable
+import com.ailife.clox.applist.AppListPrefs
 
 object IconResolver {
 
     fun resolve(context: Context, packageName: String): Drawable {
-        // Priority 1: per-app custom image from private storage
+        // Priority 1: per-app custom icon saved via IconPickerDialog
+        val appListPath = AppListPrefs.customIconPath(context, packageName)
+        if (appListPath != null) {
+            Drawable.createFromPath(appListPath)?.let { return it }
+        }
+
+        // Priority 2: legacy per-app custom image
         val customIcon = loadCustomIcon(context, packageName)
         if (customIcon != null) return customIcon
 

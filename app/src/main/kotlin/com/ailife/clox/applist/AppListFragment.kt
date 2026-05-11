@@ -1,61 +1,110 @@
 package com.ailife.clox.applist
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
+import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.applist.backends.Grid2DBackend
+import com.ailife.clox.applist.backends.GridBackend
+import com.ailife.clox.applist.backends.HoneycombBackend
 import com.ailife.clox.applist.backends.ListBackend
+import com.ailife.clox.applist.backends.PagesBackend
+import com.ailife.clox.applist.backends.WaterfallBackend
 import kotlinx.coroutines.launch
 
 class AppListFragment : Fragment() {
 
-    private val viewModel: AppListViewModel by viewModels()
-    private lateinit var adapter: AppListAdapter
-    private val backend: AppListBackend = ListBackend()
+    /** Called by MainActivity to close the app list (used by Pages backend). */
+    var onRequestClose: (() -> Unit)? = null
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_app_list, container, false)
+    /** Called when Pages mode activates/deactivates — MainActivity uses this to
+     *  toggle GestureInterceptorLayout.pagesBackendActive. */
+    var onPagesBackendActive: ((Boolean) -> Unit)? = null
+
+    private val viewModel: AppListViewModel by viewModels()
+    private var backend: AppListBackend? = null
+    private lateinit var root: FrameLayout
+
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == AppListPrefs.KEY_STYLE || key == AppListPrefs.KEY_SORT) {
+            swapBackend()
+        }
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        root = inflater.inflate(R.layout.fragment_app_list, container, false) as FrameLayout
+        return root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        AppListPrefs.get(requireContext()).registerOnSharedPreferenceChangeListener(prefsListener)
+        swapBackend()
+        observeApps()
+    }
 
-        adapter = AppListAdapter(backend)
+    override fun onDestroyView() {
+        super.onDestroyView()
+        AppListPrefs.get(requireContext()).unregisterOnSharedPreferenceChangeListener(prefsListener)
+    }
 
-        val recycler = view.findViewById<RecyclerView>(R.id.appRecyclerView)
-        recycler.layoutManager = backend.createLayoutManager(requireContext())
-        recycler.adapter = adapter
+    // ── Backend management ────────────────────────────────────────────────────
 
-        val search = view.findViewById<EditText>(R.id.searchField)
-        search.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val query = s?.toString()?.trim()?.lowercase() ?: ""
-                adapter.submitList(
-                    viewModel.apps.value.filter { it.label.lowercase().contains(query) }
-                )
-            }
-        })
+    private fun swapBackend() {
+        val ctx = requireContext()
+        val style = AppListPrefs.style(ctx)
+        val sort  = AppListPrefs.sort(ctx)
 
+        val newBackend = createBackend(ctx, style)
+        newBackend.onAppClick = { item ->
+            val pm = ctx.packageManager
+            pm.getLaunchIntentForPackage(item.packageName)
+                ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                ?.let { ctx.startActivity(it) }
+        }
+        newBackend.onAppLongPress = { item, anchor ->
+            AppContextMenu.show(ctx, anchor, item) { viewModel.loadApps() }
+        }
+        newBackend.onRequestClose = { onRequestClose?.invoke() }
+        newBackend.setDragEnabled(sort == AppListPrefs.SORT_CUSTOM)
+
+        val contentView = newBackend.createContentView(ctx)
+        root.removeAllViews()
+        root.addView(contentView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+
+        backend = newBackend
+        onPagesBackendActive?.invoke(style == AppListPrefs.STYLE_PAGES)
+
+        // Bind current list immediately if already loaded
+        val current = viewModel.apps.value
+        if (current.isNotEmpty()) newBackend.bindItems(current)
+    }
+
+    private fun createBackend(ctx: Context, style: String): AppListBackend = when (style) {
+        AppListPrefs.STYLE_GRID      -> GridBackend(ctx)
+        AppListPrefs.STYLE_WATERFALL -> WaterfallBackend(ctx)
+        AppListPrefs.STYLE_HONEYCOMB -> HoneycombBackend(ctx)
+        AppListPrefs.STYLE_GRID2D    -> Grid2DBackend(ctx)
+        AppListPrefs.STYLE_PAGES     -> PagesBackend(ctx)
+        else                         -> ListBackend(ctx)
+    }
+
+    private fun observeApps() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.apps.collect { list ->
-                    val query = search.text?.toString()?.trim()?.lowercase() ?: ""
-                    adapter.submitList(
-                        if (query.isEmpty()) list
-                        else list.filter { it.label.lowercase().contains(query) }
-                    )
-                }
+                viewModel.apps.collect { items -> backend?.bindItems(items) }
             }
         }
     }

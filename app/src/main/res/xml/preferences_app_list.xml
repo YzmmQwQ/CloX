@@ -1,17 +1,171 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- ── Style picker ──────────────────────────────────────────────────────── -->
     <ListPreference
-        android:key="app_list_style"
+        android:key="style"
         android:title="@string/pref_app_list_style_title"
         android:summary="%s"
         android:entries="@array/app_list_style_entries"
         android:entryValues="@array/app_list_style_values"
         android:defaultValue="list" />
 
-    <Preference
-        android:key="hidden_apps"
-        android:title="@string/pref_hidden_apps_title"
-        android:summary="Manage which apps appear in the launcher" />
+    <!-- ── List sub-settings ─────────────────────────────────────────────────── -->
+    <PreferenceCategory
+        android:key="cat_list"
+        android:title="List options">
+
+        <SwitchPreferenceCompat
+            android:key="list_search"
+            android:title="@string/pref_list_search_title"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="list_3d"
+            android:title="@string/pref_list_3d_title"
+            android:summary="@string/pref_list_3d_summary"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <!-- ── Grid sub-settings ─────────────────────────────────────────────────── -->
+    <PreferenceCategory
+        android:key="cat_grid"
+        android:title="Grid options">
+
+        <SeekBarPreference
+            android:key="grid_cols"
+            android:title="@string/pref_grid_cols_title"
+            android:defaultValue="4"
+            android:min="2"
+            android:max="6"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="grid_names"
+            android:title="@string/pref_grid_names_title"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ── Waterfall sub-settings ─────────────────────────────────────────────── -->
+    <PreferenceCategory
+        android:key="cat_waterfall"
+        android:title="Waterfall options">
+
+        <SwitchPreferenceCompat
+            android:key="waterfall_3d"
+            android:title="@string/pref_waterfall_3d_title"
+            android:summary="@string/pref_waterfall_3d_summary"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <!-- ── Honeycomb sub-settings ─────────────────────────────────────────────── -->
+    <PreferenceCategory
+        android:key="cat_honeycomb"
+        android:title="Honeycomb options">
+
+        <SwitchPreferenceCompat
+            android:key="honeycomb_3d"
+            android:title="@string/pref_honeycomb_3d_title"
+            android:summary="@string/pref_honeycomb_3d_summary"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="honeycomb_icon_size"
+            android:title="@string/pref_honeycomb_icon_size_title"
+            android:defaultValue="0"
+            android:min="0"
+            android:max="120"
+            app:showSeekBarValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ── Grid 2D sub-settings ───────────────────────────────────────────────── -->
+    <PreferenceCategory
+        android:key="cat_grid2d"
+        android:title="Grid 2D options">
+
+        <SeekBarPreference
+            android:key="grid2d_cols"
+            android:title="@string/pref_grid2d_cols_title"
+            android:defaultValue="4"
+            android:min="2"
+            android:max="6"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="grid2d_names"
+            android:title="@string/pref_grid2d_names_title"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="grid2d_3d"
+            android:title="@string/pref_grid2d_3d_title"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="grid2d_icon_size"
+            android:title="@string/pref_grid2d_icon_size_title"
+            android:defaultValue="0"
+            android:min="0"
+            android:max="120"
+            app:showSeekBarValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ── Pages sub-settings ─────────────────────────────────────────────────── -->
+    <PreferenceCategory
+        android:key="cat_pages"
+        android:title="Pages options">
+
+        <SeekBarPreference
+            android:key="pages_cols"
+            android:title="@string/pref_pages_cols_title"
+            android:defaultValue="4"
+            android:min="2"
+            android:max="6"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            android:key="pages_rows"
+            android:title="@string/pref_pages_rows_title"
+            android:defaultValue="5"
+            android:min="2"
+            android:max="8"
+            app:showSeekBarValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ── Generic / global settings ─────────────────────────────────────────── -->
+    <PreferenceCategory android:title="General">
+
+        <ListPreference
+            android:key="sort"
+            android:title="@string/pref_app_list_sort_title"
+            android:summary="%s"
+            android:entries="@array/app_list_sort_entries"
+            android:entryValues="@array/app_list_sort_values"
+            android:defaultValue="alpha" />
+
+        <Preference
+            android:key="sort_custom_hint"
+            android:summary="@string/pref_app_list_sort_custom_hint"
+            android:selectable="false" />
+
+        <ListPreference
+            android:key="icon_pack"
+            android:title="@string/pref_icon_pack_title"
+            android:summary="%s"
+            android:defaultValue="" />
+
+        <Preference
+            android:key="hidden_apps"
+            android:title="@string/pref_hidden_apps_title"
+            android:summary="Manage which apps appear in the launcher" />
+
+    </PreferenceCategory>
 
 </PreferenceScreen>

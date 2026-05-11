@@ -4,14 +4,57 @@
     <string name="settings_title">Settings</string>
     <string name="add_widget">Add Widget</string>
 
-    <!-- Settings -->
+    <!-- ── Settings ─────────────────────────────────────────────────────────── -->
     <string name="pref_double_tap_title">Double-tap action</string>
-    <string name="pref_app_list_style_title">App list style</string>
-    <string name="pref_hidden_apps_title">Hidden apps</string>
-    <string name="pref_icon_pack_title">Icon pack</string>
+    <string name="pref_icon_pack_title">Global icon pack</string>
+    <string name="pref_icon_pack_none">None (system icons)</string>
     <string name="pref_blur_mode_title">Blur mode</string>
     <string name="pref_blur_radius_title">Blur radius</string>
 
+    <!-- App list top-level -->
+    <string name="pref_app_list_style_title">Display style</string>
+    <string name="pref_app_list_sort_title">Sort order</string>
+    <string name="pref_app_list_sort_custom_hint">New apps are added at the bottom.\nLong-press an app and drag to reorder.</string>
+    <string name="pref_hidden_apps_title">Hidden apps</string>
+
+    <!-- List sub-settings -->
+    <string name="pref_list_search_title">Show search bar</string>
+    <string name="pref_list_3d_title">3D depth effect</string>
+    <string name="pref_list_3d_summary">Apps near the top and bottom of the screen scale down</string>
+
+    <!-- Grid sub-settings -->
+    <string name="pref_grid_cols_title">Columns</string>
+    <string name="pref_grid_names_title">Show app names</string>
+
+    <!-- Waterfall sub-settings -->
+    <string name="pref_waterfall_3d_title">3D depth effect</string>
+    <string name="pref_waterfall_3d_summary">Icons farther from screen center scale down</string>
+
+    <!-- Honeycomb sub-settings -->
+    <string name="pref_honeycomb_3d_title">3D depth effect</string>
+    <string name="pref_honeycomb_3d_summary">Icons farther from screen center scale down (2D)</string>
+    <string name="pref_honeycomb_icon_size_title">Icon size (dp, 0 = auto)</string>
+
+    <!-- Grid 2D sub-settings -->
+    <string name="pref_grid2d_cols_title">Columns</string>
+    <string name="pref_grid2d_names_title">Show app names</string>
+    <string name="pref_grid2d_3d_title">3D depth effect</string>
+    <string name="pref_grid2d_icon_size_title">Icon size (dp, 0 = auto)</string>
+
+    <!-- Pages sub-settings -->
+    <string name="pref_pages_cols_title">Icons per row</string>
+    <string name="pref_pages_rows_title">Rows per page</string>
+
+    <!-- Context menu -->
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="menu_app_info">App info</string>
+    <string name="menu_change_icon">Change icon</string>
+    <string name="menu_reset_icon">Reset to default icon</string>
+    <string name="icon_picker_title">Choose icon</string>
+    <string name="icon_picker_search_hint">Search icons…</string>
+    <string name="icon_picker_from_gallery">Pick from gallery</string>
+
+    <!-- ── Arrays ────────────────────────────────────────────────────────────── -->
     <string-array name="blur_mode_entries">
         <item>Auto (best available)</item>
         <item>Always snapshot</item>
@@ -25,10 +68,27 @@
 
     <string-array name="app_list_style_entries">
         <item>List</item>
-        <item>Grid (coming soon)</item>
+        <item>Grid</item>
+        <item>Waterfall</item>
+        <item>Honeycomb</item>
+        <item>Grid 2D</item>
+        <item>Pages</item>
     </string-array>
     <string-array name="app_list_style_values">
         <item>list</item>
         <item>grid</item>
+        <item>waterfall</item>
+        <item>honeycomb</item>
+        <item>grid2d</item>
+        <item>pages</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>Alphabetical</item>
+        <item>Custom order</item>
+    </string-array>
+    <string-array name="app_list_sort_values">
+        <item>alpha</item>
+        <item>custom</item>
     </string-array>
 </resources>

@@ -7,5 +7,6 @@ data class AppItem(
     val activityName: String,
     val label: String,
     val icon: Drawable,
-    val isHidden: Boolean = false
+    val isHidden: Boolean = false,
+    val customOrder: Int = Int.MAX_VALUE
 )

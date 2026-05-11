@@ -47,11 +47,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 add(R.id.homeContainer, HomeFragment(), "home")
             }
             val frag = AppListFragment()
+            frag.onRequestClose = { closeAppList() }
+            frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             appListFragment = frag
             supportFragmentManager.commit { add(R.id.fragmentContainer, frag, "app_list") }
         } else {
-            appListFragment = supportFragmentManager
-                .findFragmentByTag("app_list") as? AppListFragment
+            appListFragment = (supportFragmentManager
+                .findFragmentByTag("app_list") as? AppListFragment)?.also { frag ->
+                    frag.onRequestClose = { closeAppList() }
+                    frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
+                }
             appListOpen = savedInstanceState.getBoolean("app_list_open", false)
         }
 
