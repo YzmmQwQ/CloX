@@ -7,8 +7,8 @@ import androidx.recyclerview.widget.RecyclerView
  * Alternating rows of 3 and 4 icons (7 items per group).
  *
  * All icons are the same size: width = height = totalWidth / 4.
- * 4-col rows: icons flush left, fill width exactly.
  * 3-col rows: centred — startX = cellSize/2 so equal gap on both sides.
+ * 4-col rows: icons flush left, fill width exactly.
  *
  * Performance: only items in the visible Y range are laid out.
  * scrollVerticallyBy offsets existing children then fills edges.
@@ -48,12 +48,12 @@ class WaterfallLayoutManager : RecyclerView.LayoutManager() {
     /** Cell size = width/4, same for all icons regardless of row type. */
     private fun cellSize() = if (width > 0) width / 4 else 80
 
-    /** Returns (row, col, rowType: 4|3) for adapter position. */
+    /** Returns (row, col, rowType: 3|4) for adapter position. */
     private fun rowInfo(pos: Int): Triple<Int, Int, Int> {
         val group = pos / 7
         val rem   = pos % 7
-        return if (rem < 4) Triple(group * 2, rem, 4)
-        else                 Triple(group * 2 + 1, rem - 4, 3)
+        return if (rem < 3) Triple(group * 2, rem, 3)
+        else                 Triple(group * 2 + 1, rem - 3, 4)
     }
 
     /** Pixel Y of the top of a row (before scroll offset). */

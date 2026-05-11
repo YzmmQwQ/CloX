@@ -19,13 +19,9 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * Hex-arranged icon grid with 2D pan.
- *
- * Layout: 6 icons on even rows, 5 on odd rows (offset by tileSize/2).
- * Icon size: width/6 by default (smaller icons → grid wider than screen → pan in X+Y).
- * Gap between icons: GAP_DP. Default scroll: centred on the content.
- *
- * Pan gesture: onInterceptTouchEvent steals from child ImageViews once touchSlop exceeded.
+ * Icons arranged in a true hexagonal shape (pointy-top axial coords).
+ * Radius R is the smallest value where 1+3R(R+1) >= itemCount.
+ * Content is centered in the view; if it overflows the view scrolls in 2D.
  */
 class HoneycombView @JvmOverloads constructor(
     ctx: Context,
@@ -50,6 +46,7 @@ class HoneycombView @JvmOverloads constructor(
     init {
         clipChildren = true
         clipToPadding = true
+        isMotionEventSplittingEnabled = false
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -67,18 +64,43 @@ class HoneycombView @JvmOverloads constructor(
 
     private fun buildGrid(items: List<AppItem>) {
         removeAllViews()
-        val gap = (GAP_DP * resources.displayMetrics.density + 0.5f).toInt()
-        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else width / 8
+
+        // Smallest R so that the hex shape (1 + 3R(R+1) cells) holds all items
+        var R = 0
+        while (1 + 3 * R * (R + 1) < items.size) R++
+
+        // Auto: show ~5 icons across the smaller screen dimension
+        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else (minOf(width, height) / 5).coerceAtLeast(1)
         if (iconPx <= 0) return
+        val sqrt3 = 1.7320508f
+        // Center-to-center = sqrt(3)*tile; visual gap = sqrt(3)*tile - iconPx = GAP_RATIO*iconPx
+        // → tile = (1 + GAP_RATIO) * iconPx / sqrt(3)
+        val tile = (1f + GAP_RATIO) * iconPx / sqrt3
 
-        val tileSize = iconPx + gap
-        val rowH = (tileSize * 0.866f).toInt()
+        // Axial coords for pointy-top hex of radius R, sorted top→bottom left→right
+        val coords = mutableListOf<Pair<Int, Int>>()
+        for (r in -R..R) {
+            for (q in maxOf(-R, -r - R)..minOf(R, -r + R)) coords.add(q to r)
+        }
+        coords.sortWith(compareBy({ it.second }, { it.first }))
 
-        var maxX = 0; var maxY = 0
+        // Axial → pixel (pointy-top): x = √3·tile·(q + r/2), y = 1.5·tile·r
+        val raw = coords.map { (q, r) -> tile * sqrt3 * (q + r / 2f) to tile * 1.5f * r }
+
+        val minX = raw.minOf { it.first };  val maxX = raw.maxOf { it.first }
+        val minY = raw.minOf { it.second }; val maxY = raw.maxOf { it.second }
+        val contentW = maxX - minX + iconPx;  val contentH = maxY - minY + iconPx
+        // No negative margins: leftmost icon at x≥0. Center if content fits, else left/top-align for scrolling.
+        val shiftX = if (contentW >= width)  -minX else (width  - contentW) / 2f - minX
+        val shiftY = if (contentH >= height) -minY else (height - contentH) / 2f - minY
+
+        var contentMaxX = 0; var contentMaxY = 0
         for ((idx, item) in items.withIndex()) {
-            val (tx, ty) = hexTile(idx, tileSize, rowH)
-            maxX = maxX.coerceAtLeast(tx + tileSize)
-            maxY = maxY.coerceAtLeast(ty + tileSize)
+            if (idx >= raw.size) break
+            val (rx, ry) = raw[idx]
+            val x = (rx + shiftX).toInt(); val y = (ry + shiftY).toInt()
+            contentMaxX = contentMaxX.coerceAtLeast(x + iconPx)
+            contentMaxY = contentMaxY.coerceAtLeast(y + iconPx)
 
             val iv = ImageView(context).apply {
                 scaleType = ImageView.ScaleType.FIT_CENTER
@@ -87,30 +109,16 @@ class HoneycombView @JvmOverloads constructor(
             iv.setOnClickListener { onAppClick?.invoke(item) }
             iv.setOnLongClickListener { onAppLongPress?.invoke(item, iv); true }
             addView(iv, FrameLayout.LayoutParams(iconPx, iconPx).apply {
-                leftMargin = tx + gap / 2
-                topMargin  = ty + gap / 2
+                leftMargin = x; topMargin = y
             })
         }
 
-        maxScrollX = (maxX - width).toFloat().coerceAtLeast(0f)
-        maxScrollY = (maxY - height).toFloat().coerceAtLeast(0f)
+        maxScrollX = (contentMaxX - width).toFloat().coerceAtLeast(0f)
+        maxScrollY = (contentMaxY - height).toFloat().coerceAtLeast(0f)
         scrollX_ = maxScrollX / 2f
         scrollY_ = maxScrollY / 2f
         applyScroll()
-        // Defer 3D until after layout pass so child.left/top are set
         if (enable3d) post { apply3d() }
-    }
-
-    // ── Hex position ──────────────────────────────────────────────────────────
-
-    // Group of 13: positions 0-6 → even row (7 icons), 7-12 → odd row (6 icons, offset)
-    // 7 per row keeps the overall grid roughly square; auto icon = width/8 gives slight overflow
-    private fun hexTile(idx: Int, tileSize: Int, rowH: Int): Pair<Int, Int> {
-        val group = idx / 13; val pos = idx % 13
-        val row = group * 2 + if (pos < 7) 0 else 1
-        val col = if (pos < 7) pos else pos - 7
-        val x   = if (row % 2 == 0) col * tileSize else col * tileSize + tileSize / 2
-        return x to row * rowH
     }
 
     // ── Touch ─────────────────────────────────────────────────────────────────
@@ -128,6 +136,7 @@ class HoneycombView @JvmOverloads constructor(
                 if (!isPanning) {
                     if (abs(ev.x - lastX) > touchSlop || abs(ev.y - lastY) > touchSlop) {
                         isPanning = true
+                        lastX = ev.x; lastY = ev.y  // reset so first onTouchEvent MOVE has no jump
                         parent?.requestDisallowInterceptTouchEvent(true)
                     }
                 }
@@ -201,7 +210,7 @@ class HoneycombView @JvmOverloads constructor(
             val dy = child.top + child.height / 2f - cy
             val dist = sqrt(dx * dx + dy * dy)
             val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
-            val scale = 1f - (dist / maxDist).coerceIn(0f, 1f) * 0.55f
+            val scale = 1f - (dist / maxDist).coerceIn(0f, 1f) * 0.5f
             child.scaleX = scale; child.scaleY = scale
         }
     }
@@ -218,7 +227,7 @@ class HoneycombView @JvmOverloads constructor(
 
     private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
 
-    companion object { private const val GAP_DP = 8 }
+    companion object { private const val GAP_RATIO = 0.12f }
 }
 
 fun Drawable.toCircle(sizePx: Int): Drawable {

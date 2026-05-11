@@ -13,6 +13,7 @@ import android.widget.OverScroller
 import android.widget.TextView
 import com.ailife.clox.applist.model.AppItem
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.sqrt
 
 /**
@@ -48,6 +49,7 @@ class Grid2DView @JvmOverloads constructor(
     init {
         clipChildren = true
         clipToPadding = true
+        isMotionEventSplittingEnabled = false
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -65,16 +67,15 @@ class Grid2DView @JvmOverloads constructor(
 
     private fun buildGrid(items: List<AppItem>) {
         removeAllViews()
-        // Auto mode: compute columns so grid is as square as possible
-        val cols = if (iconSizeDp > 0) columns.coerceAtLeast(2)
-                   else kotlin.math.sqrt(items.size.toFloat()).toInt().coerceIn(3, 10)
-        val gap = (GAP_DP * resources.displayMetrics.density + 0.5f).toInt()
-        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else width / cols
+        val cols = ceil(sqrt(items.size.toFloat())).toInt().coerceAtLeast(1)
+        // Auto: show ~5 icons across the smaller screen dimension
+        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else (minOf(width, height) / 5).coerceAtLeast(1)
+        val gap = (iconPx * GAP_RATIO + 0.5f).toInt()
         if (iconPx <= 0) return
 
         val labelH = if (showNames) dp(LABEL_DP) else 0
         val cellW = iconPx + gap
-        val cellH = iconPx + labelH + gap
+        val cellH = cellW  // square cells regardless of label
 
         var maxX = 0; var maxY = 0
         for ((idx, item) in items.withIndex()) {
@@ -147,6 +148,7 @@ class Grid2DView @JvmOverloads constructor(
                 if (!isPanning) {
                     if (abs(ev.x - lastX) > touchSlop || abs(ev.y - lastY) > touchSlop) {
                         isPanning = true
+                        lastX = ev.x; lastY = ev.y  // reset so first onTouchEvent MOVE has no jump
                         parent?.requestDisallowInterceptTouchEvent(true)
                     }
                 }
@@ -219,7 +221,7 @@ class Grid2DView @JvmOverloads constructor(
             val dy = child.top + child.height / 2f - cy
             val dist = sqrt(dx * dx + dy * dy)
             val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
-            val scale = 1f - (dist / maxDist).coerceIn(0f, 1f) * 0.55f
+            val scale = 1f - (dist / maxDist).coerceIn(0f, 1f) * 0.5f
             child.scaleX = scale; child.scaleY = scale
         }
     }
@@ -235,7 +237,7 @@ class Grid2DView @JvmOverloads constructor(
     private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
 
     companion object {
-        private const val GAP_DP   = 8
+        private const val GAP_RATIO = 0.12f
         private const val LABEL_DP = 16
     }
 }

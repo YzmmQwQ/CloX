@@ -69,7 +69,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
                 val maxDist = Math.sqrt((cx * cx + cy * cy).toDouble()).toFloat()
                 val dist = Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
                 val ratio = (dist / maxDist).coerceIn(0f, 1f)
-                val scale = 1f - ratio * 0.55f
+                val scale = 1f - ratio * 0.5f
                 child.scaleX = scale; child.scaleY = scale
             }
         }
