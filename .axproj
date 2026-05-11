@@ -1,0 +1,5 @@
+cmake=3.31.4
+ndk=r25c
+package_name=com.ailife.clox
+min_sdk=26
+target_sdk=36

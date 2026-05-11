@@ -16,8 +16,11 @@ import com.ailife.clox.overlay.OverlayController
 import com.ailife.clox.overlay.notifications.NotificationOverlay
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
+import dev.axmol.lib.AxmolEngine
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
+
+    override fun showDialog(pTitle: String, pMessage: String) {}
 
     private lateinit var gestureRoot: GestureInterceptorLayout
     private lateinit var overlayController: OverlayController
