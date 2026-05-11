@@ -17,6 +17,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Scrim — darkens watchface as an overlay drags in -->
+    <View
+        android:id="@+id/overlayScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:alpha="0"
+        android:visibility="gone" />
+
     <!-- Overlays — GONE by default, above all fragments -->
     <com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
         android:id="@+id/quickSettingsOverlay"

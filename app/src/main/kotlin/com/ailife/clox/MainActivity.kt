@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var appListSpring: SpringAnimation? = null
 
     private val screenW get() = resources.displayMetrics.widthPixels.toFloat()
+    private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +63,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         quickSettings = findViewById(R.id.quickSettingsOverlay)
         widgets = findViewById(R.id.widgetsOverlay)
         notifications = findViewById(R.id.notificationsOverlay)
-        overlayController = OverlayController(window, quickSettings, widgets, notifications)
+        overlayController = OverlayController(
+            window, quickSettings, widgets, notifications,
+            findViewById(R.id.overlayScrim)
+        )
 
         setupGestures()
     }
@@ -95,7 +99,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             if (appListOpen) closeAppList()
         }
 
-        gestureRoot.onSwipeStart = { _, _, _ -> }
+        gestureRoot.onSwipeStart = { direction, _, _ ->
+            when {
+                !appListOpen && !overlayController.hasActiveOverlay() ->
+                    when (direction) {
+                        SwipeDirection.DOWN, SwipeDirection.UP, SwipeDirection.RIGHT ->
+                            overlayController.startDrag(direction, screenW, screenH)
+                        else -> Unit
+                    }
+                overlayController.hasActiveOverlay() && !overlayController.isDragging ->
+                    overlayController.startCollapse(direction)
+            }
+        }
 
         gestureRoot.onSwipeUpdate = ::handleSwipeUpdate
 
@@ -105,8 +120,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Swipe-update routing ─────────────────────────────────────────────────
 
     private fun handleSwipeUpdate(direction: SwipeDirection, dx: Float, dy: Float) {
-        // Never move the app list while an overlay is active —
-        // prevents "dismiss overlay + app list half-opens" dual-state bug.
+        if (overlayController.isCollapsing) {
+            overlayController.updateCollapse(dx, dy)
+            return
+        }
+        if (overlayController.isDragging) {
+            overlayController.updateDrag(direction, dx, dy)
+            return
+        }
         if (overlayController.hasActiveOverlay()) return
 
         when {
@@ -121,10 +142,33 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Swipe-end routing ────────────────────────────────────────────────────
 
     private fun handleSwipeEnd(direction: SwipeDirection, dx: Float, dy: Float, vx: Float, vy: Float) {
-        // Priority 1: dismiss any open overlay on any swipe
+        // Priority 1: commit or cancel an in-progress collapse drag
+        if (overlayController.isCollapsing) {
+            val commit = when (direction) {
+                SwipeDirection.UP    -> -dy > screenH * 0.25f || -vy > 600f
+                SwipeDirection.DOWN  -> dy > screenH * 0.25f || vy > 600f
+                SwipeDirection.LEFT  -> -dx > screenW * 0.25f || -vx > 600f
+                else -> false
+            }
+            if (commit) overlayController.commitCollapse() else overlayController.cancelCollapse()
+            return
+        }
+
+        // Priority 2: commit or cancel an in-progress open drag
+        if (overlayController.isDragging) {
+            val commit = when (direction) {
+                SwipeDirection.DOWN  -> dy > screenH * 0.25f || vy > 600f
+                SwipeDirection.UP    -> -dy > screenH * 0.25f || -vy > 600f
+                SwipeDirection.RIGHT -> dx > screenW * 0.25f || vx > 600f
+                else -> false
+            }
+            if (commit) overlayController.commitDrag() else overlayController.cancelDrag()
+            return
+        }
+
+        // Priority 3: dismiss a fully-open overlay on any swipe (fallback)
         if (overlayController.hasActiveOverlay()) {
             overlayController.dismissActive()
-            // Safety: if app list drifted during the overlay-dismissal swipe, snap it back
             val x = appListFragment?.view?.translationX ?: screenW
             if (x != (if (appListOpen) 0f else screenW)) {
                 springAppList(if (appListOpen) 0f else screenW)
@@ -145,13 +189,6 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
             currentX > 0f && currentX < screenW ->
                 if (currentX < screenW * 0.5f) openAppList() else closeAppList()
-
-            !appListOpen -> when (direction) {
-                SwipeDirection.DOWN  -> overlayController.onSwipe(SwipeDirection.DOWN)
-                SwipeDirection.UP    -> overlayController.onSwipe(SwipeDirection.UP)
-                SwipeDirection.RIGHT -> overlayController.onSwipe(SwipeDirection.RIGHT)
-                else -> Unit
-            }
         }
     }
 
