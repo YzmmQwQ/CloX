@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory android:title="Blur">
+
+        <ListPreference
+            android:key="blur_mode"
+            android:title="@string/pref_blur_mode_title"
+            android:summary="%s"
+            android:entries="@array/blur_mode_entries"
+            android:entryValues="@array/blur_mode_values"
+            android:defaultValue="AUTO" />
+
+        <SeekBarPreference
+            android:key="blur_radius"
+            android:title="@string/pref_blur_radius_title"
+            android:min="2"
+            android:max="25"
+            android:defaultValue="15"
+            app:showSeekBarValue="true" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
