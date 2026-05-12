@@ -104,10 +104,6 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     private fun showSystemBars() {
-        @Suppress("DEPRECATION")
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        @Suppress("DEPRECATION")
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         WindowInsetsControllerCompat(window, window.decorView)
             .show(WindowInsetsCompat.Type.systemBars())
     }
