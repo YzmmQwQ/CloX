@@ -246,13 +246,14 @@ class Grid2DView @JvmOverloads constructor(
 
     private fun apply3d() {
         val cx = scrollX_ + width / 2f; val cy = scrollY_ + height / 2f
+        val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
         for (i in 0 until childCount) {
             val child = getChildAt(i)
-            val dx = child.left + child.width / 2f - cx
-            val dy = child.top + child.height / 2f - cy
-            val dist = sqrt(dx * dx + dy * dy)
-            val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
-            val scale = 1f - (dist / maxDist).coerceIn(0f, 1f) * 0.5f
+            if (child === draggingViewRef) continue  // dragged item keeps its own drag scale
+            // Include translationX/Y so 3D updates correctly during drag animations
+            val dx = child.left + child.translationX + child.width / 2f - cx
+            val dy = child.top + child.translationY + child.height / 2f - cy
+            val scale = 1f - (sqrt(dx * dx + dy * dy) / maxDist).coerceIn(0f, 1f) * 0.5f
             child.scaleX = scale; child.scaleY = scale
         }
     }
@@ -288,8 +289,11 @@ class Grid2DView @JvmOverloads constructor(
             orderedViews[j].animate()
                 .translationX(gridLeft[j] - orderedViews[j].left)
                 .translationY(gridTop[j] - orderedViews[j].top)
-                .setDuration(100).start()
+                .setDuration(100)
+                .withEndAction { if (enable3d) apply3d() }
+                .start()
         }
+        if (enable3d) apply3d()
     }
 
     private fun endDrag() {
@@ -297,7 +301,23 @@ class Grid2DView @JvmOverloads constructor(
         dv.animate()
             .translationX(gridLeft[draggingPos] - dv.left)
             .translationY(gridTop[draggingPos] - dv.top)
-            .setDuration(120).withEndAction { dv.elevation = 0f; dv.scaleX = 1f; dv.scaleY = 1f }.start()
+            .setDuration(120)
+            .withEndAction {
+                dv.elevation = 0f
+                if (enable3d) {
+                    // Final 3D scale now that translation is at its resting position
+                    val scale = run {
+                        val cx = scrollX_ + width / 2f; val cy = scrollY_ + height / 2f
+                        val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
+                        val dx = dv.left + dv.translationX + dv.width / 2f - cx
+                        val dy = dv.top + dv.translationY + dv.height / 2f - cy
+                        1f - (sqrt(dx * dx + dy * dy) / maxDist).coerceIn(0f, 1f) * 0.5f
+                    }
+                    dv.scaleX = scale; dv.scaleY = scale
+                } else {
+                    dv.scaleX = 1f; dv.scaleY = 1f
+                }
+            }.start()
         dragActive = false; draggingPos = -1; draggingViewRef = null
         onOrderChanged?.invoke(workingItems.toList())
     }
