@@ -147,7 +147,8 @@ class AppListAdapter(
         private const val DRAG_THRESHOLD_SQ = 400f  // ~20px before drag commits
 
         val DIFF = object : DiffUtil.ItemCallback<AppItem>() {
-            override fun areItemsTheSame(a: AppItem, b: AppItem) = a.packageName == b.packageName
+            override fun areItemsTheSame(a: AppItem, b: AppItem) =
+                a.packageName == b.packageName && a.activityName == b.activityName
             override fun areContentsTheSame(a: AppItem, b: AppItem) =
                 a.label == b.label && a.icon === b.icon && a.customOrder == b.customOrder
         }

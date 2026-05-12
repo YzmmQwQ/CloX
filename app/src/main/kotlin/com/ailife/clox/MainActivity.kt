@@ -95,12 +95,21 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (hasFocus) hideSystemBars()
     }
 
-    private fun hideSystemBars() {
+    internal fun hideSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+    }
+
+    private fun showSystemBars() {
+        @Suppress("DEPRECATION")
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        WindowInsetsControllerCompat(window, window.decorView)
+            .show(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onResume() {
@@ -223,11 +232,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     private fun openAppList() {
         appListOpen = true; gestureRoot.appListOpen = true
+        showSystemBars()
         springAppList(0f)
     }
 
     private fun closeAppList() {
         appListOpen = false; gestureRoot.appListOpen = false
+        hideSystemBars()
         springAppList(screenW)
     }
 

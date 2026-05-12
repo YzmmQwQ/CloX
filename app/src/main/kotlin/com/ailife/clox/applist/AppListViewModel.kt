@@ -52,11 +52,8 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             val hideMode = AppListPrefs.hideMode(ctx)
 
             val intent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
-            val ownMain = pm.getLaunchIntentForPackage(ctx.packageName)?.component?.className
             val all = pm.queryIntentActivities(intent, 0)
-                .filterNot { ri ->
-                    ri.activityInfo.packageName == ctx.packageName && ri.activityInfo.name == ownMain
-                }
+                .filterNot { ri -> ri.activityInfo.packageName == ctx.packageName }
                 .map { ri ->
                     val key = "${ri.activityInfo.packageName}/${ri.activityInfo.name}"
                     AppItem(

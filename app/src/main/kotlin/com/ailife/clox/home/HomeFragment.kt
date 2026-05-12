@@ -9,10 +9,6 @@ import androidx.fragment.app.Fragment
 import com.ailife.clox.R
 import com.ailife.clox.cocos.CocosManager
 
-/**
- * Home screen fragment — wraps the Axmol GL SurfaceView.
- * All UI (clock, animation, touch test button) is rendered by watchface.lua.
- */
 class HomeFragment : Fragment() {
 
     override fun onCreateView(
