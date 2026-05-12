@@ -3,8 +3,16 @@ package com.ailife.clox.applist
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Build
+import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,21 +29,13 @@ import com.ailife.clox.applist.backends.HoneycombBackend
 import com.ailife.clox.applist.backends.ListBackend
 import com.ailife.clox.applist.backends.PagesBackend
 import com.ailife.clox.applist.backends.WaterfallBackend
-import android.util.Log
 import kotlinx.coroutines.launch
 
 class AppListFragment : Fragment() {
 
-    /** Called by MainActivity to close the app list (used by Pages backend). */
     var onRequestClose: (() -> Unit)? = null
-
-    /** Called when Pages mode activates/deactivates — MainActivity toggles pagesBackendActive. */
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
-
-    /** Called when Pages backend changes — MainActivity updates pagesCanScrollRight lambda. */
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
-
-    /** Called when Pages backend changes — MainActivity updates pagesBackendDragActive lambda. */
     var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
 
     private val viewModel: AppListViewModel by viewModels()
@@ -43,8 +43,9 @@ class AppListFragment : Fragment() {
     private lateinit var root: FrameLayout
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == AppListPrefs.KEY_STYLE || key == AppListPrefs.KEY_SORT) {
-            swapBackend()
+        when (key) {
+            AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT -> swapBackend()
+            AppListPrefs.KEY_BG_IMAGE_PATH, AppListPrefs.KEY_WALLPAPER_DIM -> applyBackground()
         }
     }
 
@@ -56,6 +57,7 @@ class AppListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         AppListPrefs.get(requireContext()).registerOnSharedPreferenceChangeListener(prefsListener)
+        applyBackground()
         swapBackend()
         observeApps()
     }
@@ -63,6 +65,50 @@ class AppListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         AppListPrefs.get(requireContext()).unregisterOnSharedPreferenceChangeListener(prefsListener)
+    }
+
+    // ── Background ───────────────────────────────────────────────────────────
+
+    private fun applyBackground() {
+        val ctx = requireContext()
+        val path = AppListPrefs.bgImagePath(ctx)
+        if (path == null) { applySurfaceBackground(); return }
+
+        Thread {
+            val bitmap = runCatching {
+                val src = BitmapFactory.decodeFile(path) ?: return@runCatching null
+                val vw = resources.displayMetrics.widthPixels
+                val vh = resources.displayMetrics.heightPixels
+                // Center-crop: scale so the image covers the view, then crop the overflow
+                val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
+                val sw = (src.width * scale).toInt()
+                val sh = (src.height * scale).toInt()
+                val scaled = android.graphics.Bitmap.createScaledBitmap(src, sw, sh, true)
+                val ox = (sw - vw) / 2
+                val oy = (sh - vh) / 2
+                android.graphics.Bitmap.createBitmap(scaled, ox, oy, vw, vh)
+            }.getOrNull()
+
+            Handler(Looper.getMainLooper()).post {
+                if (!isAdded) return@post
+                if (bitmap == null) { applySurfaceBackground(); return@post }
+
+                val dim = AppListPrefs.wallpaperDim(ctx)
+                val dimAlpha = (dim / 100f * 255).toInt().coerceIn(0, 255)
+                val wallLayer = BitmapDrawable(resources, bitmap)
+                root.background = if (dimAlpha > 0)
+                    LayerDrawable(arrayOf(wallLayer, ColorDrawable(Color.argb(dimAlpha, 0, 0, 0))))
+                else wallLayer
+            }
+        }.start()
+    }
+
+    private fun applySurfaceBackground() {
+        val ta = requireContext().obtainStyledAttributes(
+            intArrayOf(com.google.android.material.R.attr.colorSurface)
+        )
+        root.setBackgroundColor(ta.getColor(0, 0xFF1C1B1F.toInt()))
+        ta.recycle()
     }
 
     // ── Backend management ────────────────────────────────────────────────────
@@ -108,7 +154,6 @@ class AppListFragment : Fragment() {
         onSetPagesCanScrollRight(pagesBackend?.canScrollRight)
         onSetPagesDragActive(pagesBackend?.let { b -> { b.isDragActive } })
 
-        // Bind current list immediately if already loaded
         val current = viewModel.apps.value
         if (current.isNotEmpty()) newBackend.bindItems(current)
     }

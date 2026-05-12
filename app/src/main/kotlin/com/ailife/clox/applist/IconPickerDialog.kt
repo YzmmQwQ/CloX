@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.os.Build
@@ -121,10 +122,13 @@ object IconPickerDialog {
         val onDone   = pendingOnDone       ?: return
         pendingPackageName = null; pendingActivityName = null; pendingOnDone = null
         try {
-            val stream = context.contentResolver.openInputStream(data.data!!) ?: return
-            val drawable = Drawable.createFromStream(stream, null) ?: return
-            stream.close()
-            saveCustomIcon(context, pkg, activity, drawable)
+            val bitmap = context.contentResolver.openInputStream(data.data!!)
+                ?.use { BitmapFactory.decodeStream(it) } ?: return
+            val dir = File(context.filesDir, "icons").apply { mkdirs() }
+            val safeName = activity.substringAfterLast('.')
+            val file = File(dir, "${pkg}_${safeName}.png")
+            FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            AppListPrefs.saveCustomIconPath(context, pkg, activity, file.absolutePath)
             onDone()
         } catch (_: Exception) {}
     }

@@ -25,6 +25,10 @@ object AppListPrefs {
     // ── Icon pack ────────────────────────────────────────────────────────────
     const val KEY_ICON_PACK = "icon_pack"
 
+    // ── General appearance ───────────────────────────────────────────────────
+    const val KEY_BG_IMAGE_PATH = "bg_image_path"
+    const val KEY_WALLPAPER_DIM = "wallpaper_dim"
+
     // ── List sub-settings ────────────────────────────────────────────────────
     const val KEY_LIST_SEARCH = "list_search"
     const val KEY_LIST_3D     = "list_3d"
@@ -57,6 +61,13 @@ object AppListPrefs {
     // ─────────────────────────────────────────────────────────────────────────
 
     fun get(ctx: Context) = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    fun bgImagePath(ctx: Context): String? = get(ctx).getString(KEY_BG_IMAGE_PATH, null)
+    fun saveBgImagePath(ctx: Context, path: String?) {
+        if (path == null) get(ctx).edit().remove(KEY_BG_IMAGE_PATH).apply()
+        else get(ctx).edit().putString(KEY_BG_IMAGE_PATH, path).apply()
+    }
+    fun wallpaperDim(ctx: Context) = get(ctx).getInt(KEY_WALLPAPER_DIM, 0)
 
     fun style(ctx: Context)    = get(ctx).getString(KEY_STYLE, STYLE_LIST) ?: STYLE_LIST
     fun sort(ctx: Context)     = get(ctx).getString(KEY_SORT, SORT_ALPHA)  ?: SORT_ALPHA

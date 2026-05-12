@@ -158,6 +158,25 @@
             android:title="@string/pref_hidden_apps_title"
             android:summary="Manage which apps appear in the launcher" />
 
+        <Preference
+            android:key="bg_image_pick"
+            android:title="Background image"
+            android:summary="Tap to choose an image" />
+
+        <Preference
+            android:key="bg_image_clear"
+            android:title="Clear background image"
+            android:visible="false" />
+
+        <SeekBarPreference
+            android:key="wallpaper_dim"
+            android:title="Darken background"
+            android:defaultValue="0"
+            android:min="0"
+            android:max="90"
+            android:visible="false"
+            app:showSeekBarValue="true" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

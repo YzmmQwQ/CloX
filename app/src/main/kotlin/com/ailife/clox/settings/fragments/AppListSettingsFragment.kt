@@ -1,16 +1,48 @@
 package com.ailife.clox.settings.fragments
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceScreen
+import androidx.preference.SeekBarPreference
 import com.ailife.clox.R
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.icon.IconPackLoader
+import java.io.File
+import java.io.FileOutputStream
 
 class AppListSettingsFragment : PreferenceFragmentCompat() {
+
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri ?: return@registerForActivityResult
+        val ctx = requireContext()
+        try {
+            val src = ctx.contentResolver.openInputStream(uri)
+                ?.use { BitmapFactory.decodeStream(it) }
+                ?: throw IllegalStateException("Could not decode image")
+
+            // Center-crop to screen dimensions so it's ready to display without distortion
+            val dm = resources.displayMetrics
+            val vw = dm.widthPixels; val vh = dm.heightPixels
+            val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
+            val sw = (src.width * scale).toInt(); val sh = (src.height * scale).toInt()
+            val scaled = Bitmap.createScaledBitmap(src, sw, sh, true)
+            val cropped = Bitmap.createBitmap(scaled, (sw - vw) / 2, (sh - vh) / 2, vw, vh)
+
+            val dir = File(ctx.filesDir, "backgrounds").apply { mkdirs() }
+            val dest = File(dir, "app_list_bg.jpg")
+            FileOutputStream(dest).use { cropped.compress(Bitmap.CompressFormat.JPEG, 90, it) }
+
+            AppListPrefs.saveBgImagePath(ctx, dest.absolutePath)
+            updateBgPrefs()
+        } catch (e: Exception) {
+            android.util.Log.e("CloX/BgImage", "Failed to copy bg image: $e")
+        }
+    }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferencesName = AppListPrefs.PREFS_NAME
@@ -20,18 +52,31 @@ class AppListSettingsFragment : PreferenceFragmentCompat() {
         updateVisibility(currentStyle)
         updateSortHint(AppListPrefs.sort(requireContext()))
         populateIconPacks()
+        updateBgPrefs()
 
-        // React to style changes
         findPreference<ListPreference>("style")?.setOnPreferenceChangeListener { _, newValue ->
-            updateVisibility(newValue as String)
-            true
+            updateVisibility(newValue as String); true
         }
-
-        // React to sort changes
         findPreference<ListPreference>("sort")?.setOnPreferenceChangeListener { _, newValue ->
-            updateSortHint(newValue as String)
-            true
+            updateSortHint(newValue as String); true
         }
+        findPreference<Preference>("bg_image_pick")?.setOnPreferenceClickListener {
+            pickImage.launch("image/*"); true
+        }
+        findPreference<Preference>("bg_image_clear")?.setOnPreferenceClickListener {
+            AppListPrefs.saveBgImagePath(requireContext(), null)
+            updateBgPrefs(); true
+        }
+    }
+
+    // ── Background image state ────────────────────────────────────────────────
+
+    private fun updateBgPrefs() {
+        val hasImage = AppListPrefs.bgImagePath(requireContext()) != null
+        findPreference<Preference>("bg_image_pick")?.summary =
+            if (hasImage) "Image set — tap to replace" else "Tap to choose an image"
+        findPreference<Preference>("bg_image_clear")?.isVisible = hasImage
+        findPreference<SeekBarPreference>("wallpaper_dim")?.isVisible = hasImage
     }
 
     // ── Show/hide style sub-settings ─────────────────────────────────────────
@@ -68,7 +113,6 @@ class AppListSettingsFragment : PreferenceFragmentCompat() {
         packs.forEach { (pkg, label) -> entries.add(label); values.add(pkg) }
         pref.entries = entries.toTypedArray()
         pref.entryValues = values.toTypedArray()
-
         pref.setOnPreferenceChangeListener { _, newValue ->
             IconPackLoader.setSelectedPack(requireContext(), (newValue as String).ifEmpty { null })
             true
