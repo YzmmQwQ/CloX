@@ -2,7 +2,6 @@ package com.ailife.clox
 
 import android.os.Bundle
 import android.view.KeyEvent
-import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -97,8 +96,6 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     private fun hideSystemBars() {
-        // Keep screen on and make fullscreen
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
