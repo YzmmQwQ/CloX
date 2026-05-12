@@ -19,4 +19,9 @@
         android:summary="Blur mode and radius"
         android:fragment="com.ailife.clox.settings.fragments.AppearanceSettingsFragment" />
 
+    <Preference
+        android:key="nav_hide_apps"
+        android:title="Hidden apps"
+        android:summary="Blacklist or whitelist apps from the launcher" />
+
 </PreferenceScreen>

@@ -47,7 +47,7 @@ object IconPickerDialog {
 
         // Adapter is set up empty; icons are filled in after background load
         val adapter = IconPackAdapter(emptyList()) { _, drawable ->
-            saveCustomIcon(context, item.packageName, drawable)
+            saveCustomIcon(context, item.packageName, item.activityName, drawable)
             onDone()
             dialog.dismiss()
         }
@@ -65,6 +65,7 @@ object IconPickerDialog {
             dialog.dismiss()
             if (context is Activity) {
                 pendingPackageName = item.packageName
+                pendingActivityName = item.activityName
                 pendingOnDone = onDone
                 launchImagePicker(context)
             }
@@ -115,30 +116,35 @@ object IconPickerDialog {
 
     fun handleGalleryResult(context: Context, resultCode: Int, data: Intent?) {
         if (resultCode != Activity.RESULT_OK || data?.data == null) return
-        val pkg   = pendingPackageName ?: return
-        val onDone = pendingOnDone     ?: return
-        pendingPackageName = null; pendingOnDone = null
+        val pkg      = pendingPackageName  ?: return
+        val activity = pendingActivityName ?: return
+        val onDone   = pendingOnDone       ?: return
+        pendingPackageName = null; pendingActivityName = null; pendingOnDone = null
         try {
             val stream = context.contentResolver.openInputStream(data.data!!) ?: return
             val drawable = Drawable.createFromStream(stream, null) ?: return
             stream.close()
-            saveCustomIcon(context, pkg, drawable)
+            saveCustomIcon(context, pkg, activity, drawable)
             onDone()
         } catch (_: Exception) {}
     }
 
     const val GALLERY_REQUEST_CODE = 0xC10C
 
-    private var pendingPackageName: String? = null
+    private var pendingPackageName:  String? = null
+    private var pendingActivityName: String? = null
     private var pendingOnDone: (() -> Unit)? = null
 
-    private fun saveCustomIcon(context: Context, packageName: String, drawable: Drawable) {
+    private fun saveCustomIcon(context: Context, packageName: String, activityName: String, drawable: Drawable) {
         try {
             val dir = File(context.filesDir, "icons").apply { mkdirs() }
-            val file = File(dir, "$packageName.png")
+            // Use a per-activity filename so different launcher entries from the same package
+            // don't overwrite each other's custom icon.
+            val safeName = activityName.substringAfterLast('.')
+            val file = File(dir, "${packageName}_${safeName}.png")
             val bmp = drawableToBitmap(drawable, 192)
             FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            AppListPrefs.saveCustomIconPath(context, packageName, file.absolutePath)
+            AppListPrefs.saveCustomIconPath(context, packageName, activityName, file.absolutePath)
         } catch (_: Exception) {}
     }
 

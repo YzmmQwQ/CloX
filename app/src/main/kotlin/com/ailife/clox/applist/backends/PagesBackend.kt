@@ -23,7 +23,7 @@ import kotlin.math.min
 
 class PagesBackend(private val ctx: Context) : AppListBackend {
 
-    override var onAppClick: ((AppItem) -> Unit)? = null
+    override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
 
@@ -364,7 +364,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
 
         override fun onBindViewHolder(holder: PageVH, position: Int) {
             holder.adapter.dragEnabled = dragEnabled
-            holder.adapter.onAppClick = { onAppClick?.invoke(it) }
+            holder.adapter.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             holder.adapter.onAppLongPress = { item, view ->
                 onAppLongPress?.invoke(item, view)
                 if (dragEnabled) {

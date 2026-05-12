@@ -19,7 +19,7 @@ class AppListAdapter(
     private val binder: (View, AppItem) -> Unit
 ) : ListAdapter<AppItem, AppListAdapter.VH>(DIFF) {
 
-    var onAppClick: ((AppItem) -> Unit)? = null
+    var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var dragEnabled = false
     var onOrderChanged: ((List<AppItem>) -> Unit)? = null
@@ -71,7 +71,7 @@ class AppListAdapter(
             view.setOnClickListener {
                 if (!AppContextMenu.isShowing) {
                     val pos = bindingAdapterPosition
-                    if (pos != RecyclerView.NO_ID.toInt()) onAppClick?.invoke(mutableItems[pos])
+                    if (pos != RecyclerView.NO_ID.toInt()) onAppClick?.invoke(mutableItems[pos], view)
                 }
             }
 

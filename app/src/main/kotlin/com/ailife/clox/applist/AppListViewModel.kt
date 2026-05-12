@@ -46,25 +46,36 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             val ctx = getApplication<Application>()
             val pm = ctx.packageManager
             val prefs = AppListPrefs.get(ctx)
-            val hiddenSet = prefs.getStringSet("hidden_packages", emptySet()) ?: emptySet()
             val sortMode = AppListPrefs.sort(ctx)
             val customOrder = AppListPrefs.customOrder(ctx)
+            val hiddenComponents = AppListPrefs.hiddenComponents(ctx)
+            val hideMode = AppListPrefs.hideMode(ctx)
 
             val intent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
-            val resolved = pm.queryIntentActivities(intent, 0)
-                .filterNot { it.activityInfo.packageName == ctx.packageName }
+            val ownMain = pm.getLaunchIntentForPackage(ctx.packageName)?.component?.className
+            val all = pm.queryIntentActivities(intent, 0)
+                .filterNot { ri ->
+                    ri.activityInfo.packageName == ctx.packageName && ri.activityInfo.name == ownMain
+                }
                 .map { ri ->
+                    val key = "${ri.activityInfo.packageName}/${ri.activityInfo.name}"
                     AppItem(
                         packageName  = ri.activityInfo.packageName,
                         activityName = ri.activityInfo.name,
                         label        = ri.loadLabel(pm).toString(),
-                        icon         = IconResolver.resolve(ctx, ri.activityInfo.packageName),
-                        isHidden     = ri.activityInfo.packageName in hiddenSet,
+                        icon         = IconResolver.resolve(ctx, ri.activityInfo.packageName, ri.activityInfo.name),
+                        isHidden     = key in hiddenComponents,
                         customOrder  = customOrder.indexOf(ri.activityInfo.packageName)
                             .let { if (it < 0) Int.MAX_VALUE else it }
                     )
                 }
-                .filterNot { it.isHidden }
+
+            val resolved = when (hideMode) {
+                AppListPrefs.HIDE_MODE_WHITELIST ->
+                    if (hiddenComponents.isEmpty()) all  // whitelist empty = show all
+                    else all.filter { it.isHidden }
+                else -> all.filterNot { it.isHidden }   // blacklist
+            }
 
             val sorted = when (sortMode) {
                 AppListPrefs.SORT_CUSTOM -> resolved.sortedWith(

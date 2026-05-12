@@ -16,7 +16,7 @@ import com.ailife.clox.applist.toCircle
 
 class WaterfallBackend(private val ctx: Context) : AppListBackend {
 
-    override var onAppClick: ((AppItem) -> Unit)? = null
+    override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
 
@@ -42,7 +42,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
                 view.post { iv.setImageDrawable(item.icon.toCircle(view.width.coerceAtLeast(1))) }
             }
         }.also { adp ->
-            adp.onAppClick     = { onAppClick?.invoke(it) }
+            adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
             adp.onOrderChanged = { items ->
                 AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName })

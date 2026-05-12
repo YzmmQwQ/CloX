@@ -1,14 +1,15 @@
 package com.ailife.clox.icon
 
+import android.content.ComponentName
 import android.content.Context
 import android.graphics.drawable.Drawable
 import com.ailife.clox.applist.AppListPrefs
 
 object IconResolver {
 
-    fun resolve(context: Context, packageName: String): Drawable {
+    fun resolve(context: Context, packageName: String, activityName: String? = null): Drawable {
         // Priority 1: per-app custom icon saved via IconPickerDialog
-        val appListPath = AppListPrefs.customIconPath(context, packageName)
+        val appListPath = AppListPrefs.customIconPath(context, packageName, activityName ?: "")
         if (appListPath != null) {
             Drawable.createFromPath(appListPath)?.let { return it }
         }
@@ -17,11 +18,18 @@ object IconResolver {
         val customIcon = loadCustomIcon(context, packageName)
         if (customIcon != null) return customIcon
 
-        // Priority 2 & 3: icon pack override / global icon pack
+        // Priority 3: icon pack override / global icon pack
         val packIcon = IconPackLoader.loadIcon(context, packageName)
         if (packIcon != null) return packIcon
 
-        // Priority 4: system default
+        // Priority 4: activity-specific icon (respects android:icon on <activity> tag)
+        if (activityName != null) {
+            try {
+                return context.packageManager.getActivityIcon(ComponentName(packageName, activityName))
+            } catch (_: Exception) {}
+        }
+
+        // Priority 5: app-level default icon
         return try {
             context.packageManager.getApplicationIcon(packageName)
         } catch (e: Exception) {

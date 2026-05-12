@@ -28,9 +28,9 @@ object AppContextMenu {
             add(Entry(R.string.menu_uninstall,   R.drawable.ic_delete)  { requestUninstall(context, item) })
             add(Entry(R.string.menu_app_info,    R.drawable.ic_info)    { openAppInfo(context, item) })
             add(Entry(R.string.menu_change_icon, R.drawable.ic_palette) { IconPickerDialog.show(context, item) { onIconChanged() } })
-            if (AppListPrefs.customIconPath(context, item.packageName) != null) {
+            if (AppListPrefs.customIconPath(context, item.packageName, item.activityName) != null) {
                 add(Entry(R.string.menu_reset_icon, R.drawable.ic_reset) {
-                    AppListPrefs.saveCustomIconPath(context, item.packageName, null)
+                    AppListPrefs.saveCustomIconPath(context, item.packageName, item.activityName, null)
                     onIconChanged()
                 })
             }

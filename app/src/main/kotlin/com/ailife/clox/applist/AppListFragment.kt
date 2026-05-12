@@ -1,7 +1,9 @@
 package com.ailife.clox.applist
 
+import android.app.ActivityOptions
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -72,11 +74,19 @@ class AppListFragment : Fragment() {
         Log.d("CloX/AppList", "swapBackend style=$style sort=$sort")
 
         val newBackend = createBackend(ctx, style)
-        newBackend.onAppClick = { item ->
-            val pm = ctx.packageManager
-            pm.getLaunchIntentForPackage(item.packageName)
-                ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                ?.let { ctx.startActivity(it) }
+        newBackend.onAppClick = { item, sourceView ->
+            val intent = android.content.Intent().apply {
+                setClassName(item.packageName, item.activityName)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val opts = ActivityOptions.makeScaleUpAnimation(
+                sourceView, 0, 0, sourceView.width, sourceView.height
+            ).toBundle()
+            runCatching { ctx.startActivity(intent, opts) }.onFailure {
+                ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                    ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ?.let { ctx.startActivity(it, opts) }
+            }
         }
         newBackend.onAppLongPress = { item, anchor ->
             AppContextMenu.show(ctx, anchor, item) { viewModel.loadApps() }

@@ -95,17 +95,47 @@ object AppListPrefs {
         get(ctx).edit().putString(KEY_CUSTOM_ORDER, JSONArray(order).toString()).apply()
     }
 
-    // ── Per-app custom icons ─────────────────────────────────────────────────
+    // ── Hidden apps ──────────────────────────────────────────────────────────
 
-    fun customIconPath(ctx: Context, packageName: String): String? {
-        val json = get(ctx).getString(KEY_CUSTOM_ICONS, "{}") ?: "{}"
-        return try { JSONObject(json).optString(packageName, null) } catch (_: Exception) { null }
+    const val KEY_HIDE_MODE        = "hide_mode"
+    const val HIDE_MODE_BLACKLIST  = "blacklist"   // selected = hidden
+    const val HIDE_MODE_WHITELIST  = "whitelist"   // selected = visible, rest hidden
+    const val KEY_HIDDEN_COMPONENTS = "hidden_components"   // Set<"pkg/activity">
+    const val KEY_HIDE_APPS_PASSWORD = "hide_apps_password"
+
+    /** In-process unlock flag — resets when the process dies. */
+    var hideAppsUnlocked: Boolean = false
+
+    fun hideMode(ctx: Context): String =
+        get(ctx).getString(KEY_HIDE_MODE, HIDE_MODE_BLACKLIST) ?: HIDE_MODE_BLACKLIST
+
+    fun hiddenComponents(ctx: Context): Set<String> =
+        get(ctx).getStringSet(KEY_HIDDEN_COMPONENTS, emptySet()) ?: emptySet()
+
+    fun saveHiddenComponents(ctx: Context, components: Set<String>) =
+        get(ctx).edit().putStringSet(KEY_HIDDEN_COMPONENTS, components).apply()
+
+    fun hideAppsPassword(ctx: Context): String? =
+        get(ctx).getString(KEY_HIDE_APPS_PASSWORD, null)
+
+    fun saveHideAppsPassword(ctx: Context, password: String?) {
+        if (password == null) get(ctx).edit().remove(KEY_HIDE_APPS_PASSWORD).apply()
+        else get(ctx).edit().putString(KEY_HIDE_APPS_PASSWORD, password).apply()
     }
 
-    fun saveCustomIconPath(ctx: Context, packageName: String, path: String?) {
+    // ── Per-app custom icons ─────────────────────────────────────────────────
+
+    fun customIconPath(ctx: Context, packageName: String, activityName: String): String? {
+        val key = "$packageName/$activityName"
+        val json = get(ctx).getString(KEY_CUSTOM_ICONS, "{}") ?: "{}"
+        return try { JSONObject(json).optString(key).takeIf { it.isNotEmpty() } } catch (_: Exception) { null }
+    }
+
+    fun saveCustomIconPath(ctx: Context, packageName: String, activityName: String, path: String?) {
+        val key = "$packageName/$activityName"
         val json = get(ctx).getString(KEY_CUSTOM_ICONS, "{}") ?: "{}"
         val obj = try { JSONObject(json) } catch (_: Exception) { JSONObject() }
-        if (path == null) obj.remove(packageName) else obj.put(packageName, path)
+        if (path == null) obj.remove(key) else obj.put(key, path)
         get(ctx).edit().putString(KEY_CUSTOM_ICONS, obj.toString()).apply()
     }
 }

@@ -22,7 +22,7 @@ class Grid2DView @JvmOverloads constructor(
     ctx: Context, attrs: AttributeSet? = null
 ) : FrameLayout(ctx, attrs) {
 
-    var onAppClick: ((AppItem) -> Unit)? = null
+    var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var enable3d = false
     var showNames = false
@@ -148,7 +148,7 @@ class Grid2DView @JvmOverloads constructor(
             ).apply { topMargin = iconPx + dp(2) })
         }
         cell.setOnClickListener {
-            if (!AppContextMenu.isShowing) onAppClick?.invoke(item)
+            if (!AppContextMenu.isShowing) onAppClick?.invoke(item, this)
         }
         return cell
     }

@@ -28,7 +28,7 @@ class HoneycombView @JvmOverloads constructor(
     ctx: Context, attrs: AttributeSet? = null
 ) : FrameLayout(ctx, attrs) {
 
-    var onAppClick: ((AppItem) -> Unit)? = null
+    var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var enable3d = false
     var iconSizeDp = 0
@@ -125,7 +125,7 @@ class HoneycombView @JvmOverloads constructor(
                 isLongClickable = false
             }
             iv.setOnClickListener {
-                if (!AppContextMenu.isShowing) onAppClick?.invoke(item)
+                if (!AppContextMenu.isShowing) onAppClick?.invoke(item, this)
             }
             addView(iv, FrameLayout.LayoutParams(iconPx, iconPx).apply {
                 leftMargin = x; topMargin = y

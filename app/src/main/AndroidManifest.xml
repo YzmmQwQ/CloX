@@ -73,6 +73,16 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Secret dialer code receiver — android:host="*" catches any code; filtering done in-process -->
+        <receiver
+            android:name=".secret.SecretCodeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SECRET_CODE" />
+                <data android:scheme="android_secret_code" android:host="*" />
+            </intent-filter>
+        </receiver>
+
         <!-- Notification listener -->
         <service
             android:name=".overlay.notifications.CloXNotificationListenerService"

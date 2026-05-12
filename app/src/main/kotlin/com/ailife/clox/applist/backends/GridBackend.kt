@@ -16,7 +16,7 @@ import com.ailife.clox.applist.model.AppItem
 
 class GridBackend(private val ctx: Context) : AppListBackend {
 
-    override var onAppClick: ((AppItem) -> Unit)? = null
+    override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
 
@@ -41,7 +41,7 @@ class GridBackend(private val ctx: Context) : AppListBackend {
                 label.visibility = View.GONE
             }
         }.also { adp ->
-            adp.onAppClick     = { onAppClick?.invoke(it) }
+            adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
             adp.onOrderChanged = { items ->
                 AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName })

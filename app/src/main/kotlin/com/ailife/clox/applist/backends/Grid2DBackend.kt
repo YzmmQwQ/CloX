@@ -9,7 +9,7 @@ import com.ailife.clox.applist.model.AppItem
 
 class Grid2DBackend(private val ctx: Context) : AppListBackend {
 
-    override var onAppClick: ((AppItem) -> Unit)? = null
+    override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
 
@@ -22,7 +22,7 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
             v.showNames    = AppListPrefs.grid2dNames(ctx)
             v.enable3d     = AppListPrefs.grid2d3d(ctx)
             v.iconSizeDp   = AppListPrefs.grid2dIconSize(ctx)
-            v.onAppClick      = { onAppClick?.invoke(it) }
+            v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
             v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName }) }
         }
