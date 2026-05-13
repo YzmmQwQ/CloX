@@ -5,13 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Blur capture target — OverlayController populates this with a blurred screenshot -->
-    <ImageView
-        android:id="@+id/qsBlurBg"
-        android:tag="blur_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop" />
+    <!-- No background here — blurLayer + overlayScrim in activity_main.xml provide
+         the blur and darkening effect. QS overlay itself is fully transparent. -->
 
     <ScrollView
         android:layout_width="match_parent"

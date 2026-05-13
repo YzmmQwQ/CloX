@@ -59,7 +59,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
     private lateinit var qsTime: TextView
     private lateinit var qsBatteryPct: TextView
     private lateinit var qsDate: TextView
-    private lateinit var blurBg: ImageView
+    // blurBg removed — blur is now applied to the static blurLayer in activity_main.xml
     private lateinit var btnLauncherSettings: ImageButton
     private lateinit var btnRecents: ImageButton
     private lateinit var btnFlashlight: ImageButton
@@ -84,7 +84,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         qsTime = findViewById(R.id.qsTime)
         qsBatteryPct = findViewById(R.id.qsBatteryPct)
         qsDate = findViewById(R.id.qsDate)
-        blurBg = findViewById<ImageView>(R.id.qsBlurBg).apply { tag = "blur_bg" }
+        // blurBg no longer inside overlay — see blurLayer in activity_main.xml
         btnLauncherSettings = findViewById(R.id.qsBtnLauncherSettings)
         btnRecents = findViewById(R.id.qsBtnRecents)
         btnFlashlight = findViewById(R.id.qsBtnFlashlight)

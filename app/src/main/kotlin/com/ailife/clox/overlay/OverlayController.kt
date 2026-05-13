@@ -16,7 +16,8 @@ class OverlayController(
     private val quickSettings: QuickSettingsOverlay,
     private val widgets: WidgetsOverlay,
     private val notifications: NotificationOverlay,
-    private val scrimView: View
+    private val scrimView: View,
+    private val blurLayer: ImageView   // static layer in activity_main, never animates
 ) {
 
     private var activeOverlay: View? = null
@@ -38,8 +39,8 @@ class OverlayController(
 
         screenW = sw; screenH = sh
 
-        val bgImage = overlay.findViewWithTag<ImageView>("blur_bg")
-        if (bgImage != null) BlurEngine.applyBlur(overlay.context, window, overlay, bgImage) {}
+        // Capture watchface into static layer; updateDrag drives progressive blur radius
+        BlurEngine.applyBlur(overlay.context, window, overlay, blurLayer) {}
 
         overlay.translationX = 0f
         overlay.translationY = 0f
@@ -81,7 +82,8 @@ class OverlayController(
             }
             else -> return
         }
-        scrimView.alpha = progress * MAX_SCRIM_ALPHA
+        scrimView.alpha = progress * maxScrimAlpha()
+        BlurEngine.updateProgress(scrimView.context, blurLayer, progress)
     }
 
     fun commitDrag() {
@@ -89,7 +91,8 @@ class OverlayController(
         isDragging = false
         overlay.animate().translationX(0f).translationY(0f).setDuration(200)
             .setInterpolator(DecelerateInterpolator()).start()
-        scrimView.animate().alpha(MAX_SCRIM_ALPHA).setDuration(200).start()
+        BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
+        scrimView.animate().alpha(maxScrimAlpha()).setDuration(200).start()
         if (activeDirection == SwipeDirection.DOWN) {
             (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
         }
@@ -106,6 +109,7 @@ class OverlayController(
         overlay.animate().translationX(endX).translationY(endY).setDuration(180)
             .setInterpolator(DecelerateInterpolator())
             .withEndAction { hideNow(overlay) }.start()
+        BlurEngine.clearBlur(window, blurLayer)
         scrimView.animate().alpha(0f).setDuration(180)
             .withEndAction { scrimView.visibility = View.GONE }.start()
     }
@@ -142,7 +146,8 @@ class OverlayController(
             }
             else -> return
         }
-        scrimView.alpha = progress * MAX_SCRIM_ALPHA
+        scrimView.alpha = progress * maxScrimAlpha()
+        BlurEngine.updateProgress(scrimView.context, blurLayer, progress)
     }
 
     fun commitCollapse() {
@@ -155,13 +160,11 @@ class OverlayController(
         activeOverlay = null
         activeDirection = null
 
-        val bgImage = overlay.findViewWithTag<ImageView>("blur_bg")
-        bgImage?.let { BlurEngine.clearBlur(it) }
-
         val (endX, endY) = exitTranslation(direction)
         overlay.animate().translationX(endX).translationY(endY).setDuration(180)
             .setInterpolator(DecelerateInterpolator())
             .withEndAction { overlay.visibility = View.GONE }.start()
+        BlurEngine.clearBlur(window, blurLayer)
         scrimView.animate().alpha(0f).setDuration(180)
             .withEndAction { scrimView.visibility = View.GONE }.start()
     }
@@ -171,7 +174,8 @@ class OverlayController(
         val overlay = activeOverlay ?: return
         overlay.animate().translationX(0f).translationY(0f).setDuration(180)
             .setInterpolator(DecelerateInterpolator()).start()
-        scrimView.animate().alpha(MAX_SCRIM_ALPHA).setDuration(180).start()
+        BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
+        scrimView.animate().alpha(maxScrimAlpha()).setDuration(180).start()
     }
 
     // ── Instant dismiss (back button, double-tap) ────────────────────────────
@@ -186,9 +190,6 @@ class OverlayController(
         activeOverlay = null
         activeDirection = null
 
-        val bgImage = overlay.findViewWithTag<ImageView>("blur_bg")
-        bgImage?.let { BlurEngine.clearBlur(it) }
-
         if (direction != null) {
             val (endX, endY) = exitTranslation(direction)
             overlay.animate().translationX(endX).translationY(endY).setDuration(200)
@@ -199,12 +200,16 @@ class OverlayController(
                 .withEndAction { overlay.visibility = View.GONE; overlay.alpha = 1f }.start()
         }
 
+        BlurEngine.clearBlur(window, blurLayer)
         scrimView.animate().cancel()
         scrimView.animate().alpha(0f).setDuration(200)
             .withEndAction { scrimView.visibility = View.GONE }.start()
     }
 
     fun hasActiveOverlay(): Boolean = activeOverlay != null
+
+    /** True only when the QS panel (with VP2) is the current active overlay. */
+    fun isQsActive(): Boolean = activeOverlay === quickSettings
 
     /** True if `direction` is the correct swipe to dismiss the current overlay. */
     fun isDismissDirection(direction: SwipeDirection): Boolean = when (activeDirection) {
@@ -238,11 +243,14 @@ class OverlayController(
         overlay.visibility = View.GONE
         overlay.translationX = 0f
         overlay.translationY = 0f
+        BlurEngine.clearBlur(window, blurLayer)
         scrimView.alpha = 0f
         scrimView.visibility = View.GONE
     }
 
-    companion object {
-        private const val MAX_SCRIM_ALPHA = 0.6f
+    // When blur is off, scrim compensates with stronger darkening
+    private fun maxScrimAlpha(): Float {
+        val blurOff = BlurEngine.getMode(scrimView.context) == BlurEngine.Mode.DISABLED
+        return if (blurOff) 0.55f else 0.35f
     }
 }

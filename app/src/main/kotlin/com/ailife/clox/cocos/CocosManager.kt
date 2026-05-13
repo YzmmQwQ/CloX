@@ -21,6 +21,8 @@ object CocosManager {
         return view
     }
 
+    fun getGlView(): SurfaceView? = glView
+
     fun onResume()  { glView?.onResume() }
     fun onPause()   { glView?.onPause() }
     fun onDestroy() { glView = null }

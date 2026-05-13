@@ -2,17 +2,17 @@ package com.ailife.clox.overlay
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
+import android.graphics.Rect
 import android.os.Build
-import android.renderscript.Allocation
-import android.renderscript.Element
-import android.renderscript.RenderScript
-import android.renderscript.ScriptIntrinsicBlur
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.Choreographer
+import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import android.widget.ImageView
-import com.ailife.clox.cocos.SnapshotHelper
+import com.ailife.clox.cocos.CocosManager
 
 object BlurEngine {
 
@@ -34,6 +34,10 @@ object BlurEngine {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getFloat(KEY_RADIUS, DEFAULT_RADIUS)
 
+    /**
+     * Capture the watchface into [bgImageView] as a raw (unblurred) bitmap.
+     * Blur is applied progressively via [updateProgress] as the user drags.
+     */
     fun applyBlur(
         context: Context,
         window: Window,
@@ -41,18 +45,39 @@ object BlurEngine {
         bgImageView: ImageView,
         onDone: () -> Unit
     ) {
-        when (resolveStrategy(context)) {
-            Strategy.RENDER_EFFECT -> applyRenderEffect(bgImageView, getRadius(context), onDone)
-            Strategy.RENDER_SCRIPT -> applyRenderScript(context, window, bgImageView, onDone)
-            Strategy.SNAPSHOT_STACKBLUR -> applySnapshotBlur(context, window, bgImageView, onDone)
-            Strategy.SCRIM -> {
-                bgImageView.visibility = View.GONE
-                onDone()
-            }
+        Log.d("BlurEngine", "applyBlur mode=${getMode(context)} SDK=${Build.VERSION.SDK_INT}")
+        if (getMode(context) == Mode.DISABLED) { bgImageView.visibility = View.GONE; onDone(); return }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            captureRaw(context, bgImageView, onDone)
+        } else {
+            bgImageView.visibility = View.GONE
+            onDone()
         }
     }
 
-    fun clearBlur(bgImageView: ImageView) {
+    /**
+     * Called every drag frame with progress 0→1.
+     * API 31+: updates RenderEffect blur radius (0→maxRadius).
+     * Pre-31:  fades alpha (0→1) on a pre-blurred bitmap.
+     */
+    fun updateProgress(context: Context, bgImageView: ImageView, progress: Float) {
+        if (getMode(context) == Mode.DISABLED) return
+        if (bgImageView.drawable == null) return   // bitmap not ready yet
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val r = getRadius(context) * progress
+            bgImageView.alpha = 1f
+            bgImageView.visibility = View.VISIBLE
+            bgImageView.setRenderEffect(
+                if (r >= 1f) android.graphics.RenderEffect.createBlurEffect(
+                    r, r, android.graphics.Shader.TileMode.CLAMP)
+                else null
+            )
+        } else {
+            bgImageView.alpha = progress
+        }
+    }
+
+    fun clearBlur(window: Window, bgImageView: ImageView) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             bgImageView.setRenderEffect(null)
         }
@@ -60,93 +85,53 @@ object BlurEngine {
         bgImageView.visibility = View.GONE
     }
 
-    private enum class Strategy { RENDER_EFFECT, RENDER_SCRIPT, SNAPSHOT_STACKBLUR, SCRIM }
-
-    private fun resolveStrategy(context: Context): Strategy {
-        val mode = getMode(context)
-        if (mode == Mode.DISABLED) return Strategy.SCRIM
-        return when {
-            mode == Mode.SNAPSHOT -> Strategy.SNAPSHOT_STACKBLUR
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> Strategy.RENDER_EFFECT
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> Strategy.RENDER_SCRIPT
-            else -> Strategy.SCRIM
-        }
-    }
+    // ── Raw capture — bitmap stored unblurred; RenderEffect drives progressive blur ──
 
     @Suppress("DEPRECATION")
-    private fun applyRenderEffect(bgImageView: ImageView, radius: Float, onDone: () -> Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val effect = android.graphics.RenderEffect.createBlurEffect(
-                radius, radius, android.graphics.Shader.TileMode.CLAMP
-            )
-            bgImageView.setRenderEffect(effect)
-        }
-        onDone()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun applyRenderScript(
+    private fun captureRaw(
         context: Context,
-        window: Window,
         bgImageView: ImageView,
         onDone: () -> Unit
     ) {
-        val displayMetrics = context.resources.displayMetrics
-        val fullRect = android.graphics.Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
-        SnapshotHelper.capture(window, fullRect) { bitmap ->
-            bitmap ?: run { onDone(); return@capture }
-            val downW = bitmap.width / DOWNSAMPLE
-            val downH = bitmap.height / DOWNSAMPLE
-            val down = Bitmap.createScaledBitmap(bitmap, downW, downH, false)
-            val blurred = blurWithRenderScript(context, down, getRadius(context).coerceAtMost(25f))
-            val upscaled = Bitmap.createScaledBitmap(blurred, bitmap.width, bitmap.height, true)
-            bgImageView.setImageBitmap(upscaled)
-            bgImageView.visibility = View.VISIBLE
-            onDone()
+        val glView = CocosManager.getGlView()
+        Log.d("BlurEngine", "captureRaw glView=$glView")
+        if (glView == null) { onDone(); return }
+
+        // Wait for next vsync so the GL surface has a committed frame ready
+        Choreographer.getInstance().postFrameCallback {
+            val dm = context.resources.displayMetrics
+            val w = dm.widthPixels
+            val h = dm.heightPixels
+            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            // null srcRect = capture entire SurfaceView surface — avoids fullscreen coordinate shift
+            PixelCopy.request(glView, null, bitmap, { result ->
+                Log.d("BlurEngine", "PixelCopy result=$result SUCCESS=${PixelCopy.SUCCESS}")
+                if (result == PixelCopy.SUCCESS) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        // API 31+: set raw bitmap; RenderEffect drives progressive blur in updateProgress
+                        bgImageView.setImageBitmap(bitmap)
+                    } else {
+                        // Pre-API 31: bake software blur into bitmap now (RenderEffect unavailable)
+                        val downW = w / DOWNSAMPLE
+                        val downH = h / DOWNSAMPLE
+                        val down = Bitmap.createScaledBitmap(bitmap, downW, downH, false)
+                        val blurred = stackBlur(down, 8)
+                        bgImageView.setImageBitmap(Bitmap.createScaledBitmap(blurred, w, h, true))
+                    }
+                    bgImageView.alpha = 0f   // start hidden; updateProgress drives alpha/radius
+                    bgImageView.visibility = View.VISIBLE
+                }
+                onDone()
+            }, Handler(Looper.getMainLooper()))
         }
     }
 
-    private fun applySnapshotBlur(
-        context: Context,
-        window: Window,
-        bgImageView: ImageView,
-        onDone: () -> Unit
-    ) {
-        val displayMetrics = context.resources.displayMetrics
-        val fullRect = android.graphics.Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
-        SnapshotHelper.capture(window, fullRect) { bitmap ->
-            bitmap ?: run { onDone(); return@capture }
-            val downW = bitmap.width / DOWNSAMPLE
-            val downH = bitmap.height / DOWNSAMPLE
-            val down = Bitmap.createScaledBitmap(bitmap, downW, downH, false)
-            val blurred = stackBlur(down, 6)
-            val upscaled = Bitmap.createScaledBitmap(blurred, bitmap.width, bitmap.height, true)
-            bgImageView.setImageBitmap(upscaled)
-            bgImageView.visibility = View.VISIBLE
-            onDone()
-        }
-    }
+    // ── Software blur for pre-API 31 ──────────────────────────────────────────
 
-    @Suppress("DEPRECATION")
-    private fun blurWithRenderScript(context: Context, bitmap: Bitmap, radius: Float): Bitmap {
-        val rs = RenderScript.create(context)
-        val input = Allocation.createFromBitmap(rs, bitmap)
-        val output = Allocation.createTyped(rs, input.type)
-        val script = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
-        script.setRadius(radius)
-        script.setInput(input)
-        script.forEach(output)
-        output.copyTo(bitmap)
-        rs.destroy()
-        return bitmap
-    }
-
-    // Simple stack blur (pure Java, no RS dependency)
     private fun stackBlur(src: Bitmap, radius: Int): Bitmap {
         val out = src.copy(Bitmap.Config.ARGB_8888, true)
         val pixels = IntArray(out.width * out.height)
         out.getPixels(pixels, 0, out.width, 0, 0, out.width, out.height)
-        // Minimal box blur approximation (3 passes)
         repeat(3) { boxBlurPass(pixels, out.width, out.height, radius) }
         out.setPixels(pixels, 0, out.width, 0, 0, out.width, out.height)
         return out
@@ -156,16 +141,12 @@ object BlurEngine {
         val tmp = pixels.copyOf()
         for (y in 0 until h) {
             for (x in 0 until w) {
-                var rSum = 0; var gSum = 0; var bSum = 0; var count = 0
+                var rS = 0; var gS = 0; var bS = 0; var n = 0
                 for (dx in -r..r) {
-                    val nx = (x + dx).coerceIn(0, w - 1)
-                    val px = tmp[y * w + nx]
-                    rSum += (px shr 16) and 0xFF
-                    gSum += (px shr 8) and 0xFF
-                    bSum += px and 0xFF
-                    count++
+                    val px = tmp[y * w + (x + dx).coerceIn(0, w - 1)]
+                    rS += (px shr 16) and 0xFF; gS += (px shr 8) and 0xFF; bS += px and 0xFF; n++
                 }
-                pixels[y * w + x] = (0xFF shl 24) or ((rSum / count) shl 16) or ((gSum / count) shl 8) or (bSum / count)
+                pixels[y * w + x] = (0xFF shl 24) or ((rS/n) shl 16) or ((gS/n) shl 8) or (bS/n)
             }
         }
     }

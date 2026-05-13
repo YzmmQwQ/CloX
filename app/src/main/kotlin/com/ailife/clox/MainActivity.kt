@@ -83,7 +83,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         overlayController = OverlayController(
             window, quickSettings, widgets, notifications,
-            findViewById(R.id.overlayScrim)
+            findViewById(R.id.overlayScrim),
+            findViewById(R.id.blurLayer)
         )
 
         val stateManager = com.ailife.clox.qs.QsStateManager(this)
@@ -153,7 +154,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Gesture setup ────────────────────────────────────────────────────────
 
     private fun setupGestures() {
-        gestureRoot.qsOverlayActive = { overlayController.hasActiveOverlay() }
+        // Only pass LEFT/RIGHT through when QS (VP2) is active, not other overlays
+        gestureRoot.qsOverlayActive = { overlayController.isQsActive() }
 
         gestureRoot.doubleTapListener = {
             overlayController.dismissActive()

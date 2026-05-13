@@ -17,6 +17,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Static blur layer — sits above watchface, never animates.
+         Populated by BlurEngine when an overlay opens; cleared when it closes. -->
+    <ImageView
+        android:id="@+id/blurLayer"
+        android:tag="blur_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
     <!-- Scrim — darkens watchface as an overlay drags in -->
     <View
         android:id="@+id/overlayScrim"
