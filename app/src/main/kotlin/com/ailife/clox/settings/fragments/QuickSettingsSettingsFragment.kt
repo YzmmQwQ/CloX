@@ -10,6 +10,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
+import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPrefs
@@ -21,6 +22,7 @@ class QuickSettingsSettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_quick_settings, rootKey)
         setupColorPreferences()
+        setupSystemColorToggle()
         setupPrivilege()
     }
 
@@ -60,6 +62,25 @@ class QuickSettingsSettingsFragment : PreferenceFragmentCompat() {
             requireContext().startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             true
+        }
+    }
+
+    private val manualColorKeys = listOf(
+        QsPrefs.COLOR_CONNECTED, QsPrefs.COLOR_IDLE, QsPrefs.COLOR_DISCONNECTED, QsPrefs.COLOR_OFF
+    )
+
+    private fun setupSystemColorToggle() {
+        val toggle = findPreference<SwitchPreferenceCompat>(QsPrefs.USE_SYSTEM_COLOR) ?: return
+        updateColorPickersEnabled(!toggle.isChecked)
+        toggle.setOnPreferenceChangeListener { _, newValue ->
+            updateColorPickersEnabled(!(newValue as Boolean))
+            true
+        }
+    }
+
+    private fun updateColorPickersEnabled(enabled: Boolean) {
+        manualColorKeys.forEach { key ->
+            findPreference<Preference>(key)?.isEnabled = enabled
         }
     }
 

@@ -101,6 +101,8 @@
     <string name="qs_sensitivity_title">Gesture sensitivity</string>
     <string name="qs_tile_columns_title">Tile columns</string>
     <string name="qs_tile_rows_title">Rows per page</string>
+    <string name="qs_system_color_title">Use system color</string>
+    <string name="qs_system_color_summary">Follow Material You wallpaper colors (Android 12+); disables custom color pickers below</string>
     <string name="qs_flashlight_hw_title">Use hardware LED</string>
     <string name="qs_flashlight_hw_summary">Off: turns screen white at max brightness (works on most watches). On: uses camera flash LED.</string>
     <string name="qs_color_tiles_title">Color-coded tile states</string>

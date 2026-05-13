@@ -98,8 +98,11 @@ class QsTilePageAdapter(
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val colored = prefs.getBoolean(QsPrefs.COLORED_TILES, true)
 
+        val useSystem = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
+
         fun stateColor(key: String, default: String): Int? {
             if (!colored) return null
+            if (useSystem) return resolveSystemColor(ctx, key)
             return try { Color.parseColor(prefs.getString(key, default) ?: default) }
             catch (_: Exception) { null }
         }
@@ -198,6 +201,23 @@ class QsTilePageAdapter(
 
             is TileState.BatteryState -> { /* no battery tile */ }
         }
+    }
+
+    /**
+     * Resolve a tile state color from the Material3 theme (wallpaper-derived on Android 12+).
+     * Connected → colorPrimary, Idle → colorSecondary, Disconnected → colorError, Off → null
+     */
+    private fun resolveSystemColor(ctx: Context, key: String): Int? {
+        val attr = when (key) {
+            QsPrefs.COLOR_CONNECTED    -> com.google.android.material.R.attr.colorPrimary
+            QsPrefs.COLOR_IDLE         -> com.google.android.material.R.attr.colorSecondary
+            QsPrefs.COLOR_DISCONNECTED -> com.google.android.material.R.attr.colorError
+            else                       -> return null  // off state: no color (dim ring)
+        }
+        val ta = ctx.obtainStyledAttributes(intArrayOf(attr))
+        val color = ta.getColor(0, android.graphics.Color.WHITE)
+        ta.recycle()
+        return color
     }
 
     /** Read current value for a WRITE_SETTINGS custom tile and apply state to the tile view. */

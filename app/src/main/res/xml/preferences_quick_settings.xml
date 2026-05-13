@@ -45,6 +45,11 @@
             android:key="qs_color_tiles"
             android:title="@string/qs_color_tiles_title"
             android:defaultValue="true" />
+        <SwitchPreferenceCompat
+            android:key="qs_use_system_color"
+            android:title="@string/qs_system_color_title"
+            android:summary="@string/qs_system_color_summary"
+            android:defaultValue="false" />
         <Preference android:key="qs_color_connected" android:title="@string/qs_color_connected_title" android:summary="#379950" />
         <Preference android:key="qs_color_idle" android:title="@string/qs_color_idle_title" android:summary="#2444E3" />
         <Preference android:key="qs_color_disconnected" android:title="@string/qs_color_disconnected_title" android:summary="#AD7623" />
