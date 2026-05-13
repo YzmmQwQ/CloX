@@ -2,6 +2,12 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <Preference
+        android:key="nav_quick_settings"
+        android:title="@string/qs_title"
+        android:summary="Tiles, columns, gestures, flashlight, colors, privileges"
+        android:fragment="com.ailife.clox.settings.fragments.QuickSettingsSettingsFragment" />
+
+    <Preference
         android:key="nav_app_list"
         android:title="App list"
         android:summary="Style, sort order, icon pack"

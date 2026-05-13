@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private lateinit var quickSettings: QuickSettingsOverlay
     private lateinit var widgets: WidgetsOverlay
     private lateinit var notifications: NotificationOverlay
+    private lateinit var flashlightOverlay: com.ailife.clox.overlay.quicksettings.FlashlightOverlay
 
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
@@ -77,10 +78,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         quickSettings = findViewById(R.id.quickSettingsOverlay)
         widgets = findViewById(R.id.widgetsOverlay)
         notifications = findViewById(R.id.notificationsOverlay)
+        flashlightOverlay = findViewById(R.id.flashlightOverlay)
+        flashlightOverlay.onDismiss = { /* nothing needed */ }
+
         overlayController = OverlayController(
             window, quickSettings, widgets, notifications,
             findViewById(R.id.overlayScrim)
         )
+
+        val stateManager = com.ailife.clox.qs.QsStateManager(this)
+        quickSettings.init(stateManager, supportFragmentManager, flashlightOverlay) {
+            overlayController.dismissActive()
+        }
 
         setupGestures()
     }
@@ -111,6 +120,24 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     override fun onResume() {
         super.onResume()
         CocosManager.onResume()
+        // Request any missing permissions every resume until all are granted
+        com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == com.ailife.clox.qs.QsPermissionHelper.REQUEST_CODE) {
+            // If any permission was newly granted, re-request remaining and refresh QS state
+            if (com.ailife.clox.qs.QsPermissionHelper.onPermissionsResult(grantResults)) {
+                quickSettings.refreshStateIfOpen()
+                // Re-request to pick up any still-missing permissions in next pass
+                com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
+            }
+        }
     }
 
     override fun onPause() {
@@ -126,6 +153,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Gesture setup ────────────────────────────────────────────────────────
 
     private fun setupGestures() {
+        gestureRoot.qsOverlayActive = { overlayController.hasActiveOverlay() }
+
         gestureRoot.doubleTapListener = {
             overlayController.dismissActive()
             if (appListOpen) closeAppList()

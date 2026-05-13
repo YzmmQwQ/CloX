@@ -91,4 +91,55 @@
         <item>alpha</item>
         <item>custom</item>
     </string-array>
+
+    <!-- ── Quick Settings ─────────────────────────────────────────────────── -->
+    <string name="accessibility_service_label">CloX Quick Actions</string>
+    <string name="accessibility_service_description">Allows CloX to show the power menu and recent apps from Quick Settings.</string>
+    <string name="qs_title">Quick Settings</string>
+    <string name="qs_enabled_title">Enable Quick Settings</string>
+    <string name="qs_enabled_summary">Swipe down from watchface to open; disables gesture and all background listeners when off</string>
+    <string name="qs_sensitivity_title">Gesture sensitivity</string>
+    <string name="qs_tile_columns_title">Tile columns</string>
+    <string name="qs_tile_rows_title">Rows per page</string>
+    <string name="qs_flashlight_hw_title">Use hardware LED</string>
+    <string name="qs_flashlight_hw_summary">Off: turns screen white at max brightness (works on most watches). On: uses camera flash LED.</string>
+    <string name="qs_color_tiles_title">Color-coded tile states</string>
+    <string name="qs_color_connected_title">Connected color</string>
+    <string name="qs_color_idle_title">Idle / connecting color</string>
+    <string name="qs_color_disconnected_title">Disconnected color</string>
+    <string name="qs_color_off_title">Off color</string>
+    <string name="qs_privilege_title">Privilege mode</string>
+    <string name="qs_privilege_status_title">Privilege status</string>
+    <string name="qs_accessibility_status_title">CloX Quick Actions</string>
+    <string name="qs_accessibility_status_summary">Required for Power menu and Recents</string>
+    <string name="qs_tile_editor_title">Arrange tiles</string>
+    <string name="qs_tile_editor_summary">Choose and reorder tiles shown in the panel</string>
+
+    <string-array name="tile_columns_entries">
+        <item>2 columns (larger tiles)</item>
+        <item>3 columns (compact)</item>
+    </string-array>
+    <string-array name="tile_columns_values">
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+    <string-array name="tile_rows_entries">
+        <item>2 rows</item>
+        <item>3 rows</item>
+    </string-array>
+    <string-array name="tile_rows_values">
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>None (system panels as fallback)</item>
+        <item>Shizuku</item>
+        <item>Root (su)</item>
+    </string-array>
+    <string-array name="privilege_values">
+        <item>none</item>
+        <item>shizuku</item>
+        <item>root</item>
+    </string-array>
 </resources>

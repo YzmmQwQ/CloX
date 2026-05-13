@@ -28,6 +28,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
 
     var appListOpen: Boolean = false
     var pagesBackendActive: Boolean = false
+    /** Returns true when any QS/overlay panel is open — horizontal swipes should pass to VP2 */
+    var qsOverlayActive: (() -> Boolean)? = null
     /** Returns true when ViewPager2 can scroll right (page > 0) — passes right swipe to child. */
     var pagesCanScrollRight: (() -> Boolean)? = null
     /** Returns true while a Pages drag is in progress — blocks all swipe gestures. */
@@ -143,6 +145,9 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private fun shouldBlock(dir: SwipeDirection): Boolean {
         // While dragging an app icon, block all swipes so the drag owns the touch stream
         if (pagesBackendActive && pagesBackendDragActive?.invoke() == true) return true
+        // When QS (or any overlay) is open, let VP2 handle horizontal page swipes
+        if (qsOverlayActive?.invoke() == true &&
+            (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT)) return true
         return appListOpen && (
             dir == SwipeDirection.UP || dir == SwipeDirection.DOWN ||
             // Pages: always pass LEFT to ViewPager2 (go to next page)

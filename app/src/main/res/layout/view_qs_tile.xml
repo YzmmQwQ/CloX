@@ -1,23 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="12dp">
+<!-- <merge> root so QsTileView (MaterialCardView) IS the card — no double-nesting -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <ImageView
-        android:id="@+id/tileIcon"
-        android:layout_width="24dp"
-        android:layout_height="24dp" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:minHeight="72dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:padding="12dp">
 
-    <TextView
-        android:id="@+id/tileLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:maxLines="1" />
+        <!-- Row 1: signal/status icon + label + badge (frequency / network type) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-</LinearLayout>
+            <ImageView
+                android:id="@+id/tileIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/tileLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="12sp"
+                android:autoSizeMaxTextSize="18sp" />
+
+            <TextView
+                android:id="@+id/tileBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:visibility="gone"
+                android:maxLines="1"
+                android:textSize="11sp"
+                android:textColor="#AAAAAA" />
+
+        </LinearLayout>
+
+        <!-- Row 2: detail text (SSID, signal dBm, device name, %) -->
+        <TextView
+            android:id="@+id/tileDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:visibility="gone"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="14sp"
+            android:textColor="#CCFFFFFF"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="10sp"
+            android:autoSizeMaxTextSize="14sp" />
+
+    </LinearLayout>
+
+</merge>

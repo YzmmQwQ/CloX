@@ -4,10 +4,12 @@ import android.view.View
 import android.view.Window
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
+import androidx.preference.PreferenceManager
 import com.ailife.clox.gesture.SwipeDirection
 import com.ailife.clox.overlay.notifications.NotificationOverlay
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
+import com.ailife.clox.qs.QsPrefs
 
 class OverlayController(
     private val window: Window,
@@ -88,6 +90,9 @@ class OverlayController(
         overlay.animate().translationX(0f).translationY(0f).setDuration(200)
             .setInterpolator(DecelerateInterpolator()).start()
         scrimView.animate().alpha(MAX_SCRIM_ALPHA).setDuration(200).start()
+        if (activeDirection == SwipeDirection.DOWN) {
+            (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
+        }
     }
 
     fun cancelDrag() {
@@ -144,6 +149,9 @@ class OverlayController(
         val overlay = activeOverlay ?: return
         val direction = activeDirection ?: return
         isCollapsing = false
+        if (direction == SwipeDirection.DOWN) {
+            (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+        }
         activeOverlay = null
         activeDirection = null
 
@@ -174,6 +182,7 @@ class OverlayController(
         overlay.animate().cancel()
         isDragging = false
         isCollapsing = false
+        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
         activeOverlay = null
         activeDirection = null
 
@@ -207,11 +216,15 @@ class OverlayController(
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun overlayFor(direction: SwipeDirection): View? = when (direction) {
-        SwipeDirection.DOWN  -> quickSettings
-        SwipeDirection.UP    -> widgets
-        SwipeDirection.RIGHT -> notifications
-        else -> null
+    private fun overlayFor(direction: SwipeDirection): View? {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(quickSettings.context)
+        if (direction == SwipeDirection.DOWN && !prefs.getBoolean(QsPrefs.QS_ENABLED, true)) return null
+        return when (direction) {
+            SwipeDirection.DOWN  -> quickSettings
+            SwipeDirection.UP    -> widgets
+            SwipeDirection.RIGHT -> notifications
+            else -> null
+        }
     }
 
     private fun exitTranslation(direction: SwipeDirection) = when (direction) {

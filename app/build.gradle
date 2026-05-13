@@ -67,6 +67,7 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+        aidl true
     }
 
     buildTypes {
@@ -97,6 +98,14 @@ dependencies {
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    // ViewPager2
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
+    // Shizuku
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+    // Root via libsu
+    implementation 'com.github.topjohnwu.libsu:core:5.2.2'
+    implementation 'com.github.topjohnwu.libsu:service:5.2.2'
 
     if (axmolPresent) {
         implementation project(':libaxmol')

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dot is fixed-size and centered in the layer-list so it never stretches.
+     Tab width is controlled by tabPaddingStart/End in the layout. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <layer-list>
+            <item
+                android:width="8dp"
+                android:height="8dp"
+                android:gravity="center">
+                <shape android:shape="oval">
+                    <solid android:color="?attr/colorPrimary"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item
+                android:width="6dp"
+                android:height="6dp"
+                android:gravity="center">
+                <shape android:shape="oval">
+                    <solid android:color="#66FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>
