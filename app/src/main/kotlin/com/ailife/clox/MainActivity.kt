@@ -41,6 +41,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply wallpaper-derived Material3 dynamic colors (Android 12+, no-op on older)
+        com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
         hideSystemBars()
         setContentView(R.layout.activity_main)

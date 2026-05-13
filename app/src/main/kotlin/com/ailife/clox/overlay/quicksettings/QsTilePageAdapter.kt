@@ -208,16 +208,23 @@ class QsTilePageAdapter(
      * Connected → colorPrimary, Idle → colorSecondary, Disconnected → colorError, Off → null
      */
     private fun resolveSystemColor(ctx: Context, key: String): Int? {
+        // Map QS state keys to Material3 dynamic color roles:
+        // connected  → colorPrimary   (main wallpaper accent)
+        // idle       → colorTertiary  (contrasting accent, more visually distinct than secondary)
+        // disconnected → colorError   (warning/red)
+        // off        → null           (use default dim ring, no color)
         val attr = when (key) {
             QsPrefs.COLOR_CONNECTED    -> com.google.android.material.R.attr.colorPrimary
-            QsPrefs.COLOR_IDLE         -> com.google.android.material.R.attr.colorSecondary
+            QsPrefs.COLOR_IDLE         -> com.google.android.material.R.attr.colorTertiary
             QsPrefs.COLOR_DISCONNECTED -> com.google.android.material.R.attr.colorError
-            else                       -> return null  // off state: no color (dim ring)
+            else                       -> return null
         }
-        val ta = ctx.obtainStyledAttributes(intArrayOf(attr))
-        val color = ta.getColor(0, android.graphics.Color.WHITE)
-        ta.recycle()
-        return color
+        return try {
+            val ta = ctx.obtainStyledAttributes(intArrayOf(attr))
+            val color = ta.getColor(0, android.graphics.Color.WHITE)
+            ta.recycle()
+            color
+        } catch (_: Exception) { null }
     }
 
     /** Read current value for a WRITE_SETTINGS custom tile and apply state to the tile view. */
@@ -240,9 +247,12 @@ class QsTilePageAdapter(
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val colored = prefs.getBoolean(QsPrefs.COLORED_TILES, true)
-        val color = if (colored && active) try {
-            Color.parseColor(prefs.getString(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED))
-        } catch (_: Exception) { null } else null
+        val useSystem = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
+        val color = if (colored && active) {
+            if (useSystem) resolveSystemColor(ctx, QsPrefs.COLOR_CONNECTED)
+            else try { Color.parseColor(prefs.getString(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED)) }
+                 catch (_: Exception) { null }
+        } else null
 
         tile.applyState(active, if (active) "On" else "Off", null, color)
     }
