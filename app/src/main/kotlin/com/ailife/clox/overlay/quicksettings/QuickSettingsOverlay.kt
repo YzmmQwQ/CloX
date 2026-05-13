@@ -157,8 +157,8 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val sm = stateManager ?: return
         scope?.cancel()
         scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-        sm.attach()
-        buildTileGrid()
+        sm.attach()        // registers receivers on main; initial state reads on IO
+        buildTileGrid()    // fast: defers VP2 adapter assignment via post{}
         collectHeaderFlows(sm)
     }
 
@@ -187,21 +187,25 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val rowMargin = (10 * density).toInt()    // 5dp top + 5dp bottom per tile
         val pagerH = rows * (tileH + rowMargin)
 
-        tileAdapter = QsTilePageAdapter(pages, columns, rows, tileH, sm, sc,
+        val adapter = QsTilePageAdapter(pages, columns, rows, tileH, sm, sc,
             onTileClick = { tileId, tileView -> handleTileClick(tileId, tileView) },
             onTileLongClick = { tileId -> handleTileLongClick(tileId) }
         )
+
+        // Defer adapter + layout to the next frame so this call returns immediately
+        // and doesn't block the spring animation that was just committed.
         tilePager.post {
+            tileAdapter = adapter
+            tilePager.adapter = adapter
             tilePager.layoutParams = tilePager.layoutParams.apply { height = pagerH }
             tilePager.requestLayout()
-        }
-        tilePager.adapter = tileAdapter
 
-        if (pages.size > 1) {
-            pageIndicator.visibility = View.VISIBLE
-            TabLayoutMediator(pageIndicator, tilePager) { _, _ -> }.attach()
-        } else {
-            pageIndicator.visibility = View.GONE
+            if (pages.size > 1) {
+                pageIndicator.visibility = View.VISIBLE
+                TabLayoutMediator(pageIndicator, tilePager) { _, _ -> }.attach()
+            } else {
+                pageIndicator.visibility = View.GONE
+            }
         }
     }
 

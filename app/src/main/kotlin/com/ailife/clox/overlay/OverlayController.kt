@@ -88,14 +88,19 @@ class OverlayController(
 
     fun commitDrag() {
         val overlay = activeOverlay ?: return
+        val direction = activeDirection
         isDragging = false
+        // Start animations immediately — no heavy work before this
         overlay.animate().translationX(0f).translationY(0f).setDuration(200)
-            .setInterpolator(DecelerateInterpolator()).start()
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                // Animation done — no frame is rendering, lag here is invisible
+                if (direction == SwipeDirection.DOWN) {
+                    (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
+                }
+            }.start()
         BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
         scrimView.animate().alpha(maxScrimAlpha()).setDuration(200).start()
-        if (activeDirection == SwipeDirection.DOWN) {
-            (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
-        }
     }
 
     fun cancelDrag() {

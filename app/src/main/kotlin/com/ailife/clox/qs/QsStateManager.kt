@@ -24,6 +24,9 @@ import android.telephony.CellInfoLte
 import android.telephony.CellInfoWcdma
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -158,19 +161,6 @@ class QsStateManager(private val ctx: Context) {
     // ── attach / detach ──────────────────────────────────────────────────────
 
     fun attach() {
-        // Immediate reads
-        updateTime()
-        updateWifi()
-        updateBluetooth()
-        updateVolume()
-        updateDnd()
-        updateRotate()
-        updateLocation()
-        updateAirplane()
-        updateHotspot()
-        updateBattery()
-        updateData(ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
-
         val cmgr = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         // Time
@@ -248,6 +238,24 @@ class QsStateManager(private val ctx: Context) {
                 .listen(phoneStateListener!!, PhoneStateListener.LISTEN_DATA_CONNECTION_STATE or PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
         } catch (_: SecurityException) {
             phoneStateListener = null
+        }
+
+        // All receiver registrations are done (main thread). Now read initial state
+        // values on IO thread so IPC calls to WifiManager, BluetoothAdapter, etc.
+        // don't block the UI. MutableStateFlow.value is thread-safe.
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+        GlobalScope.launch(Dispatchers.IO) {
+            updateTime()
+            updateWifi()
+            updateBluetooth()
+            updateVolume()
+            updateDnd()
+            updateRotate()
+            updateLocation()
+            updateAirplane()
+            updateHotspot()
+            updateBattery()
+            updateData(cmgr)
         }
     }
 
