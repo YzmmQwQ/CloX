@@ -2,6 +2,8 @@ package com.ailife.clox.cocos.bridge
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Looper
+import com.ailife.clox.tapaction.TapActionHandler
 import android.database.ContentObserver
 import android.opengl.GLSurfaceView
 import android.os.Handler
@@ -244,8 +246,11 @@ class WatchfaceBridgeManager(
             val json = JSONObject(payload)
             when (json.optString("action")) {
                 "tapAction" -> {
-                    // TODO: resolve and launch the shortcut intent
-                    Log.d(TAG, "tapAction: ${json.optString("shortcut")}")
+                    val shortcut = json.optString("shortcut")
+                    // Must run on main thread — startActivity and AudioManager require it
+                    android.os.Handler(Looper.getMainLooper()).post {
+                        TapActionHandler.handle(ctx, shortcut)
+                    }
                 }
                 "setHealthEnabled" -> HealthHelper.setEnabled(
                     json.optString("metric"),

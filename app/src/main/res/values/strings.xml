@@ -92,6 +92,15 @@
         <item>custom</item>
     </string-array>
 
+    <!-- ── Tap Actions ───────────────────────────────────────────────────── -->
+    <string name="pref_tap_title">Tap Actions</string>
+    <string name="pref_tap_summary">Map watchface shortcuts to your preferred apps</string>
+    <string name="pref_tap_category_builtin">Built-in actions</string>
+    <string name="pref_tap_category_shortcuts">App shortcuts</string>
+    <string name="pref_tap_builtin_desc">These are always handled directly — no configuration needed:\nvol_up · vol_down · media_play_pause · media_next · media_prev\nmedia_play · media_pause · set_alarm_HH:MM</string>
+    <string name="pref_tap_not_configured">Not configured — tap to set</string>
+    <string name="pref_tap_clear">Clear</string>
+
     <!-- ── Weather ──────────────────────────────────────────────────────── -->
     <string name="pref_weather_title">Weather</string>
     <string name="pref_weather_summary">Current conditions, forecast, provider settings</string>

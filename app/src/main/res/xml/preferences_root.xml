@@ -26,6 +26,12 @@
         android:fragment="com.ailife.clox.settings.fragments.AppearanceSettingsFragment" />
 
     <Preference
+        android:key="nav_tap_actions"
+        android:title="@string/pref_tap_title"
+        android:summary="@string/pref_tap_summary"
+        android:fragment="com.ailife.clox.settings.fragments.TapActionsSettingsFragment" />
+
+    <Preference
         android:key="nav_weather"
         android:title="@string/pref_weather_title"
         android:summary="@string/pref_weather_summary"
