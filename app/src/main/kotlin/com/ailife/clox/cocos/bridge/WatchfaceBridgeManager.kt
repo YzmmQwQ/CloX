@@ -113,7 +113,8 @@ class WatchfaceBridgeManager(
         sendToLua("battery", LiveDataHelper.batteryJson(ctx, qsStateManager.battery.value))
         sendToLua("network", LiveDataHelper.networkJson(ctx, qsStateManager.wifi.value, qsStateManager.data.value))
         sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, qsStateManager.location.value))
-        sendToLua("notification", JSONObject().put("count", 0)) // placeholder — NotificationListenerService not yet wired
+        sendToLua("notification", emptyNotificationJson())
+        sendToLua("thirdParty", ExternalDataStore.toJson(ctx))
         sendToLua("weather", WeatherHelper.getLatestData())   // cached data; weatherFlow collector keeps it fresh
         for (metric in HealthHelper.Metric.entries) {
             sendToLua(HealthHelper.metricCategory(metric), HealthHelper.getLatestData(metric))
@@ -153,12 +154,19 @@ class WatchfaceBridgeManager(
             sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, loc))
         }.launchIn(scope)
 
-        // TODO: wire notification count when CloXNotificationListenerService is ready
+        // TODO: collect CloXNotificationListenerService.notifications and push real data
     }
 
     // ── Periodic updates for data that doesn't have a push observer ───────────
 
     private fun startPeriodicUpdates() {
+        // Re-push thirdParty whenever any external slot is written via broadcast
+        scope.launch {
+            ExternalDataStore.slotUpdated.collect {
+                sendToLua("thirdParty", ExternalDataStore.toJson(ctx))
+            }
+        }
+
         // Storage and alarm don't have system observers; poll every 30s.
         scope.launch {
             while (isActive) {
@@ -254,6 +262,18 @@ class WatchfaceBridgeManager(
     }
 
     // ── Transport ─────────────────────────────────────────────────────────────
+
+    // Notification JSON — backend pending; structure matches what CloXNotificationListenerService
+    // will eventually supply. Replace placeholder zeros/empty strings when wiring the service.
+    private fun emptyNotificationJson(): JSONObject = JSONObject().apply {
+        put("count", 0)
+        put("last", JSONObject().apply {
+            put("appName", "")
+            put("title",   "")
+            put("content", "")
+            put("time",    0L)
+        })
+    }
 
     private fun sendToLua(category: String, data: JSONObject) {
         val payload = JSONObject().apply {

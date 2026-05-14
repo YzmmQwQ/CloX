@@ -38,7 +38,7 @@
 --   network:      wifiEnabled, wifiConnected, wifiSsid, wifiFrequency, wifiSignal (0-4), wifiIp,
 --                 dataEnabled, dataConnected, dataType ("4G"…), dataSignal (0-4), dataOperator
 --   connectivity: bluetoothEnabled, bluetoothDevice, gpsEnabled
---   notification: count
+--   notification: count, last: {appName, title, content, time (unix ms)}
 --   alarm:        hasAlarm (bool), alarmTime ("HH:mm")
 --   storage:      totalStorage, usedStorage, totalRam, usedRam (bytes)
 --   calendar:     hasEvents (bool), events[1..10] each:
@@ -52,6 +52,7 @@
 --   health_steps:     steps, calories (kcal), distance (km)
 --   health_heartRate: bpm, timestamp (unix ms), history[1..10]: {bpm, timestamp} (1=oldest, 10=newest)
 --   health_spo2:      percent, timestamp (unix ms)
+--   thirdParty: slots[1..10]: {data (String), key (String), timestamp (unix ms)}
 --   sensor_accelerometer: x, y, z  (m/s²)
 --   sensor_compass:       azimuth, pitch, roll  (degrees)
 --   sensor_barometer:     pressure  (hPa)
@@ -77,7 +78,7 @@ WF = {
         dataEnabled = false, dataConnected = false, dataType = "", dataSignal = 0, dataOperator = "",
     },
     connectivity = { bluetoothEnabled = false, bluetoothDevice = "", gpsEnabled = false },
-    notification = { count = 0 },
+    notification = { count = 0, last = { appName = "", title = "", content = "", time = 0 } },
     alarm        = { hasAlarm = false, alarmTime = "" },
     storage      = { totalStorage = 0, usedStorage = 0, totalRam = 0, usedRam = 0 },
     calendar     = { hasEvents = false, events = {} },
@@ -94,6 +95,13 @@ WF = {
         return h
     end)() },
     health_spo2      = { percent = 0, timestamp = 0 },
+    -- 10 persistent slots written by third-party apps via broadcast API
+    -- Access: WF.thirdParty.slots[1].data, .key, .timestamp
+    thirdParty = { slots = (function()
+        local s = {}
+        for i = 1, 10 do s[i] = { data = "", key = "", timestamp = 0 } end
+        return s
+    end)() },
     sensor_accelerometer = { x = 0.0, y = 0.0, z = 0.0 },
     sensor_compass       = { azimuth = 0.0, pitch = 0.0, roll = 0.0 },
     sensor_barometer     = { pressure = 0.0 },

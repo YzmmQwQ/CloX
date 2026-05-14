@@ -127,6 +127,15 @@
             </intent-filter>
         </service>
 
+        <!-- Third-party external data API — receives com.ailife.clox.WRITE_DATA broadcasts -->
+        <receiver
+            android:name=".cocos.bridge.ExternalDataReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.ailife.clox.WRITE_DATA" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
