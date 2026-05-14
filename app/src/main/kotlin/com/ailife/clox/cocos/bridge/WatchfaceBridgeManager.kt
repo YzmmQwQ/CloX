@@ -52,13 +52,24 @@ class WatchfaceBridgeManager(
         }
     }
 
-    // Watches for calendar pref toggle in Settings — re-pushes data immediately on change.
+    // Keys that belong to the "location" Lua category (names + timezone offsets)
+    private val locationKeys = (1..5).map { "location_name_$it" }.toSet() +
+                               (1..4).map { "location_timezone_$it" }.toSet()
+
+    // Keys that belong to the "settings" Lua category (watchface display settings)
+    private val watchfaceSettingsKeys = setOf(
+        "watchface_path", "watchface_zoom", "watchface_x_offset", "watchface_y_offset",
+        "watchface_fullscreen", "watchface_frame_rate", "watchface_aod_enabled"
+    )
+
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == SensorsPrefs.KEY_CALENDAR) {
-            scope.launch {
+        when {
+            key == SensorsPrefs.KEY_CALENDAR -> scope.launch {
                 val data = withContext(Dispatchers.IO) { CalendarHelper.getEvents(ctx) }
                 sendToLua("calendar", data)
             }
+            key in locationKeys -> sendToLua("location", LiveDataHelper.locationSettingsJson(ctx))
+            key in watchfaceSettingsKeys -> sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
         }
     }
 
