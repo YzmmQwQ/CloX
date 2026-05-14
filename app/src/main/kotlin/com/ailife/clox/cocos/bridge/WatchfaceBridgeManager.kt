@@ -64,6 +64,7 @@ class WatchfaceBridgeManager(
 
     fun start() {
         registerWatchfaceActionHandler()
+        WeatherRepository.initialize(ctx)   // load cache so Lua gets data before first network fetch
         pushStaticData()
         pushAllLiveData()
         subscribeToLiveData()
@@ -102,7 +103,7 @@ class WatchfaceBridgeManager(
         sendToLua("network", LiveDataHelper.networkJson(ctx, qsStateManager.wifi.value, qsStateManager.data.value))
         sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, qsStateManager.location.value))
         sendToLua("notification", JSONObject().put("count", 0)) // placeholder — NotificationListenerService not yet wired
-        sendToLua("weather", WeatherHelper.getLatestData())
+        sendToLua("weather", WeatherHelper.getLatestData())   // cached data; weatherFlow collector keeps it fresh
         for (metric in HealthHelper.Metric.entries) {
             sendToLua(HealthHelper.metricCategory(metric), HealthHelper.getLatestData(metric))
         }
@@ -161,12 +162,18 @@ class WatchfaceBridgeManager(
         // Calendar is observer-driven (CalendarContract ContentObserver registered in start()).
         // No polling loop needed here.
 
-        // Weather async loop — only fetches when WeatherHelper is enabled
+        // Push to Lua whenever WeatherRepository emits a fresh result (network fetch or cache load)
+        scope.launch {
+            WeatherRepository.weatherFlow.collect { json ->
+                sendToLua("weather", json)
+            }
+        }
+
+        // Weather fetch loop — interval from user settings
         scope.launch {
             while (isActive) {
-                delay(WEATHER_INTERVAL_MS)
-                val data = WeatherHelper.fetchAndUpdate()
-                if (WeatherHelper.isEnabled()) sendToLua("weather", data)
+                delay(WeatherPrefs.intervalMs(ctx))
+                WeatherRepository.refresh(ctx)
             }
         }
 
@@ -221,7 +228,6 @@ class WatchfaceBridgeManager(
                     // TODO: resolve and launch the shortcut intent
                     Log.d(TAG, "tapAction: ${json.optString("shortcut")}")
                 }
-                "setWeatherEnabled" -> WeatherHelper.setEnabled(json.optBoolean("enabled"))
                 "setHealthEnabled" -> HealthHelper.setEnabled(
                     json.optString("metric"),
                     json.optBoolean("enabled")
@@ -258,6 +264,5 @@ class WatchfaceBridgeManager(
 
     companion object {
         private const val TAG = "WatchfaceBridgeMgr"
-        private const val WEATHER_INTERVAL_MS = 10 * 60 * 1000L  // 10 minutes
     }
 }

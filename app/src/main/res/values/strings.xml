@@ -92,6 +92,104 @@
         <item>custom</item>
     </string-array>
 
+    <!-- ── Weather ──────────────────────────────────────────────────────── -->
+    <string name="pref_weather_title">Weather</string>
+    <string name="pref_weather_summary">Current conditions, forecast, provider settings</string>
+    <string name="pref_weather_enabled_title">Enable weather</string>
+    <string name="pref_weather_enabled_summary">Fetch and push weather data to watchfaces</string>
+    <string name="pref_weather_category_source">Data source</string>
+    <string name="pref_weather_category_display">Display</string>
+    <string name="pref_weather_category_update">Update</string>
+    <string name="pref_weather_provider_title">Provider</string>
+    <string name="pref_weather_language_title">Follow system language</string>
+    <string name="pref_weather_language_summary">Use device language for condition descriptions (not all providers support this)</string>
+    <string name="pref_weather_weatherapi_key_title">WeatherAPI.com key</string>
+    <string name="pref_weather_weatherapi_key_summary">Get a free key at weatherapi.com — leave blank to use built-in</string>
+    <string name="pref_weather_owm_key_title">OpenWeatherMap key</string>
+    <string name="pref_weather_owm_key_summary">Requires One Call API 3.0 subscription — leave blank to use built-in</string>
+    <string name="pref_weather_round_title">Round temperature</string>
+    <string name="pref_weather_round_summary">Show integer temperatures (e.g. 22 instead of 21.7)</string>
+    <string name="pref_weather_interval_title">Update interval</string>
+    <string name="pref_weather_refresh_title">Refresh now</string>
+    <string name="pref_weather_refresh_summary">Force an immediate weather fetch</string>
+    <string name="pref_weather_refreshing">Refreshing…</string>
+    <string name="pref_weather_disabled_toast">Enable weather first</string>
+    <string name="pref_weather_last_fetch">Last: %1$d° %2$s at %3$s</string>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no (free, no key)</item>
+        <item>Open-Meteo (free, no key)</item>
+        <item>WeatherAPI.com (key optional)</item>
+        <item>OpenWeatherMap (key required)</item>
+        <item>wttr.in (free, 3-day only)</item>
+    </string-array>
+    <string-array name="weather_provider_values">
+        <item>metno</item>
+        <item>openmeteo</item>
+        <item>weatherapi</item>
+        <item>openweathermap</item>
+        <item>wttrin</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15 minutes</item>
+        <item>30 minutes</item>
+        <item>1 hour</item>
+        <item>2 hours</item>
+    </string-array>
+    <string-array name="weather_interval_values">
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+    </string-array>
+
+    <!-- ── Location ──────────────────────────────────────────────────────── -->
+    <string name="pref_location_title">Location &amp; Timezones</string>
+    <string name="pref_location_summary">Primary location for weather, extra timezone clocks</string>
+    <string name="pref_location_category_primary">Primary location</string>
+    <string name="pref_location_category_extra">Additional timezone clocks</string>
+    <string name="pref_location_city_title">City name</string>
+    <string name="pref_location_city_summary">Display name shown on watchface</string>
+    <string name="pref_location_lat_title">Latitude</string>
+    <string name="pref_location_lat_summary">Decimal degrees, e.g. 22.3193</string>
+    <string name="pref_location_lon_title">Longitude</string>
+    <string name="pref_location_lon_summary">Decimal degrees, e.g. 114.1694</string>
+    <string name="pref_location_gps_title">Set from GPS once</string>
+    <string name="pref_location_gps_summary">Read current GPS coordinates and save as primary location</string>
+    <string name="pref_location_gps_waiting">Waiting for GPS fix…</string>
+    <string name="pref_location_gps_denied">Location permission denied</string>
+    <string name="pref_location_gps_disabled">GPS is disabled — enable it in system settings</string>
+    <string name="pref_location_auto_title">Auto-update via internet</string>
+    <string name="pref_location_auto_summary">Refresh coordinates from IP geolocation on each weather update (no GPS required)</string>
+    <string name="pref_location_lat_invalid">Latitude must be between −90 and 90</string>
+    <string name="pref_location_lon_invalid">Longitude must be between −180 and 180</string>
+    <string name="pref_location_slot2_city">Slot 2 — city name</string>
+    <string name="pref_location_slot2_tz">Slot 2 — timezone offset</string>
+    <string name="pref_location_slot3_city">Slot 3 — city name</string>
+    <string name="pref_location_slot3_tz">Slot 3 — timezone offset</string>
+    <string name="pref_location_slot4_city">Slot 4 — city name</string>
+    <string name="pref_location_slot4_tz">Slot 4 — timezone offset</string>
+    <string name="pref_location_slot5_city">Slot 5 — city name</string>
+    <string name="pref_location_slot5_tz">Slot 5 — timezone offset</string>
+
+    <string-array name="timezone_offset_entries">
+        <item>UTC−11</item><item>UTC−10</item><item>UTC−9</item><item>UTC−8</item>
+        <item>UTC−7</item><item>UTC−6</item><item>UTC−5</item><item>UTC−4</item>
+        <item>UTC−3</item><item>UTC−2</item><item>UTC−1</item><item>UTC+0</item>
+        <item>UTC+1</item><item>UTC+2</item><item>UTC+3</item><item>UTC+4</item>
+        <item>UTC+5</item><item>UTC+6</item><item>UTC+7</item><item>UTC+8</item>
+        <item>UTC+9</item><item>UTC+10</item><item>UTC+11</item>
+    </string-array>
+    <string-array name="timezone_offset_values">
+        <item>-11</item><item>-10</item><item>-9</item><item>-8</item>
+        <item>-7</item><item>-6</item><item>-5</item><item>-4</item>
+        <item>-3</item><item>-2</item><item>-1</item><item>0</item>
+        <item>1</item><item>2</item><item>3</item><item>4</item>
+        <item>5</item><item>6</item><item>7</item><item>8</item>
+        <item>9</item><item>10</item><item>11</item>
+    </string-array>
+
     <!-- ── Health ────────────────────────────────────────────────────────── -->
     <string name="pref_health_title">Health</string>
     <string name="pref_health_summary">Steps, heart rate, blood oxygen via Better Health Tracker</string>
