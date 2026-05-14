@@ -1,0 +1,263 @@
+package com.ailife.clox.cocos.bridge
+
+import android.content.Context
+import android.content.SharedPreferences
+import android.database.ContentObserver
+import android.opengl.GLSurfaceView
+import android.os.Handler
+import android.os.Looper
+import android.provider.CalendarContract
+import android.util.Log
+import androidx.preference.PreferenceManager
+import com.ailife.clox.cocos.CocosManager
+import com.ailife.clox.cocos.LuaBridge
+import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
+import com.ailife.clox.qs.QsStateManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+
+/**
+ * Central coordinator for the Lua ↔ Android data bridge.
+ *
+ * Lifecycle: create in HomeFragment (or wherever CocosManager is initialized),
+ * call start() after the Axmol GL view is ready, call stop() in onDestroyView().
+ *
+ *   val bridge = WatchfaceBridgeManager(requireContext(), qsStateManager)
+ *   bridge.start()
+ *   // ...
+ *   bridge.stop()
+ */
+class WatchfaceBridgeManager(
+    private val ctx: Context,
+    private val qsStateManager: QsStateManager,
+) {
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val sensorHelper = SensorHelper(ctx)
+
+    private val calendarObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            scope.launch {
+                val data = withContext(Dispatchers.IO) { CalendarHelper.getEvents(ctx) }
+                sendToLua("calendar", data)
+            }
+        }
+    }
+
+    // Watches for calendar pref toggle in Settings — re-pushes data immediately on change.
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == SensorsPrefs.KEY_CALENDAR) {
+            scope.launch {
+                val data = withContext(Dispatchers.IO) { CalendarHelper.getEvents(ctx) }
+                sendToLua("calendar", data)
+            }
+        }
+    }
+
+    fun start() {
+        registerWatchfaceActionHandler()
+        pushStaticData()
+        pushAllLiveData()
+        subscribeToLiveData()
+        startPeriodicUpdates()
+        ctx.contentResolver.registerContentObserver(
+            CalendarContract.Events.CONTENT_URI, true, calendarObserver)
+        PreferenceManager.getDefaultSharedPreferences(ctx)
+            .registerOnSharedPreferenceChangeListener(prefsListener)
+    }
+
+    fun stop() {
+        LuaBridge.watchfaceActionHandler = null
+        ctx.contentResolver.unregisterContentObserver(calendarObserver)
+        PreferenceManager.getDefaultSharedPreferences(ctx)
+            .unregisterOnSharedPreferenceChangeListener(prefsListener)
+        scope.cancel()
+        sensorHelper.stop()
+    }
+
+    // ── Static data (one-time) ────────────────────────────────────────────────
+
+    private fun pushStaticData() {
+        sendToLua("device", DeviceInfoHelper.getInfo(ctx))
+    }
+
+    // ── Initial snapshot of all live categories ───────────────────────────────
+
+    private fun pushAllLiveData() {
+        // Settings pushed first — watchface engine must not load until watchfacePath is valid.
+        // These are cheap reads from SharedPreferences (main thread is fine).
+        sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
+        sendToLua("location", LiveDataHelper.locationSettingsJson(ctx))
+
+        // StateFlow current values — always populated since QsStateManager is attached at app start.
+        sendToLua("battery", LiveDataHelper.batteryJson(ctx, qsStateManager.battery.value))
+        sendToLua("network", LiveDataHelper.networkJson(ctx, qsStateManager.wifi.value, qsStateManager.data.value))
+        sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, qsStateManager.location.value))
+        sendToLua("notification", JSONObject().put("count", 0)) // placeholder — NotificationListenerService not yet wired
+        sendToLua("weather", WeatherHelper.getLatestData())
+        for (metric in HealthHelper.Metric.entries) {
+            sendToLua(HealthHelper.metricCategory(metric), HealthHelper.getLatestData(metric))
+        }
+
+        // IO-bound initial reads
+        scope.launch {
+            val storage = withContext(Dispatchers.IO) { LiveDataHelper.storageJson(ctx) }
+            val alarm   = withContext(Dispatchers.IO) { LiveDataHelper.alarmJson(ctx) }
+            val cal     = withContext(Dispatchers.IO) { CalendarHelper.getEvents(ctx) }
+            sendToLua("storage", storage)
+            sendToLua("alarm", alarm)
+            sendToLua("calendar", cal)
+        }
+    }
+
+    // ── Observer-based live updates ───────────────────────────────────────────
+
+    private fun subscribeToLiveData() {
+        qsStateManager.battery.onEach { state ->
+            sendToLua("battery", LiveDataHelper.batteryJson(ctx, state))
+        }.launchIn(scope)
+
+        qsStateManager.wifi.onEach { wifi ->
+            sendToLua("network", LiveDataHelper.networkJson(ctx, wifi, qsStateManager.data.value))
+        }.launchIn(scope)
+
+        qsStateManager.data.onEach { data ->
+            sendToLua("network", LiveDataHelper.networkJson(ctx, qsStateManager.wifi.value, data))
+        }.launchIn(scope)
+
+        qsStateManager.bluetooth.onEach { bt ->
+            sendToLua("connectivity", LiveDataHelper.connectivityJson(bt, qsStateManager.location.value))
+        }.launchIn(scope)
+
+        qsStateManager.location.onEach { loc ->
+            sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, loc))
+        }.launchIn(scope)
+
+        // TODO: wire notification count when CloXNotificationListenerService is ready
+    }
+
+    // ── Periodic updates for data that doesn't have a push observer ───────────
+
+    private fun startPeriodicUpdates() {
+        // Storage and alarm don't have system observers; poll every 30s.
+        scope.launch {
+            while (isActive) {
+                delay(30_000)
+                val storage = withContext(Dispatchers.IO) { LiveDataHelper.storageJson(ctx) }
+                val alarm   = withContext(Dispatchers.IO) { LiveDataHelper.alarmJson(ctx) }
+                sendToLua("storage", storage)
+                sendToLua("alarm", alarm)
+            }
+        }
+
+        // Calendar is observer-driven (CalendarContract ContentObserver registered in start()).
+        // No polling loop needed here.
+
+        // Weather async loop — only fetches when WeatherHelper is enabled
+        scope.launch {
+            while (isActive) {
+                delay(WEATHER_INTERVAL_MS)
+                val data = WeatherHelper.fetchAndUpdate()
+                if (WeatherHelper.isEnabled()) sendToLua("weather", data)
+            }
+        }
+
+        // Push to Lua whenever a health metric is updated — covers both periodic and manual refresh.
+        scope.launch {
+            HealthHelper.dataUpdated.collect { metric ->
+                sendToLua(HealthHelper.metricCategory(metric), HealthHelper.getLatestData(metric))
+            }
+        }
+
+        // Health periodic fetch loop — onInstant sends interim readings directly.
+        // Final data is pushed to Lua by the dataUpdated collector above.
+        scope.launch {
+            while (isActive) {
+                delay(HealthPrefs.intervalMs(ctx))
+                for (metric in HealthHelper.Metric.entries) {
+                    HealthHelper.fetchAndUpdate(metric, ctx) { interim ->
+                        sendToLua(HealthHelper.metricCategory(metric), interim)
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Lua → Android action handler ──────────────────────────────────────────
+
+    private fun registerWatchfaceActionHandler() {
+        LuaBridge.watchfaceActionHandler = { payload -> handleWatchfaceAction(payload) }
+    }
+
+    // ── Java → Lua: watchface lifecycle commands ──────────────────────────────
+
+    /** Tell the Lua watchface engine to load a different watchface. */
+    fun setActiveWatchface(path: String) =
+        queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnSetActive", path) }
+
+    /** Tell the Lua watchface engine to destroy and reload the current watchface. */
+    fun reloadWatchface() =
+        queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnReload", "") }
+
+    /** Tell the Lua watchface engine to clear persistent storage and reload. */
+    fun resetWatchface() =
+        queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnReset", "") }
+
+    // ── Lua → Android: action handler ────────────────────────────────────────
+
+    private fun handleWatchfaceAction(payload: String) {
+        try {
+            val json = JSONObject(payload)
+            when (json.optString("action")) {
+                "tapAction" -> {
+                    // TODO: resolve and launch the shortcut intent
+                    Log.d(TAG, "tapAction: ${json.optString("shortcut")}")
+                }
+                "setWeatherEnabled" -> WeatherHelper.setEnabled(json.optBoolean("enabled"))
+                "setHealthEnabled" -> HealthHelper.setEnabled(
+                    json.optString("metric"),
+                    json.optBoolean("enabled")
+                )
+                "setSensorEnabled" -> sensorHelper.setEnabled(
+                    json.optString("sensor"),
+                    json.optBoolean("enabled")
+                ) { sensor, data -> sendToLua("sensor_$sensor", data) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "handleWatchfaceAction error", e)
+        }
+    }
+
+    // ── Transport ─────────────────────────────────────────────────────────────
+
+    private fun sendToLua(category: String, data: JSONObject) {
+        val payload = JSONObject().apply {
+            put("category", category)
+            put("data", data)
+        }.toString()
+        queueOnGL { LuaBridge.callLuaFunction("WatchfaceBridgeDispatch", payload) }
+    }
+
+    // All Lua calls must run on the Axmol GL thread.
+    private fun queueOnGL(block: () -> Unit) {
+        val glView = CocosManager.getGlView() as? GLSurfaceView
+        if (glView != null) {
+            glView.queueEvent(block)
+        } else {
+            Log.w(TAG, "queueOnGL skipped — GL view not ready")
+        }
+    }
+
+    companion object {
+        private const val TAG = "WatchfaceBridgeMgr"
+        private const val WEATHER_INTERVAL_MS = 10 * 60 * 1000L  // 10 minutes
+    }
+}

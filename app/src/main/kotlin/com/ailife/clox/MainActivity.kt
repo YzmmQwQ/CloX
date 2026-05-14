@@ -33,6 +33,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private lateinit var notifications: NotificationOverlay
     private lateinit var flashlightOverlay: com.ailife.clox.overlay.quicksettings.FlashlightOverlay
 
+    lateinit var stateManager: com.ailife.clox.qs.QsStateManager
+
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
     private var appListSpring: SpringAnimation? = null
@@ -89,7 +91,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             findViewById(R.id.blurLayer)
         )
 
-        val stateManager = com.ailife.clox.qs.QsStateManager(this)
+        stateManager = com.ailife.clox.qs.QsStateManager(this)
+        stateManager.attach()   // always active; QS panel attach/detach add/remove their own hold
         quickSettings.init(stateManager, supportFragmentManager, flashlightOverlay) {
             overlayController.dismissActive()
         }
@@ -151,6 +154,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     override fun onDestroy() {
         super.onDestroy()
         CocosManager.onDestroy()
+        stateManager.detach()
     }
 
     // ── Gesture setup ────────────────────────────────────────────────────────

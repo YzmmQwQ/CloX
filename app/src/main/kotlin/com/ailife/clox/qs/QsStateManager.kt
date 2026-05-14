@@ -159,8 +159,13 @@ class QsStateManager(private val ctx: Context) {
     private var phoneStateListener: PhoneStateListener? = null
 
     // ── attach / detach ──────────────────────────────────────────────────────
+    // Reference-counted so multiple owners (MainActivity, QS panel) can independently
+    // attach/detach without tearing down receivers while another owner still needs them.
+
+    private var attachCount = 0
 
     fun attach() {
+        if (++attachCount > 1) return   // already registered
         val cmgr = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         // Time
@@ -259,7 +264,20 @@ class QsStateManager(private val ctx: Context) {
         }
     }
 
+    /** Re-reads all current system state without touching receiver registrations. */
+    fun refreshState() {
+        val cmgr = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+        GlobalScope.launch(Dispatchers.IO) {
+            updateTime(); updateWifi(); updateBluetooth(); updateVolume()
+            updateDnd(); updateRotate(); updateLocation(); updateAirplane()
+            updateHotspot(); updateBattery(); updateData(cmgr)
+        }
+    }
+
     fun detach() {
+        if (--attachCount > 0) return   // another owner still active
+        attachCount = 0                 // guard against going negative
         runCatching { ctx.unregisterReceiver(timeReceiver) }
         runCatching { ctx.unregisterReceiver(batteryReceiver) }
         runCatching { ctx.unregisterReceiver(wifiReceiver) }

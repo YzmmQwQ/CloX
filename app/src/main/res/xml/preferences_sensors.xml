@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="@string/pref_sensors_category_data">
+
+        <SwitchPreferenceCompat
+            android:key="sensor_calendar_access"
+            android:title="@string/pref_calendar_title"
+            android:summary="@string/pref_calendar_summary"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_sensors_category_motion">
+
+        <SwitchPreferenceCompat
+            android:key="sensor_accelerometer"
+            android:title="@string/pref_accelerometer_title"
+            android:summary="@string/pref_accelerometer_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="sensor_compass"
+            android:title="@string/pref_compass_title"
+            android:summary="@string/pref_compass_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="sensor_barometer"
+            android:title="@string/pref_barometer_title"
+            android:summary="@string/pref_barometer_summary"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

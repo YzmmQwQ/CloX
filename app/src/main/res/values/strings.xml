@@ -92,6 +92,62 @@
         <item>custom</item>
     </string-array>
 
+    <!-- ── Health ────────────────────────────────────────────────────────── -->
+    <string name="pref_health_title">Health</string>
+    <string name="pref_health_summary">Steps, heart rate, blood oxygen via Better Health Tracker</string>
+    <string name="pref_health_category_status">Better Health Tracker</string>
+    <string name="pref_health_category_metrics">Metrics</string>
+    <string name="pref_health_category_update">Update</string>
+    <string name="pref_health_bht_installed">Installed — data access ready</string>
+    <string name="pref_health_bht_not_installed">Not installed — tap to download</string>
+    <string name="pref_health_steps_title">Steps</string>
+    <string name="pref_health_steps_summary">Daily step count, distance and calories</string>
+    <string name="pref_health_instant_steps_title">Instant step count</string>
+    <string name="pref_health_instant_steps_summary">Read sensor directly instead of background log (may be less accurate)</string>
+    <string name="pref_health_hr_title">Heart rate</string>
+    <string name="pref_health_hr_summary">BPM reading with 10-point history</string>
+    <string name="pref_health_spo2_title">Blood oxygen</string>
+    <string name="pref_health_spo2_summary">SpO2 percentage</string>
+    <string name="pref_health_instant_title">Instant measurement</string>
+    <string name="pref_health_instant_summary">Trigger real-time sensor read for heart rate and SpO2; takes longer but reflects current value</string>
+    <string name="pref_health_interval_title">Update interval</string>
+    <string name="pref_health_not_installed_toast">Better Health Tracker is not installed</string>
+    <string name="pref_health_refresh_title">Refresh now</string>
+    <string name="pref_health_refresh_summary">Fetch all enabled metrics immediately</string>
+    <string name="pref_health_refreshing">Refreshing…</string>
+
+    <string-array name="health_interval_entries">
+        <item>5 minutes</item>
+        <item>10 minutes</item>
+        <item>15 minutes</item>
+        <item>30 minutes</item>
+    </string-array>
+    <string-array name="health_interval_values">
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+        <item>30</item>
+    </string-array>
+
+    <!-- ── Sensors & Privacy ─────────────────────────────────────────────── -->
+    <string name="pref_sensors_title">Sensors &amp; Privacy</string>
+    <string name="pref_sensors_summary">Calendar access, accelerometer, compass, barometer</string>
+
+    <string name="pref_sensors_category_data">Data access</string>
+    <string name="pref_sensors_category_motion">Motion sensors</string>
+
+    <string name="pref_calendar_title">Calendar access</string>
+    <string name="pref_calendar_summary">Allow watchfaces to read upcoming calendar events</string>
+    <string name="pref_calendar_permission_denied">Calendar permission denied — access remains off</string>
+
+    <string name="pref_accelerometer_title">Accelerometer</string>
+    <string name="pref_accelerometer_summary">Allow watchfaces to read motion and tilt data</string>
+    <string name="pref_compass_title">Compass</string>
+    <string name="pref_compass_summary">Allow watchfaces to read magnetic heading (requires magnetometer)</string>
+    <string name="pref_barometer_title">Barometer</string>
+    <string name="pref_barometer_summary">Allow watchfaces to read air pressure</string>
+    <string name="pref_sensor_unavailable">Not available on this device</string>
+
     <!-- ── Quick Settings ─────────────────────────────────────────────────── -->
     <string name="accessibility_service_label">CloX Quick Actions</string>
     <string name="accessibility_service_description">Allows CloX to show the power menu and recent apps from Quick Settings.</string>

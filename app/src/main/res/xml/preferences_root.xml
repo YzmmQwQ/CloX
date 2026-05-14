@@ -26,6 +26,18 @@
         android:fragment="com.ailife.clox.settings.fragments.AppearanceSettingsFragment" />
 
     <Preference
+        android:key="nav_health"
+        android:title="@string/pref_health_title"
+        android:summary="@string/pref_health_summary"
+        android:fragment="com.ailife.clox.settings.fragments.HealthSettingsFragment" />
+
+    <Preference
+        android:key="nav_sensors"
+        android:title="@string/pref_sensors_title"
+        android:summary="@string/pref_sensors_summary"
+        android:fragment="com.ailife.clox.settings.fragments.SensorsSettingsFragment" />
+
+    <Preference
         android:key="nav_hide_apps"
         android:title="Hidden apps"
         android:summary="Blacklist or whitelist apps from the launcher" />

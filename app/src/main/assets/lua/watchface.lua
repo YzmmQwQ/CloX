@@ -2,6 +2,7 @@
 -- Rendered on the Axmol GL thread. All home screen content lives here.
 
 require "bridge"
+require "watchface_bridge"
 
 local WatchfaceScene = class("WatchfaceScene", cc.Scene)
 

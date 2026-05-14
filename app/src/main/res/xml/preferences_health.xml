@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="@string/pref_health_category_status">
+
+        <Preference
+            android:key="health_bht_status"
+            android:title="Better Health Tracker" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_health_category_metrics">
+
+        <SwitchPreferenceCompat
+            android:key="health_steps_enabled"
+            android:title="@string/pref_health_steps_title"
+            android:summary="@string/pref_health_steps_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="health_instant_steps"
+            android:title="@string/pref_health_instant_steps_title"
+            android:summary="@string/pref_health_instant_steps_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="health_hr_enabled"
+            android:title="@string/pref_health_hr_title"
+            android:summary="@string/pref_health_hr_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="health_spo2_enabled"
+            android:title="@string/pref_health_spo2_title"
+            android:summary="@string/pref_health_spo2_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="health_instant_hr_spo2"
+            android:title="@string/pref_health_instant_title"
+            android:summary="@string/pref_health_instant_summary"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_health_category_update">
+
+        <ListPreference
+            android:key="health_interval_minutes"
+            android:title="@string/pref_health_interval_title"
+            android:summary="%s"
+            android:entries="@array/health_interval_entries"
+            android:entryValues="@array/health_interval_values"
+            android:defaultValue="10" />
+
+        <Preference
+            android:key="health_refresh_now"
+            android:title="@string/pref_health_refresh_title"
+            android:summary="@string/pref_health_refresh_summary" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

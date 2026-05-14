@@ -148,8 +148,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
     /** Re-read state flows if the panel is currently open (called after permission grant). */
     fun refreshStateIfOpen() {
         if (visibility == android.view.View.VISIBLE) {
-            stateManager?.detach()
-            stateManager?.attach()
+            stateManager?.refreshState()
         }
     }
 

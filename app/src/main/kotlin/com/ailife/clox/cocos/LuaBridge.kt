@@ -24,7 +24,9 @@ object LuaBridge {
     @JvmStatic
     fun onLuaEvent(event: String, payload: String) {
         Log.d(TAG, "onLuaEvent: $event  payload=$payload")
-        // Route events to interested listeners (extend as needed)
+        if (event == "wf_action") {
+            watchfaceActionHandler?.invoke(payload)
+        }
         eventListeners.forEach { it(event, payload) }
     }
 
@@ -37,4 +39,7 @@ object LuaBridge {
     fun removeEventListener(listener: (String, String) -> Unit) {
         eventListeners -= listener
     }
+
+    /** Set by WatchfaceBridgeManager to handle actions sent from Lua (wf_action events). */
+    var watchfaceActionHandler: ((String) -> Unit)? = null
 }
