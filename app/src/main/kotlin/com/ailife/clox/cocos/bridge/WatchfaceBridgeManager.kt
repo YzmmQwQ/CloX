@@ -2,7 +2,6 @@ package com.ailife.clox.cocos.bridge
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Looper
 import com.ailife.clox.tapaction.TapActionHandler
 import android.database.ContentObserver
 import android.opengl.GLSurfaceView
