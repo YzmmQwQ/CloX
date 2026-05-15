@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
+    private var appLaunchedFromList = false
     private var appListSpring: SpringAnimation? = null
     private lateinit var gestureHandler: GestureHandler
 
@@ -68,6 +69,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
             val frag = AppListFragment()
             frag.onRequestClose = { closeAppList() }
+            frag.onAppLaunched = { appLaunchedFromList = true }
             frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
             frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
@@ -77,6 +79,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListFragment = (supportFragmentManager
                 .findFragmentByTag("app_list") as? AppListFragment)?.also { frag ->
                     frag.onRequestClose = { closeAppList() }
+                    frag.onAppLaunched = { appLaunchedFromList = true }
                     frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
                     frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
                     frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
@@ -125,14 +128,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // onNewIntent fires in two situations:
-        //   A) User pressed Home while the launcher is already in the foreground → currentState=RESUMED
-        //   B) User pressed Home from an external app → activity is resumed AFTER onNewIntent
-        //      (sequence: onNewIntent → onRestart → onStart → onResume), currentState≠RESUMED
-        // Only run the dismiss-layers logic for case A. For case B, leave the app list as-is
-        // so the user is returned to wherever they were before launching the app.
-        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+        // Only handle HOME button presses
+        if (intent.action != Intent.ACTION_MAIN ||
+            intent.categories?.contains(Intent.CATEGORY_HOME) != true) return
 
+        // If we launched an app from the list, this is the return Home press.
+        // Clear the flag and do nothing — the app list stays visible as expected.
+        if (appLaunchedFromList) { appLaunchedFromList = false; return }
+
+        // User pressed Home while already inside the launcher — dismiss outermost layer
         when {
             AppContextMenu.isShowing -> AppContextMenu.dismissCurrent()
             overlayController.hasActiveOverlay() -> overlayController.dismissActive()

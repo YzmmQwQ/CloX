@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ailife.clox.R
 import com.ailife.clox.applist.backends.Grid2DBackend
+import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 import com.ailife.clox.applist.backends.GridBackend
 import com.ailife.clox.applist.backends.HoneycombBackend
@@ -35,6 +36,7 @@ import kotlinx.coroutines.launch
 class AppListFragment : Fragment() {
 
     var onRequestClose: (() -> Unit)? = null
+    var onAppLaunched: (() -> Unit)? = null
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
     var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
@@ -42,6 +44,7 @@ class AppListFragment : Fragment() {
     private val viewModel: AppListViewModel by viewModels()
     private var backend: AppListBackend? = null
     private lateinit var root: FrameLayout
+    private var lastBoundItems: List<AppItem>? = null
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
@@ -129,6 +132,7 @@ class AppListFragment : Fragment() {
 
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item, sourceView ->
+            onAppLaunched?.invoke()
             val intent = android.content.Intent().apply {
                 setClassName(item.packageName, item.activityName)
                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -159,6 +163,7 @@ class AppListFragment : Fragment() {
         ))
 
         backend = newBackend
+        lastBoundItems = null   // force bindItems on the fresh backend
         val isPages = style == AppListPrefs.STYLE_PAGES
         val pagesBackend = if (isPages) newBackend as PagesBackend else null
         onPagesBackendActive?.invoke(isPages)
@@ -185,7 +190,14 @@ class AppListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.apps.collect { items ->
-                    backend?.bindItems(items)
+                    // StateFlow re-emits its current value every time collection restarts
+                    // (e.g. returning from an external app). Skip bindItems if the list
+                    // reference hasn't changed — same object means nothing was reloaded,
+                    // so the adapter is already up-to-date and scroll position is preserved.
+                    if (items !== lastBoundItems) {
+                        lastBoundItems = items
+                        backend?.bindItems(items)
+                    }
                     backend?.refreshBadges(currentNotifCounts())
                 }
             }
