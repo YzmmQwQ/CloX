@@ -1,5 +1,6 @@
 package com.ailife.clox
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
@@ -11,6 +12,7 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
+import com.ailife.clox.applist.AppContextMenu
 import com.ailife.clox.applist.AppListFragment
 import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
@@ -115,6 +117,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     overlayController.commitDrag()
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Home pressed while launcher is already in foreground — dismiss outermost layer first
+        when {
+            AppContextMenu.isShowing -> AppContextMenu.dismissCurrent()
+            overlayController.hasActiveOverlay() -> overlayController.dismissActive()
+            appListOpen -> closeAppList()
         }
     }
 
