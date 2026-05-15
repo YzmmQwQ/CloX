@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.ailife.clox.applist.AppContextMenu
 import com.ailife.clox.qs.CloXAccessibilityService
+import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.applist.AppListFragment
 import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
@@ -132,7 +133,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             else -> {
                 if (PreferenceManager.getDefaultSharedPreferences(this)
                         .getBoolean("home_press_screen_off", false)) {
-                    CloXAccessibilityService.lockScreen()
+                    if (!CloXAccessibilityService.lockScreen()) {
+                        QsPermissionHelper.ensureAccessibilityEnabled(this)
+                    }
                 }
             }
         }
