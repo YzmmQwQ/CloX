@@ -40,7 +40,12 @@ class MediaSingleAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val comp = listenerComponent ?: return
         holder.card.bindActiveSession(holder.itemView.context, comp) { sessionFound ->
-            if (hasSession != sessionFound) { hasSession = sessionFound; notifyDataSetChanged() }
+            if (hasSession != sessionFound) {
+                hasSession = sessionFound
+                // Defer — callback fires synchronously during onBind, so we can't notify while
+                // the RecyclerView is still computing its layout.
+                holder.itemView.post { notifyDataSetChanged() }
+            }
         }
     }
 
