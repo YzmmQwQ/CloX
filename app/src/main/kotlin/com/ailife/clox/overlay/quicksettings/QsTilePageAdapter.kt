@@ -102,7 +102,7 @@ class QsTilePageAdapter(
         // Route to solid or stroke state applicator
         fun applyTileState(active: Boolean, detail: String? = null, badge: String? = null, color: Int? = null) {
             if (solidStyle) tile.applyStateSolid(active, detail, badge, color)
-            else applyTileState(active, detail, badge, color)
+            else tile.applyState(active, detail, badge, color)
         }
 
         val useSystem = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
