@@ -1,7 +1,11 @@
 package com.ailife.clox
 
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Bundle
+import android.view.animation.AccelerateInterpolator
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -14,6 +18,7 @@ import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.ailife.clox.applist.AppContextMenu
+import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.applist.AppListFragment
@@ -47,6 +52,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
     private var appLaunchedFromList = false
+    private var lastLaunchedItem: AppItem? = null
+    private var lastLaunchBounds: Rect? = null
     private var appListSpring: SpringAnimation? = null
     private lateinit var gestureHandler: GestureHandler
 
@@ -69,7 +76,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
             val frag = AppListFragment()
             frag.onRequestClose = { closeAppList() }
-            frag.onAppLaunched = { appLaunchedFromList = true }
+            frag.onAppLaunched = { item, bounds ->
+                appLaunchedFromList = true
+                lastLaunchedItem = item
+                lastLaunchBounds = bounds
+            }
             frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
             frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
@@ -79,7 +90,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListFragment = (supportFragmentManager
                 .findFragmentByTag("app_list") as? AppListFragment)?.also { frag ->
                     frag.onRequestClose = { closeAppList() }
-                    frag.onAppLaunched = { appLaunchedFromList = true }
+                    frag.onAppLaunched = { item, bounds ->
+                appLaunchedFromList = true
+                lastLaunchedItem = item
+                lastLaunchBounds = bounds
+            }
                     frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
                     frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
                     frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
@@ -180,10 +195,47 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         CocosManager.onResume()
         DefaultLauncherManager(this).checkAndPromptIfNeeded()
         com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
-        // Re-check notification permission in case user just returned from settings
-        if (overlayController.isNotificationActive()) {
-            notifications.onPanelOpened()
+        if (overlayController.isNotificationActive()) notifications.onPanelOpened()
+
+        // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
+        appLaunchedFromList = false
+
+        val item = lastLaunchedItem; val bounds = lastLaunchBounds
+        if (item != null && bounds != null) {
+            lastLaunchedItem = null; lastLaunchBounds = null
+            // Android 10+ (API 29): system gesture nav already provides a shrink-to-icon animation
+            // Pre-10: button nav has no such system animation, so we suppress the default and play our own
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+                gestureRoot.post { playReturnAnimation(item, bounds) }
+            }
         }
+    }
+
+    private fun playReturnAnimation(item: AppItem, iconBounds: Rect) {
+        val sw = screenW; val sh = screenH
+        val iv = ImageView(this).apply {
+            setImageDrawable(item.icon)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            pivotX = sw / 2f; pivotY = sh / 2f
+            isClickable = false; isFocusable = false
+        }
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(sw.toInt(), sh.toInt()))
+
+        val targetScaleX = iconBounds.width().toFloat() / sw
+        val targetScaleY = iconBounds.height().toFloat() / sh
+        val tx = iconBounds.centerX() - sw / 2f
+        val ty = iconBounds.centerY() - sh / 2f
+
+        iv.animate()
+            .translationX(tx).translationY(ty)
+            .scaleX(targetScaleX).scaleY(targetScaleY)
+            .alpha(0f)
+            .setDuration(260)
+            .setInterpolator(AccelerateInterpolator(1.5f))
+            .withEndAction { gestureRoot.removeView(iv) }
+            .start()
     }
 
     override fun onRequestPermissionsResult(

@@ -23,6 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ailife.clox.R
+import android.graphics.Rect
 import com.ailife.clox.applist.backends.Grid2DBackend
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
@@ -36,7 +37,7 @@ import kotlinx.coroutines.launch
 class AppListFragment : Fragment() {
 
     var onRequestClose: (() -> Unit)? = null
-    var onAppLaunched: (() -> Unit)? = null
+    var onAppLaunched: ((AppItem, Rect) -> Unit)? = null
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
     var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
@@ -132,7 +133,8 @@ class AppListFragment : Fragment() {
 
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item, sourceView ->
-            onAppLaunched?.invoke()
+            val bounds = Rect().also { sourceView.getGlobalVisibleRect(it) }
+            onAppLaunched?.invoke(item, bounds)
             val intent = android.content.Intent().apply {
                 setClassName(item.packageName, item.activityName)
                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
