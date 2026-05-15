@@ -133,7 +133,9 @@ class AppListFragment : Fragment() {
 
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item, sourceView ->
-            val bounds = Rect().also { sourceView.getGlobalVisibleRect(it) }
+            // Prefer the icon ImageView for tighter bounds; fall back to the whole item view
+            val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
+            val bounds = Rect().also { boundsView.getGlobalVisibleRect(it) }
             onAppLaunched?.invoke(item, bounds)
             val intent = android.content.Intent().apply {
                 setClassName(item.packageName, item.activityName)

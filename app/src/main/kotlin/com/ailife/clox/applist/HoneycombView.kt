@@ -139,7 +139,7 @@ class HoneycombView @JvmOverloads constructor(
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply { gravity = Gravity.TOP or Gravity.END })
             cell.setOnClickListener {
-                if (!AppContextMenu.isShowing) onAppClick?.invoke(item, this)
+                if (!AppContextMenu.isShowing) onAppClick?.invoke(item, cell)
             }
             badgeViews.add(badge)
 

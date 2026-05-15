@@ -160,7 +160,7 @@ class Grid2DView @JvmOverloads constructor(
             ).apply { topMargin = iconPx + dp(2) })
         }
         cell.setOnClickListener {
-            if (!AppContextMenu.isShowing) onAppClick?.invoke(item, this)
+            if (!AppContextMenu.isShowing) onAppClick?.invoke(item, cell)
         }
         return cell
     }

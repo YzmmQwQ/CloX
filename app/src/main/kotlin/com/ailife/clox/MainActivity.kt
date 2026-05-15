@@ -4,7 +4,7 @@ import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.view.KeyEvent
@@ -149,8 +149,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             intent.categories?.contains(Intent.CATEGORY_HOME) != true) return
 
         // If we launched an app from the list, this is the return Home press.
-        // Clear the flag and do nothing — the app list stays visible as expected.
-        if (appLaunchedFromList) { appLaunchedFromList = false; return }
+        // Suppress the system transition here (earliest possible point) so our
+        // custom animation plays cleanly in onResume without racing the system one.
+        if (appLaunchedFromList) {
+            appLaunchedFromList = false
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+            }
+            return
+        }
 
         // User pressed Home while already inside the launcher — dismiss outermost layer
         when {
@@ -207,36 +214,63 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             // Android 10+ (API 29): system gesture nav already provides a shrink-to-icon animation
             // Pre-10: button nav has no such system animation, so we suppress the default and play our own
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                @Suppress("DEPRECATION")
-                overridePendingTransition(0, 0)
+                // Safety-net suppress for Back-button returns (onNewIntent doesn't fire then)
+                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
                 gestureRoot.post { playReturnAnimation(item, bounds) }
             }
         }
     }
 
     private fun playReturnAnimation(item: AppItem, iconBounds: Rect) {
-        val sw = screenW; val sh = screenH
+        val sw = screenW.toInt(); val sh = screenH.toInt()
+
+        // Convert icon bounds from screen coords to gestureRoot-local coords
+        val rootLoc = IntArray(2)
+        gestureRoot.getLocationOnScreen(rootLoc)
+        val iconCxLocal = iconBounds.centerX() - rootLoc[0]
+        val iconCyLocal = iconBounds.centerY() - rootLoc[1]
+        val iconW = iconBounds.width(); val iconH = iconBounds.height()
+
+        // Start: 60% of smallest screen dimension, centered on screen
+        val startSize = (minOf(sw, sh) * 0.6f).toInt().coerceAtLeast(1)
+        val startCx = sw / 2; val startCy = sh / 2
+
         val iv = ImageView(this).apply {
             setImageDrawable(item.icon)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            pivotX = sw / 2f; pivotY = sh / 2f
+            pivotX = startSize / 2f; pivotY = startSize / 2f
             isClickable = false; isFocusable = false
         }
-        gestureRoot.addView(iv, FrameLayout.LayoutParams(sw.toInt(), sh.toInt()))
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(startSize, startSize).apply {
+            leftMargin = startCx - startSize / 2
+            topMargin  = startCy - startSize / 2
+        })
 
-        val targetScaleX = iconBounds.width().toFloat() / sw
-        val targetScaleY = iconBounds.height().toFloat() / sh
-        val tx = iconBounds.centerX() - sw / 2f
-        val ty = iconBounds.centerY() - sh / 2f
+        // End: icon's actual position and size
+        val targetScaleX = iconW.toFloat() / startSize
+        val targetScaleY = iconH.toFloat() / startSize
+        val tx = iconCxLocal - startCx.toFloat()
+        val ty = iconCyLocal - startCy.toFloat()
 
-        iv.animate()
-            .translationX(tx).translationY(ty)
-            .scaleX(targetScaleX).scaleY(targetScaleY)
-            .alpha(0f)
-            .setDuration(260)
-            .setInterpolator(AccelerateInterpolator(1.5f))
-            .withEndAction { gestureRoot.removeView(iv) }
-            .start()
+        android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 350
+            interpolator = DecelerateInterpolator(1.5f)
+            addUpdateListener { va ->
+                val t   = va.animatedValue as Float  // interpolated — scale/translate
+                val raw = va.animatedFraction        // wall-clock — alpha timing
+                iv.scaleX = 1f - (1f - targetScaleX) * t
+                iv.scaleY = 1f - (1f - targetScaleY) * t
+                iv.translationX = tx * t
+                iv.translationY = ty * t
+                iv.alpha = if (raw < 0.65f) 1f else (1f - raw) / 0.35f
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    gestureRoot.removeView(iv)
+                }
+            })
+            start()
+        }
     }
 
     override fun onRequestPermissionsResult(
