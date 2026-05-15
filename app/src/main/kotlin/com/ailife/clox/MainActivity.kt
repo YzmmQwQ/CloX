@@ -125,7 +125,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Home pressed while launcher is already in foreground — dismiss outermost layer first
+        // onNewIntent fires in two situations:
+        //   A) User pressed Home while the launcher is already in the foreground → currentState=RESUMED
+        //   B) User pressed Home from an external app → activity is resumed AFTER onNewIntent
+        //      (sequence: onNewIntent → onRestart → onStart → onResume), currentState≠RESUMED
+        // Only run the dismiss-layers logic for case A. For case B, leave the app list as-is
+        // so the user is returned to wherever they were before launching the app.
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+
         when {
             AppContextMenu.isShowing -> AppContextMenu.dismissCurrent()
             overlayController.hasActiveOverlay() -> overlayController.dismissActive()
