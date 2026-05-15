@@ -2,6 +2,7 @@ package com.ailife.clox
 
 import android.content.Intent
 import android.graphics.Rect
+import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
 import android.view.animation.DecelerateInterpolator
@@ -144,7 +145,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Only handle HOME button presses
+
+        // Android 11+: system sends GestureNavContract so we can provide the icon rect
+        // and the system animates the closing app window to it. Must be processed before
+        // removing the EXTRA_GESTURE_CONTRACT from the intent (fromIntent does that).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            GestureNavContract.fromIntent(intent)?.let { handleGestureContract(it) }
+        }
+
+        // Only handle HOME button presses for our own dismiss logic
         if (intent.action != Intent.ACTION_MAIN ||
             intent.categories?.contains(Intent.CATEGORY_HOME) != true) return
 
@@ -153,7 +162,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // custom animation plays cleanly in onResume without racing the system one.
         if (appLaunchedFromList) {
             appLaunchedFromList = false
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                 @Suppress("DEPRECATION") overridePendingTransition(0, 0)
             }
             return
@@ -213,12 +222,26 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             lastLaunchedItem = null; lastLaunchBounds = null
             // Android 10+ (API 29): system gesture nav already provides a shrink-to-icon animation
             // Pre-10: button nav has no such system animation, so we suppress the default and play our own
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                 // Safety-net suppress for Back-button returns (onNewIntent doesn't fire then)
                 @Suppress("DEPRECATION") overridePendingTransition(0, 0)
                 gestureRoot.post { playReturnAnimation(item, bounds) }
             }
         }
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
+    private fun handleGestureContract(contract: GestureNavContract) {
+        val item = lastLaunchedItem; val bounds = lastLaunchBounds
+        val target = if (bounds != null && item != null &&
+            item.packageName == contract.componentName.packageName) {
+            RectF(bounds)
+        } else {
+            // Fallback: collapse to screen center so the animation doesn't fly off-screen
+            val cx = screenW / 2f; val cy = screenH / 2f
+            RectF(cx, cy, cx, cy)
+        }
+        contract.sendEndPosition(target)
     }
 
     private fun playReturnAnimation(item: AppItem, iconBounds: Rect) {
