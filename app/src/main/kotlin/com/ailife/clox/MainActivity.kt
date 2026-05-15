@@ -2,6 +2,7 @@ package com.ailife.clox
 
 import android.content.Intent
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.view.animation.AccelerateInterpolator
 import android.widget.FrameLayout
