@@ -38,6 +38,9 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     /** Returns true while a Pages drag is in progress — blocks all swipe gestures. */
     var pagesBackendDragActive: (() -> Boolean)? = null
 
+    /** Returns true when the notification panel is open — vertical + right swipes pass to child. */
+    var notificationOverlayActive: (() -> Boolean)? = null
+
     var onSwipeStart: ((SwipeDirection, Float, Float) -> Unit)? = null
     var onSwipeUpdate: ((SwipeDirection, Float, Float) -> Unit)? = null
     var onSwipeEnd: ((SwipeDirection, Float, Float, Float, Float) -> Unit)? = null
@@ -178,6 +181,9 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         // When QS (or any overlay) is open, let VP2 handle horizontal page swipes
         if (qsOverlayActive?.invoke() == true &&
             (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT)) return true
+        // When notification panel is open: only LEFT collapses it; vertical + right pass to child
+        if (notificationOverlayActive?.invoke() == true &&
+            (dir == SwipeDirection.UP || dir == SwipeDirection.DOWN || dir == SwipeDirection.RIGHT)) return true
         return appListOpen && (
             dir == SwipeDirection.UP || dir == SwipeDirection.DOWN ||
             // Pages: always pass LEFT to ViewPager2 (go to next page)

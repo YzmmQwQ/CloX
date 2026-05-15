@@ -10,6 +10,7 @@ import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.commit
+import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.applist.AppListFragment
 import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
@@ -18,10 +19,12 @@ import com.ailife.clox.gesture.GestureInterceptorLayout
 import com.ailife.clox.gesture.SwipeDirection
 import com.ailife.clox.home.HomeFragment
 import com.ailife.clox.overlay.OverlayController
+import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 import com.ailife.clox.overlay.notifications.NotificationOverlay
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
 import dev.axmol.lib.AxmolEngine
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
@@ -99,8 +102,20 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             overlayController.dismissActive()
         }
 
+        notifications.init(supportFragmentManager)
+
         gestureHandler = GestureHandler(this, window)
         setupGestures()
+
+        // Open notification panel automatically when a new notification arrives (if enabled)
+        lifecycleScope.launch {
+            CloXNotificationListenerService.openPanelEvent.collect {
+                if (!overlayController.hasActiveOverlay()) {
+                    overlayController.startDrag(SwipeDirection.RIGHT, screenW, screenH)
+                    overlayController.commitDrag()
+                }
+            }
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -129,8 +144,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     override fun onResume() {
         super.onResume()
         CocosManager.onResume()
-        // Request any missing permissions every resume until all are granted
         com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
+        // Re-check notification permission in case user just returned from settings
+        if (overlayController.isNotificationActive()) {
+            notifications.onPanelOpened()
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -165,6 +183,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun setupGestures() {
         // Only pass LEFT/RIGHT through when QS (VP2) is active, not other overlays
         gestureRoot.qsOverlayActive = { overlayController.isQsActive() }
+        // Pass vertical + right swipes through to the notification RecyclerView/ItemTouchHelper
+        gestureRoot.notificationOverlayActive = { overlayController.isNotificationActive() }
 
         gestureRoot.doubleTapListener = {
             overlayController.dismissActive()

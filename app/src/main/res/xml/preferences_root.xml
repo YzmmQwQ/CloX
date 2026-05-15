@@ -2,6 +2,13 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <Preference
+        android:key="nav_notifications"
+        android:title="Notifications"
+        android:summary="Panel style, alerts, filtering, blocked apps"
+        android:icon="@drawable/ic_notifications"
+        android:fragment="com.ailife.clox.settings.fragments.NotificationSettingsFragment" />
+
+    <Preference
         android:key="nav_quick_settings"
         android:title="@string/qs_title"
         android:summary="Tiles, columns, gestures, flashlight, colors, privileges"

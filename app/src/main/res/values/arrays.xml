@@ -10,4 +10,13 @@
         <item>flashlight</item>
         <item>none</item>
     </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>List view</item>
+        <item>Page view</item>
+    </string-array>
+    <string-array name="notif_style_values">
+        <item>list</item>
+        <item>page</item>
+    </string-array>
 </resources>

@@ -1,41 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/notifBlurBg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:visibility="gone" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#88000000" />
-
+    <!-- ── Permission / device-not-supported screen ─────────────────────────── -->
     <LinearLayout
+        android:id="@+id/notifPermissionScreen"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
 
-        <com.ailife.clox.overlay.notifications.MediaPlayerCard
-            android:id="@+id/mediaPlayerCard"
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_notifications"
+            android:alpha="0.6" />
+
+        <TextView
+            android:id="@+id/notifPermTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="12dp"
+            android:text="Notifications"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:gravity="center"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/notifPermMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNotifPermGrant"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Grant permission" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNotifPermTryAnyway"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Try anyway"
+            android:layout_marginTop="8dp"
+            style="@style/Widget.Material3.Button.TextButton"
             android:visibility="gone" />
 
+    </LinearLayout>
+
+    <!-- ── Content area ─────────────────────────────────────────────────────── -->
+    <FrameLayout
+        android:id="@+id/notifContentScreen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <!-- List view -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/notifList"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="8dp" />
+            android:paddingBottom="72dp"
+            android:visibility="gone" />
 
-    </LinearLayout>
+        <!-- Page view -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/notifPager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
+        <!-- Empty state — centered in screen, above FAB, below player (player is short, center is well below it) -->
+        <TextView
+            android:id="@+id/notifEmptyText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="No notifications"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:elevation="8dp"
+            android:visibility="gone" />
+
+        <!-- Dismiss-all FAB -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabDismissAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            app:srcCompat="@drawable/ic_delete"
+            android:contentDescription="Dismiss all"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </FrameLayout>

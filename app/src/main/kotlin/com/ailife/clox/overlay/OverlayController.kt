@@ -94,9 +94,10 @@ class OverlayController(
         overlay.animate().translationX(0f).translationY(0f).setDuration(200)
             .setInterpolator(DecelerateInterpolator())
             .withEndAction {
-                // Animation done — no frame is rendering, lag here is invisible
-                if (direction == SwipeDirection.DOWN) {
-                    (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
+                when (direction) {
+                    SwipeDirection.DOWN  -> (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
+                    SwipeDirection.RIGHT -> (notifications as? com.ailife.clox.overlay.notifications.NotificationOverlay)?.onPanelOpened()
+                    else -> Unit
                 }
             }.start()
         BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
@@ -215,6 +216,9 @@ class OverlayController(
 
     /** True only when the QS panel (with VP2) is the current active overlay. */
     fun isQsActive(): Boolean = activeOverlay === quickSettings
+
+    /** True only when the notification panel is the current active overlay. */
+    fun isNotificationActive(): Boolean = activeOverlay === notifications
 
     /** True if `direction` is the correct swipe to dismiss the current overlay. */
     fun isDismissDirection(direction: SwipeDirection): Boolean = when (activeDirection) {

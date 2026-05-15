@@ -1,87 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Album art is set as the card's background drawable in MediaPlayerCard.kt (no ImageView).
+  This prevents any match_parent child from forcing full-screen height.
+  All content stacks vertically with wrap_content.
+-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="14dp">
 
+    <!-- Dark scrim over the background art for readability -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+    <!--  The scrim is applied as a foreground overlay via code on the card itself. -->
+
+    <!-- Row 1: app icon (left) + app name + volume (right) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:id="@+id/mediaAppIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp" />
+
+        <TextView
+            android:id="@+id/mediaAppName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="#AAFFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <ImageButton
+            android:id="@+id/btnVolume"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_volume"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:tint="#CCFFFFFF" />
+
+    </LinearLayout>
+
+    <!-- Row 2: title + artist (left), play/pause (right) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/albumArt"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:scaleType="centerCrop" />
-
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="12dp">
+            android:layout_marginEnd="12dp">
 
             <TextView
                 android:id="@+id/trackTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="#FFFFFFFF"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/artistName"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="#AAFFFFFF"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
         </LinearLayout>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPlayPause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_play"
+            app:iconSize="24dp"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            style="@style/Widget.Material3.Button.Icon"
+            app:shapeAppearance="@style/ShapeAppearance.PlayPause" />
+
     </LinearLayout>
 
-    <SeekBar
+    <!-- WaveSeekBar -->
+    <com.ailife.clox.overlay.notifications.WaveSeekBar
         android:id="@+id/mediaProgress"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp" />
+        android:layout_height="40dp"
+        android:layout_marginTop="6dp" />
 
+    <!-- Time labels -->
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/timeElapsed"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="#88FFFFFF"
+            android:text="0:00" />
+
+        <TextView
+            android:id="@+id/timeTotal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="#88FFFFFF"
+            android:text="0:00" />
+
+    </LinearLayout>
+
+    <!-- Controls: prev | close | loop | next -->
+    <LinearLayout
+        android:id="@+id/mediaControls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center">
+        android:gravity="center"
+        android:layout_marginTop="4dp">
 
         <ImageButton
             android:id="@+id/btnPrev"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_skip_prev"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp" />
+            android:padding="8dp"
+            android:tint="#CCFFFFFF" />
 
         <ImageButton
-            android:id="@+id/btnPlayPause"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_play"
+            android:id="@+id/btnClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_close"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="8dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp" />
+            android:layout_marginHorizontal="8dp"
+            android:tint="#CCFFFFFF" />
+
+        <ImageButton
+            android:id="@+id/btnLoop"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_loop"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:layout_marginHorizontal="8dp"
+            android:alpha="0.4"
+            android:tint="#CCFFFFFF" />
 
         <ImageButton
             android:id="@+id/btnNext"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_skip_next"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp" />
+            android:padding="8dp"
+            android:tint="#CCFFFFFF" />
 
     </LinearLayout>
 

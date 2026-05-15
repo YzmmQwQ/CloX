@@ -114,7 +114,10 @@ class WatchfaceBridgeManager(
         sendToLua("battery", LiveDataHelper.batteryJson(ctx, qsStateManager.battery.value))
         sendToLua("network", LiveDataHelper.networkJson(ctx, qsStateManager.wifi.value, qsStateManager.data.value))
         sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, qsStateManager.location.value))
-        sendToLua("notification", emptyNotificationJson())
+        sendToLua("notification", notificationJson(
+            com.ailife.clox.overlay.notifications.CloXNotificationListenerService.currentNotifications,
+            com.ailife.clox.overlay.notifications.CloXNotificationListenerService.isRunning()
+        ))
         sendToLua("thirdParty", ExternalDataStore.toJson(ctx))
         sendToLua("weather", WeatherHelper.getLatestData())   // cached data; weatherFlow collector keeps it fresh
         for (metric in HealthHelper.Metric.entries) {
@@ -155,7 +158,10 @@ class WatchfaceBridgeManager(
             sendToLua("connectivity", LiveDataHelper.connectivityJson(qsStateManager.bluetooth.value, loc))
         }.launchIn(scope)
 
-        // TODO: collect CloXNotificationListenerService.notifications and push real data
+        com.ailife.clox.overlay.notifications.CloXNotificationListenerService.notifications.onEach { notifs ->
+            val running = com.ailife.clox.overlay.notifications.CloXNotificationListenerService.isRunning()
+            sendToLua("notification", notificationJson(notifs, running))
+        }.launchIn(scope)
     }
 
     // ── Periodic updates for data that doesn't have a push observer ───────────
@@ -267,15 +273,22 @@ class WatchfaceBridgeManager(
 
     // ── Transport ─────────────────────────────────────────────────────────────
 
-    // Notification JSON — backend pending; structure matches what CloXNotificationListenerService
-    // will eventually supply. Replace placeholder zeros/empty strings when wiring the service.
-    private fun emptyNotificationJson(): JSONObject = JSONObject().apply {
-        put("count", 0)
+    private fun notificationJson(
+        notifs: List<android.service.notification.StatusBarNotification>,
+        listenerRunning: Boolean
+    ): JSONObject = JSONObject().apply {
+        put("count", if (listenerRunning) notifs.size else -1)
+        val last = notifs.maxByOrNull { it.postTime }
         put("last", JSONObject().apply {
-            put("appName", "")
-            put("title",   "")
-            put("content", "")
-            put("time",    0L)
+            val extras = last?.notification?.extras
+            put("appName", last?.let {
+                try { ctx.packageManager.getApplicationLabel(
+                    ctx.packageManager.getApplicationInfo(it.packageName, 0)).toString()
+                } catch (e: Exception) { it.packageName }
+            } ?: "")
+            put("title",   extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString() ?: "")
+            put("content", extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString() ?: "")
+            put("time",    last?.postTime ?: 0L)
         })
     }
 

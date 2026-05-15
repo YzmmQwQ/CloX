@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Page view item. Root must be MATCH_PARENT × MATCH_PARENT for ViewPager2.
+  No ScrollView — avoids vertical scroll conflict with ViewPager2.
+  Expanded content shown inline via "show more/less".
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Icon + app name row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp">
+
+                <ImageView
+                    android:id="@+id/pageNotifAppIcon"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center" />
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/pageNotifLargeIcon"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:scaleType="centerCrop"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.AlbumArt"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/pageNotifAppIconBadge"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="bottom|end"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:id="@+id/pageNotifAppName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/pageNotifTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:maxLines="1" />
+
+            </LinearLayout>
+
+            <!-- Dismiss button (hidden for persistent) -->
+            <ImageButton
+                android:id="@+id/pageNotifDismiss"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_close"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:contentDescription="Dismiss"
+                android:visibility="visible" />
+
+        </LinearLayout>
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/pageNotifTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Body -->
+        <TextView
+            android:id="@+id/pageNotifBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Big picture (expanded) -->
+        <ImageView
+            android:id="@+id/pageNotifBigPicture"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:scaleType="centerCrop"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
+        <!-- Action buttons (expanded) -->
+        <LinearLayout
+            android:id="@+id/pageNotifActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
+        <!-- Open notification — always visible -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenNotif"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Open"
+            android:layout_marginBottom="6dp"
+            app:icon="@drawable/ic_open_in_new"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <!-- Show more/less -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShowMore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Show more"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+
+    </LinearLayout>
+
+</FrameLayout>

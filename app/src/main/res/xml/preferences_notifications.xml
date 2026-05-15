@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreferenceCompat
+        android:key="notif_enabled"
+        android:title="Enable notifications"
+        android:summary="Show notification panel on swipe right. Disable to save power."
+        android:defaultValue="true" />
+
+    <ListPreference
+        android:key="notif_style"
+        android:title="View style"
+        android:summary="%s"
+        android:entries="@array/notif_style_entries"
+        android:entryValues="@array/notif_style_values"
+        android:defaultValue="list"
+        android:dependency="notif_enabled" />
+
+    <SeekBarPreference
+        android:key="notif_text_size"
+        android:title="Text size"
+        android:min="10"
+        android:max="30"
+        android:defaultValue="14"
+        android:dependency="notif_enabled"
+        app:showSeekBarValue="true"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+    <SwitchPreferenceCompat
+        android:key="notif_media_enabled"
+        android:title="Media controls"
+        android:summary="Show music player card at the top when music is playing"
+        android:defaultValue="true"
+        android:dependency="notif_enabled" />
+
+    <PreferenceCategory
+        android:title="Alerts on new notification"
+        android:dependency="notif_enabled">
+
+        <SwitchPreferenceCompat
+            android:key="notif_wake_screen"
+            android:title="Wake screen"
+            android:summary="Turn on the display when a new notification arrives"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="notif_open_panel"
+            android:title="Open notification panel"
+            android:summary="Automatically slide open the panel on new notification"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="notif_vibrate"
+            android:title="Vibrate"
+            android:summary="Vibrate when a new notification arrives"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Filtering"
+        android:dependency="notif_enabled">
+
+        <SwitchPreferenceCompat
+            android:key="notif_group"
+            android:title="Group notifications"
+            android:summary="Chat at top, normal in middle, persistent at bottom"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="notif_block_persistent"
+            android:title="Hide persistent notifications"
+            android:summary="Block ongoing/persistent notifications from appearing"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <Preference
+        android:key="notif_permission_status"
+        android:title="Notification access"
+        android:icon="@drawable/ic_notifications"
+        android:dependency="notif_enabled" />
+
+</PreferenceScreen>
