@@ -24,6 +24,10 @@ object BlurEngine {
     private const val DEFAULT_RADIUS = 15f
     private const val DOWNSAMPLE = 4
 
+    // Incremented on every new capture and on clearBlur — lets the PixelCopy callback
+    // detect that its result is stale (cancelled or superseded) and discard it.
+    private var captureSeq = 0
+
     fun getMode(context: Context): Mode {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_MODE, Mode.AUTO.name) ?: Mode.AUTO.name
@@ -47,8 +51,9 @@ object BlurEngine {
     ) {
         Log.d("BlurEngine", "applyBlur mode=${getMode(context)} SDK=${Build.VERSION.SDK_INT}")
         if (getMode(context) == Mode.DISABLED) { bgImageView.visibility = View.GONE; onDone(); return }
+        val seq = ++captureSeq
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            captureRaw(context, bgImageView, onDone)
+            captureRaw(context, bgImageView, seq, onDone)
         } else {
             bgImageView.visibility = View.GONE
             onDone()
@@ -78,6 +83,7 @@ object BlurEngine {
     }
 
     fun clearBlur(window: Window, bgImageView: ImageView) {
+        captureSeq++   // invalidate any in-flight PixelCopy
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             bgImageView.setRenderEffect(null)
         }
@@ -91,21 +97,24 @@ object BlurEngine {
     private fun captureRaw(
         context: Context,
         bgImageView: ImageView,
+        seq: Int,
         onDone: () -> Unit
     ) {
         val glView = CocosManager.getGlView()
-        Log.d("BlurEngine", "captureRaw glView=$glView")
+        Log.d("BlurEngine", "captureRaw glView=$glView seq=$seq")
         if (glView == null) { onDone(); return }
 
         // Wait for next vsync so the GL surface has a committed frame ready
         Choreographer.getInstance().postFrameCallback {
+            if (seq != captureSeq) { Log.d("BlurEngine", "captureRaw stale at vsync seq=$seq"); return@postFrameCallback }
             val dm = context.resources.displayMetrics
             val w = dm.widthPixels
             val h = dm.heightPixels
             val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             // null srcRect = capture entire SurfaceView surface — avoids fullscreen coordinate shift
             PixelCopy.request(glView, null, bitmap, { result ->
-                Log.d("BlurEngine", "PixelCopy result=$result SUCCESS=${PixelCopy.SUCCESS}")
+                Log.d("BlurEngine", "PixelCopy result=$result SUCCESS=${PixelCopy.SUCCESS} seq=$seq current=$captureSeq")
+                if (seq != captureSeq) { Log.d("BlurEngine", "captureRaw stale at PixelCopy callback, discarding"); return@request }
                 if (result == PixelCopy.SUCCESS) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         // API 31+: set raw bitmap; RenderEffect drives progressive blur in updateProgress

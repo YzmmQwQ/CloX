@@ -39,8 +39,14 @@ class OverlayController(
 
         screenW = sw; screenH = sh
 
-        // Capture watchface into static layer; updateDrag drives progressive blur radius
-        BlurEngine.applyBlur(overlay.context, window, overlay, blurLayer) {}
+        // Capture watchface into static layer; updateDrag drives progressive blur radius.
+        // onDone fires after PixelCopy completes — if a fast swipe already committed the
+        // drag before the bitmap was ready, apply full blur now.
+        BlurEngine.applyBlur(overlay.context, window, overlay, blurLayer) {
+            if (activeOverlay != null && !isDragging && !isCollapsing) {
+                BlurEngine.updateProgress(blurLayer.context, blurLayer, 1f)
+            }
+        }
 
         overlay.translationX = 0f
         overlay.translationY = 0f
