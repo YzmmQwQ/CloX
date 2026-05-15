@@ -63,8 +63,20 @@ class NotificationListAdapter(
         val ctx = holder.itemView.context
         val pm = ctx.packageManager
 
-        // Apply text size from settings
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+
+        // Card appearance style
+        val solidStyle = prefs.getString(NotificationPrefs.NOTIF_CARD_STYLE, NotificationPrefs.CARD_STYLE_GLASS) == NotificationPrefs.CARD_STYLE_SOLID
+        if (solidStyle) {
+            holder.card.setCardBackgroundColor(0xFF2A2A2A.toInt())
+            holder.card.strokeWidth = 0
+        } else {
+            holder.card.setCardBackgroundColor(0xCC1A1A1A.toInt())
+            holder.card.strokeWidth = (1f * ctx.resources.displayMetrics.density).toInt()
+            holder.card.setStrokeColor(android.content.res.ColorStateList.valueOf(0x33FFFFFF.toInt()))
+        }
+
+        // Text size
         val sp = prefs.getInt(NotificationPrefs.NOTIF_TEXT_SIZE, 14).toFloat()
         holder.title.textSize = sp
         holder.body.textSize  = sp - 1f

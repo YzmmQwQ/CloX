@@ -8,6 +8,15 @@
         android:defaultValue="true" />
 
     <ListPreference
+        android:key="notif_card_style"
+        android:title="Card style"
+        android:summary="%s"
+        android:entries="@array/notif_card_style_entries"
+        android:entryValues="@array/notif_card_style_values"
+        android:defaultValue="glass"
+        android:dependency="notif_enabled" />
+
+    <ListPreference
         android:key="notif_style"
         android:title="View style"
         android:summary="%s"

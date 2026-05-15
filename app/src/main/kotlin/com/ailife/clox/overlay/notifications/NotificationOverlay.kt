@@ -86,7 +86,8 @@ class NotificationOverlay @JvmOverloads constructor(
         PreferenceManager.getDefaultSharedPreferences(ctx)
             .registerOnSharedPreferenceChangeListener { _, key ->
                 when (key) {
-                    NotificationPrefs.NOTIF_TEXT_SIZE -> {
+                    NotificationPrefs.NOTIF_TEXT_SIZE,
+                    NotificationPrefs.NOTIF_CARD_STYLE -> {
                         listAdapter.notifyDataSetChanged()
                         pageAdapter.notifyDataSetChanged()
                     }

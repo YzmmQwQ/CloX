@@ -14,4 +14,8 @@ object NotificationPrefs {
 
     const val STYLE_LIST = "list"
     const val STYLE_PAGE = "page"
+
+    const val NOTIF_CARD_STYLE    = "notif_card_style"
+    const val CARD_STYLE_GLASS    = "glass"   // semi-transparent dark + white stroke (default)
+    const val CARD_STYLE_SOLID    = "solid"   // fully opaque grey, no stroke (stock Android look)
 }
