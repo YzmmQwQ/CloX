@@ -7,4 +7,14 @@
     <style name="Theme.CloX.Settings" parent="Theme.Material3.DayNight">
         <item name="android:windowBackground">?attr/colorSurface</item>
     </style>
+
+    <style name="Theme.CloX.NoActionBar" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">?attr/colorSurface</item>
+    </style>
+
+    <style name="Theme.CloX.WatchfaceSelector" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

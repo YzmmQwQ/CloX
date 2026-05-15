@@ -9,4 +9,12 @@
         android:entryValues="@array/double_tap_values"
         android:defaultValue="settings" />
 
+    <ListPreference
+        android:key="long_press_action"
+        android:title="@string/pref_long_press_title"
+        android:summary="%s"
+        android:entries="@array/long_press_entries"
+        android:entryValues="@array/long_press_values"
+        android:defaultValue="none" />
+
 </PreferenceScreen>

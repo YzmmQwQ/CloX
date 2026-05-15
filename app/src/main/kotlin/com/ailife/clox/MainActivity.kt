@@ -13,6 +13,7 @@ import androidx.fragment.app.commit
 import com.ailife.clox.applist.AppListFragment
 import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
+import com.ailife.clox.gesture.GestureHandler
 import com.ailife.clox.gesture.GestureInterceptorLayout
 import com.ailife.clox.gesture.SwipeDirection
 import com.ailife.clox.home.HomeFragment
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
     private var appListSpring: SpringAnimation? = null
+    private lateinit var gestureHandler: GestureHandler
 
     private val screenW get() = resources.displayMetrics.widthPixels.toFloat()
     private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
@@ -97,6 +99,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             overlayController.dismissActive()
         }
 
+        gestureHandler = GestureHandler(this, window)
         setupGestures()
     }
 
@@ -166,6 +169,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.doubleTapListener = {
             overlayController.dismissActive()
             if (appListOpen) closeAppList()
+        }
+
+        gestureRoot.longPressListener = {
+            if (!appListOpen && !overlayController.hasActiveOverlay()) {
+                gestureHandler.onLongPress()
+            }
         }
 
         gestureRoot.onSwipeStart = { direction, _, _ ->

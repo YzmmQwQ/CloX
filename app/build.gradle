@@ -106,6 +106,10 @@ dependencies {
     // Root via libsu
     implementation 'com.github.topjohnwu.libsu:core:5.2.2'
     implementation 'com.github.topjohnwu.libsu:service:5.2.2'
+    // NanoHTTPD for remote management web server
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    // ZXing QR code generation (core only — no Android wrapper needed)
+    implementation 'com.google.zxing:core:3.5.3'
 
     if (axmolPresent) {
         implementation project(':libaxmol')

@@ -14,9 +14,15 @@
         android:fragment="com.ailife.clox.settings.fragments.AppListSettingsFragment" />
 
     <Preference
+        android:key="nav_watchface"
+        android:title="@string/pref_watchface_title"
+        android:summary="@string/pref_watchface_summary"
+        android:fragment="com.ailife.clox.settings.fragments.WatchfaceSettingsFragment" />
+
+    <Preference
         android:key="nav_gestures"
         android:title="Gestures"
-        android:summary="Double-tap action"
+        android:summary="Double-tap, long-press actions"
         android:fragment="com.ailife.clox.settings.fragments.GesturesSettingsFragment" />
 
     <Preference

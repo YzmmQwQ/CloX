@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- ── Pager mode: RecyclerView + PagerSnapHelper, cards peek from sides ── -->
+    <FrameLayout
+        android:id="@+id/pagerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/pagerRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+    </FrameLayout>
+
+    <!-- ── Grid mode ──────────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/gridContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- Toolbar with side margins to avoid rounded screen corners -->
+        <LinearLayout
+            android:id="@+id/gridToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnBack2"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_arrow_back"
+                android:contentDescription="@string/action_back" />
+
+            <!-- Spacer between back and action group -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Action buttons row: evenly spaced, not crammed to edge -->
+            <LinearLayout
+                android:id="@+id/gridActions"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="end|center_vertical">
+
+                <ImageButton
+                    android:id="@+id/btnStore2"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_store"
+                    android:contentDescription="@string/wf_open_store" />
+
+                <ImageButton
+                    android:id="@+id/btnRemote2"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_wifi"
+                    android:contentDescription="@string/wf_remote_management" />
+
+                <ImageButton
+                    android:id="@+id/btnImport2"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_file_import"
+                    android:contentDescription="@string/wf_import" />
+
+                <ImageButton
+                    android:id="@+id/btnRandom2"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_shuffle"
+                    android:contentDescription="@string/wf_random" />
+
+                <ImageButton
+                    android:id="@+id/btnSearch"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_search"
+                    android:contentDescription="@string/wf_search_hint" />
+            </LinearLayout>
+
+            <!-- Search bar (replaces action buttons when active) -->
+            <EditText
+                android:id="@+id/searchBar"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_weight="0"
+                android:hint="@string/wf_search_hint"
+                android:background="@drawable/bg_search_field"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="16dp"
+            android:clipToPadding="false" />
+    </LinearLayout>
+
+    <!-- Snapshot overlay for enter/exit animation — rendered on top -->
+    <ImageView
+        android:id="@+id/snapshotOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+</FrameLayout>

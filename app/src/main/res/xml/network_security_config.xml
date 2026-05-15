@@ -4,4 +4,10 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">ip-api.com</domain>
     </domain-config>
+    <!--
+        HTTP for the embedded LAN remote-management server is enabled via
+        android:usesCleartextTraffic="true" on the application element in the
+        manifest. Network security config cannot match arbitrary IP addresses,
+        so the manifest attribute is the correct mechanism here.
+    -->
 </network-security-config>

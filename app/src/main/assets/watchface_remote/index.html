@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloX — Remote Management</title>
+<link rel="icon" href="/favicon.png" type="image/png">
+<style>
+  :root {
+    --bg: #121212;
+    --surface: #1e1e1e;
+    --surface2: #2a2a2a;
+    --border: #333;
+    --primary: #7c9ef5;
+    --primary-dim: #3a4a7a;
+    --on-surface: #e0e0e0;
+    --on-surface-dim: #888;
+    --active-glow: #4caf50;
+    --danger: #f44336;
+    --radius: 10px;
+    --transition: 0.18s ease;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--on-surface); font-family: system-ui, sans-serif; min-height: 100vh; }
+  a { color: var(--primary); text-decoration: none; }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  #header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  #header h1 { font-size: 1.1rem; font-weight: 600; flex: 0 0 auto; }
+  #header .spacer { flex: 1; }
+  .btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: opacity var(--transition);
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--on-surface); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+  .btn-icon { padding: 6px; background: transparent; border: none; cursor: pointer; font-size: 1.1rem; color: var(--on-surface); border-radius: 4px; }
+  .btn-icon:hover { background: var(--surface2); }
+
+  /* ── Store link bar ──────────────────────────────────────────────────── */
+  #store-bar {
+    background: var(--primary-dim);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #store-bar span { flex: 1; font-size: 0.9rem; }
+
+  /* ── Toolbar (filter / upload) ───────────────────────────────────────── */
+  #toolbar {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  #folder-select {
+    background: var(--surface2);
+    color: var(--on-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  #upload-input { display: none; }
+  #status-bar {
+    font-size: 0.78rem;
+    color: var(--on-surface-dim);
+    min-height: 1.4em;
+    padding: 4px 16px;
+  }
+
+  /* ── Grid ────────────────────────────────────────────────────────────── */
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 12px 16px 80px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color var(--transition);
+    position: relative;
+  }
+  .card.active { border-color: var(--active-glow); box-shadow: 0 0 0 2px var(--active-glow); }
+  .card-preview {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    background: var(--surface2);
+    display: block;
+  }
+  .card-preview-placeholder {
+    width: 100%;
+    aspect-ratio: 1/1;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+  .card-body { padding: 10px; }
+  .card-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    word-break: break-all;
+    margin-bottom: 4px;
+  }
+  .card-meta {
+    font-size: 0.72rem;
+    color: var(--on-surface-dim);
+    margin-bottom: 8px;
+  }
+  .card-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .badge-active { background: var(--active-glow); color: #fff; }
+  .badge-pinned { background: var(--primary); color: #fff; }
+  .badge-folder { background: var(--surface2); color: var(--on-surface-dim); border: 1px solid var(--border); }
+
+  /* ── Empty state ─────────────────────────────────────────────────────── */
+  #empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--on-surface-dim);
+    display: none;
+  }
+  #empty p { font-size: 1rem; margin-bottom: 8px; }
+
+  /* ── Loading overlay ─────────────────────────────────────────────────── */
+  #loading {
+    position: fixed; inset: 0;
+    background: #00000088;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    display: none;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Modal ───────────────────────────────────────────────────────────── */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: #00000099;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 300;
+    display: none;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    width: min(380px, 90vw);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h3 { margin-bottom: 14px; font-size: 1rem; }
+  .modal label { display: block; font-size: 0.82rem; color: var(--on-surface-dim); margin-bottom: 4px; }
+  .modal input, .modal select {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--on-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+  /* ── Upload drag zone ────────────────────────────────────────────────── */
+  #drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 30px;
+    text-align: center;
+    margin: 16px;
+    color: var(--on-surface-dim);
+    font-size: 0.9rem;
+    transition: border-color var(--transition), background var(--transition);
+    cursor: pointer;
+  }
+  #drop-zone.drag-over { border-color: var(--primary); background: var(--primary-dim)33; }
+  #drop-zone p { margin-top: 8px; font-size: 0.8rem; }
+
+  /* ── Progress bar ────────────────────────────────────────────────────── */
+  .progress-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 8px 0; }
+  .progress-bar { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.2s; width: 0%; }
+
+  @media (max-width: 480px) {
+    #grid { grid-template-columns: 1fr; }
+    .card-actions { gap: 3px; }
+    .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div></div>
+
+<div id="header">
+  <h1>⌚ CloX Remote</h1>
+  <div class="spacer"></div>
+  <button class="btn btn-outline btn-sm" onclick="refresh()">↺ Refresh</button>
+</div>
+
+<div id="store-bar">
+  <span>🛍 Get more watch faces from the community store</span>
+  <a href="https://jbwatchface.ai-life.xyz/" target="_blank" class="btn btn-primary btn-sm">Open Store</a>
+</div>
+
+<div id="toolbar">
+  <label>Folder:
+    <select id="folder-select" onchange="applyFilter()">
+      <option value="">All</option>
+    </select>
+  </label>
+  <button class="btn btn-outline btn-sm" onclick="showCreateFolderModal()">📁 New Folder</button>
+  <div class="spacer"></div>
+  <input type="file" id="upload-input" multiple accept=".watch" onchange="handleUploadFiles(this.files)">
+  <button class="btn btn-primary btn-sm" onclick="document.getElementById('upload-input').click()">⬆ Upload</button>
+</div>
+
+<div id="drop-zone" onclick="document.getElementById('upload-input').click()">
+  <div>🗂 Drop .watch files here to upload</div>
+  <p>or click to browse</p>
+  <div class="progress-bar-wrap" id="upload-progress-wrap" style="display:none">
+    <div class="progress-bar" id="upload-progress-bar"></div>
+  </div>
+</div>
+
+<div id="status-bar"></div>
+<div id="empty"><p>📭 No watch faces found</p><p>Upload some .watch files to get started.</p></div>
+<div id="grid"></div>
+
+<!-- Rename Modal -->
+<div class="modal-bg" id="rename-modal">
+  <div class="modal">
+    <h3>✏️ Rename Watch Face</h3>
+    <label>New name (without .watch)</label>
+    <input type="text" id="rename-input" placeholder="my_watchface">
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('rename-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move Modal -->
+<div class="modal-bg" id="move-modal">
+  <div class="modal">
+    <h3>📂 Move to Folder</h3>
+    <label>Destination</label>
+    <select id="move-folder-select">
+      <option value="">Root (no folder)</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('move-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitMove()">Move</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Folder Modal -->
+<div class="modal-bg" id="folder-modal">
+  <div class="modal">
+    <h3>📁 New Folder</h3>
+    <label>Folder name</label>
+    <input type="text" id="folder-name-input" placeholder="my_folder">
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('folder-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitCreateFolder()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-bg" id="delete-modal">
+  <div class="modal">
+    <h3>🗑 Delete Watch Face</h3>
+    <p id="delete-confirm-text" style="margin-bottom:14px;font-size:0.9rem;color:var(--on-surface-dim)"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger btn-sm" onclick="submitDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const api = (path, opts) => fetch('/api' + path, opts).then(r => {
+  if (!r.ok) throw new Error('API error ' + r.status);
+  return r.json().catch(() => ({}));
+});
+
+let allWatchfaces = [];
+let allFolders = [];
+let pendingRename = null;
+let pendingMove = null;
+let pendingDelete = null;
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+
+window.onload = refresh;
+
+async function refresh() {
+  setLoading(true);
+  try {
+    [allWatchfaces, allFolders] = await Promise.all([
+      api('/watchfaces'),
+      api('/folders'),
+    ]);
+    populateFolderDropdowns();
+    renderGrid();
+    setStatus(`${allWatchfaces.length} watch face(s) loaded`);
+  } catch (e) {
+    setStatus('⚠ Could not load watch faces: ' + e.message);
+  }
+  setLoading(false);
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────
+
+function populateFolderDropdowns() {
+  const sel = document.getElementById('folder-select');
+  const moveSel = document.getElementById('move-folder-select');
+  const current = sel.value;
+
+  sel.innerHTML = '<option value="">All</option>' +
+    allFolders.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  sel.value = current;
+
+  moveSel.innerHTML = '<option value="">Root (no folder)</option>' +
+    allFolders.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+}
+
+function applyFilter() { renderGrid(); }
+
+function renderGrid() {
+  const filter = document.getElementById('folder-select').value;
+  const items = filter
+    ? allWatchfaces.filter(w => w.folder === filter)
+    : allWatchfaces;
+
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+
+  if (items.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = items.map(w => `
+    <div class="card ${w.isActive ? 'active' : ''}" data-path="${esc(w.path)}">
+      <img class="card-preview"
+           src="/api/preview?path=${encodeURIComponent(w.path)}"
+           alt="${esc(w.name)}"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+           loading="lazy" />
+      <div class="card-preview-placeholder" style="display:none">⌚</div>
+      <div class="card-body">
+        <div class="card-name">
+          ${w.isActive ? '<span class="badge badge-active">✔ Active</span>' : ''}
+          ${w.isPinned ? '<span class="badge badge-pinned">📌</span>' : ''}
+          ${w.folder ? `<span class="badge badge-folder">${esc(w.folder)}</span>` : ''}
+          ${esc(w.name)}
+        </div>
+        <div class="card-meta">Modified ${fmtDate(w.lastModified)}</div>
+        <div class="card-actions">
+          <button class="btn btn-primary btn-sm" onclick="setActive('${esc(w.path)}')">▶ Set Active</button>
+          <a href="/api/watchfaces/${encodeURIComponent(w.path)}" download="${esc(w.name)}.watch" class="btn btn-outline btn-sm">⬇</a>
+          <button class="btn btn-outline btn-sm" onclick="openRenameModal('${esc(w.path)}', '${esc(w.name)}')">✏️</button>
+          <button class="btn btn-outline btn-sm" onclick="openMoveModal('${esc(w.path)}')">📂</button>
+          <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${esc(w.path)}', '${esc(w.name)}')">🗑</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────
+
+async function setActive(path) {
+  await api('/active', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ path }) });
+  allWatchfaces.forEach(w => w.isActive = w.path === path);
+  renderGrid();
+  setStatus('Active watch face updated');
+}
+
+// ── Rename ────────────────────────────────────────────────────────────────
+
+function openRenameModal(path, name) {
+  pendingRename = path;
+  document.getElementById('rename-input').value = name;
+  openModal('rename-modal');
+  setTimeout(() => document.getElementById('rename-input').select(), 50);
+}
+
+async function submitRename() {
+  if (!pendingRename) return;
+  const newName = document.getElementById('rename-input').value.trim();
+  if (!newName) return;
+  closeModal('rename-modal');
+  try {
+    await api('/rename', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path: pendingRename, newName }),
+    });
+    setStatus('Renamed successfully');
+    refresh();
+  } catch (e) { setStatus('⚠ Rename failed: ' + e.message); }
+}
+
+// ── Move ──────────────────────────────────────────────────────────────────
+
+function openMoveModal(path) {
+  pendingMove = path;
+  openModal('move-modal');
+}
+
+async function submitMove() {
+  if (!pendingMove) return;
+  const folder = document.getElementById('move-folder-select').value;
+  closeModal('move-modal');
+  try {
+    await api('/move', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path: pendingMove, folder }),
+    });
+    setStatus('Moved successfully');
+    refresh();
+  } catch (e) { setStatus('⚠ Move failed: ' + e.message); }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+
+function openDeleteModal(path, name) {
+  pendingDelete = path;
+  document.getElementById('delete-confirm-text').textContent = `Delete "${name}"? This cannot be undone.`;
+  openModal('delete-modal');
+}
+
+async function submitDelete() {
+  if (!pendingDelete) return;
+  closeModal('delete-modal');
+  try {
+    await api('/watchfaces/' + encodeURIComponent(pendingDelete), { method: 'DELETE' });
+    setStatus('Deleted');
+    refresh();
+  } catch (e) { setStatus('⚠ Delete failed: ' + e.message); }
+}
+
+// ── Create folder ─────────────────────────────────────────────────────────
+
+function showCreateFolderModal() {
+  document.getElementById('folder-name-input').value = '';
+  openModal('folder-modal');
+  setTimeout(() => document.getElementById('folder-name-input').focus(), 50);
+}
+
+async function submitCreateFolder() {
+  const name = document.getElementById('folder-name-input').value.trim();
+  if (!name) return;
+  closeModal('folder-modal');
+  try {
+    await api('/folders', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name }),
+    });
+    setStatus('Folder created');
+    refresh();
+  } catch (e) { setStatus('⚠ Create folder failed: ' + e.message); }
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────
+
+async function handleUploadFiles(files) {
+  if (!files || files.length === 0) return;
+  const watchFiles = Array.from(files).filter(f => f.name.endsWith('.watch'));
+  if (watchFiles.length === 0) { setStatus('No .watch files selected'); return; }
+
+  const wrap = document.getElementById('upload-progress-wrap');
+  const bar = document.getElementById('upload-progress-bar');
+  wrap.style.display = 'block';
+  let done = 0;
+
+  for (const file of watchFiles) {
+    setStatus(`Uploading ${file.name}…`);
+    try {
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      await fetch(`/api/watchfaces?filename=${encodeURIComponent(file.name)}`, { method: 'POST', body: fd });
+    } catch (e) { setStatus('⚠ Upload failed for ' + file.name); }
+    done++;
+    bar.style.width = (done / watchFiles.length * 100) + '%';
+  }
+
+  setTimeout(() => { wrap.style.display = 'none'; bar.style.width = '0%'; }, 1000);
+  setStatus(`${done} file(s) uploaded`);
+  document.getElementById('upload-input').value = '';
+  refresh();
+}
+
+// ── Drag and drop ─────────────────────────────────────────────────────────
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleUploadFiles(e.dataTransfer.files);
+});
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  el.onclick = e => { if (e.target === el) closeModal(id); };
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function setLoading(v) { document.getElementById('loading').style.display = v ? 'flex' : 'none'; }
+function setStatus(msg) { document.getElementById('status-bar').textContent = msg; }
+function fmtDate(ms) {
+  if (!ms) return '—';
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}/${m}/${day}`;
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-bg').forEach(m => m.style.display = 'none');
+  if (e.key === 'Enter') {
+    if (document.getElementById('rename-modal').style.display === 'flex') submitRename();
+    if (document.getElementById('folder-modal').style.display === 'flex') submitCreateFolder();
+  }
+});
+</script>
+</body>
+</html>

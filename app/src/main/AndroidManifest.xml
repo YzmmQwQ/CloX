@@ -45,6 +45,7 @@
         android:theme="@style/Theme.CloX"
         android:allowBackup="false"
         android:supportsRtl="false"
+        android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- Launcher activity -->
@@ -53,7 +54,6 @@
             android:launchMode="singleTask"
             android:excludeFromRecents="true"
             android:exported="true"
-            android:noHistory="true"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="stateHidden|adjustNothing">
             <intent-filter android:priority="1">
@@ -64,12 +64,90 @@
             </intent-filter>
         </activity>
 
-        <!-- Settings -->
+        <!-- Settings — own task so it appears in recents independently -->
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
             android:label="@string/settings_title"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.ailife.clox.settings"
             android:theme="@style/Theme.CloX.Settings" />
+
+        <!-- Watch face selector -->
+        <activity
+            android:name=".watchface.selector.WatchfaceSelectorActivity"
+            android:exported="true"
+            android:label="@string/wf_selector_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CloX.WatchfaceSelector" />
+
+        <!-- Launcher alias for watch face selector -->
+        <activity-alias
+            android:name=".WatchfaceSelectorLauncher"
+            android:targetActivity=".watchface.selector.WatchfaceSelectorActivity"
+            android:label="@string/wf_selector_title"
+            android:icon="@mipmap/ic_launcher"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Batch import activity -->
+        <activity
+            android:name=".watchface.WatchfaceBatchImportActivity"
+            android:exported="false"
+            android:label="@string/wf_import"
+            android:theme="@style/Theme.CloX.Settings" />
+
+        <!-- .watch file import handler -->
+        <activity
+            android:name=".watchface.WatchfaceImportHandlerActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.CloX.Settings">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" android:mimeType="*/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- Remote management — own task so it shows in recents and survives navigation -->
+        <activity
+            android:name=".watchface.remote.RemoteManagementActivity"
+            android:exported="false"
+            android:label="@string/pref_wf_remote_title"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.ailife.clox.remote"
+            android:theme="@style/Theme.CloX.Settings" />
+
+        <!-- Watch face store — own task, shows in recents -->
+        <activity
+            android:name=".watchface.store.WatchfaceStoreActivity"
+            android:exported="false"
+            android:label="@string/pref_wf_store_title"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.ailife.clox.store"
+            android:theme="@style/Theme.CloX.NoActionBar" />
+
+        <!-- FileProvider for sharing .watch files with other apps -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.watchface.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- Second launcher entry: CloX Settings appears as its own icon in the app list -->
         <activity-alias
