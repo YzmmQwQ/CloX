@@ -17,4 +17,11 @@
         android:entryValues="@array/long_press_values"
         android:defaultValue="none" />
 
+
+    <SwitchPreferenceCompat
+        android:key="home_press_screen_off"
+        android:title="@string/pref_home_press_screen_off_title"
+        android:summary="@string/pref_home_press_screen_off_summary"
+        android:defaultValue="false" />
+
 </PreferenceScreen>

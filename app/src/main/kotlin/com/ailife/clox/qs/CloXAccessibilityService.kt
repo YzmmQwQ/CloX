@@ -1,6 +1,7 @@
 package com.ailife.clox.qs
 
 import android.accessibilityservice.AccessibilityService
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 
 class CloXAccessibilityService : AccessibilityService() {
@@ -16,6 +17,13 @@ class CloXAccessibilityService : AccessibilityService() {
 
         fun triggerRecents(): Boolean =
             instance?.performGlobalAction(GLOBAL_ACTION_RECENTS) ?: false
+
+        fun lockScreen(): Boolean {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return instance?.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN) ?: false
+            }
+            return false
+        }
     }
 
     override fun onServiceConnected() { instance = this }

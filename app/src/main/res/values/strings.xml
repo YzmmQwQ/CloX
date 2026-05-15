@@ -322,6 +322,8 @@
 
     <!-- Gesture long press -->
     <string name="pref_long_press_title">Long-press action</string>
+    <string name="pref_home_press_screen_off_title">Home button turns off screen</string>
+    <string name="pref_home_press_screen_off_summary">When already on the watchface, pressing Home turns the screen off (requires Accessibility permission)</string>
 
     <!-- Watchface selector UI -->
     <string name="wf_selector_title">Watch Faces</string>
