@@ -61,7 +61,14 @@ class GridBackend(private val ctx: Context) : AppListBackend {
     override fun refreshBadges(counts: Map<String, Int>) {
         notifCounts = counts
         val rv = recyclerView ?: return
-        if (rv.isComputingLayout) rv.post { adapter?.notifyDataSetChanged() }
-        else adapter?.notifyDataSetChanged()
+        for (i in 0 until rv.childCount) {
+            val child = rv.getChildAt(i) ?: continue
+            val pos = rv.getChildAdapterPosition(child)
+            if (pos < 0) continue
+            val pkg = adapter?.getDragItem(pos)?.packageName ?: continue
+            child.findViewById<TextView>(R.id.notifBadge)?.let {
+                NotificationBadge.bind(it, pkg, counts, showBadge, showCount)
+            }
+        }
     }
 }

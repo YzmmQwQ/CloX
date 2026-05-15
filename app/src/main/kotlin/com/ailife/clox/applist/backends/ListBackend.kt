@@ -97,8 +97,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
 
     override fun refreshBadges(counts: Map<String, Int>) {
         notifCounts = counts
-        if (recyclerView.isComputingLayout) recyclerView.post { adapter?.notifyDataSetChanged() }
-        else adapter?.notifyDataSetChanged()
+        updateVisibleBadges(recyclerView, counts)
     }
 
     private fun buildSearchField(ctx: Context): EditText {
@@ -144,6 +143,18 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             override fun onScrolled(r: RecyclerView, dx: Int, dy: Int) = effect()
         })
         rv.post(effect)
+    }
+
+    private fun updateVisibleBadges(rv: RecyclerView, counts: Map<String, Int>) {
+        for (i in 0 until rv.childCount) {
+            val child = rv.getChildAt(i) ?: continue
+            val pos = rv.getChildAdapterPosition(child)
+            if (pos < 0) continue
+            val pkg = adapter?.getDragItem(pos)?.packageName ?: continue
+            child.findViewById<TextView>(R.id.notifBadge)?.let {
+                NotificationBadge.bind(it, pkg, counts, showBadge, showCount)
+            }
+        }
     }
 
     private fun Int.dp(ctx: Context) = (this * ctx.resources.displayMetrics.density + 0.5f).toInt()
