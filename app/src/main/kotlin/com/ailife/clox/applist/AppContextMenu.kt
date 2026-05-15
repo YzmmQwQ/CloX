@@ -2,15 +2,22 @@ package com.ailife.clox.applist
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.LauncherApps
+import android.content.pm.LauncherApps.ShortcutQuery
+import android.content.pm.ShortcutInfo
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.os.Process
 import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.ailife.clox.R
@@ -21,10 +28,20 @@ object AppContextMenu {
     private var current: PopupWindow? = null
     val isShowing get() = current?.isShowing == true
 
-    fun show(context: Context, anchor: View, item: AppItem, onIconChanged: () -> Unit) {
+    fun show(
+        context: Context,
+        anchor: View,
+        item: AppItem,
+        onIconChanged: () -> Unit,
+        onHideApp: () -> Unit = {}
+    ) {
         dismissCurrent()
 
         val entries = buildList {
+            add(Entry(R.string.menu_hide_app, R.drawable.ic_block) {
+                quickHideApp(context, item)
+                onHideApp()
+            })
             add(Entry(R.string.menu_uninstall,   R.drawable.ic_delete)  { requestUninstall(context, item) })
             add(Entry(R.string.menu_app_info,    R.drawable.ic_info)    { openAppInfo(context, item) })
             add(Entry(R.string.menu_change_icon, R.drawable.ic_palette) { IconPickerDialog.show(context, item) { onIconChanged() } })
@@ -35,6 +52,8 @@ object AppContextMenu {
                 })
             }
         }
+
+        val shortcuts = queryShortcuts(context, item)
 
         val density = context.resources.displayMetrics.density
         val ta = context.obtainStyledAttributes(intArrayOf(
@@ -52,14 +71,22 @@ object AppContextMenu {
 
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            background = bg
-            elevation = density * 8f
             val p = (8 * density).toInt()
             setPadding(0, p, 0, p)
         }
 
+        val scrollView = ScrollView(context).apply {
+            background = bg
+            elevation = density * 8f
+        }
+        scrollView.addView(container, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+
         val inflater = LayoutInflater.from(context)
         var popupRef: PopupWindow? = null
+
         for (entry in entries) {
             val v = inflater.inflate(R.layout.item_context_menu, container, false)
             v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(
@@ -74,19 +101,45 @@ object AppContextMenu {
             container.addView(v)
         }
 
-        val popup = PopupWindow(
-            container,
-            (200 * density).toInt(),
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            isFocusable = false      // touch events on underlying view still fire (needed for drag detection)
+        if (shortcuts.isNotEmpty()) {
+            container.addView(makeDivider(context, density))
+
+            val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+            for (shortcut in shortcuts) {
+                val v = inflater.inflate(R.layout.item_context_menu, container, false)
+                val icon = try {
+                    launcherApps.getShortcutIconDrawable(shortcut, context.resources.displayMetrics.densityDpi)
+                } catch (_: Exception) { null }
+                v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(
+                    icon ?: ContextCompat.getDrawable(context, R.drawable.ic_open_in_new)
+                )
+                v.findViewById<TextView>(R.id.menuLabel).text =
+                    shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id
+                v.setOnClickListener {
+                    popupRef?.dismiss()
+                    current = null
+                    try { launcherApps.startShortcut(shortcut, null, null) } catch (_: Exception) { }
+                }
+                container.addView(v)
+            }
+        }
+
+        val popupWidth = (200 * density).toInt()
+        scrollView.measure(
+            View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val maxHeight = (context.resources.displayMetrics.heightPixels * 0.70f).toInt()
+        val popupHeight = scrollView.measuredHeight.coerceAtMost(maxHeight)
+
+        val popup = PopupWindow(scrollView, popupWidth, popupHeight).apply {
+            isFocusable = false
             isOutsideTouchable = false
             elevation = density * 8f
         }
         popupRef = popup
         current = popup
 
-        // Show centered on screen — suitable for small watch displays
         popup.showAtLocation(anchor.rootView, Gravity.CENTER, 0, 0)
     }
 
@@ -96,6 +149,42 @@ object AppContextMenu {
     }
 
     private data class Entry(val labelRes: Int, val iconRes: Int, val action: () -> Unit)
+
+    private fun quickHideApp(ctx: Context, item: AppItem) {
+        val component = "${item.packageName}/${item.activityName}"
+        val mode = AppListPrefs.hideMode(ctx)
+        val hidden = AppListPrefs.hiddenComponents(ctx).toMutableSet()
+        if (mode == AppListPrefs.HIDE_MODE_WHITELIST) {
+            hidden.remove(component)   // remove from "visible" set → becomes hidden
+        } else {
+            hidden.add(component)
+        }
+        AppListPrefs.saveHiddenComponents(ctx, hidden)
+    }
+
+    private fun queryShortcuts(ctx: Context, item: AppItem): List<ShortcutInfo> {
+        return try {
+            val la = ctx.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+            val query = ShortcutQuery().apply {
+                setQueryFlags(ShortcutQuery.FLAG_MATCH_DYNAMIC or ShortcutQuery.FLAG_MATCH_MANIFEST)
+                setPackage(item.packageName)
+            }
+            la.getShortcuts(query, Process.myUserHandle()) ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+    }
+
+    private fun makeDivider(ctx: Context, density: Float): View {
+        return View(ctx).apply {
+            setBackgroundColor(Color.argb(40, 128, 128, 128))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (1 * density).toInt()
+            ).apply {
+                val vm = (4 * density).toInt()
+                setMargins(0, vm, 0, vm)
+            }
+        }
+    }
 
     private fun requestUninstall(ctx: Context, item: AppItem) {
         ctx.startActivity(

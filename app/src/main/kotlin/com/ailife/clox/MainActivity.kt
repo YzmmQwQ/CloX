@@ -144,6 +144,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     override fun onResume() {
         super.onResume()
         CocosManager.onResume()
+        DefaultLauncherManager(this).checkAndPromptIfNeeded()
         com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
         // Re-check notification permission in case user just returned from settings
         if (overlayController.isNotificationActive()) {

@@ -140,7 +140,10 @@ class AppListFragment : Fragment() {
             }
         }
         newBackend.onAppLongPress = { item, anchor ->
-            AppContextMenu.show(ctx, anchor, item) { viewModel.loadApps() }
+            AppContextMenu.show(ctx, anchor, item,
+                onIconChanged = { viewModel.loadApps() },
+                onHideApp = { viewModel.loadApps() }
+            )
         }
         newBackend.onRequestClose = { onRequestClose?.invoke() }
 

@@ -64,6 +64,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Disabled alias used to trigger the launcher chooser dialog -->
+        <activity-alias
+            android:name=".FakeHome"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- Settings — own task so it appears in recents independently -->
         <activity
             android:name=".settings.SettingsActivity"
@@ -213,6 +226,15 @@
                 <action android:name="com.ailife.clox.WRITE_DATA" />
             </intent-filter>
         </receiver>
+
+        <!-- Crash report viewer — separate process so it survives main process death -->
+        <activity
+            android:name=".crash.CrashActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:label="Crash Report"
+            android:theme="@style/Theme.CloX.Settings"
+            android:excludeFromRecents="true" />
 
     </application>
 

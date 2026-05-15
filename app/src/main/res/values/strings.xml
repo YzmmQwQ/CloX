@@ -46,6 +46,7 @@
     <string name="pref_pages_rows_title">Rows per page</string>
 
     <!-- Context menu -->
+    <string name="menu_hide_app">Hide this app</string>
     <string name="menu_uninstall">Uninstall</string>
     <string name="menu_app_info">App info</string>
     <string name="menu_change_icon">Change icon</string>

@@ -2,6 +2,7 @@ package com.ailife.clox
 
 import android.app.Application
 import android.content.pm.PackageManager
+import com.ailife.clox.crash.CrashHandler
 import com.ailife.clox.qs.privilege.ShizukuOperations
 import rikka.shizuku.Shizuku
 
@@ -9,6 +10,7 @@ class CloXApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        CrashHandler.install(this)
         initShizuku()
     }
 
