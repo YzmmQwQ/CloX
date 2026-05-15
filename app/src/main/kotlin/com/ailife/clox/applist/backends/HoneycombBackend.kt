@@ -20,6 +20,8 @@ class HoneycombBackend(private val ctx: Context) : AppListBackend {
             honeycombView = v
             v.enable3d     = AppListPrefs.honeycomb3d(ctx)
             v.iconSizeDp   = AppListPrefs.honeycombIconSize(ctx)
+            v.showBadge    = AppListPrefs.notifBadge(ctx)
+            v.showCount    = AppListPrefs.notifBadgeCount(ctx)
             v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
             v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName }) }
@@ -28,4 +30,5 @@ class HoneycombBackend(private val ctx: Context) : AppListBackend {
 
     override fun bindItems(items: List<AppItem>) = honeycombView?.bindItems(items) ?: Unit
     override fun setDragEnabled(enabled: Boolean) { honeycombView?.dragReorderEnabled = enabled }
+    override fun refreshBadges(counts: Map<String, Int>) { honeycombView?.refreshBadges(counts) }
 }

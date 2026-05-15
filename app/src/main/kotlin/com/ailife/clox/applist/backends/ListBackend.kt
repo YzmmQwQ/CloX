@@ -10,6 +10,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.ailife.clox.applist.NotificationBadge
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -30,8 +31,11 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     private lateinit var searchField: EditText
     private var adapter: AppListAdapter? = null
     private var allItems: List<AppItem> = emptyList()
-    private val showSearch = AppListPrefs.listSearch(ctx)
-    private val enable3d   = AppListPrefs.list3d(ctx)
+    private val showSearch  = AppListPrefs.listSearch(ctx)
+    private val enable3d    = AppListPrefs.list3d(ctx)
+    private val showBadge   = AppListPrefs.notifBadge(ctx)
+    private val showCount   = AppListPrefs.notifBadgeCount(ctx)
+    private var notifCounts: Map<String, Int> = emptyMap()
     private var effect3d: (() -> Unit)? = null
 
     override fun createContentView(context: Context): View {
@@ -61,6 +65,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         ) { view, item ->
             view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
             view.findViewById<TextView>(R.id.appLabel).text = item.label
+            NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
         }.also { adp ->
             adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
@@ -88,8 +93,12 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         if (enable3d) recyclerView.post { effect3d?.invoke() }
     }
 
-    override fun setDragEnabled(enabled: Boolean) {
-        adapter?.dragEnabled = enabled
+    override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
+
+    override fun refreshBadges(counts: Map<String, Int>) {
+        notifCounts = counts
+        if (recyclerView.isComputingLayout) recyclerView.post { adapter?.notifyDataSetChanged() }
+        else adapter?.notifyDataSetChanged()
     }
 
     private fun buildSearchField(ctx: Context): EditText {

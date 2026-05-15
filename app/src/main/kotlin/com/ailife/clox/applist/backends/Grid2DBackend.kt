@@ -22,6 +22,8 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
             v.showNames    = AppListPrefs.grid2dNames(ctx)
             v.enable3d     = AppListPrefs.grid2d3d(ctx)
             v.iconSizeDp   = AppListPrefs.grid2dIconSize(ctx)
+            v.showBadge    = AppListPrefs.notifBadge(ctx)
+            v.showCount    = AppListPrefs.notifBadgeCount(ctx)
             v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
             v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName }) }
@@ -30,4 +32,5 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
 
     override fun bindItems(items: List<AppItem>) = grid2dView?.bindItems(items) ?: Unit
     override fun setDragEnabled(enabled: Boolean) { grid2dView?.dragReorderEnabled = enabled }
+    override fun refreshBadges(counts: Map<String, Int>) { grid2dView?.refreshBadges(counts) }
 }

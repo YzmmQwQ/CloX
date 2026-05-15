@@ -12,4 +12,5 @@ interface AppListBackend {
     var onRequestClose: (() -> Unit)?   // Pages only: fire when swipe past first page
     fun setDragEnabled(enabled: Boolean) {}
     fun onPrefsChanged(context: Context) {}
+    fun refreshBadges(counts: Map<String, Int>) {}
 }

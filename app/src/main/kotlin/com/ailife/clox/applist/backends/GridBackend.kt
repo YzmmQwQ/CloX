@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import com.ailife.clox.applist.NotificationBadge
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -22,10 +23,14 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     private val cols      = AppListPrefs.gridCols(ctx)
     private val showNames = AppListPrefs.gridNames(ctx)
+    private val showBadge = AppListPrefs.notifBadge(ctx)
+    private val showCount = AppListPrefs.notifBadgeCount(ctx)
+    private var notifCounts: Map<String, Int> = emptyMap()
     private var adapter: AppListAdapter? = null
+    private var recyclerView: RecyclerView? = null
 
     override fun createContentView(context: Context): View {
-        val rv = RecyclerView(context).apply {
+        val rv = RecyclerView(context).also { recyclerView = it }.apply {
             layoutManager = GridLayoutManager(context, cols)
             clipToPadding = false
         }
@@ -34,12 +39,9 @@ class GridBackend(private val ctx: Context) : AppListBackend {
         adapter = AppListAdapter(R.layout.item_app_grid) { view, item ->
             view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
             val label = view.findViewById<TextView>(R.id.appLabel)
-            if (showNames) {
-                label.text = item.label
-                label.visibility = View.VISIBLE
-            } else {
-                label.visibility = View.GONE
-            }
+            if (showNames) { label.text = item.label; label.visibility = View.VISIBLE }
+            else label.visibility = View.GONE
+            NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
         }.also { adp ->
             adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
@@ -56,4 +58,10 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     override fun bindItems(items: List<AppItem>) = adapter?.submitList(items) ?: Unit
     override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
+    override fun refreshBadges(counts: Map<String, Int>) {
+        notifCounts = counts
+        val rv = recyclerView ?: return
+        if (rv.isComputingLayout) rv.post { adapter?.notifyDataSetChanged() }
+        else adapter?.notifyDataSetChanged()
+    }
 }

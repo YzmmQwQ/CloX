@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.OverScroller
 import android.widget.TextView
 import com.ailife.clox.applist.model.AppItem
+import com.google.android.material.color.MaterialColors
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -30,6 +31,9 @@ class Grid2DView @JvmOverloads constructor(
     var iconSizeDp = 0
     var dragReorderEnabled = false
     var onOrderChanged: ((List<AppItem>) -> Unit)? = null
+    var showBadge = false
+    var showCount = true
+    private var lastBadgeCounts: Map<String, Int> = emptyMap()
 
     private val scroller = OverScroller(ctx)
     private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
@@ -46,6 +50,7 @@ class Grid2DView @JvmOverloads constructor(
     // gridLeft/Top[i] = fixed layout left/top of cell i (never changes)
     private val orderedViews = mutableListOf<View>()
     private val workingItems = mutableListOf<AppItem>()
+    private val badgeViews   = mutableListOf<TextView>()
     private val gridLeft = mutableListOf<Float>()
     private val gridTop = mutableListOf<Float>()
     private var cellIconPx = 0    // icon size, used to find closest cell center
@@ -98,6 +103,7 @@ class Grid2DView @JvmOverloads constructor(
         val cellH = cellW
 
         orderedViews.clear(); workingItems.clear(); gridLeft.clear(); gridTop.clear()
+        badgeViews.clear()
 
         var maxX = 0; var maxY = 0
         for ((idx, item) in items.withIndex()) {
@@ -105,12 +111,17 @@ class Grid2DView @JvmOverloads constructor(
             val x = col * cellW + gap / 2; val y = row * cellH + gap / 2
             maxX = maxX.coerceAtLeast(x + cellW); maxY = maxY.coerceAtLeast(y + cellH)
 
-            val cell = buildCell(item, iconPx, labelH)
-            val lp = FrameLayout.LayoutParams(iconPx, iconPx + labelH).apply {
-                leftMargin = x; topMargin = y
-            }
-            addView(cell, lp)
+            val cell = buildCell(item, iconPx, labelH) as FrameLayout
+            val badge = NotificationBadge.makeView(context)
+            cell.addView(badge, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.TOP or Gravity.END })
+            badgeViews.add(badge)
 
+            addView(cell, FrameLayout.LayoutParams(iconPx, iconPx + labelH).apply {
+                leftMargin = x; topMargin = y
+            })
             orderedViews.add(cell)
             gridLeft.add(x.toFloat())
             gridTop.add(y.toFloat())
@@ -122,6 +133,7 @@ class Grid2DView @JvmOverloads constructor(
         scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
         applyScroll()
         if (enable3d) post { apply3d() }
+        if (lastBadgeCounts.isNotEmpty()) refreshBadges(lastBadgeCounts)
         dragActive = false; draggingPos = -1; draggingViewRef = null; pendingDragIdx = -1
     }
 
@@ -151,6 +163,13 @@ class Grid2DView @JvmOverloads constructor(
             if (!AppContextMenu.isShowing) onAppClick?.invoke(item, this)
         }
         return cell
+    }
+
+    fun refreshBadges(counts: Map<String, Int>) {
+        lastBadgeCounts = counts
+        for (i in badgeViews.indices) {
+            NotificationBadge.bind(badgeViews[i], workingItems.getOrNull(i)?.packageName ?: "", counts, showBadge, showCount)
+        }
     }
 
     // ── Touch ─────────────────────────────────────────────────────────────────

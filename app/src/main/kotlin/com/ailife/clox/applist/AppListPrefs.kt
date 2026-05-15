@@ -134,6 +134,14 @@ object AppListPrefs {
         else get(ctx).edit().putString(KEY_HIDE_APPS_PASSWORD, password).apply()
     }
 
+    // ── Notification badges ──────────────────────────────────────────────────
+
+    const val KEY_NOTIF_BADGE       = "notif_badge"
+    const val KEY_NOTIF_BADGE_COUNT = "notif_badge_count"
+
+    fun notifBadge(ctx: Context)      = get(ctx).getBoolean(KEY_NOTIF_BADGE, false)
+    fun notifBadgeCount(ctx: Context) = get(ctx).getBoolean(KEY_NOTIF_BADGE_COUNT, true)
+
     // ── Per-app custom icons ─────────────────────────────────────────────────
 
     fun customIconPath(ctx: Context, packageName: String, activityName: String): String? {

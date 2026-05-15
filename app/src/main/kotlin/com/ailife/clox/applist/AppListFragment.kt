@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ailife.clox.R
 import com.ailife.clox.applist.backends.Grid2DBackend
+import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 import com.ailife.clox.applist.backends.GridBackend
 import com.ailife.clox.applist.backends.HoneycombBackend
 import com.ailife.clox.applist.backends.ListBackend
@@ -44,7 +45,8 @@ class AppListFragment : Fragment() {
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
-            AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT -> swapBackend()
+            AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT,
+            AppListPrefs.KEY_NOTIF_BADGE, AppListPrefs.KEY_NOTIF_BADGE_COUNT -> swapBackend()
             AppListPrefs.KEY_BG_IMAGE_PATH, AppListPrefs.KEY_WALLPAPER_DIM -> applyBackground()
         }
     }
@@ -65,6 +67,7 @@ class AppListFragment : Fragment() {
         applyBackground()
         swapBackend()
         observeApps()
+        observeNotifications()
     }
 
     override fun onDestroyView() {
@@ -163,7 +166,10 @@ class AppListFragment : Fragment() {
         onSetPagesDragActive(pagesBackend?.let { b -> { b.isDragActive } })
 
         val current = viewModel.apps.value
-        if (current.isNotEmpty()) newBackend.bindItems(current)
+        if (current.isNotEmpty()) {
+            newBackend.bindItems(current)
+            newBackend.refreshBadges(currentNotifCounts())
+        }
     }
 
     private fun createBackend(ctx: Context, style: String): AppListBackend = when (style) {
@@ -178,8 +184,26 @@ class AppListFragment : Fragment() {
     private fun observeApps() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.apps.collect { items -> backend?.bindItems(items) }
+                viewModel.apps.collect { items ->
+                    backend?.bindItems(items)
+                    backend?.refreshBadges(currentNotifCounts())
+                }
             }
         }
     }
+
+    private fun observeNotifications() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                CloXNotificationListenerService.notifications.collect {
+                    backend?.refreshBadges(currentNotifCounts())
+                }
+            }
+        }
+    }
+
+    private fun currentNotifCounts(): Map<String, Int> =
+        CloXNotificationListenerService.currentNotifications
+            .groupBy { it.packageName }
+            .mapValues { it.value.size }
 }

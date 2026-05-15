@@ -18,6 +18,7 @@ import com.ailife.clox.applist.AppContextMenu
 import com.ailife.clox.applist.AppListAdapter
 import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
+import com.ailife.clox.applist.NotificationBadge
 import com.ailife.clox.applist.model.AppItem
 import kotlin.math.min
 
@@ -27,8 +28,11 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
 
-    private val cols = AppListPrefs.pagesCols(ctx)
-    private val rows = AppListPrefs.pagesRows(ctx)
+    private val cols      = AppListPrefs.pagesCols(ctx)
+    private val rows      = AppListPrefs.pagesRows(ctx)
+    private val showBadge = AppListPrefs.notifBadge(ctx)
+    private val showCount = AppListPrefs.notifBadgeCount(ctx)
+    private var notifCounts: Map<String, Int> = emptyMap()
     private val pageSize get() = cols * rows
 
     private var container: FrameLayout? = null
@@ -139,8 +143,11 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
         pagesAdapter?.notifyDataSetChanged()
     }
 
-    override fun setDragEnabled(enabled: Boolean) {
-        dragEnabled = enabled
+    override fun setDragEnabled(enabled: Boolean) { dragEnabled = enabled }
+
+    override fun refreshBadges(counts: Map<String, Int>) {
+        notifCounts = counts
+        pager?.post { pagesAdapter?.notifyDataSetChanged() }
     }
 
     private fun pageSlice(pageIdx: Int): List<AppItem> {
@@ -356,6 +363,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                 view.findViewById<TextView>(R.id.appLabel).apply {
                     text = item.label; visibility = View.VISIBLE
                 }
+                NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
             }
             adp.touchHelper = null
             rv.adapter = adp

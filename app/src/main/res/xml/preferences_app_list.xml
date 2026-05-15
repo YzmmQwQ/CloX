@@ -131,6 +131,24 @@
 
     </PreferenceCategory>
 
+    <!-- ── Notification badges ───────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="@string/pref_notif_badge_category">
+
+        <SwitchPreferenceCompat
+            android:key="notif_badge"
+            android:title="@string/pref_notif_badge_title"
+            android:summary="@string/pref_notif_badge_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="notif_badge_count"
+            android:title="@string/pref_notif_badge_count_title"
+            android:summary="@string/pref_notif_badge_count_summary"
+            android:defaultValue="true"
+            android:dependency="notif_badge" />
+
+    </PreferenceCategory>
+
     <!-- ── Generic / global settings ─────────────────────────────────────────── -->
     <PreferenceCategory android:title="General">
 

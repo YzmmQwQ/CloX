@@ -3,6 +3,8 @@ package com.ailife.clox.applist.backends
 import android.content.Context
 import android.view.View
 import android.widget.ImageView
+import android.widget.TextView
+import com.ailife.clox.applist.NotificationBadge
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
@@ -20,7 +22,10 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
 
-    private val enable3d = AppListPrefs.waterfall3d(ctx)
+    private val enable3d  = AppListPrefs.waterfall3d(ctx)
+    private val showBadge = AppListPrefs.notifBadge(ctx)
+    private val showCount = AppListPrefs.notifBadgeCount(ctx)
+    private var notifCounts: Map<String, Int> = emptyMap()
     private var adapter: AppListAdapter? = null
     private var lm: WaterfallLayoutManager? = null
     private var rv3d: RecyclerView? = null
@@ -41,6 +46,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
                 iv.setImageDrawable(item.icon)
                 view.post { iv.setImageDrawable(item.icon.toCircle(view.width.coerceAtLeast(1))) }
             }
+            NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
         }.also { adp ->
             adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
@@ -64,6 +70,12 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     }
 
     override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
+    override fun refreshBadges(counts: Map<String, Int>) {
+        notifCounts = counts
+        val rv = rv3d ?: return
+        if (rv.isComputingLayout) rv.post { adapter?.notifyDataSetChanged() }
+        else adapter?.notifyDataSetChanged()
+    }
 
     private fun attach3d(rv: RecyclerView) {
         val effect: () -> Unit = {

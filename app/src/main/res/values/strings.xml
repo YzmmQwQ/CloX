@@ -46,6 +46,12 @@
     <string name="pref_pages_rows_title">Rows per page</string>
 
     <!-- Context menu -->
+    <string name="pref_notif_badge_category">Notification badges</string>
+    <string name="pref_notif_badge_title">Show notification badges</string>
+    <string name="pref_notif_badge_summary">Show a dot on apps with unread notifications</string>
+    <string name="pref_notif_badge_count_title">Show count</string>
+    <string name="pref_notif_badge_count_summary">Display the number of notifications on the badge</string>
+
     <string name="menu_hide_app">Hide this app</string>
     <string name="menu_uninstall">Uninstall</string>
     <string name="menu_app_info">App info</string>

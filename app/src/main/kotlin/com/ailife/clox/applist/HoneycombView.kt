@@ -13,9 +13,11 @@ import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.Gravity
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.OverScroller
+import android.widget.TextView
 import com.ailife.clox.applist.model.AppItem
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -34,6 +36,9 @@ class HoneycombView @JvmOverloads constructor(
     var iconSizeDp = 0
     var dragReorderEnabled = false
     var onOrderChanged: ((List<AppItem>) -> Unit)? = null
+    var showBadge = false
+    var showCount = true
+    private var lastBadgeCounts: Map<String, Int> = emptyMap()
 
     private val scroller = OverScroller(ctx)
     private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
@@ -46,6 +51,7 @@ class HoneycombView @JvmOverloads constructor(
 
     // ── Drag state ────────────────────────────────────────────────────────────
     private val orderedViews = mutableListOf<View>()
+    private val badgeViews   = mutableListOf<TextView>()
     private val workingItems = mutableListOf<AppItem>()
     private val gridLeft = mutableListOf<Float>()   // fixed layout left edge of each cell
     private val gridTop = mutableListOf<Float>()
@@ -110,6 +116,7 @@ class HoneycombView @JvmOverloads constructor(
         val shiftY = if (contentH >= height) -minY else (height - contentH) / 2f - minY
 
         orderedViews.clear(); workingItems.clear(); gridLeft.clear(); gridTop.clear()
+        badgeViews.clear()
         var contentMaxX = 0; var contentMaxY = 0
 
         for ((idx, item) in items.withIndex()) {
@@ -124,13 +131,22 @@ class HoneycombView @JvmOverloads constructor(
                 setImageDrawable(item.icon.toCircle(iconPx))
                 isLongClickable = false
             }
-            iv.setOnClickListener {
+            val badge = NotificationBadge.makeView(context)
+            val cell = FrameLayout(context).apply { isLongClickable = false }
+            cell.addView(iv, FrameLayout.LayoutParams(iconPx, iconPx))
+            cell.addView(badge, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.TOP or Gravity.END })
+            cell.setOnClickListener {
                 if (!AppContextMenu.isShowing) onAppClick?.invoke(item, this)
             }
-            addView(iv, FrameLayout.LayoutParams(iconPx, iconPx).apply {
+            badgeViews.add(badge)
+
+            addView(cell, FrameLayout.LayoutParams(iconPx, iconPx).apply {
                 leftMargin = x; topMargin = y
             })
-            orderedViews.add(iv)
+            orderedViews.add(cell)
             gridLeft.add(x.toFloat())
             gridTop.add(y.toFloat())
         }
@@ -141,7 +157,15 @@ class HoneycombView @JvmOverloads constructor(
         scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
         applyScroll()
         if (enable3d) post { apply3d() }
+        if (lastBadgeCounts.isNotEmpty()) refreshBadges(lastBadgeCounts)
         dragActive = false; draggingPos = -1; draggingViewRef = null; pendingDragIdx = -1
+    }
+
+    fun refreshBadges(counts: Map<String, Int>) {
+        lastBadgeCounts = counts
+        for (i in badgeViews.indices) {
+            NotificationBadge.bind(badgeViews[i], workingItems.getOrNull(i)?.packageName ?: "", counts, showBadge, showCount)
+        }
     }
 
     // ── Touch ─────────────────────────────────────────────────────────────────
