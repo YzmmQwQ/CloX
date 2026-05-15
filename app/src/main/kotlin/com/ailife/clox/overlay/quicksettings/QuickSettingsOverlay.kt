@@ -158,6 +158,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
         sm.attach()        // registers receivers on main; initial state reads on IO
         buildTileGrid()    // fast: defers VP2 adapter assignment via post{}
+        applyBottomBarStyle()
         collectHeaderFlows(sm)
     }
 
@@ -230,7 +231,16 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         }
     }
 
+    private fun applyBottomBarStyle() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val solid = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+        val bgRes = if (solid) R.drawable.qs_btn_bg_solid else R.drawable.qs_btn_bg
+        listOf(btnLauncherSettings, btnRecents, btnFlashlight, btnPower, btnSettings)
+            .forEach { it.setBackgroundResource(bgRes) }
+    }
+
     private fun setupBottomBar() {
+        applyBottomBarStyle()
         btnLauncherSettings.setOnClickListener {
             context.startActivity(Intent(context, SettingsActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

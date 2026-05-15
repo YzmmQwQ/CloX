@@ -11,6 +11,15 @@
         <item>none</item>
     </string-array>
 
+    <string-array name="qs_tile_style_entries">
+        <item>Stroke (outlined)</item>
+        <item>Solid (Material filled)</item>
+    </string-array>
+    <string-array name="qs_tile_style_values">
+        <item>stroke</item>
+        <item>solid</item>
+    </string-array>
+
     <string-array name="notif_card_style_entries">
         <item>Glass (semi-transparent + outline)</item>
         <item>Solid (opaque grey, no outline)</item>

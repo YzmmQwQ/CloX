@@ -15,6 +15,10 @@ object QsPrefs {
     const val TILE_ORDER            = "qs_tile_order"
     const val CUSTOM_TILES          = "qs_custom_tiles"
     const val PERMISSIONS_REQUESTED = "qs_permissions_done"
+    const val TILE_STYLE            = "qs_tile_style"   // "stroke" | "solid"
+
+    const val TILE_STYLE_STROKE = "stroke"
+    const val TILE_STYLE_SOLID  = "solid"
 
     const val DEFAULT_COLOR_CONNECTED    = "#379950"
     const val DEFAULT_COLOR_IDLE         = "#2444E3"

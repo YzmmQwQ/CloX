@@ -73,7 +73,7 @@ class QsTileView @JvmOverloads constructor(
         cardElevation = 0f
         useCompatPadding = false
 
-        // Tile background: very light transparent — ring provides the color
+        // Default stroke style — applyStateSolid() overrides this for solid style
         setCardBackgroundColor(Color.argb(20, 255, 255, 255))
         setInactiveStroke()
 
@@ -115,6 +115,42 @@ class QsTileView @JvmOverloads constructor(
         detail.setTextColor(Color.argb(200, 255, 255, 255))
         badge.setTextColor(Color.argb(160, 255, 255, 255))
         invalidate()
+    }
+
+    // ── Style: stroke (default) vs solid (Material filled) ────────────────────
+
+    fun applyStateSolid(active: Boolean, detailText: String? = null, badgeText: String? = null, ringColor: Int? = null) {
+        isPending = false
+        isActive = active
+        setDetail(detailText)
+        setBadge(badgeText)
+        strokeWidth = 0
+        if (active) {
+            val fill   = resolveAttrColor(com.google.android.material.R.attr.colorPrimaryContainer)
+            val onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnPrimaryContainer)
+            setCardBackgroundColor(fill)
+            icon.setColorFilter(onFill)
+            label.setTextColor(onFill)
+            detail.setTextColor(onFill)
+            arcColor = ringColor ?: resolveAttrColor(com.google.android.material.R.attr.colorPrimary)
+        } else {
+            val fill   = resolveAttrColor(com.google.android.material.R.attr.colorSurfaceVariant)
+            val onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
+            setCardBackgroundColor(fill)
+            icon.setColorFilter(onFill)
+            label.setTextColor(onFill)
+            detail.setTextColor(onFill)
+            arcColor = Color.WHITE
+        }
+        badge.setTextColor(Color.argb(160, 255, 255, 255))
+        invalidate()
+    }
+
+    private fun resolveAttrColor(attr: Int): Int {
+        val ta = context.obtainStyledAttributes(intArrayOf(attr))
+        val color = ta.getColor(0, Color.WHITE)
+        ta.recycle()
+        return color
     }
 
     // ── Stroke helpers ────────────────────────────────────────────────────────

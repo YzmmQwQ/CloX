@@ -41,6 +41,15 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Appearance">
+
+        <ListPreference
+            android:key="qs_tile_style"
+            android:title="Tile style"
+            android:summary="%s"
+            android:entries="@array/qs_tile_style_entries"
+            android:entryValues="@array/qs_tile_style_values"
+            android:defaultValue="stroke" />
+
         <SwitchPreferenceCompat
             android:key="qs_color_tiles"
             android:title="@string/qs_color_tiles_title"
