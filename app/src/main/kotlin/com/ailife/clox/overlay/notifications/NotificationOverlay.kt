@@ -49,6 +49,9 @@ class NotificationOverlay @JvmOverloads constructor(
     private val concatAdapter: ConcatAdapter
 
     private var fragmentManager: FragmentManager? = null
+    // lateinit — assigned in init{} after adapters exist; field keeps the strong reference
+    // so SharedPreferences (which uses WeakReference) doesn't GC the listener.
+    private lateinit var prefsListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener
 
     init {
         LayoutInflater.from(ctx).inflate(R.layout.overlay_notifications, this, true)
@@ -83,18 +86,19 @@ class NotificationOverlay @JvmOverloads constructor(
         btnGrant.setOnClickListener { openNotificationListenerSettings() }
         btnTryAnyway.setOnClickListener { openNotificationListenerSettings() }
 
-        PreferenceManager.getDefaultSharedPreferences(ctx)
-            .registerOnSharedPreferenceChangeListener { _, key ->
-                when (key) {
-                    NotificationPrefs.NOTIF_TEXT_SIZE,
-                    NotificationPrefs.NOTIF_CARD_STYLE -> {
-                        listAdapter.notifyDataSetChanged()
-                        pageAdapter.notifyDataSetChanged()
-                    }
-                    NotificationPrefs.NOTIF_STYLE -> applyViewStyle()
-                    NotificationPrefs.NOTIF_ENABLED -> checkAndShow()
+        prefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            when (key) {
+                NotificationPrefs.NOTIF_TEXT_SIZE,
+                NotificationPrefs.NOTIF_CARD_STYLE -> {
+                    listAdapter.notifyDataSetChanged()
+                    pageAdapter.notifyDataSetChanged()
                 }
+                NotificationPrefs.NOTIF_STYLE -> applyViewStyle()
+                NotificationPrefs.NOTIF_ENABLED -> checkAndShow()
             }
+        }
+        PreferenceManager.getDefaultSharedPreferences(ctx)
+            .registerOnSharedPreferenceChangeListener(prefsListener)
     }
 
     fun init(fm: FragmentManager) {
