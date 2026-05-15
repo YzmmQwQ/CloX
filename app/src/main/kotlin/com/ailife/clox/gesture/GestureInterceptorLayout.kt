@@ -144,7 +144,9 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         cancelLongPressGesture()
         if (longPressListener == null) return
         val r = Runnable {
-            if (!isDragging) {
+            val overlayOpen = qsOverlayActive?.invoke() == true ||
+                              notificationOverlayActive?.invoke() == true
+            if (!isDragging && !appListOpen && !overlayOpen) {
                 performHapticFeedback(
                     HapticFeedbackConstants.LONG_PRESS,
                     HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING or HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
