@@ -1,12 +1,16 @@
 package com.ailife.clox.settings.fragments
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
@@ -18,7 +22,7 @@ class SensorsSettingsFragment : PreferenceFragmentCompat() {
     private lateinit var sensorManager: SensorManager
 
     // Launched when the user turns on calendar access and permission isn't yet granted.
-    // On result: grant → save pref + flip switch on; deny → leave switch off.
+    // On result: grant → save pref + flip switch on; deny → show rationale or redirect to settings.
     private val calendarPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -26,7 +30,22 @@ class SensorsSettingsFragment : PreferenceFragmentCompat() {
             SensorsPrefs.setCalendarEnabled(requireContext(), true)
             findPreference<SwitchPreferenceCompat>(SensorsPrefs.KEY_CALENDAR)?.isChecked = true
         } else {
-            Toast.makeText(requireContext(), R.string.pref_calendar_permission_denied, Toast.LENGTH_SHORT).show()
+            val canAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.READ_CALENDAR)
+            if (canAskAgain) {
+                Toast.makeText(requireContext(), R.string.pref_calendar_permission_denied, Toast.LENGTH_SHORT).show()
+            } else {
+                // Permanently denied — direct user to app settings
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.pref_calendar_permission_denied)
+                    .setMessage("Calendar permission was denied. Please enable it in App Settings > Permissions.")
+                    .setPositiveButton("Open Settings") { _, _ ->
+                        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", requireContext().packageName, null)
+                        })
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
         }
     }
 

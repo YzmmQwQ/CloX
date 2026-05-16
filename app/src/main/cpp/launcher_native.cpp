@@ -1,15 +1,15 @@
 #include <jni.h>
 #include <android/log.h>
 #include <string>
+#include "lua-bindings/manual/LuaEngine.h"
+
+extern "C" {
+#include "lua.h"
+}
 
 #define LOG_TAG "CloX_Native"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,  LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
-// ---------------------------------------------------------------------------
-// When Axmol is present, the real AppDelegate / LuaEngine take over these
-// calls.  When it is absent (stub build), these log-only functions are used.
-// ---------------------------------------------------------------------------
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_ailife_clox_cocos_CocosManager_nativeInit(
@@ -32,15 +32,45 @@ Java_com_ailife_clox_cocos_CocosManager_nativeOnDestroy(JNIEnv *, jobject) {
     LOGI("nativeOnDestroy");
 }
 
+// Calls a Lua global function by name with a single string argument.
+// Must be called on the GL thread (Axmol's Lua VM is single-threaded).
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_ailife_clox_cocos_LuaBridge_callLuaFunction(
         JNIEnv *env, jobject, jstring funcName, jstring args) {
-    const char *name = env->GetStringUTFChars(funcName, nullptr);
+    const char *name   = env->GetStringUTFChars(funcName, nullptr);
     const char *argsStr = env->GetStringUTFChars(args, nullptr);
     LOGI("callLuaFunction: %s(%s)", name, argsStr);
+
+    jstring result = env->NewStringUTF("{}");
+
+    auto *engine = ax::LuaEngine::getInstance();
+    if (engine) {
+        lua_State *L = engine->getLuaStack()->getLuaState();
+        lua_getglobal(L, name);
+        if (lua_isfunction(L, -1)) {
+            lua_pushstring(L, argsStr);
+            if (lua_pcall(L, 1, 1, 0) == 0) {
+                const char *ret = lua_tostring(L, -1);
+                if (ret) {
+                    env->DeleteLocalRef(result);
+                    result = env->NewStringUTF(ret);
+                }
+                lua_pop(L, 1);
+            } else {
+                LOGE("callLuaFunction %s error: %s", name, lua_tostring(L, -1));
+                lua_pop(L, 1);
+            }
+        } else {
+            LOGE("callLuaFunction: '%s' is not a global function", name);
+            lua_pop(L, 1);
+        }
+    } else {
+        LOGE("callLuaFunction: LuaEngine not ready");
+    }
+
     env->ReleaseStringUTFChars(funcName, name);
     env->ReleaseStringUTFChars(args, argsStr);
-    return env->NewStringUTF("{}");
+    return result;
 }
 
 extern "C" JNIEXPORT void JNICALL

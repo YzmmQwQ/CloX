@@ -16,6 +16,10 @@ object CalendarHelper {
     private val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+    fun hasPermission(ctx: Context) =
+        ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CALENDAR) ==
+            PackageManager.PERMISSION_GRANTED
+
     fun getEvents(ctx: Context): JSONObject {
         // Honour the user's privacy setting before checking system permission
         if (!SensorsPrefs.calendarEnabled(ctx)) return emptyResult()

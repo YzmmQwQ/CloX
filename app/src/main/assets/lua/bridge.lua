@@ -28,13 +28,21 @@ end
 -- Sends a Lua event up to Kotlin via JNI (reverse bridge)
 -- Kotlin side: LuaBridge.onLuaEvent() is called by native code
 function Bridge.sendToAndroid(event, payload)
-    -- native function registered by Axmol Lua runtime:
-    -- luaoc.callStaticMethod("com/ailife/clox/cocos/LuaBridge", "onLuaEvent", {event, payload})
-    if luaoc then
+    local p = payload or ""
+    -- Android: LuaJavaBridge is registered as a global by Axmol's C++ binding
+    if LuaJavaBridge then
+        LuaJavaBridge.callStaticMethod(
+            "com/ailife/clox/cocos/LuaBridge",
+            "onLuaEvent",
+            { event, p },
+            "(Ljava/lang/String;Ljava/lang/String;)V"
+        )
+    elseif luaoc then
+        -- iOS fallback
         luaoc.callStaticMethod(
             "com/ailife/clox/cocos/LuaBridge",
             "onLuaEvent",
-            { event, payload or "" }
+            { event, p }
         )
     end
 end

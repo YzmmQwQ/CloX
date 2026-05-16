@@ -9,12 +9,13 @@ import org.json.JSONObject
 object DeviceInfoHelper {
 
     fun getInfo(ctx: Context): JSONObject {
-        val lang = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            ctx.resources.configuration.locales[0].language
+        val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ctx.resources.configuration.locales[0]
         } else {
             @Suppress("DEPRECATION")
-            ctx.resources.configuration.locale.language
+            ctx.resources.configuration.locale
         }
+        val lang = locale.language + (if (locale.country.isNotEmpty()) "_${locale.country}" else "")
         return JSONObject().apply {
             put("apiLevel", Build.VERSION.SDK_INT)
             put("language", lang)

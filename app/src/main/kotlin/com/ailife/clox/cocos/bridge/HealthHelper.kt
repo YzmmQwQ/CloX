@@ -38,8 +38,11 @@ object HealthHelper {
 
     fun getLastFetchTimeMs(metric: Metric): Long? = lastFetchTimeMs[metric]
 
-    fun setEnabled(metricName: String, value: Boolean) {
-        // kept for Lua backward-compat; actual enable state is stored in HealthPrefs
+    fun metricFromName(name: String): Metric? = when (name) {
+        "steps"     -> Metric.STEPS
+        "heartRate" -> Metric.HEART_RATE
+        "spo2"      -> Metric.SPO2
+        else        -> null
     }
 
     fun isEnabled(ctx: Context, metric: Metric): Boolean = when (metric) {

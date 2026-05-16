@@ -44,6 +44,16 @@ class WatchfaceBridgeManager(
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val sensorHelper = SensorHelper(ctx)
 
+    /** Set to true by Lua when the active watchface declares it uses weather data. */
+    @Volatile private var watchfaceWantsWeather = false
+
+    /** Set by Lua per-metric when the active watchface declares it uses health data. */
+    private val watchfaceWantsHealth = mutableMapOf(
+        HealthHelper.Metric.STEPS      to false,
+        HealthHelper.Metric.HEART_RATE to false,
+        HealthHelper.Metric.SPO2       to false,
+    )
+
     private val calendarObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
             scope.launch {
@@ -65,9 +75,13 @@ class WatchfaceBridgeManager(
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when {
-            key == SensorsPrefs.KEY_CALENDAR -> scope.launch {
-                val data = withContext(Dispatchers.IO) { CalendarHelper.getEvents(ctx) }
-                sendToLua("calendar", data)
+            key == SensorsPrefs.KEY_CALENDAR -> {
+                if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {
+                    scope.launch {
+                        val data = withContext(Dispatchers.IO) { CalendarHelper.getEvents(ctx) }
+                        sendToLua("calendar", data)
+                    }
+                }
             }
             key in locationKeys -> sendToLua("location", LiveDataHelper.locationSettingsJson(ctx))
             key in watchfaceSettingsKeys -> sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
@@ -75,19 +89,23 @@ class WatchfaceBridgeManager(
     }
 
     fun start() {
+        LuaBridge.luaReadyHandler = { pushAllLiveData() }
         registerWatchfaceActionHandler()
         WeatherRepository.initialize(ctx)   // load cache so Lua gets data before first network fetch
         pushStaticData()
         pushAllLiveData()
         subscribeToLiveData()
         startPeriodicUpdates()
-        ctx.contentResolver.registerContentObserver(
-            CalendarContract.Events.CONTENT_URI, true, calendarObserver)
+        if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {
+            ctx.contentResolver.registerContentObserver(
+                CalendarContract.Events.CONTENT_URI, true, calendarObserver)
+        }
         PreferenceManager.getDefaultSharedPreferences(ctx)
             .registerOnSharedPreferenceChangeListener(prefsListener)
     }
 
     fun stop() {
+        LuaBridge.luaReadyHandler = null
         LuaBridge.watchfaceActionHandler = null
         ctx.contentResolver.unregisterContentObserver(calendarObserver)
         PreferenceManager.getDefaultSharedPreferences(ctx)
@@ -104,7 +122,11 @@ class WatchfaceBridgeManager(
 
     // ── Initial snapshot of all live categories ───────────────────────────────
 
-    private fun pushAllLiveData() {
+    internal fun pushAllLiveData() {
+        // Static device info — must be included here because pushStaticData() runs before
+        // the Lua VM is ready (WatchfaceBridgeDispatch isn't defined yet at that point).
+        sendToLua("device", DeviceInfoHelper.getInfo(ctx))
+
         // Settings pushed first — watchface engine must not load until watchfacePath is valid.
         // These are cheap reads from SharedPreferences (main thread is fine).
         sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
@@ -195,11 +217,14 @@ class WatchfaceBridgeManager(
             }
         }
 
-        // Weather fetch loop — interval from user settings
+        // Weather fetch loop — only runs when the user has weather enabled globally
+        // AND the active watchface declared it supports weather (watchfaceWantsWeather).
         scope.launch {
             while (isActive) {
                 delay(WeatherPrefs.intervalMs(ctx))
-                WeatherRepository.refresh(ctx)
+                if (WeatherPrefs.enabled(ctx) && watchfaceWantsWeather) {
+                    WeatherRepository.refresh(ctx)
+                }
             }
         }
 
@@ -210,14 +235,16 @@ class WatchfaceBridgeManager(
             }
         }
 
-        // Health periodic fetch loop — onInstant sends interim readings directly.
-        // Final data is pushed to Lua by the dataUpdated collector above.
+        // Health periodic fetch loop — only fetches a metric when the user has it enabled
+        // globally (HealthPrefs) AND the active watchface declared it needs that metric.
         scope.launch {
             while (isActive) {
                 delay(HealthPrefs.intervalMs(ctx))
                 for (metric in HealthHelper.Metric.entries) {
-                    HealthHelper.fetchAndUpdate(metric, ctx) { interim ->
-                        sendToLua(HealthHelper.metricCategory(metric), interim)
+                    if (watchfaceWantsHealth[metric] == true) {
+                        HealthHelper.fetchAndUpdate(metric, ctx) { interim ->
+                            sendToLua(HealthHelper.metricCategory(metric), interim)
+                        }
                     }
                 }
             }
@@ -257,10 +284,11 @@ class WatchfaceBridgeManager(
                         TapActionHandler.handle(ctx, shortcut)
                     }
                 }
-                "setHealthEnabled" -> HealthHelper.setEnabled(
-                    json.optString("metric"),
-                    json.optBoolean("enabled")
-                )
+                "setWeatherEnabled" -> watchfaceWantsWeather = json.optBoolean("enabled")
+                "setHealthEnabled" -> {
+                    val metric = HealthHelper.metricFromName(json.optString("metric"))
+                    if (metric != null) watchfaceWantsHealth[metric] = json.optBoolean("enabled")
+                }
                 "setSensorEnabled" -> sensorHelper.setEnabled(
                     json.optString("sensor"),
                     json.optBoolean("enabled")

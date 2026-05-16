@@ -57,6 +57,14 @@
 --   sensor_compass:       azimuth, pitch, roll  (degrees)
 --   sensor_barometer:     pressure  (hPa)
 
+local ok_json, json = pcall(require, "cjson")
+if not ok_json then
+    print("[WatchfaceBridge] cjson load FAILED: " .. tostring(json))
+    json = nil
+else
+    print("[WatchfaceBridge] cjson loaded OK")
+end
+
 -- ── Global live-data table ────────────────────────────────────────────────────
 -- Pre-initialised with safe defaults so watchface code never reads nil.
 -- Java pushes a full snapshot per category; WF[category] is replaced atomically.
@@ -117,11 +125,9 @@ WatchfaceBridge._handlers = {}
 -- jsonStr = { "category": "battery", "data": { "level": 85, ... } }
 
 function WatchfaceBridgeDispatch(jsonStr)
+    if not json then return end
     local ok, payload = pcall(json.decode, jsonStr)
-    if not ok or type(payload) ~= "table" then
-        print("[WatchfaceBridge] decode error: " .. tostring(jsonStr))
-        return
-    end
+    if not ok or type(payload) ~= "table" then return end
     local category = payload.category
     local data     = payload.data
     if not category or type(data) ~= "table" then return end
