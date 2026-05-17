@@ -226,6 +226,9 @@ class OverlayController(
     /** True only when the notification panel is the current active overlay. */
     fun isNotificationActive(): Boolean = activeOverlay === notifications
 
+    /** True only when the widget drawer is the current active overlay. */
+    fun isWidgetActive(): Boolean = activeOverlay === widgets
+
     /** True if `direction` is the correct swipe to dismiss the current overlay. */
     fun isDismissDirection(direction: SwipeDirection): Boolean = when (activeDirection) {
         SwipeDirection.DOWN  -> direction == SwipeDirection.UP

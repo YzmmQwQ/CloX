@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageButton
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="28dp"
+    android:layout_height="28dp"
+    android:layout_gravity="bottom|end"
+    android:layout_margin="4dp"
+    android:src="@drawable/ic_close"
+    android:background="@drawable/bg_delete_badge"
+    android:padding="4dp"
+    android:contentDescription="Delete slot" />

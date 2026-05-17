@@ -41,6 +41,15 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     /** Returns true when the notification panel is open — vertical + right swipes pass to child. */
     var notificationOverlayActive: (() -> Boolean)? = null
 
+    /**
+     * Returns true when the widget drawer is open. Vertical + horizontal swipes pass to the
+     * inner RecyclerView. The only exception: swipe DOWN while the list cannot scroll up
+     * (i.e., the list is at the top / in overscroll), which collapses the overlay.
+     */
+    var widgetOverlayActive: (() -> Boolean)? = null
+    /** Returns true when the widget RecyclerView can still scroll upward (not at the top). */
+    var widgetListCanScrollUp: (() -> Boolean)? = null
+
     var onSwipeStart: ((SwipeDirection, Float, Float) -> Unit)? = null
     var onSwipeUpdate: ((SwipeDirection, Float, Float) -> Unit)? = null
     var onSwipeEnd: ((SwipeDirection, Float, Float, Float, Float) -> Unit)? = null
@@ -145,7 +154,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         if (longPressListener == null) return
         val r = Runnable {
             val overlayOpen = qsOverlayActive?.invoke() == true ||
-                              notificationOverlayActive?.invoke() == true
+                              notificationOverlayActive?.invoke() == true ||
+                              widgetOverlayActive?.invoke() == true
             if (!isDragging && !appListOpen && !overlayOpen) {
                 performHapticFeedback(
                     HapticFeedbackConstants.LONG_PRESS,
@@ -186,6 +196,13 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         // When notification panel is open: only LEFT collapses it; vertical + right pass to child
         if (notificationOverlayActive?.invoke() == true &&
             (dir == SwipeDirection.UP || dir == SwipeDirection.DOWN || dir == SwipeDirection.RIGHT)) return true
+        // Widget drawer: pass all horizontal and upward swipes to the inner RecyclerView.
+        // Downward swipe at the very top (overscroll) collapses the overlay — don't block it.
+        if (widgetOverlayActive?.invoke() == true) {
+            if (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT) return true
+            if (dir == SwipeDirection.UP) return true
+            if (dir == SwipeDirection.DOWN && widgetListCanScrollUp?.invoke() == true) return true
+        }
         return appListOpen && (
             dir == SwipeDirection.UP || dir == SwipeDirection.DOWN ||
             // Pages: always pass LEFT to ViewPager2 (go to next page)

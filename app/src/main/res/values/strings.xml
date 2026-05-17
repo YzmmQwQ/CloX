@@ -4,6 +4,21 @@
     <string name="settings_title">Settings</string>
     <string name="add_widget">Add Widget</string>
 
+    <!-- ── Widget drawer ─────────────────────────────────────────────────────── -->
+    <string name="widget_edit">Edit</string>
+    <string name="widget_done">Done</string>
+    <string name="widget_add_card">Add card</string>
+    <string name="widget_add_full_width">Full-width widget</string>
+    <string name="widget_add_three_cell">3-slot row</string>
+    <string name="widget_pick_app">Select app</string>
+    <string name="widget_pick_slot_type">Add to slot</string>
+    <string name="widget_slot_appwidget">App widget</string>
+    <string name="widget_slot_activity">App activity</string>
+    <string name="widget_add_clock">Clock</string>
+    <string name="widget_add_weather">Weather</string>
+    <string name="widget_weather_no_data">No weather data</string>
+    <string name="widget_weather_today">Today</string>
+
     <!-- ── Settings ─────────────────────────────────────────────────────────── -->
     <string name="pref_double_tap_title">Double-tap action</string>
     <string name="pref_icon_pack_title">Global icon pack</string>

@@ -34,7 +34,9 @@ import com.ailife.clox.overlay.OverlayController
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 import com.ailife.clox.overlay.notifications.NotificationOverlay
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
+import android.appwidget.AppWidgetManager
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
+import com.ailife.clox.overlay.widgets.WidgetHostManager
 import dev.axmol.lib.AxmolEngine
 import kotlinx.coroutines.launch
 
@@ -50,6 +52,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private lateinit var flashlightOverlay: com.ailife.clox.overlay.quicksettings.FlashlightOverlay
 
     lateinit var stateManager: com.ailife.clox.qs.QsStateManager
+
+    private var pendingWidgetId = -1
+    private var pendingWidgetSlot: WidgetsOverlay.PendingSlot? = null
 
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
@@ -128,6 +133,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
 
         notifications.init(supportFragmentManager)
+        widgets.init(supportFragmentManager)
+        setupWidgetCallbacks()
 
         gestureHandler = GestureHandler(this, window)
         setupGestures()
@@ -330,6 +337,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.qsOverlayActive = { overlayController.isQsActive() }
         // Pass vertical + right swipes through to the notification RecyclerView/ItemTouchHelper
         gestureRoot.notificationOverlayActive = { overlayController.isNotificationActive() }
+        // Widget drawer: pass all swipes to inner RecyclerView; collapse only on overscroll-down at top
+        gestureRoot.widgetOverlayActive = { overlayController.isWidgetActive() }
+        gestureRoot.widgetListCanScrollUp = { widgets.canScrollUp() }
 
         gestureRoot.doubleTapListener = {
             overlayController.dismissActive()
@@ -459,13 +469,71 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         appListSpring?.start()
     }
 
+    // ── Widget setup ──────────────────────────────────────────────────────────
+
+    private fun setupWidgetCallbacks() {
+        widgets.onPickAppWidget = { allocatedId, pendingSlot ->
+            pendingWidgetId = allocatedId
+            pendingWidgetSlot = pendingSlot
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, allocatedId)
+            }
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, WidgetHostManager.REQUEST_PICK_WIDGET)
+        }
+    }
+
     // ── Activity result / permission ─────────────────────────────────────────
 
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == IconPickerDialog.GALLERY_REQUEST_CODE) {
-            IconPickerDialog.handleGalleryResult(this, resultCode, data)
+        when (requestCode) {
+            IconPickerDialog.GALLERY_REQUEST_CODE ->
+                IconPickerDialog.handleGalleryResult(this, resultCode, data)
+
+            WidgetHostManager.REQUEST_PICK_WIDGET -> {
+                val widgetId = data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) ?: -1
+                if (resultCode == RESULT_OK && widgetId != -1) {
+                    val awm = AppWidgetManager.getInstance(this)
+                    // Some pickers don't auto-bind; try to bind using the provider from the intent.
+                    if (awm.getAppWidgetInfo(widgetId) == null) {
+                        @Suppress("DEPRECATION")
+                        val provider = data?.getParcelableExtra<android.content.ComponentName>(
+                            AppWidgetManager.EXTRA_APPWIDGET_PROVIDER
+                        )
+                        if (provider != null) awm.bindAppWidgetIdIfAllowed(widgetId, provider)
+                    }
+                    val info = awm.getAppWidgetInfo(widgetId)
+                    if (info?.configure != null) {
+                        // Start configure and return — leave pendingWidgetId/Slot intact
+                        // so REQUEST_CONFIGURE_WIDGET can use them.
+                        try {
+                            widgets.widgetHostManager.startAppWidgetConfigureActivityForResult(
+                                this, widgetId, 0, WidgetHostManager.REQUEST_CONFIGURE_WIDGET, null
+                            )
+                        } catch (_: Exception) {
+                            // Configure activity unavailable — add the widget as-is
+                            widgets.onWidgetPicked(widgetId, pendingWidgetSlot)
+                            pendingWidgetId = -1; pendingWidgetSlot = null
+                        }
+                        return  // do NOT fall through to clear pending state
+                    }
+                    widgets.onWidgetPicked(widgetId, pendingWidgetSlot)
+                } else {
+                    if (pendingWidgetId != -1) widgets.onWidgetPickCancelled(pendingWidgetId)
+                }
+                pendingWidgetId = -1; pendingWidgetSlot = null
+            }
+
+            WidgetHostManager.REQUEST_CONFIGURE_WIDGET -> {
+                // Always add the widget — many configure activities return RESULT_CANCELED
+                // even when the user successfully completes configuration.
+                val widgetId = pendingWidgetId
+                val slot = pendingWidgetSlot
+                pendingWidgetId = -1; pendingWidgetSlot = null
+                if (widgetId != -1) widgets.onWidgetPicked(widgetId, slot)
+            }
         }
     }
 

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/widgetCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+        <!-- Widget host fills the card -->
+        <FrameLayout
+            android:id="@+id/widgetContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:minHeight="80dp" />
+
+        <!-- Edit-mode overlay: delete badge + drag handle + height controls,
+             all rendered on top of the widget inside the card. GONE in normal mode. -->
+
+        <ImageButton
+            android:id="@+id/btnDelete"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_close"
+            android:background="@drawable/bg_delete_badge"
+            android:padding="6dp"
+            android:contentDescription="Delete"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_drag_handle"
+            android:alpha="0.7"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/heightControls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal"
+            android:background="@drawable/bg_height_pill"
+            android:paddingHorizontal="4dp"
+            android:visibility="gone">
+
+            <ImageButton
+                android:id="@+id/btnHeightDown"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_expand_less"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Decrease height" />
+
+            <TextView
+                android:id="@+id/tvHeight"
+                android:layout_width="24dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="@android:color/white" />
+
+            <ImageButton
+                android:id="@+id/btnHeightUp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_expand_more"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Increase height" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>

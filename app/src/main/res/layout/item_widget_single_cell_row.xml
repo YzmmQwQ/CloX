@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/widgetCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:minHeight="80dp">
+
+            <FrameLayout
+                android:id="@+id/slot0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="?attr/colorOutlineVariant"
+                android:alpha="0.4" />
+
+            <FrameLayout
+                android:id="@+id/slot1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="?attr/colorOutlineVariant"
+                android:alpha="0.4" />
+
+            <FrameLayout
+                android:id="@+id/slot2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+        </LinearLayout>
+
+        <!-- Delete row badge — inside card, top-right, edit mode only -->
+        <ImageButton
+            android:id="@+id/btnDeleteRow"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:src="@drawable/ic_close"
+            android:background="@drawable/bg_delete_badge"
+            android:padding="6dp"
+            android:contentDescription="Delete row"
+            android:visibility="gone" />
+
+        <!-- Drag handle — inside card, top-start, edit mode only -->
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="4dp"
+            android:src="@drawable/ic_drag_handle"
+            android:alpha="0.7"
+            android:visibility="gone" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>
