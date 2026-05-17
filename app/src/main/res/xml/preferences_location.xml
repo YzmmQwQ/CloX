@@ -30,7 +30,7 @@
             android:key="location_auto_update"
             android:title="@string/pref_location_auto_title"
             android:summary="@string/pref_location_auto_summary"
-            android:defaultValue="false" />
+            android:defaultValue="true" />
 
     </PreferenceCategory>
 

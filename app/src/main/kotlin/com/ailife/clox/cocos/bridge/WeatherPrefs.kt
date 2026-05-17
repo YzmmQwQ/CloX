@@ -37,7 +37,7 @@ object WeatherPrefs {
     fun lat(ctx: Context)             = prefs(ctx).getString(KEY_LAT, null)?.toDoubleOrNull() ?: 0.0
     fun lon(ctx: Context)             = prefs(ctx).getString(KEY_LON, null)?.toDoubleOrNull() ?: 0.0
     fun city(ctx: Context)            = prefs(ctx).getString(KEY_CITY, "") ?: ""
-    fun autoUpdateLocation(ctx: Context) = prefs(ctx).getBoolean(KEY_AUTO_UPDATE_LOC, false)
+    fun autoUpdateLocation(ctx: Context) = prefs(ctx).getBoolean(KEY_AUTO_UPDATE_LOC, true)
 
     fun savePrimaryLocation(ctx: Context, lat: Double, lon: Double, city: String) {
         prefs(ctx).edit()
