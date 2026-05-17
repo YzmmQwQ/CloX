@@ -223,11 +223,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         brightnessSlider.valueTo = 255f
         brightnessSlider.value = getBrightness().toFloat()
         brightnessSlider.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                if (QsPermissionHelper.ensureWriteSettings(context)) {
-                    setBrightness(value.toInt())
-                }
-            }
+            if (fromUser && QsPermissionHelper.ensureWriteSettings(context)) setBrightness(value.toInt())
         }
     }
 

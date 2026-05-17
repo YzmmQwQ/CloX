@@ -24,3 +24,4 @@ gradle/wrapper/gradle-wrapper.jar
 # Gradle-generated Axmol runtime assets (copied from axmol submodule at build time)
 app/src/main/assets/axmol/
 app/src/main/assets/axslc/
+.claude/

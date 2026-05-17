@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="36dp"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="6dp">
 
                 <!-- Battery group (icon + %) — the center anchor -->
                 <LinearLayout
@@ -92,6 +92,44 @@
 
             </RelativeLayout>
 
+            <!-- BRIGHTNESS SLIDER — icons overlaid inside the bar at each end -->
+            <FrameLayout
+                android:id="@+id/qsBrightnessRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp">
+
+                <com.ailife.clox.overlay.quicksettings.BrightnessSlider
+                    android:id="@+id/brightnessSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="-17dp"
+                    android:layout_marginEnd="-17dp"
+                    android:valueFrom="0"
+                    android:valueTo="255"
+                    app:thumbRadius="17dp"
+                    app:haloRadius="17dp"
+                    app:trackHeight="30dp"/>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="20dp"
+                    android:src="@drawable/ic_brightness_low"
+                    android:tint="#FFFFFF"/>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="20dp"
+                    android:src="@drawable/ic_brightness_high"
+                    android:tint="#FFFFFF"/>
+
+            </FrameLayout>
+
             <!-- PAGED TILE GRID -->
             <!-- Height is a placeholder; buildTileGrid() sets it at runtime from displayMetrics -->
             <androidx.viewpager2.widget.ViewPager2
@@ -118,45 +156,9 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="2dp"
                 android:layout_marginBottom="6dp"
                 android:background="#40FFFFFF"/>
-
-            <!-- BRIGHTNESS SLIDER -->
-            <LinearLayout
-                android:id="@+id/qsBrightnessRow"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="6dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_brightness_low"
-                    android:tint="#FFFFFF"/>
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/brightnessSlider"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
-                    android:valueFrom="0"
-                    android:valueTo="255"
-                    app:thumbRadius="7dp"
-                    app:haloRadius="14dp"
-                    app:trackHeight="4dp"/>
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_brightness_high"
-                    android:tint="#FFFFFF"/>
-
-            </LinearLayout>
 
             <!-- BOTTOM ACTION BAR — 5 buttons centered with Space weights,
                  matching old app: LauncherSettings | Recents | Flashlight | Power | Settings -->
