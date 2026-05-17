@@ -63,4 +63,17 @@
         android:background="#FFFFFF"
         android:visibility="gone" />
 
+    <!-- Gesture lock indicator: shown at top-center when gestures are locked -->
+    <ImageView
+        android:id="@+id/gestureLockIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="12dp"
+        android:src="@drawable/ic_lock_gesture"
+        android:tint="#CCFFFFFF"
+        android:visibility="gone"
+        android:alpha="0.85"
+        android:importantForAccessibility="no" />
+
 </com.ailife.clox.gesture.GestureInterceptorLayout>

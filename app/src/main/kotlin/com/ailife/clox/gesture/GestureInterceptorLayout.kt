@@ -30,6 +30,7 @@ class GestureInterceptorLayout @JvmOverloads constructor(
 ) : FrameLayout(ctx, attrs) {
 
     var appListOpen: Boolean = false
+    var gestureLocked: Boolean = false
     var pagesBackendActive: Boolean = false
     /** Returns true when any QS/overlay panel is open — horizontal swipes should pass to VP2 */
     var qsOverlayActive: (() -> Boolean)? = null
@@ -81,6 +82,7 @@ class GestureInterceptorLayout @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(ev)
                 if (!isDragging) {
+                    if (gestureLocked) return false   // gestures locked — no swipes
                     val dir = detectDirection(ev) ?: return false
                     if (shouldBlock(dir)) return false   // let child scroll vertically
                     commitDirection(dir)
@@ -107,7 +109,7 @@ class GestureInterceptorLayout @JvmOverloads constructor(
                 return true           // must return true to keep receiving MOVE/UP
             }
             MotionEvent.ACTION_MOVE -> {
-                if (!isDragging) {
+                if (!isDragging && !gestureLocked) {
                     val dir = detectDirection(ev)
                     if (dir != null && !shouldBlock(dir)) {
                         commitDirection(dir)
@@ -156,7 +158,9 @@ class GestureInterceptorLayout @JvmOverloads constructor(
             val overlayOpen = qsOverlayActive?.invoke() == true ||
                               notificationOverlayActive?.invoke() == true ||
                               widgetOverlayActive?.invoke() == true
-            if (!isDragging && !appListOpen && !overlayOpen) {
+            // AOD-locked: long press is disabled. Manual lock: long press still works.
+            val aodLocked = GestureLockManager.isAodLocked
+            if (!isDragging && !appListOpen && !overlayOpen && !aodLocked) {
                 performHapticFeedback(
                     HapticFeedbackConstants.LONG_PRESS,
                     HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING or HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
@@ -222,9 +226,22 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private fun handleTap(ev: MotionEvent) {
         if (ev.actionMasked == MotionEvent.ACTION_UP) {
             val now = System.currentTimeMillis()
-            if (now - lastTapTime < 300L) doubleTapListener?.invoke()
+            val isDoubleTap = now - lastTapTime < 300L
             lastTapTime = now
-            LuaBridge.passTouch(ev.x, ev.y, ev.action)
+            if (isDoubleTap) {
+                // Double tap: only execute on watchface (no overlay, no applist).
+                // When AOD-locked, always fires (to allow unlocking).
+                val watchfaceVisible = !appListOpen &&
+                    qsOverlayActive?.invoke() != true &&
+                    notificationOverlayActive?.invoke() != true &&
+                    widgetOverlayActive?.invoke() != true
+                if (GestureLockManager.isAodLocked || watchfaceVisible) {
+                    doubleTapListener?.invoke()
+                }
+            } else if (!GestureLockManager.isAodLocked) {
+                // Single tap: pass to Lua unless AOD-locked (watchface tap actions disabled)
+                LuaBridge.passTouch(ev.x, ev.y, ev.action)
+            }
         }
     }
 

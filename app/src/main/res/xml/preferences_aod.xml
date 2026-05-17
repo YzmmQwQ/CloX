@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        android:key="aod_enabled"
+        android:title="@string/pref_aod_enabled_title"
+        android:summary="@string/pref_aod_enabled_summary"
+        android:defaultValue="false" />
+
+    <PreferenceCategory android:title="@string/pref_aod_category_display">
+
+        <SeekBarPreference
+            android:key="aod_timeout_seconds"
+            android:title="@string/pref_aod_timeout_title"
+            android:summary="@string/pref_aod_timeout_summary"
+            android:defaultValue="30"
+            android:max="300"
+            app:min="5"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            android:key="aod_brightness"
+            android:title="@string/pref_aod_brightness_title"
+            android:summary="@string/pref_aod_brightness_summary"
+            android:defaultValue="10"
+            android:max="255"
+            app:min="1"
+            app:showSeekBarValue="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_aod_category_behavior">
+
+        <SwitchPreferenceCompat
+            android:key="aod_reawaken_on_screen_off"
+            android:title="@string/pref_aod_reawaken_title"
+            android:summary="@string/pref_aod_reawaken_summary"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="aod_lock_gesture"
+            android:title="@string/pref_aod_lock_gesture_title"
+            android:summary="@string/pref_aod_lock_gesture_summary"
+            android:defaultValue="true" />
+
+        <SeekBarPreference
+            android:key="aod_lock_gesture_delay_seconds"
+            android:title="@string/pref_aod_lock_gesture_delay_title"
+            android:summary="@string/pref_aod_lock_gesture_delay_summary"
+            android:defaultValue="5"
+            android:max="30"
+            app:min="0"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="aod_shallow_sleep"
+            android:title="@string/pref_aod_shallow_sleep_title"
+            android:summary="@string/pref_aod_shallow_sleep_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="aod_power_button_exit"
+            android:title="@string/pref_aod_power_button_exit_title"
+            android:summary="@string/pref_aod_power_button_exit_summary"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -33,6 +33,13 @@
         android:fragment="com.ailife.clox.settings.fragments.GesturesSettingsFragment" />
 
     <Preference
+        android:key="nav_aod"
+        android:title="@string/pref_aod_title"
+        android:summary="@string/pref_aod_summary"
+        android:icon="@drawable/ic_aod"
+        android:fragment="com.ailife.clox.settings.fragments.AodSettingsFragment" />
+
+    <Preference
         android:key="nav_appearance"
         android:title="Appearance"
         android:summary="Blur mode and radius"

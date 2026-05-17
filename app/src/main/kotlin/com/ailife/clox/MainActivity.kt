@@ -5,6 +5,8 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
+import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -20,6 +22,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import com.ailife.clox.aod.AodManager
 import com.ailife.clox.applist.AppContextMenu
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.qs.CloXAccessibilityService
@@ -29,6 +32,7 @@ import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
 import com.ailife.clox.gesture.GestureHandler
 import com.ailife.clox.gesture.GestureInterceptorLayout
+import com.ailife.clox.gesture.GestureLockManager
 import com.ailife.clox.gesture.SwipeDirection
 import com.ailife.clox.home.HomeFragment
 import com.ailife.clox.overlay.OverlayController
@@ -64,6 +68,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var lastLaunchBounds: Rect? = null
     private var appListSpring: SpringAnimation? = null
     private lateinit var gestureHandler: GestureHandler
+    private lateinit var aodManager: AodManager
+    private lateinit var gestureLockIcon: ImageView
 
     private val screenW get() = resources.displayMetrics.widthPixels.toFloat()
     private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
@@ -139,12 +145,29 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         setupBackPressHandler()
 
         gestureHandler = GestureHandler(this, window)
+        gestureLockIcon = findViewById(R.id.gestureLockIcon)
         setupGestures()
+        setupGestureLock()
+
+        aodManager = AodManager(
+            activity = this,
+            window = window,
+            onCollapseOverlays = {
+                overlayController.dismissActive()
+                if (appListOpen) closeAppList()
+            }
+        )
+        aodManager.start()
 
         // Open notification panel automatically when a new notification arrives (if enabled)
         lifecycleScope.launch {
             CloXNotificationListenerService.openPanelEvent.collect {
                 if (!overlayController.hasActiveOverlay()) {
+                    // Dismiss AOD state so the notification is visible
+                    if (aodManager.aodActive) {
+                        GestureLockManager.unlockAod()
+                        aodManager.onAodGestureUnlocked()
+                    }
                     overlayController.startDrag(SwipeDirection.RIGHT, screenW, screenH)
                     overlayController.commitDrag()
                 }
@@ -216,9 +239,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             .show(WindowInsetsCompat.Type.systemBars())
     }
 
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) aodManager.onTouch()
+        return super.dispatchTouchEvent(ev)
+    }
+
     override fun onResume() {
         super.onResume()
         CocosManager.onResume()
+        aodManager.onResume()
         DefaultLauncherManager(this).checkAndPromptIfNeeded()
         com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
         if (overlayController.isNotificationActive()) notifications.onPanelOpened()
@@ -324,12 +353,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     override fun onPause() {
         super.onPause()
         CocosManager.onPause()
+        aodManager.onPause()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         CocosManager.onDestroy()
         stateManager.detach()
+        aodManager.stop()
+        GestureLockManager.onLockChanged = null
     }
 
     // ── Gesture setup ────────────────────────────────────────────────────────
@@ -344,8 +376,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.widgetListCanScrollUp = { widgets.canScrollUp() }
 
         gestureRoot.doubleTapListener = {
-            overlayController.dismissActive()
-            if (appListOpen) closeAppList()
+            if (GestureLockManager.isAodLocked) {
+                GestureLockManager.unlockAod()
+                aodManager.onAodGestureUnlocked()
+            } else {
+                // Works whether manually locked or unlocked; "lock_gesture" action toggles it
+                gestureHandler.onDoubleTap()
+            }
         }
 
         gestureRoot.longPressListener = {
@@ -370,6 +407,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.onSwipeUpdate = ::handleSwipeUpdate
 
         gestureRoot.onSwipeEnd = ::handleSwipeEnd
+    }
+
+    private fun setupGestureLock() {
+        GestureLockManager.onLockChanged = { locked, _ ->
+            gestureRoot.gestureLocked = locked
+            gestureLockIcon.visibility = if (locked) View.VISIBLE else View.GONE
+        }
+        // Sync initial state (e.g. if lock persisted across activity re-creates — unlikely but safe)
+        gestureRoot.gestureLocked = GestureLockManager.isLocked
+        gestureLockIcon.visibility = if (GestureLockManager.isLocked) View.VISIBLE else View.GONE
     }
 
     // ── Swipe-update routing ─────────────────────────────────────────────────

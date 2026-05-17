@@ -7,7 +7,7 @@
         android:summary="%s"
         android:entries="@array/double_tap_entries"
         android:entryValues="@array/double_tap_values"
-        android:defaultValue="settings" />
+        android:defaultValue="screen_off" />
 
     <ListPreference
         android:key="long_press_action"
@@ -15,7 +15,7 @@
         android:summary="%s"
         android:entries="@array/long_press_entries"
         android:entryValues="@array/long_press_values"
-        android:defaultValue="none" />
+        android:defaultValue="watchface_selector" />
 
 
     <SwitchPreferenceCompat

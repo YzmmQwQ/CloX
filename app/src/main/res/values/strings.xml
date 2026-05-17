@@ -412,12 +412,40 @@
 
     <string-array name="long_press_entries">
         <item>Nothing</item>
-        <item>Open Watch Face Selector</item>
+        <item>Turn screen off</item>
+        <item>Open watch face selector</item>
+        <item>Open settings</item>
+        <item>Toggle gesture lock</item>
     </string-array>
     <string-array name="long_press_values">
-        <item>none</item>
+        <item>nothing</item>
+        <item>screen_off</item>
         <item>watchface_selector</item>
+        <item>open_settings</item>
+        <item>lock_gesture</item>
     </string-array>
+
+    <!-- AOD settings -->
+    <string name="pref_aod_title">Always-on Display</string>
+    <string name="pref_aod_summary">Keep screen on, show watchface</string>
+    <string name="pref_aod_enabled_title">Enable AOD</string>
+    <string name="pref_aod_enabled_summary">Keep the screen on and display the watchface</string>
+    <string name="pref_aod_category_display">Display</string>
+    <string name="pref_aod_category_behavior">Behavior</string>
+    <string name="pref_aod_timeout_title">Idle timeout</string>
+    <string name="pref_aod_timeout_summary">Seconds before screen dims and gestures lock</string>
+    <string name="pref_aod_brightness_title">Dimmed brightness</string>
+    <string name="pref_aod_brightness_summary">Screen brightness when dimmed (1–255)</string>
+    <string name="pref_aod_reawaken_title">Re-wake on screen off</string>
+    <string name="pref_aod_reawaken_summary">Turn screen back on if another app turns it off</string>
+    <string name="pref_aod_lock_gesture_title">Lock gestures when idle</string>
+    <string name="pref_aod_lock_gesture_summary">Block swipe gestures after the timeout</string>
+    <string name="pref_aod_lock_gesture_delay_title">Gesture lock delay</string>
+    <string name="pref_aod_lock_gesture_delay_summary">Seconds after timeout before locking gestures</string>
+    <string name="pref_aod_shallow_sleep_title">Shallow sleep</string>
+    <string name="pref_aod_shallow_sleep_summary">Single touch wakes screen but does not unlock gestures</string>
+    <string name="pref_aod_power_button_exit_title">Power button exits AOD</string>
+    <string name="pref_aod_power_button_exit_summary">Pressing the power button turns screen on and exits AOD</string>
 
     <string-array name="privilege_entries">
         <item>None (system panels as fallback)</item>

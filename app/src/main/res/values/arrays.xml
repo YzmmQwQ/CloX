@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="double_tap_entries">
-        <item>Open Settings</item>
-        <item>Toggle Flashlight</item>
         <item>Nothing</item>
+        <item>Turn screen off</item>
+        <item>Open watch face selector</item>
+        <item>Open settings</item>
+        <item>Toggle gesture lock</item>
     </string-array>
     <string-array name="double_tap_values">
-        <item>settings</item>
-        <item>flashlight</item>
-        <item>none</item>
+        <item>nothing</item>
+        <item>screen_off</item>
+        <item>watchface_selector</item>
+        <item>open_settings</item>
+        <item>lock_gesture</item>
     </string-array>
 
     <string-array name="qs_tile_style_entries">
