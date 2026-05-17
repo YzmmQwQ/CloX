@@ -156,18 +156,31 @@ class NotificationListAdapter(
             holder.body.text = extras.getCharSequence(Notification.EXTRA_TEXT)
         }
 
-        // Try to show conversation/person icon in the large icon slot
-        val personIcon = extras.getParcelable<android.graphics.drawable.Icon>(Notification.EXTRA_LARGE_ICON)
-        if (personIcon != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-                holder.largeIcon.setImageIcon(personIcon)
+        // Try to show conversation/person icon in the large icon slot.
+        // EXTRA_LARGE_ICON is a Bitmap on legacy apps (pre-N API path) or an Icon on API 23+.
+        // getParcelable<Icon> crashes with ClassCastException when it's actually a Bitmap, so
+        // read it untyped and branch on the runtime type.
+        val rawLargeIcon = extras.getParcelable<android.os.Parcelable>(Notification.EXTRA_LARGE_ICON)
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                    rawLargeIcon is android.graphics.drawable.Icon -> try {
+                holder.largeIcon.setImageIcon(rawLargeIcon)
                 holder.largeIcon.visibility = View.VISIBLE
                 holder.appIcon.visibility = View.GONE
                 holder.appIconBadge.visibility = View.VISIBLE
                 val pm = holder.itemView.context.packageManager
                 try { holder.appIconBadge.setImageDrawable(pm.getApplicationIcon(sbn.packageName)) }
-                catch (e: Exception) {}
-            } catch (e: Exception) {}
+                catch (_: Exception) {}
+            } catch (_: Exception) {}
+            rawLargeIcon is android.graphics.Bitmap -> try {
+                holder.largeIcon.setImageBitmap(rawLargeIcon)
+                holder.largeIcon.visibility = View.VISIBLE
+                holder.appIcon.visibility = View.GONE
+                holder.appIconBadge.visibility = View.VISIBLE
+                val pm = holder.itemView.context.packageManager
+                try { holder.appIconBadge.setImageDrawable(pm.getApplicationIcon(sbn.packageName)) }
+                catch (_: Exception) {}
+            } catch (_: Exception) {}
         }
     }
 

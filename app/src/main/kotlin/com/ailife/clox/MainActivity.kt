@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -135,6 +136,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         notifications.init(supportFragmentManager)
         widgets.init(supportFragmentManager)
         setupWidgetCallbacks()
+        setupBackPressHandler()
 
         gestureHandler = GestureHandler(this, window)
         setupGestures()
@@ -469,6 +471,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         appListSpring?.start()
     }
 
+    // ── Back press ───────────────────────────────────────────────────────────
+
+    private fun setupBackPressHandler() {
+        // Covers both gesture-nav back (all APIs via AppCompat) and physical back key.
+        // Never propagates — a launcher should never exit on back.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
+                    overlayController.hasActiveOverlay() -> overlayController.dismissActive()
+                    appListOpen                          -> closeAppList()
+                }
+            }
+        })
+    }
+
     // ── Widget setup ──────────────────────────────────────────────────────────
 
     private fun setupWidgetCallbacks() {
@@ -540,15 +558,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return when (keyCode) {
-            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_HOME -> {
-                when {
-                    overlayController.hasActiveOverlay() -> overlayController.dismissActive()
-                    appListOpen -> closeAppList()
-                }
-                true
+        // BACK is handled by onBackPressedDispatcher (setupBackPressHandler).
+        // HOME physical key: dismiss outermost layer, same logic.
+        if (keyCode == KeyEvent.KEYCODE_HOME) {
+            when {
+                AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
+                overlayController.hasActiveOverlay() -> overlayController.dismissActive()
+                appListOpen                          -> closeAppList()
             }
-            else -> super.onKeyDown(keyCode, event)
+            return true
         }
+        return super.onKeyDown(keyCode, event)
     }
 }
