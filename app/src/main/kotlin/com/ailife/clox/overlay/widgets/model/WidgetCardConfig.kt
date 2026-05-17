@@ -77,6 +77,12 @@ sealed class CellSlotConfig {
         val label: String
     ) : CellSlotConfig()
 
+    data class PinnedShortcut(
+        val packageName: String,
+        val shortcutId: String,
+        val label: String
+    ) : CellSlotConfig()
+
     fun toJson(): JSONObject = when (this) {
         is AppWidget -> JSONObject().apply {
             put("type", "app_widget")
@@ -88,15 +94,26 @@ sealed class CellSlotConfig {
             put("activity", activityName)
             put("label", label)
         }
+        is PinnedShortcut -> JSONObject().apply {
+            put("type", "pinned_shortcut")
+            put("package", packageName)
+            put("shortcutId", shortcutId)
+            put("label", label)
+        }
     }
 
     companion object {
         fun fromJson(obj: JSONObject): CellSlotConfig? = when (obj.optString("type")) {
             "app_widget" -> AppWidget(obj.getInt("appWidgetId"))
-            "activity" -> ActivityShortcut(
-                packageName = obj.getString("package"),
+            "activity"   -> ActivityShortcut(
+                packageName  = obj.getString("package"),
                 activityName = obj.getString("activity"),
-                label = obj.optString("label", "")
+                label        = obj.optString("label", "")
+            )
+            "pinned_shortcut" -> PinnedShortcut(
+                packageName = obj.getString("package"),
+                shortcutId  = obj.getString("shortcutId"),
+                label       = obj.optString("label", "")
             )
             else -> null
         }

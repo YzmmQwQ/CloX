@@ -97,8 +97,12 @@ class WatchfaceBridgeManager(
         subscribeToLiveData()
         startPeriodicUpdates()
         if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {
-            ctx.contentResolver.registerContentObserver(
-                CalendarContract.Events.CONTENT_URI, true, calendarObserver)
+            try {
+                ctx.contentResolver.registerContentObserver(
+                    CalendarContract.Events.CONTENT_URI, true, calendarObserver)
+            } catch (_: Exception) {
+                // No calendar provider on this device (e.g. watches without a calendar app)
+            }
         }
         PreferenceManager.getDefaultSharedPreferences(ctx)
             .registerOnSharedPreferenceChangeListener(prefsListener)

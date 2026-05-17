@@ -230,6 +230,17 @@
         </receiver>
 
         <!-- Crash report viewer — separate process so it survives main process death -->
+        <!-- Receives pinned-shortcut requests from other apps (Android 8+) -->
+        <activity
+            android:name=".overlay.widgets.picker.PinShortcutConfirmActivity"
+            android:theme="@style/Theme.CloX.Transparent"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".crash.CrashActivity"
             android:exported="false"

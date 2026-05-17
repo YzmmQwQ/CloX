@@ -14,6 +14,9 @@
     <string name="widget_pick_slot_type">Add to slot</string>
     <string name="widget_slot_appwidget">App widget</string>
     <string name="widget_slot_activity">App activity</string>
+    <string name="widget_slot_shortcut">App shortcut</string>
+    <string name="widget_shortcut_pinned">Shortcut "%s" added to CloX</string>
+    <string name="widget_shortcut_empty">No shortcuts yet. Long-press an app and choose Add to Home Screen.</string>
     <string name="widget_add_clock">Clock</string>
     <string name="widget_add_weather">Weather</string>
     <string name="widget_weather_no_data">No weather data</string>

@@ -15,6 +15,7 @@ import com.ailife.clox.overlay.widgets.model.CellSlotConfig
 import com.ailife.clox.overlay.widgets.model.WidgetCardConfig
 import com.ailife.clox.overlay.widgets.picker.ActivityPickerDialog
 import com.ailife.clox.overlay.widgets.picker.AddCardDialog
+import com.ailife.clox.overlay.widgets.picker.ShortcutPickerDialog
 
 class WidgetsOverlay @JvmOverloads constructor(
     ctx: Context,
@@ -197,11 +198,10 @@ class WidgetsOverlay @JvmOverloads constructor(
     }
 
     private fun showSlotPicker(cardId: String, slotIndex: Int) {
-        val fm = fragmentManager ?: return
-        // Show choice: AppWidget or Activity
         val items = arrayOf(
             context.getString(R.string.widget_slot_appwidget),
-            context.getString(R.string.widget_slot_activity)
+            context.getString(R.string.widget_slot_activity),
+            context.getString(R.string.widget_slot_shortcut)
         )
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.widget_pick_slot_type)
@@ -209,10 +209,26 @@ class WidgetsOverlay @JvmOverloads constructor(
                 when (which) {
                     0 -> pickAppWidget(PendingSlot(cardId, slotIndex))
                     1 -> showActivityPicker(cardId, slotIndex)
+                    2 -> showShortcutPicker(cardId, slotIndex)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun showShortcutPicker(cardId: String, slotIndex: Int) {
+        val fm = fragmentManager ?: return
+        ShortcutPickerDialog().also { dlg ->
+            dlg.onShortcutSelected = { shortcutSlot ->
+                val card = adapter.getCards().firstOrNull { it.id == cardId }
+                if (card is WidgetCardConfig.SingleCellRow) {
+                    val newSlots = card.slots.toMutableList()
+                    newSlots[slotIndex] = shortcutSlot
+                    adapter.updateCard(card.copy(slots = newSlots))
+                    saveCards()
+                }
+            }
+        }.show(fm, ShortcutPickerDialog.TAG)
     }
 
     private fun pickAppWidget(slot: PendingSlot?) {

@@ -2,7 +2,9 @@ package com.ailife.clox.overlay.widgets
 
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.os.Process
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -359,7 +361,39 @@ class WidgetDrawerAdapter(
                     }
                     container.addView(view)
                 }
+                is CellSlotConfig.PinnedShortcut -> {
+                    val view = LayoutInflater.from(ctx)
+                        .inflate(R.layout.item_widget_activity_slot, container, false)
+                    val icon  = view.findViewById<ImageView>(R.id.slotIcon)
+                    val label = view.findViewById<TextView>(R.id.slotLabel)
+                    label.text = slot.label
+                    // Try shortcut icon, fall back to app icon
+                    icon.setImageDrawable(
+                        loadShortcutIcon(ctx, slot.packageName, slot.shortcutId)
+                            ?: try { ctx.packageManager.getApplicationIcon(slot.packageName) }
+                               catch (_: Exception) { null }
+                    )
+                    view.setOnClickListener {
+                        try {
+                            ctx.getSystemService(LauncherApps::class.java)
+                                .startShortcut(slot.packageName, slot.shortcutId, null, null, Process.myUserHandle())
+                        } catch (_: Exception) {}
+                    }
+                    container.addView(view)
+                }
             }
+        }
+
+        private fun loadShortcutIcon(ctx: android.content.Context, pkg: String, id: String): android.graphics.drawable.Drawable? {
+            return try {
+                val la = ctx.getSystemService(LauncherApps::class.java)
+                val query = LauncherApps.ShortcutQuery()
+                    .setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+                    .setPackage(pkg)
+                val info = la.getShortcuts(query, Process.myUserHandle())?.firstOrNull { it.id == id }
+                    ?: return null
+                la.getShortcutIconDrawable(info, ctx.resources.displayMetrics.densityDpi)
+            } catch (_: Exception) { null }
         }
     }
 
