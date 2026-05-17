@@ -68,6 +68,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                     }
                     MotionEvent.ACTION_MOVE -> {
                         if (dragPending) {
+                            parent?.requestDisallowInterceptTouchEvent(true)
                             val dx = ev.x - downX; val dy = ev.y - downY
                             if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) {
                                 dragPending = false

@@ -181,6 +181,7 @@ class HoneycombView @JvmOverloads constructor(
             }
             MotionEvent.ACTION_MOVE -> {
                 if (pendingDragIdx >= 0 && dragReorderEnabled) {
+                    parent?.requestDisallowInterceptTouchEvent(true)
                     val dx = ev.x - pendingDownX; val dy = ev.y - pendingDownY
                     if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) {
                         AppContextMenu.dismissCurrent()

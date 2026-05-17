@@ -2,6 +2,7 @@ package com.ailife.clox.applist
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.Log
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -63,13 +64,16 @@ class Grid2DView @JvmOverloads constructor(
 
     private val dragGesture = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
         override fun onLongPress(e: MotionEvent) {
+            Log.d(TAG, "onLongPress: isPanning=$isPanning dragActive=$dragActive dragReorderEnabled=$dragReorderEnabled items=${orderedViews.size}")
             if (isPanning || dragActive) return
             val cx = e.x + scrollX_; val cy = e.y + scrollY_
             val idx = closestGridPos(cx, cy)
+            Log.d(TAG, "onLongPress: cx=$cx cy=$cy idx=$idx")
             if (idx < 0 || idx >= orderedViews.size) return
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             pendingDragIdx = idx
             pendingDownX = e.x; pendingDownY = e.y
+            Log.d(TAG, "onLongPress: pendingDragIdx=$pendingDragIdx set, invoking onAppLongPress")
             onAppLongPress?.invoke(workingItems[idx], orderedViews[idx])
         }
     })
@@ -179,21 +183,26 @@ class Grid2DView @JvmOverloads constructor(
         if (dragActive) return true
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                Log.d(TAG, "intercept DOWN: pendingDragIdx=$pendingDragIdx dragReorderEnabled=$dragReorderEnabled")
                 AppContextMenu.dismissCurrent(); pendingDragIdx = -1
                 scroller.forceFinished(true)
                 lastX = ev.x; lastY = ev.y; isPanning = false
                 initVelocity(ev)
             }
             MotionEvent.ACTION_MOVE -> {
-                // If waiting for drag threshold, check here — MOVE may never reach onTouchEvent
-                // because the cell child owns the gesture stream after capturing ACTION_DOWN.
                 if (pendingDragIdx >= 0 && dragReorderEnabled) {
+                    // Prevent ancestors (GestureInterceptorLayout) from stealing the stream
+                    // while we wait for the drag threshold to be crossed
+                    parent?.requestDisallowInterceptTouchEvent(true)
                     val dx = ev.x - pendingDownX; val dy = ev.y - pendingDownY
-                    if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) {
+                    val dist2 = dx * dx + dy * dy
+                    Log.d(TAG, "intercept MOVE: pendingDragIdx=$pendingDragIdx dist2=$dist2 threshold=$DRAG_THRESHOLD_SQ")
+                    if (dist2 > DRAG_THRESHOLD_SQ) {
+                        Log.d(TAG, "intercept MOVE: threshold reached, starting drag")
                         AppContextMenu.dismissCurrent()
                         startDragAt(pendingDragIdx, ev.x + scrollX_, ev.y + scrollY_)
                         pendingDragIdx = -1
-                        return true  // steal stream → next events go to onTouchEvent
+                        return true
                     }
                 }
                 velTracker?.addMovement(ev)
@@ -203,9 +212,10 @@ class Grid2DView @JvmOverloads constructor(
                         parent?.requestDisallowInterceptTouchEvent(true)
                     }
                 }
-                if (isPanning) { pendingDragIdx = -1; return true }
+                if (isPanning) { Log.d(TAG, "intercept MOVE: panning, clearing pendingDragIdx"); pendingDragIdx = -1; return true }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                Log.d(TAG, "intercept UP/CANCEL: pendingDragIdx=$pendingDragIdx")
                 isPanning = false; recycleVelocity(); pendingDragIdx = -1
             }
         }
@@ -280,6 +290,7 @@ class Grid2DView @JvmOverloads constructor(
     // ── Drag reorder ──────────────────────────────────────────────────────────
 
     private fun startDragAt(idx: Int, contentX: Float, contentY: Float) {
+        Log.d(TAG, "startDragAt: idx=$idx contentX=$contentX contentY=$contentY")
         dragActive = true; draggingPos = idx; draggingViewRef = orderedViews[idx]
         parent?.requestDisallowInterceptTouchEvent(true)
         draggingViewRef!!.elevation = dp(8).toFloat()
@@ -360,6 +371,7 @@ class Grid2DView @JvmOverloads constructor(
     private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
 
     companion object {
+        private const val TAG = "CloX/Grid2DView"
         private const val GAP_RATIO = 0.12f
         private const val LABEL_DP = 16
         private const val DRAG_THRESHOLD_SQ = 400f

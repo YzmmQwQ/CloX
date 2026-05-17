@@ -67,6 +67,10 @@ class WidgetsOverlay @JvmOverloads constructor(
         adapter.setEditMode(false)
     }
 
+    fun onPanelClosed() {
+        adapter.setEditMode(false)
+    }
+
     /** True when the list still has content above the visible area. */
     fun canScrollUp(): Boolean = widgetList.canScrollVertically(-1)
 

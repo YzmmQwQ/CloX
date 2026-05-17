@@ -240,7 +240,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (ev.actionMasked == MotionEvent.ACTION_DOWN) aodManager.onTouch()
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            aodManager.onTouch()
+            // Dismiss context menu on any tap in the activity window.
+            // Popup window is a separate window, so taps ON the menu never reach here.
+            AppContextMenu.dismissCurrent()
+        }
         return super.dispatchTouchEvent(ev)
     }
 

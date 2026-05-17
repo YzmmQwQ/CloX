@@ -304,10 +304,12 @@ class WidgetDrawerAdapter(
             val inflater = LayoutInflater.from(container.context)
 
             if (slot == null) {
-                // Empty slot: show + button in both normal and edit mode
-                val addBtn = inflater.inflate(R.layout.item_widget_cell_add_btn, container, false)
-                addBtn.setOnClickListener { onAddSlot?.invoke(cardId, slotIndex) }
-                container.addView(addBtn)
+                // Empty slot: show + button only in edit mode
+                if (editMode) {
+                    val addBtn = inflater.inflate(R.layout.item_widget_cell_add_btn, container, false)
+                    addBtn.setOnClickListener { onAddSlot?.invoke(cardId, slotIndex) }
+                    container.addView(addBtn)
+                }
             } else {
                 // Filled slot: show content, and in edit mode overlay a delete badge
                 addSlotContent(container, slot)

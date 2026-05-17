@@ -169,6 +169,7 @@ class OverlayController(
         if (direction == SwipeDirection.DOWN) {
             (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
         }
+        if (overlay === widgets) widgets.onPanelClosed()
         activeOverlay = null
         activeDirection = null
 
@@ -199,6 +200,7 @@ class OverlayController(
         isDragging = false
         isCollapsing = false
         (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+        if (overlay === widgets) widgets.onPanelClosed()
         activeOverlay = null
         activeDirection = null
 

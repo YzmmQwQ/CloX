@@ -125,22 +125,45 @@ object AppContextMenu {
         }
 
         val popupWidth = (200 * density).toInt()
+        val margin = (8 * density).toInt()
+        val screenH = context.resources.displayMetrics.heightPixels
+        val screenW = context.resources.displayMetrics.widthPixels
+
+        val loc = IntArray(2)
+        anchor.getLocationOnScreen(loc)
+        val anchorTop    = loc[1]
+        val anchorBottom = loc[1] + anchor.height
+        val spaceBelow   = screenH - anchorBottom - margin
+        val spaceAbove   = anchorTop - margin
+
+        // Use whichever side has more space; cap height to that available space
+        val availableH = maxOf(spaceBelow, spaceAbove)
+        val maxHeight  = (screenH * 0.70f).toInt().coerceAtMost(availableH)
+
         scrollView.measure(
             View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            View.MeasureSpec.makeMeasureSpec(maxHeight, View.MeasureSpec.AT_MOST)
         )
-        val maxHeight = (context.resources.displayMetrics.heightPixels * 0.70f).toInt()
-        val popupHeight = scrollView.measuredHeight.coerceAtMost(maxHeight)
+        val popupHeight = scrollView.measuredHeight
+
+        // Horizontally: centre over anchor, clamped within screen
+        val anchorCx = loc[0] + anchor.width / 2
+        val x = (anchorCx - popupWidth / 2).coerceIn(margin, screenW - popupWidth - margin)
+
+        // Vertically: below anchor if more space there, above otherwise
+        val y = if (spaceBelow >= spaceAbove) anchorBottom + margin
+                else anchorTop - popupHeight - margin
 
         val popup = PopupWindow(scrollView, popupWidth, popupHeight).apply {
-            isFocusable = false
-            isOutsideTouchable = false
+            isFocusable = true
+            isOutsideTouchable = true
             elevation = density * 8f
+            setOnDismissListener { current = null }
         }
         popupRef = popup
         current = popup
 
-        popup.showAtLocation(anchor.rootView, Gravity.CENTER, 0, 0)
+        popup.showAtLocation(anchor.rootView, Gravity.TOP or Gravity.START, x, y)
     }
 
     fun dismissCurrent() {

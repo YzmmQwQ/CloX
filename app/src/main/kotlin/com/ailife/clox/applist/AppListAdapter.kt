@@ -1,5 +1,6 @@
 package com.ailife.clox.applist
 
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -22,11 +23,13 @@ class AppListAdapter(
     var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var dragEnabled = false
+        set(value) { field = value; Log.d(TAG, "dragEnabled set: $value") }
     var onOrderChanged: ((List<AppItem>) -> Unit)? = null
     /** Position to draw INVISIBLE during a Pages drag; -1 = none. Checked in onBindViewHolder. */
     var dragHiddenPosition: Int = -1
 
     var touchHelper: ItemTouchHelper? = null
+        set(value) { field = value; Log.d(TAG, "touchHelper set: ${if (value != null) "attached" else "null"}") }
 
     private val mutableItems = mutableListOf<AppItem>()
 
@@ -96,34 +99,58 @@ class AppListAdapter(
                 view.setOnTouchListener { _, event ->
                     when (event.actionMasked) {
                         MotionEvent.ACTION_DOWN -> {
-                            // New press: dismiss any open popup
                             AppContextMenu.dismissCurrent()
                             downX = event.x; downY = event.y
                             longPressActive = false
+                            Log.d(TAG, "VH DOWN pos=${bindingAdapterPosition} dragEnabled=$dragEnabled")
                         }
                         MotionEvent.ACTION_MOVE -> {
                             if (longPressActive) {
+                                // Walk up to GestureInterceptorLayout and disallow it from
+                                // intercepting. Calling requestDisallow directly on GIL (rather than
+                                // a child) means only GIL and its ancestors get the flag — all
+                                // intermediate ViewGroups (RecyclerView, container, ViewPager2) remain
+                                // free to intercept, which is required for both ItemTouchHelper and
+                                // the Pages container drag detection to work.
+                                var p: android.view.ViewParent? = view.parent
+                                while (p != null) {
+                                    if (p is com.ailife.clox.gesture.GestureInterceptorLayout) {
+                                        p.requestDisallowInterceptTouchEvent(true)
+                                        break
+                                    }
+                                    p = p.parent
+                                }
                                 val dx = event.x - downX; val dy = event.y - downY
-                                if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) {
+                                val dist2 = dx * dx + dy * dy
+                                Log.d(TAG, "VH MOVE longPressActive=true dist2=$dist2 threshold=$DRAG_THRESHOLD_SQ touchHelper=${touchHelper != null}")
+                                if (dist2 > DRAG_THRESHOLD_SQ) {
                                     longPressActive = false
                                     AppContextMenu.dismissCurrent()
+                                    Log.d(TAG, "VH MOVE threshold reached dragEnabled=$dragEnabled calling startDrag")
                                     if (dragEnabled) touchHelper?.startDrag(this)
                                 }
                             }
                         }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        MotionEvent.ACTION_UP -> {
+                            Log.d(TAG, "VH UP longPressActive=$longPressActive")
                             longPressActive = false
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            // Do NOT clear longPressActive here — Android fires a false CANCEL
+                            // via cancelLongPress() immediately after onLongClick() returns true.
+                            // ACTION_DOWN resets longPressActive for the next independent gesture.
+                            Log.d(TAG, "VH CANCEL (longPressActive kept=$longPressActive)")
                         }
                     }
                     false
                 }
 
-                // Long press: always show menu immediately; if drag enabled user can then move to drag
                 view.setOnLongClickListener {
                     val pos = bindingAdapterPosition
+                    Log.d(TAG, "VH longClick pos=$pos dragEnabled=$dragEnabled touchHelper=${touchHelper != null} items=${mutableItems.size}")
                     if (pos == RecyclerView.NO_ID.toInt()) return@setOnLongClickListener true
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    longPressActive = dragEnabled   // only track movement if drag is possible
+                    longPressActive = dragEnabled
                     onAppLongPress?.invoke(mutableItems[pos], view)
                     true
                 }
@@ -144,7 +171,8 @@ class AppListAdapter(
     }
 
     companion object {
-        private const val DRAG_THRESHOLD_SQ = 400f  // ~20px before drag commits
+        private const val TAG = "CloX/AppListAdapter"
+        private const val DRAG_THRESHOLD_SQ = 400f
 
         val DIFF = object : DiffUtil.ItemCallback<AppItem>() {
             override fun areItemsTheSame(a: AppItem, b: AppItem) =
@@ -160,11 +188,12 @@ open class AppListTouchCallback(private val adapter: AppListAdapter) : ItemTouch
     override fun isItemViewSwipeEnabled() = false
 
     override fun getMovementFlags(rv: RecyclerView, holder: RecyclerView.ViewHolder): Int {
-        if (!adapter.dragEnabled) return 0
-        return makeMovementFlags(
+        val flags = if (adapter.dragEnabled) makeMovementFlags(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN or
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT, 0
-        )
+        ) else 0
+        Log.d("CloX/TouchCallback", "getMovementFlags dragEnabled=${adapter.dragEnabled} flags=$flags")
+        return flags
     }
 
     override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder): Boolean {
