@@ -1,6 +1,7 @@
 package com.ailife.clox.overlay.widgets.picker
 
 import android.content.pm.ActivityInfo
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.os.Bundle
@@ -22,7 +23,7 @@ class ActivityPickerDialog : BottomSheetDialogFragment() {
     private lateinit var recycler: RecyclerView
     private lateinit var tvTitle: TextView
     private lateinit var btnBack: View
-    private var currentApps: List<ResolveInfo> = emptyList()
+    private var currentApps: List<ApplicationInfo> = emptyList()
     private var showingActivities = false
 
     override fun onCreateView(
@@ -46,9 +47,7 @@ class ActivityPickerDialog : BottomSheetDialogFragment() {
         btnBack.visibility = View.GONE
 
         val pm = requireContext().packageManager
-        val mainIntent = android.content.Intent(android.content.Intent.ACTION_MAIN)
-            .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
-        val apps = pm.queryIntentActivities(mainIntent, 0)
+        val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
         currentApps = apps
 
@@ -58,11 +57,11 @@ class ActivityPickerDialog : BottomSheetDialogFragment() {
                 PickerViewHolder(LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_activity_picker, parent, false))
             override fun onBindViewHolder(h: PickerViewHolder, pos: Int) {
-                val ri = apps[pos]
-                h.icon.setImageDrawable(ri.loadIcon(pm))
-                h.label.text = ri.loadLabel(pm)
+                val ai = apps[pos]
+                h.icon.setImageDrawable(try { ai.loadIcon(pm) } catch (_: Exception) { pm.defaultActivityIcon })
+                h.label.text = ai.loadLabel(pm)
                 h.itemView.setOnClickListener {
-                    showActivityList(ri.activityInfo.packageName)
+                    showActivityList(ai.packageName)
                 }
             }
         }

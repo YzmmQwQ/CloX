@@ -1,6 +1,7 @@
 package com.ailife.clox
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Build
@@ -48,6 +49,13 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun showDialog(pTitle: String, pMessage: String) {}
+
+    override fun applyOverrideConfiguration(config: Configuration) {
+        val dpi = PreferenceManager.getDefaultSharedPreferences(this)
+            .getString("app_dpi_override", "0")?.toIntOrNull() ?: 0
+        if (dpi > 0) config.densityDpi = dpi
+        super.applyOverrideConfiguration(config)
+    }
 
     private lateinit var gestureRoot: GestureInterceptorLayout
     private lateinit var overlayController: OverlayController

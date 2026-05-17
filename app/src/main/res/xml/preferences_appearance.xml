@@ -2,6 +2,18 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <PreferenceCategory android:title="Display">
+
+        <EditTextPreference
+            android:key="app_dpi_override"
+            android:title="App display density (DPI)"
+            android:summary="Override display density. 0 or empty = system default. Restart required."
+            android:defaultValue="0"
+            android:inputType="number"
+            android:selectAllOnFocus="true" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="Blur">
 
         <ListPreference
