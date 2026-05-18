@@ -55,7 +55,7 @@ object AppListPrefs {
     const val KEY_PAGES_ROWS = "pages_rows"
 
     // ── Persistence ──────────────────────────────────────────────────────────
-    const val KEY_CUSTOM_ORDER  = "custom_order"   // JSON array of package names
+    const val KEY_CUSTOM_ORDER  = "custom_order"   // JSON array of "packageName/activityName" strings
     const val KEY_CUSTOM_ICONS  = "custom_icons"   // JSON object: pkg → file path
 
     // ─────────────────────────────────────────────────────────────────────────

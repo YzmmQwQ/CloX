@@ -75,6 +75,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var lastLaunchedItem: AppItem? = null
     private var lastLaunchBounds: Rect? = null
     private var appListSpring: SpringAnimation? = null
+    private var pendingGestureFollowOn = false
+    private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private lateinit var gestureHandler: GestureHandler
     private lateinit var aodManager: AodManager
     private lateinit var gestureLockIcon: ImageView
@@ -98,10 +100,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
             val frag = AppListFragment()
             frag.onRequestClose = { closeAppList() }
-            frag.onAppLaunched = { item, bounds ->
+            frag.onAppLaunched = { item, bounds, iconView ->
                 appLaunchedFromList = true
                 lastLaunchedItem = item
                 lastLaunchBounds = bounds
+                lastLaunchIconView = java.lang.ref.WeakReference(iconView)
             }
             frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
@@ -112,10 +115,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListFragment = (supportFragmentManager
                 .findFragmentByTag("app_list") as? AppListFragment)?.also { frag ->
                     frag.onRequestClose = { closeAppList() }
-                    frag.onAppLaunched = { item, bounds ->
+                    frag.onAppLaunched = { item, bounds, iconView ->
                 appLaunchedFromList = true
                 lastLaunchedItem = item
                 lastLaunchBounds = bounds
+                lastLaunchIconView = java.lang.ref.WeakReference(iconView)
             }
                     frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
                     frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
@@ -271,22 +275,32 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val item = lastLaunchedItem; val bounds = lastLaunchBounds
         if (item != null && bounds != null) {
             lastLaunchedItem = null; lastLaunchBounds = null
-            // Android 10+ (API 29): system gesture nav already provides a shrink-to-icon animation
-            // Pre-10: button nav has no such system animation, so we suppress the default and play our own
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                // Safety-net suppress for Back-button returns (onNewIntent doesn't fire then)
-                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
-                gestureRoot.post { playReturnAnimation(item, bounds) }
+            when {
+                // Pre-10: no system animation — play our own shrink-to-icon
+                Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q -> {
+                    @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                    gestureRoot.post { playReturnAnimation(item, bounds) }
+                }
+                // Android 11+: system animation flew the app window to the icon; recoil the icon
+                pendingGestureFollowOn -> {
+                    pendingGestureFollowOn = false
+                    gestureRoot.post { playGestureFollowOnAnimation(item, bounds) }
+                }
             }
+        } else {
+            pendingGestureFollowOn = false
+            lastLaunchIconView = null
         }
     }
 
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
     private fun handleGestureContract(contract: GestureNavContract) {
         val item = lastLaunchedItem; val bounds = lastLaunchBounds
-        val target = if (bounds != null && item != null &&
-            item.packageName == contract.componentName.packageName) {
-            RectF(bounds)
+        val hasIcon = bounds != null && item != null &&
+            item.packageName == contract.componentName.packageName
+        val target = if (hasIcon) {
+            pendingGestureFollowOn = true
+            RectF(bounds!!)
         } else {
             // Fallback: collapse to screen center so the animation doesn't fly off-screen
             val cx = screenW / 2f; val cy = screenH / 2f
@@ -345,6 +359,62 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             })
             start()
         }
+    }
+
+    // Android 11+: after the system shrinks the app window into the icon, recoil the icon
+    // away from screen center (where the gesture animation originated) then spring it back.
+    private fun playGestureFollowOnAnimation(item: AppItem, iconBounds: Rect) {
+        val realIcon = lastLaunchIconView?.get()
+        lastLaunchIconView = null
+        realIcon?.visibility = View.INVISIBLE
+
+        val rootLoc = IntArray(2)
+        gestureRoot.getLocationOnScreen(rootLoc)
+
+        val iconCxLocal = iconBounds.centerX() - rootLoc[0]
+        val iconCyLocal = iconBounds.centerY() - rootLoc[1]
+        val iconW = iconBounds.width().coerceAtLeast(1)
+        val iconH = iconBounds.height().coerceAtLeast(1)
+
+        // Unit vector pointing away from screen center toward the icon
+        val toCenterDx = iconCxLocal - (screenW / 2f - rootLoc[0])
+        val toCenterDy = iconCyLocal - (screenH / 2f - rootLoc[1])
+        val dist = Math.hypot(toCenterDx.toDouble(), toCenterDy.toDouble()).toFloat().coerceAtLeast(1f)
+        val nx = toCenterDx / dist
+        val ny = toCenterDy / dist
+
+        // Overlay starts 35% of the way from center to icon (inward offset toward center)
+        val startOffsetX = -nx * dist * 0.35f
+        val startOffsetY = -ny * dist * 0.35f
+
+        val iv = ImageView(this).apply {
+            setImageDrawable(item.icon)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            translationX = startOffsetX
+            translationY = startOffsetY
+            isClickable = false; isFocusable = false
+        }
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(iconW, iconH).apply {
+            leftMargin = iconCxLocal.toInt() - iconW / 2
+            topMargin  = iconCyLocal.toInt() - iconH / 2
+        })
+
+        // Spring directly from the inward-offset start position to rest (0,0 translation)
+        val springX = SpringAnimation(iv, DynamicAnimation.TRANSLATION_X, 0f).apply {
+            spring.stiffness = SpringForce.STIFFNESS_MEDIUM
+            spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
+        }
+        val springY = SpringAnimation(iv, DynamicAnimation.TRANSLATION_Y, 0f).apply {
+            spring.stiffness = SpringForce.STIFFNESS_MEDIUM
+            spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
+        }
+        springX.addEndListener { _, _, _, _ ->
+            iv.animate().alpha(0f).setDuration(120).withEndAction {
+                gestureRoot.removeView(iv)
+                realIcon?.visibility = View.VISIBLE
+            }.start()
+        }
+        springX.start(); springY.start()
     }
 
     override fun onRequestPermissionsResult(

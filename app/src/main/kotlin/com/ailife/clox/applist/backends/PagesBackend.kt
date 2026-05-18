@@ -288,7 +288,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     }
 
     private fun endDrag() {
-        AppListPrefs.saveCustomOrder(ctx, workingItems.map { it.packageName })
+        AppListPrefs.saveCustomOrder(ctx, workingItems.map { "${it.packageName}/${it.activityName}" })
         cleanupDrag()  // clears dragHiddenPosition + makes all slots visible
         // Update visible inner adapters directly — do NOT call pagesAdapter.notifyDataSetChanged()
         // because that goes through onBindViewHolder → setItemsDirectly which would fire

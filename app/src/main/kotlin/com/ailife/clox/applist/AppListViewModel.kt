@@ -45,19 +45,32 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
             val pm = ctx.packageManager
-            val prefs = AppListPrefs.get(ctx)
             val sortMode = AppListPrefs.sort(ctx)
-            val customOrder = AppListPrefs.customOrder(ctx)
+            val rawOrder = AppListPrefs.customOrder(ctx)
             val hiddenComponents = AppListPrefs.hiddenComponents(ctx)
             val hideMode = AppListPrefs.hideMode(ctx)
 
             val intent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
             val ownPkg = ctx.packageName
-            val all = pm.queryIntentActivities(intent, 0)
+            val activities = pm.queryIntentActivities(intent, 0)
                 .filterNot { ri ->
                     ri.activityInfo.packageName == ownPkg &&
                     ri.activityInfo.name == "$ownPkg.MainActivity"
                 }
+
+            // Migrate old format (package names only) to pkg/activity keys
+            val customOrder = if (rawOrder.isNotEmpty() && rawOrder.none { '/' in it }) {
+                val byPkg = activities.groupBy { it.activityInfo.packageName }
+                val migrated = rawOrder.flatMap { pkg ->
+                    byPkg[pkg]?.map { "${it.activityInfo.packageName}/${it.activityInfo.name}" } ?: emptyList()
+                }
+                AppListPrefs.saveCustomOrder(ctx, migrated)
+                migrated
+            } else {
+                rawOrder
+            }
+
+            val all = activities
                 .map { ri ->
                     val key = "${ri.activityInfo.packageName}/${ri.activityInfo.name}"
                     AppItem(
@@ -66,7 +79,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
                         label        = ri.loadLabel(pm).toString(),
                         icon         = IconResolver.resolve(ctx, ri.activityInfo.packageName, ri.activityInfo.name),
                         isHidden     = key in hiddenComponents,
-                        customOrder  = customOrder.indexOf(ri.activityInfo.packageName)
+                        customOrder  = customOrder.indexOf(key)
                             .let { if (it < 0) Int.MAX_VALUE else it }
                     )
                 }
@@ -90,18 +103,25 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveCustomOrder(items: List<AppItem>) {
         val ctx = getApplication<Application>()
-        AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName })
+        AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" })
     }
 
     private fun appendNewApp(packageName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
-            val sortMode = AppListPrefs.sort(ctx)
-            if (sortMode == AppListPrefs.SORT_CUSTOM) {
-                val order = AppListPrefs.customOrder(ctx).toMutableList()
-                if (!order.contains(packageName)) {
-                    order.add(packageName)
-                    AppListPrefs.saveCustomOrder(ctx, order)
+            if (AppListPrefs.sort(ctx) == AppListPrefs.SORT_CUSTOM) {
+                val pm = ctx.packageManager
+                val launchIntent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+                val newKeys = pm.queryIntentActivities(launchIntent, 0)
+                    .filter { it.activityInfo.packageName == packageName }
+                    .map { "${it.activityInfo.packageName}/${it.activityInfo.name}" }
+                if (newKeys.isNotEmpty()) {
+                    val order = AppListPrefs.customOrder(ctx).toMutableList()
+                    val toAdd = newKeys.filterNot { it in order }
+                    if (toAdd.isNotEmpty()) {
+                        order.addAll(toAdd)
+                        AppListPrefs.saveCustomOrder(ctx, order)
+                    }
                 }
             }
             loadApps()

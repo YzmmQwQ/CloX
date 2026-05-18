@@ -77,7 +77,7 @@ class HoneycombView @JvmOverloads constructor(
     })
 
     init {
-        clipChildren = true; clipToPadding = true; isMotionEventSplittingEnabled = false
+        clipChildren = false; clipToPadding = false; isMotionEventSplittingEnabled = false
     }
 
     fun bindItems(items: List<AppItem>) {
@@ -304,24 +304,17 @@ class HoneycombView @JvmOverloads constructor(
 
     private fun endDrag() {
         val dv = draggingViewRef ?: return
+        val targetTx = gridLeft[draggingPos] - dv.left
+        val targetTy = gridTop[draggingPos] - dv.top
+        dragActive = false; draggingPos = -1; draggingViewRef = null
         dv.animate()
-            .translationX(gridLeft[draggingPos] - dv.left)
-            .translationY(gridTop[draggingPos] - dv.top)
+            .translationX(targetTx)
+            .translationY(targetTy)
             .setDuration(120)
             .withEndAction {
                 dv.elevation = 0f
-                if (enable3d) {
-                    val cx = scrollX_ + width / 2f; val cy = scrollY_ + height / 2f
-                    val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
-                    val dx = dv.left + dv.translationX + dv.width / 2f - cx
-                    val dy = dv.top + dv.translationY + dv.height / 2f - cy
-                    val scale = 1f - (sqrt(dx * dx + dy * dy) / maxDist).coerceIn(0f, 1f) * 0.5f
-                    dv.scaleX = scale; dv.scaleY = scale
-                } else {
-                    dv.scaleX = 1f; dv.scaleY = 1f
-                }
+                if (enable3d) apply3d() else { dv.scaleX = 1f; dv.scaleY = 1f }
             }.start()
-        dragActive = false; draggingPos = -1; draggingViewRef = null
         onOrderChanged?.invoke(workingItems.toList())
     }
 

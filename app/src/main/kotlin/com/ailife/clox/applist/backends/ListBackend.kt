@@ -70,7 +70,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
             adp.onOrderChanged = { items ->
-                AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName })
+                AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" })
             }
             val touchCb = AppListTouchCallback(adp)
             val touchHelper = ItemTouchHelper(touchCb)

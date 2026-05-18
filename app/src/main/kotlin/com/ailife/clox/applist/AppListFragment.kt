@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
 class AppListFragment : Fragment() {
 
     var onRequestClose: (() -> Unit)? = null
-    var onAppLaunched: ((AppItem, Rect) -> Unit)? = null
+    var onAppLaunched: ((AppItem, Rect, android.view.View) -> Unit)? = null
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
     var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
@@ -136,7 +136,7 @@ class AppListFragment : Fragment() {
             // Prefer the icon ImageView for tighter bounds; fall back to the whole item view
             val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
             val bounds = Rect().also { boundsView.getGlobalVisibleRect(it) }
-            onAppLaunched?.invoke(item, bounds)
+            onAppLaunched?.invoke(item, bounds, boundsView)
             val intent = android.content.Intent().apply {
                 setClassName(item.packageName, item.activityName)
                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)

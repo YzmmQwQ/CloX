@@ -26,7 +26,7 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
             v.showCount    = AppListPrefs.notifBadgeCount(ctx)
             v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
-            v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { it.packageName }) }
+            v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" }) }
         }
     }
 
