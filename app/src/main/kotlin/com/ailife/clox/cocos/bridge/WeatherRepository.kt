@@ -49,17 +49,21 @@ object WeatherRepository {
      * Must be called from a coroutine (suspend).
      */
     suspend fun refresh(ctx: Context) {
+        Log.d(TAG, "refresh() called, enabled=${WeatherPrefs.enabled(ctx)}")
         if (!WeatherPrefs.enabled(ctx)) return
 
         // Optionally refresh the primary coordinates via IP geolocation
         var lat = WeatherPrefs.lat(ctx)
         var lon = WeatherPrefs.lon(ctx)
+        Log.d(TAG, "Location before auto-update: lat=$lat lon=$lon autoUpdate=${WeatherPrefs.autoUpdateLocation(ctx)}")
         if (WeatherPrefs.autoUpdateLocation(ctx)) {
             val loc = LocationByIp.fetch()
             if (loc != null) {
                 lat = loc.first; lon = loc.second
                 WeatherPrefs.savePrimaryLocation(ctx, lat, lon, loc.third.ifEmpty { WeatherPrefs.city(ctx) })
                 Log.d(TAG, "Auto-location updated: $lat, $lon (${loc.third})")
+            } else {
+                Log.w(TAG, "IP geolocation returned null, using stored coords lat=$lat lon=$lon")
             }
         }
 

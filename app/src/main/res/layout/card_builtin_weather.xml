@@ -34,6 +34,16 @@
                 android:maxLines="1"
                 android:ellipsize="end" />
 
+            <TextView
+                android:id="@+id/tvLastUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.7"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- Current weather row -->

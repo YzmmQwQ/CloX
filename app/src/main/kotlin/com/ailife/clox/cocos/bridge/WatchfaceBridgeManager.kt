@@ -13,6 +13,8 @@ import androidx.preference.PreferenceManager
 import com.ailife.clox.cocos.CocosManager
 import com.ailife.clox.cocos.LuaBridge
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
+import com.ailife.clox.overlay.widgets.WidgetPrefs
+import com.ailife.clox.overlay.widgets.model.WidgetCardConfig
 import com.ailife.clox.qs.QsStateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -221,12 +223,21 @@ class WatchfaceBridgeManager(
             }
         }
 
-        // Weather fetch loop — only runs when the user has weather enabled globally
-        // AND the active watchface declared it supports weather (watchfaceWantsWeather).
+        // Weather fetch loop — ticks every minute, fetches when the configured interval
+        // has elapsed since the last successful update and the feature is in use.
         scope.launch {
             while (isActive) {
-                delay(WeatherPrefs.intervalMs(ctx))
-                if (WeatherPrefs.enabled(ctx) && watchfaceWantsWeather) {
+                delay(60_000)
+                val enabled     = WeatherPrefs.enabled(ctx)
+                val wantsWeather = watchfaceWantsWeather
+                val hasWidget   = hasWeatherWidget()
+                if (!enabled || (!wantsWeather && !hasWidget)) continue
+
+                val lastUpdate  = WeatherRepository.getLatestJson()?.optLong("lastUpdate", 0L) ?: 0L
+                val intervalMs  = WeatherPrefs.intervalMs(ctx)
+                val elapsed     = System.currentTimeMillis() - lastUpdate
+                Log.d(TAG, "Weather tick: elapsed=${elapsed / 60_000}min interval=${intervalMs / 60_000}min")
+                if (elapsed >= intervalMs) {
                     WeatherRepository.refresh(ctx)
                 }
             }
@@ -239,13 +250,17 @@ class WatchfaceBridgeManager(
             }
         }
 
-        // Health periodic fetch loop — only fetches a metric when the user has it enabled
-        // globally (HealthPrefs) AND the active watchface declared it needs that metric.
+        // Health periodic fetch loop — ticks every minute, fetches each metric when
+        // its configured interval has elapsed and the watchface requests it.
         scope.launch {
             while (isActive) {
-                delay(HealthPrefs.intervalMs(ctx))
+                delay(60_000)
+                val intervalMs = HealthPrefs.intervalMs(ctx)
                 for (metric in HealthHelper.Metric.entries) {
-                    if (watchfaceWantsHealth[metric] == true) {
+                    if (watchfaceWantsHealth[metric] != true) continue
+                    val lastFetch = HealthHelper.getLastFetchTimeMs(metric) ?: 0L
+                    val elapsed   = System.currentTimeMillis() - lastFetch
+                    if (elapsed >= intervalMs) {
                         HealthHelper.fetchAndUpdate(metric, ctx) { interim ->
                             sendToLua(HealthHelper.metricCategory(metric), interim)
                         }
@@ -341,6 +356,9 @@ class WatchfaceBridgeManager(
             Log.w(TAG, "queueOnGL skipped — GL view not ready")
         }
     }
+
+    private fun hasWeatherWidget(): Boolean =
+        WidgetPrefs.loadCards(ctx).any { it is WidgetCardConfig.BuiltInWeather }
 
     companion object {
         private const val TAG = "WatchfaceBridgeMgr"

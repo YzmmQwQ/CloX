@@ -21,6 +21,9 @@
     <string name="widget_add_weather">Weather</string>
     <string name="widget_weather_no_data">No weather data</string>
     <string name="widget_weather_today">Today</string>
+    <string name="weather_updated_just_now">just now</string>
+    <string name="weather_updated_minutes_ago">%dm ago</string>
+    <string name="weather_updated_hours_ago">%dh ago</string>
 
     <!-- ── Settings ─────────────────────────────────────────────────────────── -->
     <string name="pref_double_tap_title">Double-tap action</string>
