@@ -196,7 +196,8 @@ class QsTilePageAdapter(
                     if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
 
             is TileState.AodState ->
-                applyTileState(state.enabled, if (state.enabled) "On" else null, null, null)
+                applyTileState(state.enabled, if (state.enabled) "On" else null, null,
+                    if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
 
             is TileState.AirplaneState ->
                 applyTileState(state.enabled, if (state.enabled) "On" else "Off", null,

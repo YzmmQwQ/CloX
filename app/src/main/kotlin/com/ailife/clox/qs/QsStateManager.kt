@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.database.ContentObserver
 import android.location.LocationManager
 import android.media.AudioManager
@@ -24,6 +25,8 @@ import android.telephony.CellInfoLte
 import android.telephony.CellInfoWcdma
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
+import androidx.preference.PreferenceManager
+import com.ailife.clox.aod.AodPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -78,6 +81,12 @@ class QsStateManager(private val ctx: Context) {
 
     private val _time = MutableStateFlow("")
     val time: StateFlow<String> = _time.asStateFlow()
+
+    private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(ctx)
+
+    private val aodPrefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == AodPrefs.KEY_ENABLED) updateAod()
+    }
 
     // For external overrides (e.g. flashlight toggle from tile)
     fun setFlashlightState(on: Boolean) { _flashlight.value = TileState.FlashlightState(on) }
@@ -167,6 +176,8 @@ class QsStateManager(private val ctx: Context) {
     fun attach() {
         if (++attachCount > 1) return   // already registered
         val cmgr = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        prefs.registerOnSharedPreferenceChangeListener(aodPrefListener)
 
         // Time
         ctx.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
@@ -261,6 +272,7 @@ class QsStateManager(private val ctx: Context) {
             updateHotspot()
             updateBattery()
             updateData(cmgr)
+            updateAod()
         }
     }
 
@@ -271,13 +283,14 @@ class QsStateManager(private val ctx: Context) {
         GlobalScope.launch(Dispatchers.IO) {
             updateTime(); updateWifi(); updateBluetooth(); updateVolume()
             updateDnd(); updateRotate(); updateLocation(); updateAirplane()
-            updateHotspot(); updateBattery(); updateData(cmgr)
+            updateHotspot(); updateBattery(); updateData(cmgr); updateAod()
         }
     }
 
     fun detach() {
         if (--attachCount > 0) return   // another owner still active
         attachCount = 0                 // guard against going negative
+        prefs.unregisterOnSharedPreferenceChangeListener(aodPrefListener)
         runCatching { ctx.unregisterReceiver(timeReceiver) }
         runCatching { ctx.unregisterReceiver(batteryReceiver) }
         runCatching { ctx.unregisterReceiver(wifiReceiver) }
@@ -461,6 +474,10 @@ class QsStateManager(private val ctx: Context) {
             else       -> 0
         }
         _data.value = TileState.DataState(enabled, activelyRouting, if (activelyRouting) networkType else null, signalLevel, operatorName)
+    }
+
+    private fun updateAod() {
+        _aod.value = TileState.AodState(prefs.getBoolean(AodPrefs.KEY_ENABLED, false))
     }
 
     private fun getNetworkTypeName(type: Int) = when (type) {

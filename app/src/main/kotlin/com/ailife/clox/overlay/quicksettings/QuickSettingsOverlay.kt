@@ -20,6 +20,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.ailife.clox.R
+import com.ailife.clox.aod.AodPrefs
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.qs.QsPrefs
@@ -280,7 +281,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
             TileId.ROTATE.key     -> handleRotate()
             TileId.FLASHLIGHT.key -> handleFlashlight(view)
             TileId.LOCATION.key   -> handleLocation(priv)
-            TileId.AOD.key        -> Toast.makeText(context, "Always-On Display coming soon", Toast.LENGTH_SHORT).show()
+            TileId.AOD.key        -> handleAod()
             TileId.AIRPLANE.key   -> handleAirplane(priv)
             TileId.HOTSPOT.key    -> handleHotspot(priv)
             else -> {
@@ -430,6 +431,12 @@ class QuickSettingsOverlay @JvmOverloads constructor(
             val id = cameraId ?: return
             cm.setTorchMode(id, on)
         } catch (_: Exception) {}
+    }
+
+    private fun handleAod() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val current = prefs.getBoolean(AodPrefs.KEY_ENABLED, false)
+        prefs.edit().putBoolean(AodPrefs.KEY_ENABLED, !current).apply()
     }
 
     private fun handleLocation(priv: PrivilegeLevel) {

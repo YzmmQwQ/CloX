@@ -110,7 +110,8 @@
                     android:valueTo="255"
                     app:thumbRadius="17dp"
                     app:haloRadius="17dp"
-                    app:trackHeight="30dp"/>
+                    app:trackHeight="30dp"
+                    app:trackInsideCornerSize="1dp"/>
 
                 <ImageView
                     android:layout_width="20dp"
