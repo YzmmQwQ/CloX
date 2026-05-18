@@ -21,8 +21,9 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
             grid2dView = v
             v.columns      = AppListPrefs.grid2dCols(ctx)
             v.showNames    = AppListPrefs.grid2dNames(ctx)
-            v.enable3d     = AppListPrefs.grid2d3d(ctx)
-            v.iconSizeDp   = AppListPrefs.grid2dIconSize(ctx)
+            v.enable3d      = AppListPrefs.grid2d3d(ctx)
+            v.effect3DConfig = AppListPrefs.grid2d3dConfig(ctx)
+            v.iconSizeDp    = AppListPrefs.grid2dIconSize(ctx)
             v.showBadge    = AppListPrefs.notifBadge(ctx)
             v.showCount    = AppListPrefs.notifBadgeCount(ctx)
             v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }

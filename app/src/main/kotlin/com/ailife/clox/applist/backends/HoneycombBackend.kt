@@ -19,8 +19,9 @@ class HoneycombBackend(private val ctx: Context) : AppListBackend {
     override fun createContentView(context: Context): View {
         return HoneycombView(context).also { v ->
             honeycombView = v
-            v.enable3d     = AppListPrefs.honeycomb3d(ctx)
-            v.iconSizeDp   = AppListPrefs.honeycombIconSize(ctx)
+            v.enable3d      = AppListPrefs.honeycomb3d(ctx)
+            v.effect3DConfig = AppListPrefs.honeycomb3dConfig(ctx)
+            v.iconSizeDp    = AppListPrefs.honeycombIconSize(ctx)
             v.showBadge    = AppListPrefs.notifBadge(ctx)
             v.showCount    = AppListPrefs.notifBadgeCount(ctx)
             v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }

@@ -30,9 +30,16 @@ object AppListPrefs {
     const val KEY_BG_IMAGE_PATH = "bg_image_path"
     const val KEY_WALLPAPER_DIM = "wallpaper_dim"
 
+    // ── Curve types (mirrors Effect3DConfig) ─────────────────────────────────
+    const val CURVE_LINEAR      = "linear"
+    const val CURVE_SMOOTHSTEP  = "smoothstep"
+    const val CURVE_EXPONENTIAL = "exponential"
+
     // ── List sub-settings ────────────────────────────────────────────────────
     const val KEY_LIST_SEARCH = "list_search"
     const val KEY_LIST_3D     = "list_3d"
+    const val KEY_LIST_3D_MIN_SCALE = "list_3d_min_scale"
+    const val KEY_LIST_3D_CURVE = "list_3d_curve"
 
     // ── Grid sub-settings ────────────────────────────────────────────────────
     const val KEY_GRID_COLS  = "grid_cols"
@@ -40,16 +47,22 @@ object AppListPrefs {
 
     // ── Waterfall sub-settings ───────────────────────────────────────────────
     const val KEY_WATERFALL_3D = "waterfall_3d"
+    const val KEY_WATERFALL_3D_MIN_SCALE = "waterfall_3d_min_scale"
+    const val KEY_WATERFALL_3D_CURVE = "waterfall_3d_curve"
 
     // ── Honeycomb sub-settings ───────────────────────────────────────────────
     const val KEY_HONEYCOMB_3D        = "honeycomb_3d"
     const val KEY_HONEYCOMB_ICON_SIZE = "honeycomb_icon_size"   // dp, 0 = auto
+    const val KEY_HONEYCOMB_3D_MIN_SCALE = "honeycomb_3d_min_scale"
+    const val KEY_HONEYCOMB_3D_CURVE = "honeycomb_3d_curve"
 
     // ── Grid2D sub-settings ──────────────────────────────────────────────────
     const val KEY_GRID2D_COLS      = "grid2d_cols"
     const val KEY_GRID2D_NAMES     = "grid2d_names"
     const val KEY_GRID2D_3D        = "grid2d_3d"
     const val KEY_GRID2D_ICON_SIZE = "grid2d_icon_size"          // dp, 0 = auto
+    const val KEY_GRID2D_3D_MIN_SCALE = "grid2d_3d_min_scale"
+    const val KEY_GRID2D_3D_CURVE = "grid2d_3d_curve"
 
     // ── Pages sub-settings ───────────────────────────────────────────────────
     const val KEY_PAGES_COLS = "pages_cols"
@@ -76,19 +89,35 @@ object AppListPrefs {
 
     fun listSearch(ctx: Context) = get(ctx).getBoolean(KEY_LIST_SEARCH, true)
     fun list3d(ctx: Context)     = get(ctx).getBoolean(KEY_LIST_3D, false)
+    fun list3dConfig(ctx: Context) = Effect3DConfig(
+        curve = get(ctx).getString(KEY_LIST_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
+        minScalePercent = get(ctx).getInt(KEY_LIST_3D_MIN_SCALE, 50)
+    )
 
     fun gridCols(ctx: Context)  = get(ctx).getInt(KEY_GRID_COLS, 4)
     fun gridNames(ctx: Context) = get(ctx).getBoolean(KEY_GRID_NAMES, true)
 
     fun waterfall3d(ctx: Context) = get(ctx).getBoolean(KEY_WATERFALL_3D, false)
+    fun waterfall3dConfig(ctx: Context) = Effect3DConfig(
+        curve = get(ctx).getString(KEY_WATERFALL_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
+        minScalePercent = get(ctx).getInt(KEY_WATERFALL_3D_MIN_SCALE, 50)
+    )
 
     fun honeycomb3d(ctx: Context)       = get(ctx).getBoolean(KEY_HONEYCOMB_3D, false)
     fun honeycombIconSize(ctx: Context) = get(ctx).getInt(KEY_HONEYCOMB_ICON_SIZE, 0)
+    fun honeycomb3dConfig(ctx: Context) = Effect3DConfig(
+        curve = get(ctx).getString(KEY_HONEYCOMB_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
+        minScalePercent = get(ctx).getInt(KEY_HONEYCOMB_3D_MIN_SCALE, 50)
+    )
 
     fun grid2dCols(ctx: Context)      = get(ctx).getInt(KEY_GRID2D_COLS, 4)
     fun grid2dNames(ctx: Context)     = get(ctx).getBoolean(KEY_GRID2D_NAMES, false)
     fun grid2d3d(ctx: Context)        = get(ctx).getBoolean(KEY_GRID2D_3D, false)
     fun grid2dIconSize(ctx: Context)  = get(ctx).getInt(KEY_GRID2D_ICON_SIZE, 0)
+    fun grid2d3dConfig(ctx: Context) = Effect3DConfig(
+        curve = get(ctx).getString(KEY_GRID2D_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
+        minScalePercent = get(ctx).getInt(KEY_GRID2D_3D_MIN_SCALE, 50)
+    )
 
     fun pagesCols(ctx: Context) = get(ctx).getInt(KEY_PAGES_COLS, 4)
     fun pagesRows(ctx: Context) = get(ctx).getInt(KEY_PAGES_ROWS, 5)

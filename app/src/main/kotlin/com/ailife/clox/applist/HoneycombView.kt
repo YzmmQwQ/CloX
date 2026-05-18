@@ -33,6 +33,8 @@ class HoneycombView @JvmOverloads constructor(
     var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var enable3d = false
+    /** 3D depth config (curve + min scale). Used when [enable3d] is true. */
+    var effect3DConfig = Effect3DConfig()
     var iconSizeDp = 0
     var dragReorderEnabled = false
     var onOrderChanged: ((List<AppItem>) -> Unit)? = null
@@ -257,11 +259,12 @@ class HoneycombView @JvmOverloads constructor(
         val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
         for (i in 0 until childCount) {
             val child = getChildAt(i)
-            if (child === draggingViewRef) continue  // dragged item keeps its own drag scale
+            if (child === draggingViewRef) continue
             val dx = child.left + child.translationX + child.width / 2f - cx
             val dy = child.top + child.translationY + child.height / 2f - cy
-            val scale = 1f - (sqrt(dx * dx + dy * dy) / maxDist).coerceIn(0f, 1f) * 0.5f
-            child.scaleX = scale; child.scaleY = scale
+            val ratio = (sqrt(dx * dx + dy * dy) / maxDist)
+            child.scaleX = effect3DConfig.scaleFor(ratio)
+            child.scaleY = effect3DConfig.scaleFor(ratio)
         }
     }
 

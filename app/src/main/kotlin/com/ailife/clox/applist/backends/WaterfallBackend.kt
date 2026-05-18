@@ -24,6 +24,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     override var onOrderChanged: ((List<AppItem>) -> Unit)? = null
 
     private val enable3d  = AppListPrefs.waterfall3d(ctx)
+    private val effect3DConfig = AppListPrefs.waterfall3dConfig(ctx)
     private val showBadge = AppListPrefs.notifBadge(ctx)
     private val showCount = AppListPrefs.notifBadgeCount(ctx)
     private var notifCounts: Map<String, Int> = emptyMap()
@@ -84,6 +85,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     }
 
     private fun attach3d(rv: RecyclerView) {
+        val config = effect3DConfig
         val effect: () -> Unit = {
             val cx = rv.width / 2f; val cy = rv.height / 2f
             for (i in 0 until rv.childCount) {
@@ -92,8 +94,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
                 val dy = (child.top + child.bottom) / 2f - cy
                 val maxDist = Math.sqrt((cx * cx + cy * cy).toDouble()).toFloat()
                 val dist = Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
-                val ratio = (dist / maxDist).coerceIn(0f, 1f)
-                val scale = 1f - ratio * 0.5f
+                val scale = config.scaleFor(dist / maxDist)
                 child.scaleX = scale; child.scaleY = scale
             }
         }

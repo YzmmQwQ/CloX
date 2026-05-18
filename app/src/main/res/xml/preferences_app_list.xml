@@ -27,6 +27,25 @@
             android:summary="@string/pref_list_3d_summary"
             android:defaultValue="false" />
 
+        <SeekBarPreference
+            android:key="list_3d_min_scale"
+            android:title="@string/pref_3d_min_scale_title"
+            android:summary="@string/pref_3d_min_scale_summary"
+            android:defaultValue="50"
+            android:min="20"
+            android:max="100"
+            android:dependency="list_3d"
+            app:showSeekBarValue="true" />
+
+        <ListPreference
+            android:key="list_3d_curve"
+            android:title="@string/pref_3d_curve_title"
+            android:summary="%s"
+            android:entries="@array/curve_entries"
+            android:entryValues="@array/curve_values"
+            android:defaultValue="linear"
+            android:dependency="list_3d" />
+
     </PreferenceCategory>
 
     <!-- ── Grid sub-settings ─────────────────────────────────────────────────── -->
@@ -60,6 +79,25 @@
             android:summary="@string/pref_waterfall_3d_summary"
             android:defaultValue="false" />
 
+        <SeekBarPreference
+            android:key="waterfall_3d_min_scale"
+            android:title="@string/pref_3d_min_scale_title"
+            android:summary="@string/pref_3d_min_scale_summary"
+            android:defaultValue="50"
+            android:min="20"
+            android:max="100"
+            android:dependency="waterfall_3d"
+            app:showSeekBarValue="true" />
+
+        <ListPreference
+            android:key="waterfall_3d_curve"
+            android:title="@string/pref_3d_curve_title"
+            android:summary="%s"
+            android:entries="@array/curve_entries"
+            android:entryValues="@array/curve_values"
+            android:defaultValue="linear"
+            android:dependency="waterfall_3d" />
+
     </PreferenceCategory>
 
     <!-- ── Honeycomb sub-settings ─────────────────────────────────────────────── -->
@@ -72,6 +110,25 @@
             android:title="@string/pref_honeycomb_3d_title"
             android:summary="@string/pref_honeycomb_3d_summary"
             android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="honeycomb_3d_min_scale"
+            android:title="@string/pref_3d_min_scale_title"
+            android:summary="@string/pref_3d_min_scale_summary"
+            android:defaultValue="50"
+            android:min="20"
+            android:max="100"
+            android:dependency="honeycomb_3d"
+            app:showSeekBarValue="true" />
+
+        <ListPreference
+            android:key="honeycomb_3d_curve"
+            android:title="@string/pref_3d_curve_title"
+            android:summary="%s"
+            android:entries="@array/curve_entries"
+            android:entryValues="@array/curve_values"
+            android:defaultValue="linear"
+            android:dependency="honeycomb_3d" />
 
         <SeekBarPreference
             android:key="honeycomb_icon_size"
@@ -97,6 +154,25 @@
             android:key="grid2d_3d"
             android:title="@string/pref_grid2d_3d_title"
             android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="grid2d_3d_min_scale"
+            android:title="@string/pref_3d_min_scale_title"
+            android:summary="@string/pref_3d_min_scale_summary"
+            android:defaultValue="50"
+            android:min="20"
+            android:max="100"
+            android:dependency="grid2d_3d"
+            app:showSeekBarValue="true" />
+
+        <ListPreference
+            android:key="grid2d_3d_curve"
+            android:title="@string/pref_3d_curve_title"
+            android:summary="%s"
+            android:entries="@array/curve_entries"
+            android:entryValues="@array/curve_values"
+            android:defaultValue="linear"
+            android:dependency="grid2d_3d" />
 
         <SeekBarPreference
             android:key="grid2d_icon_size"

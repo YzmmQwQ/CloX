@@ -27,6 +27,8 @@ class Grid2DView @JvmOverloads constructor(
     var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
     var enable3d = false
+    /** 3D depth config (curve + min scale). Used when [enable3d] is true. */
+    var effect3DConfig = Effect3DConfig()
     var showNames = false
     var columns = 4
     var iconSizeDp = 0
@@ -278,12 +280,12 @@ class Grid2DView @JvmOverloads constructor(
         val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
         for (i in 0 until childCount) {
             val child = getChildAt(i)
-            if (child === draggingViewRef) continue  // dragged item keeps its own drag scale
-            // Include translationX/Y so 3D updates correctly during drag animations
+            if (child === draggingViewRef) continue
             val dx = child.left + child.translationX + child.width / 2f - cx
             val dy = child.top + child.translationY + child.height / 2f - cy
-            val scale = 1f - (sqrt(dx * dx + dy * dy) / maxDist).coerceIn(0f, 1f) * 0.5f
-            child.scaleX = scale; child.scaleY = scale
+            val ratio = (sqrt(dx * dx + dy * dy) / maxDist)
+            child.scaleX = effect3DConfig.scaleFor(ratio)
+            child.scaleY = effect3DConfig.scaleFor(ratio)
         }
     }
 

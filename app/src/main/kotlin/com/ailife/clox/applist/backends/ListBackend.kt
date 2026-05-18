@@ -127,14 +127,15 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     }
 
     private fun attach3d(rv: RecyclerView) {
+        val config = AppListPrefs.list3dConfig(ctx)
         val effect: () -> Unit = {
             val cy = rv.height / 2f
             for (i in 0 until rv.childCount) {
                 val child = rv.getChildAt(i)
                 val childCy = (child.top + child.bottom) / 2f
                 val ratio = (Math.abs(childCy - cy) / (cy + child.height / 2f)).coerceIn(0f, 1f)
-                child.scaleX = 1f - ratio * 0.55f
-                child.scaleY = 1f - ratio * 0.55f
+                val scale = config.scaleFor(ratio)
+                child.scaleX = scale; child.scaleY = scale
             }
         }
         effect3d = effect

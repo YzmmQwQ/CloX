@@ -38,6 +38,11 @@
     <string name="pref_app_list_sort_custom_hint">New apps are added at the bottom.\nLong-press an app and drag to reorder.</string>
     <string name="pref_hidden_apps_title">Hidden apps</string>
 
+    <!-- 3D effect (used by all styles with 3D effect) -->
+    <string name="pref_3d_min_scale_title">Min scale (%)</string>
+    <string name="pref_3d_min_scale_summary">Smallest size at the edge — lower = more depth</string>
+    <string name="pref_3d_curve_title">Size curve</string>
+
     <!-- List sub-settings -->
     <string name="pref_list_search_title">Show search bar</string>
     <string name="pref_list_3d_title">3D depth effect</string>

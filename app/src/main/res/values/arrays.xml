@@ -41,4 +41,15 @@
         <item>list</item>
         <item>page</item>
     </string-array>
+
+    <string-array name="curve_entries">
+        <item>Linear</item>
+        <item>Smoothstep</item>
+        <item>Exponential</item>
+    </string-array>
+    <string-array name="curve_values">
+        <item>linear</item>
+        <item>smoothstep</item>
+        <item>exponential</item>
+    </string-array>
 </resources>
