@@ -157,6 +157,7 @@ class AppListFragment : Fragment() {
             )
         }
         newBackend.onRequestClose = { onRequestClose?.invoke() }
+        newBackend.onOrderChanged = { items -> viewModel.saveCustomOrder(items) }
 
         val contentView = newBackend.createContentView(ctx)
         newBackend.setDragEnabled(sort == AppListPrefs.SORT_CUSTOM)

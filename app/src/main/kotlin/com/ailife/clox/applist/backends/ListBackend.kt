@@ -26,6 +26,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
+    override var onOrderChanged: ((List<AppItem>) -> Unit)? = null
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var searchField: EditText
@@ -69,9 +70,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         }.also { adp ->
             adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
-            adp.onOrderChanged = { items ->
-                AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" })
-            }
+            adp.onOrderChanged = { items -> onOrderChanged?.invoke(items) }
             val touchCb = AppListTouchCallback(adp)
             val touchHelper = ItemTouchHelper(touchCb)
             adp.touchHelper = touchHelper
@@ -89,7 +88,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         allItems = items
         val query = if (::searchField.isInitialized) searchField.text?.toString()?.trim()?.lowercase() ?: "" else ""
         adapter?.submitList(if (query.isEmpty()) items else items.filter { it.label.lowercase().contains(query) })
-        // Re-apply 3D scales after DiffUtil dispatches — post so layout is settled
+        // Re-apply 3D scales after adapter dispatches — post so layout is settled
         if (enable3d) recyclerView.post { effect3d?.invoke() }
     }
 

@@ -19,10 +19,15 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
     private val _apps = MutableStateFlow<List<AppItem>>(emptyList())
     val apps: StateFlow<List<AppItem>> = _apps
 
+    /** Full (unfiltered) cached list of AppItems so reopening doesn't re-query PackageManager. */
+    private var cachedAllItems: List<AppItem>? = null
+    private var needsPackageRefresh = true
+
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             val pkg = intent.data?.schemeSpecificPart ?: return
             val replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+            needsPackageRefresh = true
             when (intent.action) {
                 Intent.ACTION_PACKAGE_ADDED -> if (!replacing) appendNewApp(pkg) else loadApps()
                 else -> loadApps()  // REMOVED or REPLACED
@@ -41,7 +46,11 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
         loadApps()
     }
 
-    fun loadApps() {
+    fun loadApps(force: Boolean = false) {
+        if (!force && cachedAllItems != null && !needsPackageRefresh) {
+            emitFilteredSorted(cachedAllItems!!)
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
             val pm = ctx.packageManager
@@ -84,26 +93,53 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
 
-            val resolved = when (hideMode) {
-                AppListPrefs.HIDE_MODE_WHITELIST ->
-                    if (hiddenComponents.isEmpty()) all  // whitelist empty = show all
-                    else all.filter { it.isHidden }
-                else -> all.filterNot { it.isHidden }   // blacklist
+            // Ensure every app is in the order list (append missing ones at the end)
+            val orderSet = customOrder.toSet()
+            val missing = all.map { "${it.packageName}/${it.activityName}" }.filterNot { it in orderSet }
+            if (missing.isNotEmpty()) {
+                AppListPrefs.saveCustomOrder(ctx, customOrder + missing)
             }
 
-            val sorted = when (sortMode) {
-                AppListPrefs.SORT_CUSTOM -> resolved.sortedWith(
-                    compareBy<AppItem> { it.customOrder }.thenBy { it.label.lowercase() }
-                )
-                else -> resolved.sortedBy { it.label.lowercase() }
-            }
-            _apps.emit(sorted)
+            cachedAllItems = all
+            needsPackageRefresh = false
+            emitFilteredSorted(all)
         }
     }
 
+    private fun emitFilteredSorted(all: List<AppItem>) {
+        val ctx = getApplication<Application>()
+        val sortMode = AppListPrefs.sort(ctx)
+        val hiddenComponents = AppListPrefs.hiddenComponents(ctx)
+        val hideMode = AppListPrefs.hideMode(ctx)
+        val customOrder = AppListPrefs.customOrder(ctx)
+
+        // Recalculate customOrder indices from the full order
+        val items = all.map { item ->
+            val key = "${item.packageName}/${item.activityName}"
+            item.copy(customOrder = customOrder.indexOf(key).let { if (it < 0) Int.MAX_VALUE else it })
+        }
+
+        val resolved = when (hideMode) {
+            AppListPrefs.HIDE_MODE_WHITELIST ->
+                if (hiddenComponents.isEmpty()) items
+                else items.filter { it.isHidden }
+            else -> items.filterNot { it.isHidden }
+        }
+
+        val sorted = when (sortMode) {
+            AppListPrefs.SORT_CUSTOM -> resolved.sortedWith(
+                compareBy<AppItem> { it.customOrder }.thenBy { it.label.lowercase() }
+            )
+            else -> resolved.sortedBy { it.label.lowercase() }
+        }
+        _apps.value = sorted
+    }
+
+    /** Called after drag-reorder completes: save new visible order and force full reload. */
     fun saveCustomOrder(items: List<AppItem>) {
         val ctx = getApplication<Application>()
-        AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" })
+        AppListPrefs.saveVisibleOrder(ctx, items)
+        loadApps(force = true)
     }
 
     private fun appendNewApp(packageName: String) {
@@ -124,7 +160,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
             }
-            loadApps()
+            loadApps(force = true)
         }
     }
 

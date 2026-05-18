@@ -27,6 +27,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
+    override var onOrderChanged: ((List<AppItem>) -> Unit)? = null
 
     private val cols      = AppListPrefs.pagesCols(ctx)
     private val rows      = AppListPrefs.pagesRows(ctx)
@@ -288,7 +289,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
     }
 
     private fun endDrag() {
-        AppListPrefs.saveCustomOrder(ctx, workingItems.map { "${it.packageName}/${it.activityName}" })
+        onOrderChanged?.invoke(workingItems.toList())
         cleanupDrag()  // clears dragHiddenPosition + makes all slots visible
         // Update visible inner adapters directly — do NOT call pagesAdapter.notifyDataSetChanged()
         // because that goes through onBindViewHolder → setItemsDirectly which would fire
@@ -382,7 +383,7 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                     pendingDragView = view
                 }
             }
-            // Use setItemsDirectly to bypass AsyncListDiffer — keeps adapter state always in sync
+            // Use setItemsDirectly — keeps adapter state always in sync
             // with workingItems without stale-differ animation artifacts.
             holder.adapter.setItemsDirectly(pageSlice(position))
         }

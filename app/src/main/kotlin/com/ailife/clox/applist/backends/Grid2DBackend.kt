@@ -12,6 +12,7 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
     override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
+    override var onOrderChanged: ((List<AppItem>) -> Unit)? = null
 
     private var grid2dView: Grid2DView? = null
 
@@ -26,7 +27,7 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
             v.showCount    = AppListPrefs.notifBadgeCount(ctx)
             v.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             v.onAppLongPress  = { item, anchor -> onAppLongPress?.invoke(item, anchor) }
-            v.onOrderChanged  = { items -> AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" }) }
+            v.onOrderChanged  = { items -> onOrderChanged?.invoke(items) }
         }
     }
 

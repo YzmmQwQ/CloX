@@ -6,19 +6,16 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.applist.model.AppItem
-import java.util.Collections
 
 class AppListAdapter(
     private val itemLayoutRes: Int,
     private val hasDragHandle: Boolean = false,
     private val dragHandleId: Int = 0,
     private val binder: (View, AppItem) -> Unit
-) : ListAdapter<AppItem, AppListAdapter.VH>(DIFF) {
+) : RecyclerView.Adapter<AppListAdapter.VH>() {
 
     var onAppClick: ((AppItem, View) -> Unit)? = null
     var onAppLongPress: ((AppItem, View) -> Unit)? = null
@@ -33,10 +30,10 @@ class AppListAdapter(
 
     private val mutableItems = mutableListOf<AppItem>()
 
-    override fun submitList(list: List<AppItem>?) {
+    fun submitList(list: List<AppItem>) {
         mutableItems.clear()
-        if (list != null) mutableItems.addAll(list)
-        super.submitList(list?.toList())
+        mutableItems.addAll(list)
+        notifyDataSetChanged()
     }
 
     /** Updates mutableItems without triggering any notify — caller must handle the notify. */
@@ -45,8 +42,7 @@ class AppListAdapter(
         mutableItems.addAll(list)
     }
 
-    /** Bypasses AsyncListDiffer — updates items synchronously and calls notifyDataSetChanged.
-     *  Used by PagesBackend for cross-page drag reorders. */
+    /** Updates items synchronously and calls notifyDataSetChanged. */
     fun setItemsDirectly(list: List<AppItem>) {
         mutableItems.clear()
         mutableItems.addAll(list)
@@ -56,7 +52,10 @@ class AppListAdapter(
     override fun getItemCount(): Int = mutableItems.size
 
     fun onItemMove(from: Int, to: Int) {
-        Collections.swap(mutableItems, from, to)
+        // Remove+insert instead of swap — this correctly shifts all items between
+        // `from` and `to` by one position, preserving their relative order.
+        val item = mutableItems.removeAt(from)
+        mutableItems.add(to, item)
         notifyItemMoved(from, to)
     }
 
@@ -173,13 +172,6 @@ class AppListAdapter(
     companion object {
         private const val TAG = "CloX/AppListAdapter"
         private const val DRAG_THRESHOLD_SQ = 400f
-
-        val DIFF = object : DiffUtil.ItemCallback<AppItem>() {
-            override fun areItemsTheSame(a: AppItem, b: AppItem) =
-                a.packageName == b.packageName && a.activityName == b.activityName
-            override fun areContentsTheSame(a: AppItem, b: AppItem) =
-                a.label == b.label && a.icon === b.icon && a.customOrder == b.customOrder
-        }
     }
 }
 

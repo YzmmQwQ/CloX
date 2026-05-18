@@ -1,6 +1,7 @@
 package com.ailife.clox.applist
 
 import android.content.Context
+import com.ailife.clox.applist.model.AppItem
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -104,6 +105,35 @@ object AppListPrefs {
 
     fun saveCustomOrder(ctx: Context, order: List<String>) {
         get(ctx).edit().putString(KEY_CUSTOM_ORDER, JSONArray(order).toString()).apply()
+    }
+
+    /**
+     * Saves a new order for ONLY the visible (non-hidden) items, then merges
+     * hidden items back into the full order preserving their original positions.
+     * This ensures hidden apps keep their place in the global order.
+     */
+    fun saveVisibleOrder(ctx: Context, visibleItems: List<AppItem>) {
+        val fullOrder = customOrder(ctx).toMutableList()
+        val visibleKeys = visibleItems.map { "${it.packageName}/${it.activityName}" }
+        val visibleKeysSet = visibleKeys.toSet()
+
+        var newIdx = 0
+        val result = mutableListOf<String>()
+        for (oldKey in fullOrder) {
+            if (oldKey in visibleKeysSet) {
+                if (newIdx < visibleKeys.size) {
+                    result.add(visibleKeys[newIdx])
+                    newIdx++
+                }
+            } else {
+                result.add(oldKey)
+            }
+        }
+        while (newIdx < visibleKeys.size) {
+            result.add(visibleKeys[newIdx])
+            newIdx++
+        }
+        saveCustomOrder(ctx, result)
     }
 
     // ── Hidden apps ──────────────────────────────────────────────────────────

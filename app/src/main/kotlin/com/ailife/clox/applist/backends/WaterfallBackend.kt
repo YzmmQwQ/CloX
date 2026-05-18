@@ -21,6 +21,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
     override var onAppClick: ((AppItem, View) -> Unit)? = null
     override var onAppLongPress: ((AppItem, View) -> Unit)? = null
     override var onRequestClose: (() -> Unit)? = null
+    override var onOrderChanged: ((List<AppItem>) -> Unit)? = null
 
     private val enable3d  = AppListPrefs.waterfall3d(ctx)
     private val showBadge = AppListPrefs.notifBadge(ctx)
@@ -50,9 +51,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
         }.also { adp ->
             adp.onAppClick = { item, view -> onAppClick?.invoke(item, view) }
             adp.onAppLongPress = { item, v -> onAppLongPress?.invoke(item, v) }
-            adp.onOrderChanged = { items ->
-                AppListPrefs.saveCustomOrder(ctx, items.map { "${it.packageName}/${it.activityName}" })
-            }
+            adp.onOrderChanged = { items -> onOrderChanged?.invoke(items) }
             val touchHelper = ItemTouchHelper(AppListTouchCallback(adp))
             adp.touchHelper = touchHelper
             touchHelper.attachToRecyclerView(rv)
