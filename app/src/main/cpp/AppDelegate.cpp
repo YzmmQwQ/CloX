@@ -5,10 +5,13 @@
 #include "lua-bindings/manual/lua_module_register.h"
 #include "audio/AudioEngine.h"
 #include "base/Director.h"
+#include "base/EventCustom.h"
+#include "base/EventDispatcher.h"
 #include "platform/FileUtils.h"
 #include "platform/RenderView.h"
 #include "platform/android/jni/JniHelper.h"
 #include "platform/android/FileUtils-android.h"
+#include "blur_postprocess.h"
 
 using namespace ax;
 
@@ -32,6 +35,12 @@ bool AppDelegate::applicationDidFinishLaunching()
     auto frameSize  = renderView->getFrameSize();
     renderView->setDesignResolutionSize(frameSize.width, frameSize.height,
                                         ResolutionPolicy::EXACT_FIT);
+
+    // Hook the post-draw event to run the C++ blur pass each frame.
+    // Fires after scene rendering, before swapBuffers — see Director.cpp:343/352.
+    director->getEventDispatcher()->addCustomEventListener(
+        Director::EVENT_AFTER_DRAW,
+        [](EventCustom*) { BlurPostProcess::applyIfNeeded(); });
 
     auto engine = LuaEngine::getInstance();
     ScriptEngineManager::getInstance()->setScriptEngine(engine);
@@ -70,6 +79,7 @@ void AppDelegate::applicationDidEnterBackground()
 {
     Director::getInstance()->stopAnimation();
     AudioEngine::pauseAll();
+    BlurPostProcess::onContextLost();   // EGL context will be destroyed
 }
 
 void AppDelegate::applicationWillEnterForeground()

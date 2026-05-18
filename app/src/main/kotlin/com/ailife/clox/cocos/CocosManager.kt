@@ -27,5 +27,7 @@ object CocosManager {
     fun onPause()   { glView?.onPause() }
     fun onDestroy() { glView = null }
 
+    @JvmStatic external fun nativeSetBlurRadius(radius: Float)
+
     init { System.loadLibrary("clox") }
 }

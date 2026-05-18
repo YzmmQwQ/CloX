@@ -81,12 +81,14 @@
 
     <!-- ── Arrays ────────────────────────────────────────────────────────────── -->
     <string-array name="blur_mode_entries">
-        <item>Auto (best available)</item>
-        <item>Always snapshot</item>
+        <item>Real-time (GPU shader)</item>
+        <item>Capture + real blur</item>
+        <item>Capture + software blur</item>
         <item>Disabled (scrim only)</item>
     </string-array>
     <string-array name="blur_mode_values">
-        <item>AUTO</item>
+        <item>REALTIME</item>
+        <item>BLURVIEW</item>
         <item>SNAPSHOT</item>
         <item>DISABLED</item>
     </string-array>

@@ -13,7 +13,7 @@ end
 
 -- ── Layout constants ──────────────────────────────────────────────────────────
 
-local PAGE_NAMES = { "Core", "Device", "Network", "Health", "Sensors", "Weather", "Calendar" }
+local PAGE_NAMES = { "Core", "Device", "Network", "Health", "Sensors", "Weather", "Calendar", "Perf" }
 local NUM_PAGES  = #PAGE_NAMES
 local FONT_BODY  = 40
 local FONT_TITLE = 22
@@ -179,7 +179,29 @@ local function pg7()
     return lines
 end
 
-local pageBuilders = { pg1, pg2, pg3, pg4, pg5, pg6, pg7 }
+local function pg8() return { "" } end  -- visuals handled by animation layer
+
+local pageBuilders = { pg1, pg2, pg3, pg4, pg5, pg6, pg7, pg8 }
+
+-- ── HSV → RGB helper ──────────────────────────────────────────────────────────
+
+local function hsv(h, s, v)
+    h = h % 1
+    local i = math.floor(h * 6)
+    local f = h * 6 - i
+    local p = v * (1 - s)
+    local q = v * (1 - f * s)
+    local t = v * (1 - (1 - f) * s)
+    local r, g, b
+    local m = i % 6
+    if     m == 0 then r,g,b = v,t,p
+    elseif m == 1 then r,g,b = q,v,p
+    elseif m == 2 then r,g,b = p,v,t
+    elseif m == 3 then r,g,b = p,q,v
+    elseif m == 4 then r,g,b = t,p,v
+    else               r,g,b = v,p,q end
+    return cc.c4f(r, g, b, 1)
+end
 
 -- ── Toggle specs ──────────────────────────────────────────────────────────────
 
@@ -243,6 +265,37 @@ function WatchfaceScene:onEnter()
     self._toggleNode = cc.Node:create()
     self:addChild(self._toggleNode, 3)
 
+    -- ── Page 8 animation layer ────────────────────────────────────────────────
+    self._animNode = cc.DrawNode:create()
+    self:addChild(self._animNode, 4)
+    self._animNode:setVisible(false)
+
+    -- Initialise balls with random positions/velocities
+    self._balls = {}
+    math.randomseed(os.time())
+    local NUM_BALLS = 25
+    for i = 1, NUM_BALLS do
+        table.insert(self._balls, {
+            x  = math.random(50, W - 50),
+            y  = math.random(50, H - 50),
+            vx = (math.random() - 0.5) * 500,
+            vy = (math.random() - 0.5) * 500,
+            r  = math.random(18, 45),
+            hue = i / NUM_BALLS,
+        })
+    end
+    self._spinAngle  = 0
+    self._animTime   = 0
+    self._animTimer  = nil
+    self._fpsCounter = 0
+    self._fpsAccum   = 0
+    self._fps        = 0
+
+    self._fpsLabel = cc.Label:createWithSystemFont("FPS: --", "monospace", 36)
+    self._fpsLabel:setTextColor(cc.c4b(255, 255, 0, 255))
+    self._fpsLabel:setVisible(false)
+    self:addChild(self._fpsLabel, 5)
+
     self:renderPage()
 
     Bridge.sendToAndroid("wf_lua_ready", "")
@@ -258,10 +311,95 @@ function WatchfaceScene:onExit()
         sched:unscheduleScriptEntry(self._clockTimer)
         self._clockTimer = nil
     end
+    self:stopAnim()
+end
+
+function WatchfaceScene:startAnim()
+    if self._animTimer then return end
+    self._animNode:setVisible(true)
+    self._fpsLabel:setVisible(true)
+    self._fpsCounter = 0
+    self._fpsAccum   = 0
+    local sched = cc.Director:getInstance():getScheduler()
+    self._animTimer = sched:scheduleScriptFunc(function()
+        local dt = cc.Director:getInstance():getDeltaTime()
+        self:stepAnim(dt)
+    end, 0, false)
+end
+
+function WatchfaceScene:stopAnim()
+    if not self._animTimer then return end
+    cc.Director:getInstance():getScheduler():unscheduleScriptEntry(self._animTimer)
+    self._animTimer = nil
+    if self._animNode  then self._animNode:setVisible(false)  end
+    if self._fpsLabel  then self._fpsLabel:setVisible(false)  end
+end
+
+function WatchfaceScene:stepAnim(dt)
+    local W, H  = self._W, self._H
+    local dn    = self._animNode
+    self._animTime  = self._animTime + dt
+    self._spinAngle = self._spinAngle + dt * 120  -- 120°/s
+    local t = self._animTime
+
+    -- FPS counter: update every 0.5 s
+    self._fpsCounter = self._fpsCounter + 1
+    self._fpsAccum   = self._fpsAccum   + dt
+    if self._fpsAccum >= 0.5 then
+        self._fps        = math.floor(self._fpsCounter / self._fpsAccum + 0.5)
+        self._fpsCounter = 0
+        self._fpsAccum   = 0
+        self._fpsLabel:setString(string.format("FPS: %d", self._fps))
+        self._fpsLabel:setPosition(W / 2, H - 60)
+    end
+
+    dn:clear()
+
+    -- Bouncing balls
+    for _, b in ipairs(self._balls) do
+        b.x = b.x + b.vx * dt
+        b.y = b.y + b.vy * dt
+        if b.x - b.r < 0    then b.x =  b.r;     b.vx = math.abs(b.vx)  end
+        if b.x + b.r > W    then b.x = W - b.r;  b.vx = -math.abs(b.vx) end
+        if b.y - b.r < 0    then b.y =  b.r;     b.vy = math.abs(b.vy)  end
+        if b.y + b.r > H    then b.y = H - b.r;  b.vy = -math.abs(b.vy) end
+        local col = hsv((b.hue + t * 0.15) % 1, 0.85, 1.0)
+        dn:drawSolidCircle(cc.p(b.x, b.y), b.r, 0, 20, 1, 1, col)
+    end
+
+    -- Spinning star at centre
+    local cx, cy = W / 2, H / 2
+    local RAD = math.rad
+    local spokes = 7
+    for i = 0, spokes - 1 do
+        local a1 = RAD(self._spinAngle + i * 360 / spokes)
+        local a2 = RAD(self._spinAngle + i * 360 / spokes + 360 / spokes / 2)
+        local outer = 120
+        local inner = 50
+        local x1, y1 = cx + math.cos(a1) * outer, cy + math.sin(a1) * outer
+        local x2, y2 = cx + math.cos(a2) * inner, cy + math.sin(a2) * inner
+        local x3, y3 = cx + math.cos(a1 + RAD(360/spokes)) * outer,
+                        cy + math.sin(a1 + RAD(360/spokes)) * outer
+        local col = hsv((i / spokes + t * 0.3) % 1, 1, 1)
+        dn:drawSolidTriangle(
+            cc.p(cx, cy), cc.p(x1, y1), cc.p(x2, y2), col)
+        dn:drawSolidTriangle(
+            cc.p(cx, cy), cc.p(x2, y2), cc.p(x3, y3), col)
+    end
+
+    -- Pulsing rings from centre
+    for ring = 0, 2 do
+        local phase = (t * 0.6 + ring / 3) % 1
+        local radius = phase * math.min(W, H) * 0.55
+        local alpha  = (1 - phase) * 0.7
+        local col = cc.c4f(1, 1, 1, alpha)
+        dn:drawCircle(cc.p(cx, cy), radius, 0, 40, false, 1, 1, col)
+    end
 end
 
 function WatchfaceScene:changePage(delta)
     self._page = ((self._page - 1 + delta) % NUM_PAGES) + 1
+    if self._page == 8 then self:startAnim() else self:stopAnim() end
     self:renderPage()
 end
 
@@ -271,6 +409,8 @@ function WatchfaceScene:renderPage()
     local cy = self._cy
     local W  = self._W
 
+    local isPerf = (p == 8)
+    self._contentLabel:setVisible(not isPerf)
     self._titleLabel:setString(string.format("[%d/%d]  %s", p, NUM_PAGES, PAGE_NAMES[p]))
     self._pageInd:setString(p.."/"..NUM_PAGES)
 

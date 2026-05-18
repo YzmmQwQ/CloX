@@ -2,6 +2,7 @@
 #include <android/log.h>
 #include <string>
 #include "lua-bindings/manual/LuaEngine.h"
+#include "blur_postprocess.h"
 
 extern "C" {
 #include "lua.h"
@@ -71,6 +72,12 @@ Java_com_ailife_clox_cocos_LuaBridge_callLuaFunction(
     env->ReleaseStringUTFChars(funcName, name);
     env->ReleaseStringUTFChars(args, argsStr);
     return result;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_ailife_clox_cocos_CocosManager_nativeSetBlurRadius(
+        JNIEnv*, jclass, jfloat radius) {
+    BlurPostProcess::g_radius.store(radius, std::memory_order_relaxed);
 }
 
 extern "C" JNIEXPORT void JNICALL

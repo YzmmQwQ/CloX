@@ -2,7 +2,6 @@ package com.ailife.clox.overlay
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -12,35 +11,42 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import android.widget.ImageView
+import androidx.preference.PreferenceManager
 import com.ailife.clox.cocos.CocosManager
+import eightbitlab.com.blurview.RenderScriptBlur
 
 object BlurEngine {
 
-    enum class Mode { AUTO, SNAPSHOT, DISABLED }
+    enum class Mode { REALTIME, BLURVIEW, SNAPSHOT, DISABLED }
 
-    private const val PREFS = "blur_settings"
-    private const val KEY_MODE = "blur_mode"
+    private const val KEY_MODE   = "blur_mode"
     private const val KEY_RADIUS = "blur_radius"
-    private const val DEFAULT_RADIUS = 15f
+    private const val DEFAULT_RADIUS = 15
     private const val DOWNSAMPLE = 4
 
-    // Incremented on every new capture and on clearBlur — lets the PixelCopy callback
-    // detect that its result is stale (cancelled or superseded) and discard it.
+    // Incremented on every new capture and on clearBlur so stale PixelCopy
+    // callbacks can detect they've been superseded and discard their result.
     private var captureSeq = 0
 
     fun getMode(context: Context): Mode {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_MODE, Mode.AUTO.name) ?: Mode.AUTO.name
-        return try { Mode.valueOf(raw) } catch (e: Exception) { Mode.AUTO }
+        val raw = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(KEY_MODE, Mode.BLURVIEW.name) ?: Mode.BLURVIEW.name
+        return when (raw) {
+            "AUTO" -> Mode.BLURVIEW   // migrate pre-existing setting
+            else   -> try { Mode.valueOf(raw) } catch (_: Exception) { Mode.BLURVIEW }
+        }
     }
 
+    // SeekBarPreference persists as Int; cast to Float for GL/RenderEffect.
     fun getRadius(context: Context): Float =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getFloat(KEY_RADIUS, DEFAULT_RADIUS)
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .getInt(KEY_RADIUS, DEFAULT_RADIUS).toFloat()
 
     /**
-     * Capture the watchface into [bgImageView] as a raw (unblurred) bitmap.
-     * Blur is applied progressively via [updateProgress] as the user drags.
+     * Begin blur for an opening overlay.
+     * REALTIME: signals C++ to start blurring; no capture needed.
+     * BLURVIEW/SNAPSHOT: captures the watchface into [bgImageView] via PixelCopy.
+     * DISABLED: no-op; [bgImageView] stays hidden.
      */
     fun applyBlur(
         context: Context,
@@ -49,41 +55,72 @@ object BlurEngine {
         bgImageView: ImageView,
         onDone: () -> Unit
     ) {
-        Log.d("BlurEngine", "applyBlur mode=${getMode(context)} SDK=${Build.VERSION.SDK_INT}")
-        if (getMode(context) == Mode.DISABLED) { bgImageView.visibility = View.GONE; onDone(); return }
-        val seq = ++captureSeq
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            captureRaw(context, bgImageView, seq, onDone)
-        } else {
-            bgImageView.visibility = View.GONE
-            onDone()
+        val mode = getMode(context)
+        Log.d("BlurEngine", "applyBlur mode=$mode SDK=${Build.VERSION.SDK_INT}")
+        when (mode) {
+            Mode.DISABLED -> {
+                bgImageView.visibility = View.GONE
+                onDone()
+            }
+            Mode.REALTIME -> {
+                // C++ drives the blur radius; no static capture required.
+                bgImageView.visibility = View.GONE
+                onDone()
+            }
+            Mode.BLURVIEW, Mode.SNAPSHOT -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    captureAndBlur(context, bgImageView, ++captureSeq, mode, onDone)
+                } else {
+                    bgImageView.visibility = View.GONE
+                    onDone()
+                }
+            }
         }
     }
 
     /**
      * Called every drag frame with progress 0→1.
-     * API 31+: updates RenderEffect blur radius (0→maxRadius).
-     * Pre-31:  fades alpha (0→1) on a pre-blurred bitmap.
+     * REALTIME:          drives C++ blur radius.
+     * SNAPSHOT + API31+: drives RenderEffect blur radius (progressive animation).
+     * BLURVIEW + any,
+     * SNAPSHOT + pre31:  drives ImageView alpha (pre-baked blur fades in).
      */
     fun updateProgress(context: Context, bgImageView: ImageView, progress: Float) {
-        if (getMode(context) == Mode.DISABLED) return
-        if (bgImageView.drawable == null) return   // bitmap not ready yet
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val r = getRadius(context) * progress
-            bgImageView.alpha = 1f
-            bgImageView.visibility = View.VISIBLE
-            bgImageView.setRenderEffect(
-                if (r >= 1f) android.graphics.RenderEffect.createBlurEffect(
-                    r, r, android.graphics.Shader.TileMode.CLAMP)
-                else null
-            )
-        } else {
-            bgImageView.alpha = progress
+        when (val mode = getMode(context)) {
+            Mode.DISABLED -> return
+            Mode.REALTIME -> {
+                CocosManager.nativeSetBlurRadius(getRadius(context) * progress)
+            }
+            Mode.BLURVIEW -> {
+                if (bgImageView.drawable == null) return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    // API31+: animate blur radius via RenderEffect.
+                    val r = getRadius(context) * progress
+                    bgImageView.alpha = 1f
+                    bgImageView.visibility = View.VISIBLE
+                    bgImageView.setRenderEffect(
+                        if (r >= 1f) android.graphics.RenderEffect.createBlurEffect(
+                            r, r, android.graphics.Shader.TileMode.CLAMP)
+                        else null
+                    )
+                } else {
+                    // pre-31: blur pre-baked by RenderScript, animate alpha.
+                    bgImageView.alpha = progress
+                    if (progress > 0f) bgImageView.visibility = View.VISIBLE
+                }
+            }
+            Mode.SNAPSHOT -> {
+                if (bgImageView.drawable == null) return
+                // Software blur pre-baked; only alpha animates.
+                bgImageView.alpha = progress
+                if (progress > 0f) bgImageView.visibility = View.VISIBLE
+            }
         }
     }
 
     fun clearBlur(window: Window, bgImageView: ImageView) {
         captureSeq++   // invalidate any in-flight PixelCopy
+        CocosManager.nativeSetBlurRadius(0f)   // safe to call regardless of mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             bgImageView.setRenderEffect(null)
         }
@@ -91,51 +128,73 @@ object BlurEngine {
         bgImageView.visibility = View.GONE
     }
 
-    // ── Raw capture — bitmap stored unblurred; RenderEffect drives progressive blur ──
+    // ── Capture ───────────────────────────────────────────────────────────────
 
     @Suppress("DEPRECATION")
-    private fun captureRaw(
+    private fun captureAndBlur(
         context: Context,
         bgImageView: ImageView,
         seq: Int,
+        mode: Mode,
         onDone: () -> Unit
     ) {
         val glView = CocosManager.getGlView()
-        Log.d("BlurEngine", "captureRaw glView=$glView seq=$seq")
+        Log.d("BlurEngine", "captureAndBlur glView=$glView seq=$seq mode=$mode")
         if (glView == null) { onDone(); return }
 
-        // Wait for next vsync so the GL surface has a committed frame ready
+        // Wait for next vsync so the GL surface has a committed frame ready.
         Choreographer.getInstance().postFrameCallback {
-            if (seq != captureSeq) { Log.d("BlurEngine", "captureRaw stale at vsync seq=$seq"); return@postFrameCallback }
+            if (seq != captureSeq) { return@postFrameCallback }
             val dm = context.resources.displayMetrics
-            val w = dm.widthPixels
-            val h = dm.heightPixels
-            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            // null srcRect = capture entire SurfaceView surface — avoids fullscreen coordinate shift
-            PixelCopy.request(glView, null, bitmap, { result ->
-                Log.d("BlurEngine", "PixelCopy result=$result SUCCESS=${PixelCopy.SUCCESS} seq=$seq current=$captureSeq")
-                if (seq != captureSeq) { Log.d("BlurEngine", "captureRaw stale at PixelCopy callback, discarding"); return@request }
+            val w  = dm.widthPixels
+            val h  = dm.heightPixels
+            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            PixelCopy.request(glView, null, bmp, { result ->
+                if (seq != captureSeq) { return@request }
                 if (result == PixelCopy.SUCCESS) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        // API 31+: set raw bitmap; RenderEffect drives progressive blur in updateProgress
-                        bgImageView.setImageBitmap(bitmap)
-                    } else {
-                        // Pre-API 31: bake software blur into bitmap now (RenderEffect unavailable)
-                        val downW = w / DOWNSAMPLE
-                        val downH = h / DOWNSAMPLE
-                        val down = Bitmap.createScaledBitmap(bitmap, downW, downH, false)
-                        val blurred = stackBlur(down, 8)
-                        bgImageView.setImageBitmap(Bitmap.createScaledBitmap(blurred, w, h, true))
+                    val radius = getRadius(context)
+                    when (mode) {
+                        Mode.BLURVIEW -> {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                // API31+: store raw bitmap; updateProgress animates RenderEffect radius.
+                                bgImageView.setImageBitmap(bmp)
+                                bgImageView.alpha = 1f
+                            } else {
+                                // pre-31: bake RenderScript blur now; alpha animates.
+                                bgImageView.setImageBitmap(renderScriptBlur(context, bmp, radius))
+                                bgImageView.alpha = 0f
+                            }
+                            bgImageView.visibility = View.VISIBLE
+                        }
+                        else -> {
+                            // SNAPSHOT: always CPU stackBlur, all API levels.
+                            val down = Bitmap.createScaledBitmap(bmp, w / DOWNSAMPLE, h / DOWNSAMPLE, false)
+                            val blurred = stackBlur(down, (radius / DOWNSAMPLE).toInt().coerceAtLeast(2))
+                            bgImageView.setImageBitmap(Bitmap.createScaledBitmap(blurred, w, h, true))
+                            bgImageView.alpha = 0f
+                            bgImageView.visibility = View.VISIBLE
+                        }
                     }
-                    bgImageView.alpha = 0f   // start hidden; updateProgress drives alpha/radius
-                    bgImageView.visibility = View.VISIBLE
                 }
                 onDone()
             }, Handler(Looper.getMainLooper()))
         }
     }
 
-    // ── Software blur for pre-API 31 ──────────────────────────────────────────
+    // ── RenderScript blur for BLURVIEW pre-API31 ─────────────────────────────
+
+    @Suppress("DEPRECATION")
+    private fun renderScriptBlur(context: Context, src: Bitmap, radius: Float): Bitmap {
+        val downW = src.width / DOWNSAMPLE
+        val downH = src.height / DOWNSAMPLE
+        val down = Bitmap.createScaledBitmap(src, downW, downH, true)
+        val algo = RenderScriptBlur(context)
+        val blurred = algo.blur(down, radius.coerceIn(0f, 25f))
+        algo.destroy()
+        return Bitmap.createScaledBitmap(blurred, src.width, src.height, true)
+    }
+
+    // ── Software blur (SNAPSHOT, all API levels) ──────────────────────────────
 
     private fun stackBlur(src: Bitmap, radius: Int): Bitmap {
         val out = src.copy(Bitmap.Config.ARGB_8888, true)

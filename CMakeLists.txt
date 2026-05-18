@@ -23,6 +23,9 @@ if(EXISTS "${_AX_ROOT}/CMakeLists.txt")
     file(GLOB_RECURSE GAME_SOURCE
         app/src/main/cpp/*.cpp
         app/src/main/cpp/*.h)
+    list(APPEND GAME_SOURCE
+        app/src/main/cpp/blur_postprocess.cpp
+        app/src/main/cpp/blur_postprocess.h)
 
     add_library(${APP_NAME} SHARED ${GAME_SOURCE})
 
