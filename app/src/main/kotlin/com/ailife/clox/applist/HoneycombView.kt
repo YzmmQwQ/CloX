@@ -179,7 +179,10 @@ class HoneycombView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 AppContextMenu.dismissCurrent(); pendingDragIdx = -1
                 scroller.forceFinished(true); lastX = ev.x; lastY = ev.y
-                isPanning = false; initVelocity(ev)
+                isPanning = false
+                // Right 2/3: block GIL from DOWN so scrolling is always reliable
+                if (ev.x >= width / 3f) parent?.requestDisallowInterceptTouchEvent(true)
+                initVelocity(ev)
             }
             MotionEvent.ACTION_MOVE -> {
                 if (pendingDragIdx >= 0 && dragReorderEnabled) {

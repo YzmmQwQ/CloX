@@ -32,6 +32,12 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     var appListOpen: Boolean = false
     var gestureLocked: Boolean = false
     var pagesBackendActive: Boolean = false
+    /**
+     * When true (Grid2D or Honeycomb mode), RIGHT-swipe to close the app list
+     * only works from the left 1/3 of the screen. The right 2/3 passes through
+     * to the child view so the user can pan/scroll instead.
+     */
+    var grid2dHoneycombActive: Boolean = false
     /** Returns true when any QS/overlay panel is open — horizontal swipes should pass to VP2 */
     var qsOverlayActive: (() -> Boolean)? = null
     /** Returns true when ViewPager2 can scroll right (page > 0) — passes right swipe to child. */
@@ -207,13 +213,17 @@ class GestureInterceptorLayout @JvmOverloads constructor(
             if (dir == SwipeDirection.UP) return true
             if (dir == SwipeDirection.DOWN && widgetListCanScrollUp?.invoke() == true) return true
         }
-        return appListOpen && (
-            dir == SwipeDirection.UP || dir == SwipeDirection.DOWN ||
+        if (appListOpen) {
+            // Up/down always go to child for scrolling
+            if (dir == SwipeDirection.UP || dir == SwipeDirection.DOWN) return true
             // Pages: always pass LEFT to ViewPager2 (go to next page)
-            (pagesBackendActive && dir == SwipeDirection.LEFT) ||
-            // Pages: pass RIGHT only when there's a page to go back to; at page 0 let gesture system close the list
-            (pagesBackendActive && dir == SwipeDirection.RIGHT && pagesCanScrollRight?.invoke() == true)
-        )
+            if (pagesBackendActive && dir == SwipeDirection.LEFT) return true
+            // Pages: pass RIGHT only when there's a page to go back to
+            if (pagesBackendActive && dir == SwipeDirection.RIGHT && pagesCanScrollRight?.invoke() == true) return true
+            // Grid2D/Honeycomb: RIGHT close only works from left 1/3; right 2/3 passes to child for panning
+            if (grid2dHoneycombActive && dir == SwipeDirection.RIGHT && startX >= width / 3f) return true
+        }
+        return false
     }
 
     private fun commitDirection(dir: SwipeDirection) {

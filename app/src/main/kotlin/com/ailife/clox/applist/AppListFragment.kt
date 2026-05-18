@@ -41,6 +41,7 @@ class AppListFragment : Fragment() {
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
     var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
+    var onSetGrid2dHoneycombActive: ((Boolean) -> Unit)? = null
 
     private val viewModel: AppListViewModel by viewModels()
     private var backend: AppListBackend? = null
@@ -170,8 +171,10 @@ class AppListFragment : Fragment() {
         backend = newBackend
         lastBoundItems = null   // force bindItems on the fresh backend
         val isPages = style == AppListPrefs.STYLE_PAGES
+        val isGrid2dOrHoneycomb = style == AppListPrefs.STYLE_GRID2D || style == AppListPrefs.STYLE_HONEYCOMB
         val pagesBackend = if (isPages) newBackend as PagesBackend else null
         onPagesBackendActive?.invoke(isPages)
+        onSetGrid2dHoneycombActive?.invoke(isGrid2dOrHoneycomb)
         onSetPagesCanScrollRight(pagesBackend?.canScrollRight)
         onSetPagesDragActive(pagesBackend?.let { b -> { b.isDragActive } })
 

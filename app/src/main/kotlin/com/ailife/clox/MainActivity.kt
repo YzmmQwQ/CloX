@@ -109,6 +109,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
             frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
+            frag.onSetGrid2dHoneycombActive = { active -> gestureRoot.grid2dHoneycombActive = active }
             appListFragment = frag
             supportFragmentManager.commit { add(R.id.fragmentContainer, frag, "app_list") }
         } else {
@@ -124,6 +125,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
                     frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
                     frag.onSetPagesDragActive = { fn -> gestureRoot.pagesBackendDragActive = fn }
+                    frag.onSetGrid2dHoneycombActive = { active -> gestureRoot.grid2dHoneycombActive = active }
                 }
             appListOpen = savedInstanceState.getBoolean("app_list_open", false)
         }

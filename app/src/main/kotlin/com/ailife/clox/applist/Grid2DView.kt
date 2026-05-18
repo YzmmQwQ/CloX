@@ -189,6 +189,8 @@ class Grid2DView @JvmOverloads constructor(
                 AppContextMenu.dismissCurrent(); pendingDragIdx = -1
                 scroller.forceFinished(true)
                 lastX = ev.x; lastY = ev.y; isPanning = false
+                // Right 2/3: block GIL from DOWN so scrolling is always reliable
+                if (ev.x >= width / 3f) parent?.requestDisallowInterceptTouchEvent(true)
                 initVelocity(ev)
             }
             MotionEvent.ACTION_MOVE -> {
