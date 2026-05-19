@@ -64,15 +64,16 @@ class AppListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         AppListPrefs.get(requireContext()).registerOnSharedPreferenceChangeListener(prefsListener)
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
-        }
+        root.clipChildren = false
+        root.clipToPadding = false
         applyBackground()
         swapBackend()
         observeApps()
         observeNotifications()
+        root.post {
+            root.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+            root.buildLayer()
+        }
     }
 
     override fun onDestroyView() {
@@ -167,6 +168,10 @@ class AppListFragment : Fragment() {
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         ))
+        root.post {
+            root.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+            root.buildLayer()
+        }
 
         backend = newBackend
         lastBoundItems = null   // force bindItems on the fresh backend

@@ -28,6 +28,9 @@ class OverlayController(
     var isCollapsing = false    // closing drag in progress
         private set
 
+    /** Fires when an active overlay is dismissed (either via direct dismiss or collapse commit). */
+    var onDismissed: (() -> Unit)? = null
+
     private var screenW = 0f
     private var screenH = 0f
 
@@ -172,6 +175,7 @@ class OverlayController(
         if (overlay === widgets) widgets.onPanelClosed()
         activeOverlay = null
         activeDirection = null
+        onDismissed?.invoke()
 
         val (endX, endY) = exitTranslation(direction)
         overlay.animate().translationX(endX).translationY(endY).setDuration(180)
@@ -203,6 +207,7 @@ class OverlayController(
         if (overlay === widgets) widgets.onPanelClosed()
         activeOverlay = null
         activeDirection = null
+        onDismissed?.invoke()
 
         if (direction != null) {
             val (endX, endY) = exitTranslation(direction)

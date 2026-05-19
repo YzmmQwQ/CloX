@@ -145,7 +145,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             window, quickSettings, widgets, notifications,
             findViewById(R.id.overlayScrim),
             findViewById(R.id.blurLayer)
-        )
+        ).also { ctrl ->
+            ctrl.onDismissed = { rebuildAppListLayer() }
+        }
 
         stateManager = com.ailife.clox.qs.QsStateManager(this)
         stateManager.attach()   // always active; QS panel attach/detach add/remove their own hold
@@ -482,7 +484,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     when (direction) {
                         SwipeDirection.DOWN, SwipeDirection.UP, SwipeDirection.RIGHT ->
                             overlayController.startDrag(direction, screenW, screenH)
-                        else -> Unit
+                        SwipeDirection.LEFT -> {
+                            val v = appListFragment?.view
+                            if (v != null) {
+                                v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                                v.buildLayer()
+                            }
+                        }
                     }
                 overlayController.hasActiveOverlay() && !overlayController.isDragging ->
                     overlayController.startCollapse(direction)
@@ -518,11 +526,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (overlayController.hasActiveOverlay()) return
 
         when {
-            appListOpen && direction == SwipeDirection.RIGHT ->
-                appListFragment?.view?.translationX = dx.coerceAtLeast(0f)
-
-            !appListOpen && direction == SwipeDirection.LEFT ->
-                appListFragment?.view?.translationX = (screenW + dx).coerceIn(0f, screenW)
+            appListOpen && direction == SwipeDirection.RIGHT -> {
+                val v = appListFragment?.view ?: return
+                v.translationX = dx.coerceAtLeast(0f)
+                v.invalidate()
+            }
+            !appListOpen && direction == SwipeDirection.LEFT -> {
+                val v = appListFragment?.view ?: return
+                v.translationX = (screenW + dx).coerceIn(0f, screenW)
+                v.invalidate()
+            }
         }
     }
 
@@ -581,15 +594,25 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // ── App list ─────────────────────────────────────────────────────────────
 
+    private fun rebuildAppListLayer() {
+        val v = appListFragment?.view ?: return
+        v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+        v.buildLayer()
+    }
+
     private fun openAppList() {
         appListOpen = true; gestureRoot.appListOpen = true
-        showSystemBars()
+        val v = appListFragment?.view
+        if (v != null) {
+            v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+            v.translationX = screenW
+            v.buildLayer()
+        }
         springAppList(0f)
     }
 
     private fun closeAppList() {
         appListOpen = false; gestureRoot.appListOpen = false
-        hideSystemBars()
         springAppList(screenW)
     }
 
@@ -599,6 +622,20 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         appListSpring = SpringAnimation(v, DynamicAnimation.TRANSLATION_X, target).apply {
             spring.stiffness = SpringForce.STIFFNESS_MEDIUM
             spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
+            if (target == 0f) {
+                addEndListener { _, _, _, _ ->
+                    v.post {
+                        v.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                        v.buildLayer()
+                        if (v is android.view.ViewGroup) {
+                            for (i in 0 until v.childCount) {
+                                v.getChildAt(i).invalidate()
+                                v.getChildAt(i).requestLayout()
+                            }
+                        }
+                    }
+                }
+            }
         }
         appListSpring?.start()
     }
