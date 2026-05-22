@@ -3,6 +3,7 @@ package com.ailife.clox.qs
 import android.accessibilityservice.AccessibilityService
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
+import com.ailife.clox.rtos.RtosAccessibilityHelper
 
 class CloXAccessibilityService : AccessibilityService() {
 
@@ -33,6 +34,8 @@ class CloXAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) =
+        RtosAccessibilityHelper.handleEvent(event, this)
+
     override fun onInterrupt() {}
 }

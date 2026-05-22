@@ -33,6 +33,8 @@ import com.ailife.clox.qs.privilege.ShizukuOperations
 import com.ailife.clox.qs.tile.CustomTileMode
 import com.ailife.clox.qs.tile.TileId
 import com.ailife.clox.qs.tile.TileLayoutManager
+import com.ailife.clox.rtos.RtosManager
+import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.settings.SettingsActivity
 import com.google.android.material.slider.Slider
 import com.google.android.material.tabs.TabLayout
@@ -284,6 +286,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
             TileId.AOD.key        -> handleAod()
             TileId.AIRPLANE.key   -> handleAirplane(priv)
             TileId.HOTSPOT.key    -> handleHotspot(priv)
+            TileId.RTOS_MODE.key  -> handleRtosMode()
             else -> {
                 handleCustomTile(tileId)
                 // Refresh custom WRITE_SETTINGS tile state immediately after toggling
@@ -474,6 +477,15 @@ class QuickSettingsOverlay @JvmOverloads constructor(
             PrivilegeLevel.ROOT    -> scope?.launch(Dispatchers.IO) { if (!RootOperations.setHotspotEnabled(true)) openHotspotSettings() }
             PrivilegeLevel.NONE    -> openHotspotSettings()
         }
+    }
+
+    private fun handleRtosMode() {
+        if (!RtosPrefs.isEnabled(context) || RtosPrefs.passwordHash(context) == null) {
+            Toast.makeText(context, "RTOS mode not configured", Toast.LENGTH_SHORT).show()
+            return
+        }
+        onDismissRequest?.invoke()   // close QS panel first
+        RtosManager.enter(context)
     }
 
     private fun openHotspotSettings() = try {

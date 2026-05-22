@@ -79,9 +79,17 @@ class QsTilePageAdapter(
                         applyCustomTileState(tile, tileId, ctx)
                     }
 
-                    stateManager.stateFor(tileId)?.onEach { state ->
-                        tile.post { bindState(tile, tileId, state, ctx) }
-                    }?.launchIn(scope)
+                    val stateFlow = stateManager.stateFor(tileId)
+                    if (stateFlow != null) {
+                        stateFlow.onEach { state ->
+                            tile.post { bindState(tile, tileId, state, ctx) }
+                        }.launchIn(scope)
+                    } else {
+                        // Stateless tile (e.g. RTOS mode): apply neutral "off" style immediately
+                        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+                        val solid = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+                        if (solid) tile.applyStateSolid(false) else tile.applyState(false)
+                    }
                 } else {
                     // Invisible placeholder keeps column spacing consistent
                     row.addView(View(ctx).apply {

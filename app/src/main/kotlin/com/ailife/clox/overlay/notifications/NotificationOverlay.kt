@@ -110,13 +110,31 @@ class NotificationOverlay @JvmOverloads constructor(
         checkAndShow()
     }
 
+    /** Set to true while RTOS Mode 2 is active — panel always shows "No notifications". */
+    var rtosOverride: Boolean = false
+        set(value) {
+            field = value
+            if (!value) subscribed = false   // force re-subscription so current state re-emits
+        }
+
     fun onPanelOpened() {
+        if (rtosOverride) { showRtosNoNotifications(); return }
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         if (!prefs.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) return
         checkAndShow()
         tryFixService()
-        // Rebind media session in case it changed
         bindMedia()
+    }
+
+    /** RTOS Mode 2: show panel with only "No notifications" text, hide everything else. */
+    fun showRtosNoNotifications() {
+        permissionScreen.visibility = View.GONE
+        contentScreen.visibility    = View.VISIBLE
+        notifList.visibility        = View.GONE
+        notifPager.visibility       = View.GONE
+        fabDismissAll.visibility    = View.GONE
+        emptyText.visibility        = View.VISIBLE
+        emptyText.text              = "No notifications"
     }
 
     private fun checkAndShow() {
@@ -169,6 +187,7 @@ class NotificationOverlay @JvmOverloads constructor(
     private fun showContentScreen() {
         permissionScreen.visibility = View.GONE
         contentScreen.visibility    = View.VISIBLE
+        applyViewStyle()   // restores notifList/pager visibility (may have been hidden by RTOS override)
         bindMedia()
     }
 

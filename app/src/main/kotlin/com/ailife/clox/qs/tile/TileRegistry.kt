@@ -15,6 +15,7 @@ object TileRegistry {
         TileDescriptor("aod",        "Always On",   R.drawable.ic_aod),
         TileDescriptor("airplane",   "Airplane",    R.drawable.ic_airplane),
         TileDescriptor("hotspot",    "Hotspot",     R.drawable.ic_hotspot),
+        TileDescriptor("rtos_mode",  "RTOS Mode",   R.drawable.ic_lock_gesture, hasState = false),
     )
 
     fun forId(id: String): TileDescriptor? {

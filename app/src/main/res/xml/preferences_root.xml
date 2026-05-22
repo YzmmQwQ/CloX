@@ -80,4 +80,10 @@
         android:title="Hidden apps"
         android:summary="Blacklist or whitelist apps from the launcher" />
 
+    <Preference
+        android:key="nav_rtos"
+        android:title="RTOS Mode"
+        android:summary="Disguise launcher as a Bluetooth RTOS watch"
+        android:fragment="com.ailife.clox.rtos.settings.RtosSettingsFragment" />
+
 </PreferenceScreen>

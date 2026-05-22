@@ -420,19 +420,21 @@
         <item>modified</item>
     </string-array>
 
-    <string-array name="long_press_entries">
+    <string-array name="gesture_action_entries">
         <item>Nothing</item>
         <item>Turn screen off</item>
         <item>Open watch face selector</item>
         <item>Open settings</item>
         <item>Toggle gesture lock</item>
+        <item>Enter RTOS mode</item>
     </string-array>
-    <string-array name="long_press_values">
+    <string-array name="gesture_action_values">
         <item>nothing</item>
         <item>screen_off</item>
         <item>watchface_selector</item>
         <item>open_settings</item>
         <item>lock_gesture</item>
+        <item>start_rtos</item>
     </string-array>
 
     <!-- AOD settings -->

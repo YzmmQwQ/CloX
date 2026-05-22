@@ -231,6 +231,66 @@
             </intent-filter>
         </receiver>
 
+        <!-- RTOS mode entry activity — launched from optional launcher icon -->
+        <activity
+            android:name=".rtos.RtosEntryActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.CloX" />
+
+        <!-- Launcher alias for RTOS mode entry (disabled by default, user enables in settings) -->
+        <activity-alias
+            android:name=".rtos.RtosEntryLauncher"
+            android:targetActivity=".rtos.RtosEntryActivity"
+            android:label="RTOS Mode"
+            android:icon="@mipmap/ic_launcher"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- RTOS Mode: fake settings activity -->
+        <activity
+            android:name=".rtos.fakesettings.FakeSettingsActivity"
+            android:exported="false"
+            android:label="Settings"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CloX"
+            android:excludeFromRecents="true" />
+
+        <!-- Disabled launcher alias — enabled only when rtos_launcher_icon is on -->
+        <activity-alias
+            android:name=".rtos.fakesettings.FakeSettingsLauncher"
+            android:targetActivity=".rtos.fakesettings.FakeSettingsActivity"
+            android:label="Settings"
+            android:icon="@mipmap/ic_launcher"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- RTOS password setup -->
+        <activity
+            android:name=".rtos.settings.RtosPasswordSetupActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CloX" />
+
+        <!-- RTOS whitelist editor -->
+        <activity
+            android:name=".rtos.settings.RtosWhitelistActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.CloX" />
+
         <!-- Crash report viewer — separate process so it survives main process death -->
         <!-- Receives pinned-shortcut requests from other apps (Android 8+) -->
         <activity

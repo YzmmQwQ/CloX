@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.icon.IconResolver
+import com.ailife.clox.rtos.RtosAppGuard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +41,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
             addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)   // catches component enable/disable
             addDataScheme("package")
         }
         app.registerReceiver(packageReceiver, filter)
@@ -132,7 +134,8 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             )
             else -> resolved.sortedBy { it.label.lowercase() }
         }
-        _apps.value = sorted
+
+        _apps.value = RtosAppGuard.filterDisplay(sorted, ctx)
     }
 
     /** Called after drag-reorder completes: save new visible order and force full reload. */

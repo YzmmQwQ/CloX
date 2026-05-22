@@ -9,6 +9,8 @@ import android.view.Window
 import androidx.preference.PreferenceManager
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPermissionHelper
+import com.ailife.clox.rtos.RtosManager
+import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.settings.SettingsActivity
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
@@ -36,6 +38,7 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
             "watchface_selector" -> openWatchfaceSelector()
             "open_settings"      -> openSettings()
             "lock_gesture"       -> GestureLockManager.toggleManual()
+            "start_rtos"         -> enterRtosMode()
             // "nothing" — no-op
         }
     }
@@ -58,6 +61,11 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         ctx.startActivity(Intent(ctx, SettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
+    }
+
+    private fun enterRtosMode() {
+        if (!RtosPrefs.isEnabled(ctx) || RtosPrefs.passwordHash(ctx) == null) return
+        RtosManager.enter(ctx)
     }
 
     private fun vibrate() {

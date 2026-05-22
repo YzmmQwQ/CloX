@@ -11,7 +11,8 @@ enum class TileId(val key: String) {
     LOCATION("location"),
     AOD("aod"),
     AIRPLANE("airplane"),
-    HOTSPOT("hotspot");
+    HOTSPOT("hotspot"),
+    RTOS_MODE("rtos_mode");
 
     companion object {
         fun fromKey(key: String): TileId? = values().firstOrNull { it.key == key }

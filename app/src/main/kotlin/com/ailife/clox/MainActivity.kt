@@ -43,10 +43,18 @@ import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
 import android.appwidget.AppWidgetManager
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
 import com.ailife.clox.overlay.widgets.WidgetHostManager
+import com.ailife.clox.rtos.RtosActivityDelegate
+import com.ailife.clox.rtos.RtosManager
+import com.ailife.clox.rtos.RtosPrefs
 import dev.axmol.lib.AxmolEngine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
+
+    companion object {
+        const val ACTION_ENTER_RTOS = "com.ailife.clox.ACTION_ENTER_RTOS"
+    }
 
     override fun showDialog(pTitle: String, pMessage: String) {}
 
@@ -80,6 +88,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private lateinit var gestureHandler: GestureHandler
     private lateinit var aodManager: AodManager
     private lateinit var gestureLockIcon: ImageView
+
+    // RTOS mode — all logic in RtosActivityDelegate
+    private lateinit var rtosDelegate: RtosActivityDelegate
 
     private val screenW get() = resources.displayMetrics.widthPixels.toFloat()
     private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
@@ -175,6 +186,27 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         )
         aodManager.start()
 
+        rtosDelegate = RtosActivityDelegate(
+            activity             = this,
+            gestureRoot          = gestureRoot,
+            notificationOverlay  = notifications,
+            overlayController    = overlayController,
+            getAppListFragment   = { appListFragment },
+            closeAppList         = { if (appListOpen) closeAppList() },
+            hideSystemBars       = { hideSystemBars() }
+        )
+
+        // Observe RTOS mode changes — drop(1) skips the initial StateFlow value so
+        // onRtosExited() doesn't fire during onCreate before fragments are attached.
+        lifecycleScope.launch {
+            RtosManager.active.drop(1).collect { active ->
+                if (active) onRtosEntered() else onRtosExited()
+            }
+        }
+
+        // Restore RTOS active state after process death — post so collector above is ready first
+        gestureRoot.post { RtosManager.restoreIfNeeded(this) }
+
         // Open notification panel automatically when a new notification arrives (if enabled)
         lifecycleScope.launch {
             CloXNotificationListenerService.openPanelEvent.collect {
@@ -193,6 +225,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
+        if (intent.action == ACTION_ENTER_RTOS) {
+            if (!RtosManager.isActive) RtosManager.enter(this)
+            return
+        }
 
         // Android 11+: system sends GestureNavContract so we can provide the icon rect
         // and the system animates the closing app window to it. Must be processed before
@@ -258,11 +295,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
             aodManager.onTouch()
-            // Dismiss context menu on any tap in the activity window.
-            // Popup window is a separate window, so taps ON the menu never reach here.
             AppContextMenu.dismissCurrent()
         }
-        return super.dispatchTouchEvent(ev)
+        val result = super.dispatchTouchEvent(ev)
+        if (RtosManager.isActive) rtosDelegate.onTouch(ev, gestureRoot.width, gestureRoot.height)
+        return result
     }
 
     override fun onResume() {
@@ -272,6 +309,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         DefaultLauncherManager(this).checkAndPromptIfNeeded()
         com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
         if (overlayController.isNotificationActive()) notifications.onPanelOpened()
+
+        // Auto-enter RTOS on resume after screen off (if enabled and not already active)
+        if (!RtosManager.isActive && RtosPrefs.isEnabled(this) &&
+            RtosPrefs.autoEnter(this) && RtosPrefs.passwordHash(this) != null) {
+            RtosManager.enter(this)
+        }
 
         // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
         appLaunchedFromList = false
@@ -456,6 +499,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun setupGestures() {
         // Only pass LEFT/RIGHT through when QS (VP2) is active, not other overlays
         gestureRoot.qsOverlayActive = { overlayController.isQsActive() }
+        gestureRoot.rtosQsOverlayVisible = { rtosDelegate.isQsVisible }
         // Pass vertical + right swipes through to the notification RecyclerView/ItemTouchHelper
         gestureRoot.notificationOverlayActive = { overlayController.isNotificationActive() }
         // Widget drawer: pass all swipes to inner RecyclerView; collapse only on overscroll-down at top
@@ -463,37 +507,59 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.widgetListCanScrollUp = { widgets.canScrollUp() }
 
         gestureRoot.doubleTapListener = {
-            if (GestureLockManager.isAodLocked) {
+            if (RtosManager.isActive) {
+                // RTOS active: tap feeds unlock handler only (already done in dispatchTouchEvent)
+            } else if (GestureLockManager.isAodLocked) {
                 GestureLockManager.unlockAod()
                 aodManager.onAodGestureUnlocked()
             } else {
-                // Works whether manually locked or unlocked; "lock_gesture" action toggles it
                 gestureHandler.onDoubleTap()
             }
         }
 
         gestureRoot.longPressListener = {
-            if (!appListOpen && !overlayController.hasActiveOverlay()) {
+            if (!RtosManager.isActive && !appListOpen && !overlayController.hasActiveOverlay()) {
                 gestureHandler.onLongPress()
             }
         }
 
         gestureRoot.onSwipeStart = { direction, _, _ ->
-            when {
-                !appListOpen && !overlayController.hasActiveOverlay() ->
-                    when (direction) {
-                        SwipeDirection.DOWN, SwipeDirection.UP, SwipeDirection.RIGHT ->
-                            overlayController.startDrag(direction, screenW, screenH)
-                        SwipeDirection.LEFT -> {
-                            val v = appListFragment?.view
-                            if (v != null) {
-                                v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-                                v.buildLayer()
+            if (RtosManager.isFullMode()) {
+                // Mode 2: DOWN → RTOS QS, RIGHT → RTOS notif, LEFT → app list, UP → blocked
+                when {
+                    overlayController.hasActiveOverlay() && !overlayController.isDragging ->
+                        overlayController.startCollapse(direction)
+                    !appListOpen && !overlayController.hasActiveOverlay() ->
+                        when (direction) {
+                            SwipeDirection.DOWN  -> { /* committed in onSwipeEnd */ }
+                            SwipeDirection.RIGHT -> overlayController.startDrag(direction, screenW, screenH)
+                            SwipeDirection.LEFT  -> {
+                                val v = appListFragment?.view
+                                if (v != null) {
+                                    v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                                    v.buildLayer()
+                                }
+                            }
+                            SwipeDirection.UP -> { /* disabled */ }
+                        }
+                }
+            } else {
+                when {
+                    !appListOpen && !overlayController.hasActiveOverlay() ->
+                        when (direction) {
+                            SwipeDirection.DOWN, SwipeDirection.UP, SwipeDirection.RIGHT ->
+                                overlayController.startDrag(direction, screenW, screenH)
+                            SwipeDirection.LEFT -> {
+                                val v = appListFragment?.view
+                                if (v != null) {
+                                    v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                                    v.buildLayer()
+                                }
                             }
                         }
-                    }
-                overlayController.hasActiveOverlay() && !overlayController.isDragging ->
-                    overlayController.startCollapse(direction)
+                    overlayController.hasActiveOverlay() && !overlayController.isDragging ->
+                        overlayController.startCollapse(direction)
+                }
             }
         }
 
@@ -563,6 +629,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 else -> false
             }
             if (commit) overlayController.commitDrag() else overlayController.cancelDrag()
+            return
+        }
+
+        // Mode 2 DOWN swipe: show RTOS fake QS
+        if (RtosManager.isFullMode() && direction == SwipeDirection.DOWN &&
+            !appListOpen && !overlayController.hasActiveOverlay()) {
+            if (dy > screenH * 0.15f || vy > 400f) rtosDelegate.showQs()
             return
         }
 
@@ -647,6 +720,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Never propagates — a launcher should never exit on back.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (RtosManager.isActive) return   // block back in RTOS mode
                 when {
                     AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
                     overlayController.hasActiveOverlay() -> overlayController.dismissActive()
@@ -724,9 +798,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
     }
 
+    // ── RTOS mode ────────────────────────────────────────────────────────────
+
+    private fun onRtosEntered() = rtosDelegate.enter()
+    private fun onRtosExited()  = rtosDelegate.exit()
+
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (RtosManager.isActive) return true   // block all hardware keys in RTOS mode
         // BACK is handled by onBackPressedDispatcher (setupBackPressHandler).
         // HOME physical key: dismiss outermost layer, same logic.
         if (keyCode == KeyEvent.KEYCODE_HOME) {

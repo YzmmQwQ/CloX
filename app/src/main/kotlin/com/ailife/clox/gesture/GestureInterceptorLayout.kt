@@ -63,6 +63,13 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     var doubleTapListener: (() -> Unit)? = null
     var longPressListener: (() -> Unit)? = null
 
+    // RTOS mode 1: when true all gestures and touches are blocked (watchface only mode)
+    var rtosActive: Boolean = false
+    // RTOS mode 2: gestures work but long press must not fire haptic (interferes with password)
+    var suppressLongPress: Boolean = false
+    // Returns true when the RTOS fake QS overlay is visible — gesture interceptor stands down
+    var rtosQsOverlayVisible: (() -> Boolean)? = null
+
     private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
     private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
     private val directionRatio = 1.5f
@@ -88,7 +95,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(ev)
                 if (!isDragging) {
-                    if (gestureLocked) return false   // gestures locked — no swipes
+                    // Stand down when RTOS QS is visible — let the overlay handle swipes
+                    if (gestureLocked || rtosActive || rtosQsOverlayVisible?.invoke() == true) return false
                     val dir = detectDirection(ev) ?: return false
                     if (shouldBlock(dir)) return false   // let child scroll vertically
                     commitDirection(dir)
@@ -115,7 +123,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
                 return true           // must return true to keep receiving MOVE/UP
             }
             MotionEvent.ACTION_MOVE -> {
-                if (!isDragging && !gestureLocked) {
+                if (!isDragging && !gestureLocked && !rtosActive &&
+                    rtosQsOverlayVisible?.invoke() != true) {
                     val dir = detectDirection(ev)
                     if (dir != null && !shouldBlock(dir)) {
                         commitDirection(dir)
@@ -159,12 +168,12 @@ class GestureInterceptorLayout @JvmOverloads constructor(
 
     private fun scheduleLongPressGesture() {
         cancelLongPressGesture()
-        if (longPressListener == null) return
+        if (longPressListener == null || rtosActive) return
         val r = Runnable {
+            if (suppressLongPress) return@Runnable   // RTOS Mode 2: no haptic or action
             val overlayOpen = qsOverlayActive?.invoke() == true ||
                               notificationOverlayActive?.invoke() == true ||
                               widgetOverlayActive?.invoke() == true
-            // AOD-locked: long press is disabled. Manual lock: long press still works.
             val aodLocked = GestureLockManager.isAodLocked
             if (!isDragging && !appListOpen && !overlayOpen && !aodLocked) {
                 performHapticFeedback(
@@ -248,8 +257,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
                 if (GestureLockManager.isAodLocked || watchfaceVisible) {
                     doubleTapListener?.invoke()
                 }
-            } else if (!GestureLockManager.isAodLocked) {
-                // Single tap: pass to Lua unless AOD-locked (watchface tap actions disabled)
+            } else if (!GestureLockManager.isAodLocked && !rtosActive) {
+                // Single tap: pass to Lua unless AOD-locked or RTOS active
                 LuaBridge.passTouch(ev.x, ev.y, ev.action)
             }
         }

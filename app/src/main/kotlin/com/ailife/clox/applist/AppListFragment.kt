@@ -25,6 +25,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.ailife.clox.R
 import android.graphics.Rect
 import com.ailife.clox.applist.backends.Grid2DBackend
+import com.ailife.clox.rtos.RtosAppGuard
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 import com.ailife.clox.applist.backends.GridBackend
@@ -37,6 +38,8 @@ import kotlinx.coroutines.launch
 class AppListFragment : Fragment() {
 
     var onRequestClose: (() -> Unit)? = null
+
+    fun refreshApps() { if (isAdded) viewModel.loadApps(force = true) }
     var onAppLaunched: ((AppItem, Rect, android.view.View) -> Unit)? = null
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
@@ -135,6 +138,7 @@ class AppListFragment : Fragment() {
 
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item, sourceView ->
+            if (RtosAppGuard.allowLaunch(ctx, item)) {
             // Prefer the icon ImageView for tighter bounds; fall back to the whole item view
             val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
             val bounds = Rect().also { boundsView.getGlobalVisibleRect(it) }
@@ -151,13 +155,15 @@ class AppListFragment : Fragment() {
                     ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     ?.let { ctx.startActivity(it, opts) }
             }
+            } // end if (!rtosBlocked)
         }
-        newBackend.onAppLongPress = { item, anchor ->
-            AppContextMenu.show(ctx, anchor, item,
-                onIconChanged = { viewModel.loadApps() },
-                onHideApp = { viewModel.loadApps() }
-            )
-        }
+        newBackend.onAppLongPress = if (!RtosAppGuard.isLongPressAllowed) null else
+            { item, anchor ->
+                AppContextMenu.show(ctx, anchor, item,
+                    onIconChanged = { viewModel.loadApps() },
+                    onHideApp = { viewModel.loadApps() }
+                )
+            }
         newBackend.onRequestClose = { onRequestClose?.invoke() }
         newBackend.onOrderChanged = { items -> viewModel.saveCustomOrder(items) }
 

@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="double_tap_entries">
-        <item>Nothing</item>
-        <item>Turn screen off</item>
-        <item>Open watch face selector</item>
-        <item>Open settings</item>
-        <item>Toggle gesture lock</item>
+    <string-array name="rtos_mode_entries">
+        <item>Watchface only</item>
+        <item>Full RTOS simulation</item>
     </string-array>
-    <string-array name="double_tap_values">
-        <item>nothing</item>
-        <item>screen_off</item>
-        <item>watchface_selector</item>
-        <item>open_settings</item>
-        <item>lock_gesture</item>
+    <string-array name="rtos_mode_values">
+        <item>watchface_only</item>
+        <item>full</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>Keypad (invisible 3×3 grid)</item>
+        <item>Morse code (long/short press)</item>
+    </string-array>
+    <string-array name="rtos_password_values">
+        <item>keypad</item>
+        <item>morse</item>
     </string-array>
 
     <string-array name="qs_tile_style_entries">
