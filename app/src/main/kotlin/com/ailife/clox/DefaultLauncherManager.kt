@@ -1,10 +1,12 @@
 package com.ailife.clox
 
 import android.app.Activity
+import android.app.role.RoleManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
@@ -55,17 +57,30 @@ class DefaultLauncherManager(private val activity: Activity) {
     }
 
     private fun openLauncherChooser() {
-        try {
-            val pm = activity.packageManager
-            val fakeHome = ComponentName(activity, "${activity.packageName}.FakeHome")
-            pm.setComponentEnabledSetting(fakeHome, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
-                activity.startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
-            } catch (_: Exception) { }
-            pm.setComponentEnabledSetting(fakeHome, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-            Log.d(TAG, "Opened launcher chooser")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to open launcher chooser", e)
+                val roleManager = activity.getSystemService(RoleManager::class.java)
+                if (roleManager != null && !roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                    activity.startActivityForResult(intent, REQUEST_CODE_SET_DEFAULT_HOME)
+                    Log.d(TAG, "Opened RoleManager home role request")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to open RoleManager launcher chooser", e)
+            }
+        } else {
+            try {
+                val pm = activity.packageManager
+                val fakeHome = ComponentName(activity, "${activity.packageName}.FakeHome")
+                pm.setComponentEnabledSetting(fakeHome, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+                try {
+                    activity.startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
+                } catch (_: Exception) { }
+                pm.setComponentEnabledSetting(fakeHome, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                Log.d(TAG, "Opened FakeHome launcher chooser")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to open launcher chooser", e)
+            }
         }
     }
 
@@ -78,5 +93,6 @@ class DefaultLauncherManager(private val activity: Activity) {
         private const val PREFS_NAME = "default_launcher_prefs"
         private const val KEY_NEVER_ASK = "never_ask_again"
         private const val KEY_USER_WANTS_SET = "user_wants_set_as_default"
+        const val REQUEST_CODE_SET_DEFAULT_HOME = 1337
     }
 }

@@ -800,6 +800,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 pendingWidgetId = -1; pendingWidgetSlot = null
                 if (widgetId != -1) widgets.onWidgetPicked(widgetId, slot)
             }
+
+            DefaultLauncherManager.REQUEST_CODE_SET_DEFAULT_HOME -> {
+                // Nothing to do — user either accepted or dismissed the role request.
+                // isDefaultLauncher() will reflect the new state on next resume.
+            }
         }
     }
 
