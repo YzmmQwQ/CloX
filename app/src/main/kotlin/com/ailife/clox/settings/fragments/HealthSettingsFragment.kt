@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.ListPreference
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.BhtApiClient
@@ -19,7 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class HealthSettingsFragment : PreferenceFragmentCompat() {
+class HealthSettingsFragment : BasePreferenceFragment() {
 
     private var refreshJob: Job? = null
     private var observeJob: Job? = null

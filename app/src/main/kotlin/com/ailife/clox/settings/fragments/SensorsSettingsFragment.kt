@@ -12,12 +12,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.SensorsPrefs
 
-class SensorsSettingsFragment : PreferenceFragmentCompat() {
+class SensorsSettingsFragment : BasePreferenceFragment() {
 
     private lateinit var sensorManager: SensorManager
 

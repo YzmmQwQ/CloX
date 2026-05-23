@@ -7,7 +7,11 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
@@ -27,8 +31,16 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
     private lateinit var btnPickFiles: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_wf_batch_import)
+
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        title = getString(R.string.wf_import)
+
+        // fitsSystemWindows="true" on AppBarLayout handles status bar inset automatically
 
         progressBar = findViewById(R.id.progressBar)
         tvStatus = findViewById(R.id.tvStatus)
@@ -50,9 +62,6 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
                 }, REQ_FILES
             )
         }
-
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = getString(R.string.wf_import)
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -123,7 +132,6 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
     private fun onImportDone(count: Int) {
         setImporting(false)
         tvStatus.text = getString(R.string.wf_import_done, count)
-        // Navigate to selector after brief delay
         tvStatus.postDelayed({
             startActivity(Intent(this, WatchfaceSelectorActivity::class.java))
             finish()

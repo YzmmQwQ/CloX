@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- ── Launcher / watchface screen — black, no system bars ── -->
     <style name="Theme.CloX" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
     </style>
@@ -12,27 +14,29 @@
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
-    <style name="Theme.CloX.Settings" parent="Theme.Material3.DayNight">
+    <!-- ── Settings and standard UI screens — NoActionBar, toolbar in layout ── -->
+    <style name="Theme.CloX.Settings" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">?attr/colorSurface</item>
     </style>
 
+    <!-- Alias used by WatchfaceStore, Gallery, Remote, etc. -->
     <style name="Theme.CloX.NoActionBar" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">?attr/colorSurface</item>
     </style>
 
+    <!-- ── Watchface selector — full black, edge-to-edge, hides bars ── -->
     <style name="Theme.CloX.WatchfaceSelector" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Album art: 12dp rounded corners -->
+    <!-- ── Shape tokens ── -->
     <style name="ShapeAppearance.AlbumArt" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">12dp</item>
     </style>
 
-    <!-- Play/pause button: rounded square -->
     <style name="ShapeAppearance.PlayPause" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">12dp</item>

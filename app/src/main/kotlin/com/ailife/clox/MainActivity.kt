@@ -12,8 +12,8 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.view.KeyEvent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.dynamicanimation.animation.DynamicAnimation
@@ -98,6 +98,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         // Apply wallpaper-derived Material3 dynamic colors (Android 12+, no-op on older)
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
@@ -283,7 +284,6 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     internal fun hideSystemBars() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

@@ -4,16 +4,20 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,15 +44,32 @@ class GalleryActivity : AppCompatActivity() {
     ) { uris -> if (uris.isNotEmpty()) importImages(uris) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_gallery)
 
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = getString(R.string.gallery_title)
 
         recyclerView = findViewById(R.id.rvGallery)
         tvEmpty = findViewById(R.id.tvGalleryEmpty)
         fab = findViewById(R.id.fabImport)
+
+        // Apply nav bar inset to FAB margin and RecyclerView bottom padding
+        ViewCompat.setOnApplyWindowInsetsListener(fab) { v, insets ->
+            val navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val lp = v.layoutParams as androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
+            lp.bottomMargin = 16.dpToPx() + navBottom
+            v.layoutParams = lp
+            insets
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { v, insets ->
+            val navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, 88.dpToPx() + navBottom)
+            insets
+        }
 
         adapter = GalleryAdapter(lifecycleScope) { file, position ->
             confirmDelete(file, position)
@@ -71,6 +92,8 @@ class GalleryActivity : AppCompatActivity() {
         onBackPressed()
         return true
     }
+
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun loadGallery() {
         lifecycleScope.launch {

@@ -3,7 +3,6 @@ package com.ailife.clox.settings.fragments
 import android.content.Intent
 import android.os.Bundle
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.watchface.WatchfaceBatchImportActivity
 import com.ailife.clox.watchface.gallery.GalleryActivity
@@ -11,7 +10,7 @@ import com.ailife.clox.watchface.remote.RemoteManagementActivity
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
 import com.ailife.clox.watchface.store.WatchfaceStoreActivity
 
-class WatchfaceSettingsFragment : PreferenceFragmentCompat() {
+class WatchfaceSettingsFragment : BasePreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_watchface, rootKey)

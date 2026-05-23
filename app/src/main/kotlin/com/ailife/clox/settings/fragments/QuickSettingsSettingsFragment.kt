@@ -8,7 +8,6 @@ import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.ListPreference
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
@@ -17,7 +16,7 @@ import com.ailife.clox.qs.QsPrefs
 import com.ailife.clox.qs.privilege.PrivilegeLevel
 import com.ailife.clox.qs.privilege.PrivilegeManager
 
-class QuickSettingsSettingsFragment : PreferenceFragmentCompat() {
+class QuickSettingsSettingsFragment : BasePreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_quick_settings, rootKey)

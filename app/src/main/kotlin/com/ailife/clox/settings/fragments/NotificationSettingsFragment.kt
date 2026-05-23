@@ -5,11 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 
-class NotificationSettingsFragment : PreferenceFragmentCompat() {
+class NotificationSettingsFragment : BasePreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_notifications, rootKey)

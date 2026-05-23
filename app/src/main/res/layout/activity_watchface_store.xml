@@ -1,47 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="?attr/colorSurface">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/storeToolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:layout_marginHorizontal="8dp"
-        app:title="@string/pref_wf_store_title" />
-
-    <!-- Pagination progress bar — visible while loading more pages -->
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/storeProgressBar"
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/storeAppBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:indeterminate="true"
-        android:visibility="gone" />
+        android:fitsSystemWindows="true">
 
-    <!-- Category chips -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingBottom="4dp">
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/storeToolbar"
+            style="@style/Widget.Material3.Toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/pref_wf_store_title"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationContentDescription="@string/action_back" />
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/storeCategoryChips"
-            android:layout_width="wrap_content"
+        <!-- Pagination progress bar — visible while loading more pages -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/storeProgressBar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="8dp"
-            app:singleSelection="true" />
-    </HorizontalScrollView>
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <!-- Category chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:paddingBottom="4dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/storeCategoryChips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="8dp"
+                app:singleSelection="true" />
+        </HorizontalScrollView>
+
+    </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Content stack: recycler + initial-load circular progress -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/storeRecycler"
@@ -62,4 +71,4 @@
 
     </FrameLayout>
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

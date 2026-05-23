@@ -3,14 +3,13 @@ package com.ailife.clox.settings.fragments
 import android.os.Bundle
 import androidx.preference.ListPreference
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.ailife.clox.R
 import com.ailife.clox.gesture.ButtonMappingPrefs
 import com.ailife.clox.gesture.ButtonRecordDialogFragment
 import com.ailife.clox.qs.QsPermissionHelper
 
-class GesturesSettingsFragment : PreferenceFragmentCompat() {
+class GesturesSettingsFragment : BasePreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_gestures, rootKey)

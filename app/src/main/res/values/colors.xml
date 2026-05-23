@@ -3,4 +3,5 @@
     <color name="clox_bg">#FF000000</color>
     <color name="clox_accent">#FF1E88E5</color>
     <color name="overlay_scrim">#CC000000</color>
+    <color name="notif_badge">#B3261E</color>
 </resources>

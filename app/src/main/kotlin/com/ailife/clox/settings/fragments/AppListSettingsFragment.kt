@@ -7,7 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SeekBarPreference
 import com.ailife.clox.R
 import com.ailife.clox.applist.AppListPrefs
@@ -15,7 +14,7 @@ import com.ailife.clox.icon.IconPackLoader
 import java.io.File
 import java.io.FileOutputStream
 
-class AppListSettingsFragment : PreferenceFragmentCompat() {
+class AppListSettingsFragment : BasePreferenceFragment() {
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri ?: return@registerForActivityResult

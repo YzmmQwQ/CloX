@@ -12,7 +12,11 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
 import com.google.android.material.button.MaterialButton
@@ -35,10 +39,16 @@ class RemoteManagementActivity : AppCompatActivity() {
     private lateinit var btnOpenBrowser: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_remote_management)
-        title = getString(R.string.pref_wf_remote_title)
+
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        title = getString(R.string.pref_wf_remote_title)
+
+        // fitsSystemWindows="true" on AppBarLayout handles status bar inset automatically
 
         switchServer    = findViewById(R.id.switchServer)
         tvServerStatus  = findViewById(R.id.tvServerStatus)
@@ -75,7 +85,6 @@ class RemoteManagementActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Sync UI with actual server state (handles re-entry after activity was destroyed)
         if (WatchfaceServerManager.isRunning) {
             switchServer.isChecked = true
             val ip = getLocalIpAddress() ?: "?.?.?.?"
@@ -87,9 +96,6 @@ class RemoteManagementActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean { finish(); return true }
-
-    // onDestroy intentionally does NOT stop the server — user must toggle switch explicitly.
-    // The server is a singleton (WatchfaceServerManager) that outlives this activity.
 
     private fun startServer() {
         val ok = WatchfaceServerManager.start(this)

@@ -11,11 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.WeatherPrefs
 
-class LocationSettingsFragment : PreferenceFragmentCompat() {
+class LocationSettingsFragment : BasePreferenceFragment() {
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()

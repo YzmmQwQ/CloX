@@ -6,11 +6,10 @@ import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.tapaction.TapActionHandler
 
-class TapActionsSettingsFragment : PreferenceFragmentCompat() {
+class TapActionsSettingsFragment : BasePreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         val ctx    = requireContext()

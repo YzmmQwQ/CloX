@@ -1,19 +1,37 @@
 package com.ailife.clox.settings
 
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.commit
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
+import com.ailife.clox.databinding.ActivitySettingsBinding
 import com.ailife.clox.settings.fragments.RootSettingsFragment
 
 class SettingsActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
+    private lateinit var binding: ActivitySettingsBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
+        binding = ActivitySettingsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        title = getString(R.string.settings_title)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.settingsRoot) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            binding.settingsContainer.setPadding(0, 0, 0, bars.bottom)
+            insets
+        }
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
@@ -21,10 +39,6 @@ class SettingsActivity : AppCompatActivity(),
             }
         }
 
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = getString(R.string.settings_title)
-
-        // Update title when back stack changes
         supportFragmentManager.addOnBackStackChangedListener {
             if (supportFragmentManager.backStackEntryCount == 0) {
                 title = getString(R.string.settings_title)
@@ -32,7 +46,6 @@ class SettingsActivity : AppCompatActivity(),
         }
     }
 
-    // Called when a Preference with android:fragment is tapped
     override fun onPreferenceStartFragment(
         caller: PreferenceFragmentCompat,
         pref: Preference

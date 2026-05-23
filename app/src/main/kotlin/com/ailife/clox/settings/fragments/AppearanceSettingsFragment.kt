@@ -2,11 +2,10 @@ package com.ailife.clox.settings.fragments
 
 import android.os.Bundle
 import androidx.preference.EditTextPreference
-import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.MainActivity
 import com.ailife.clox.R
 
-class AppearanceSettingsFragment : PreferenceFragmentCompat() {
+class AppearanceSettingsFragment : BasePreferenceFragment() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey)
 

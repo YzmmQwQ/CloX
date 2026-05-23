@@ -50,6 +50,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 class QuickSettingsOverlay @JvmOverloads constructor(
     ctx: Context,
@@ -102,6 +106,16 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         setupBrightness()
         setupBottomBar()
         applyDynamicSizes()
+
+        // Pad the inner scroll content for the nav bar so the bottom action bar is never hidden
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+            val navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val inner = findViewById<LinearLayout>(R.id.qsBottomBar)?.parent?.parent
+            if (inner is ScrollView) {
+                inner.setPadding(inner.paddingLeft, inner.paddingTop, inner.paddingRight, navBottom)
+            }
+            insets
+        }
     }
 
     private fun applyDynamicSizes() {

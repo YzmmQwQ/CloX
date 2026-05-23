@@ -2,12 +2,11 @@ package com.ailife.clox.settings.fragments
 
 import android.os.Bundle
 import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.HideAppsFragment
 
-class RootSettingsFragment : PreferenceFragmentCompat() {
+class RootSettingsFragment : BasePreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_root, rootKey)
