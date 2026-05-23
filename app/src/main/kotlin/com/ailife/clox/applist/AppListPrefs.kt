@@ -190,6 +190,15 @@ object AppListPrefs {
         else get(ctx).edit().putString(KEY_HIDE_APPS_PASSWORD, password).apply()
     }
 
+    // ── Launch animation ─────────────────────────────────────────────────────
+
+    const val KEY_LAUNCH_ANIM        = "launch_anim_style"
+    const val LAUNCH_ANIM_SYSTEM     = "system"
+    const val LAUNCH_ANIM_CUSTOM     = "custom"
+
+    fun useCustomLaunchAnim(ctx: Context) =
+        get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_SYSTEM) == LAUNCH_ANIM_CUSTOM
+
     // ── Notification badges ──────────────────────────────────────────────────
 
     const val KEY_NOTIF_BADGE       = "notif_badge"

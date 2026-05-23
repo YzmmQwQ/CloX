@@ -40,7 +40,7 @@ class AppListFragment : Fragment() {
     var onRequestClose: (() -> Unit)? = null
 
     fun refreshApps() { if (isAdded) viewModel.loadApps(force = true) }
-    var onAppLaunched: ((AppItem, Rect, android.view.View) -> Unit)? = null
+    var onAppLaunched: ((AppItem, Rect, android.view.View, () -> Unit) -> Unit)? = null
     var onPagesBackendActive: ((Boolean) -> Unit)? = null
     var onSetPagesCanScrollRight: ((() -> Boolean)?) -> Unit = {}
     var onSetPagesDragActive: ((() -> Boolean)?) -> Unit = {}
@@ -142,19 +142,33 @@ class AppListFragment : Fragment() {
             // Prefer the icon ImageView for tighter bounds; fall back to the whole item view
             val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
             val bounds = Rect().also { boundsView.getGlobalVisibleRect(it) }
-            onAppLaunched?.invoke(item, bounds, boundsView)
             val intent = android.content.Intent().apply {
                 setClassName(item.packageName, item.activityName)
                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            val opts = ActivityOptions.makeScaleUpAnimation(
-                sourceView, 0, 0, sourceView.width, sourceView.height
-            ).toBundle()
-            runCatching { ctx.startActivity(intent, opts) }.onFailure {
-                ctx.packageManager.getLaunchIntentForPackage(item.packageName)
-                    ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                    ?.let { ctx.startActivity(it, opts) }
+            val useCustomAnim = AppListPrefs.useCustomLaunchAnim(ctx)
+            val doLaunch: () -> Unit = if (useCustomAnim) {
+                {
+                    val opts = ActivityOptions.makeCustomAnimation(ctx, 0, 0).toBundle()
+                    runCatching { ctx.startActivity(intent, opts) }.onFailure {
+                        ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                            ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            ?.let { ctx.startActivity(it, opts) }
+                    }
+                }
+            } else {
+                {
+                    val opts = ActivityOptions.makeScaleUpAnimation(
+                        boundsView, 0, 0, boundsView.width, boundsView.height
+                    ).toBundle()
+                    runCatching { ctx.startActivity(intent, opts) }.onFailure {
+                        ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                            ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            ?.let { ctx.startActivity(it, opts) }
+                    }
+                }
             }
+            onAppLaunched?.invoke(item, bounds, boundsView, doLaunch) ?: doLaunch()
             } // end if (!rtosBlocked)
         }
         newBackend.onAppLongPress = if (!RtosAppGuard.isLongPressAllowed) null else

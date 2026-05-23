@@ -100,7 +100,6 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        // Apply wallpaper-derived Material3 dynamic colors (Android 12+, no-op on older)
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
         hideSystemBars()
@@ -115,11 +114,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
             val frag = AppListFragment()
             frag.onRequestClose = { closeAppList() }
-            frag.onAppLaunched = { item, bounds, iconView ->
+            frag.onAppLaunched = { item, bounds, iconView, launch ->
                 appLaunchedFromList = true
                 lastLaunchedItem = item
                 lastLaunchBounds = bounds
                 lastLaunchIconView = java.lang.ref.WeakReference(iconView)
+                if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
+                    playLaunchAnimation(item, bounds, launch)
+                } else {
+                    launch()
+                }
             }
             frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
             frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
@@ -131,11 +135,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListFragment = (supportFragmentManager
                 .findFragmentByTag("app_list") as? AppListFragment)?.also { frag ->
                     frag.onRequestClose = { closeAppList() }
-                    frag.onAppLaunched = { item, bounds, iconView ->
+                    frag.onAppLaunched = { item, bounds, iconView, launch ->
                 appLaunchedFromList = true
                 lastLaunchedItem = item
                 lastLaunchBounds = bounds
                 lastLaunchIconView = java.lang.ref.WeakReference(iconView)
+                if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
+                    playLaunchAnimation(item, bounds, launch)
+                } else {
+                    launch()
+                }
             }
                     frag.onPagesBackendActive = { active -> gestureRoot.pagesBackendActive = active }
                     frag.onSetPagesCanScrollRight = { fn -> gestureRoot.pagesCanScrollRight = fn }
@@ -312,17 +321,21 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         super.onResume()
         CocosManager.onResume()
         aodManager.onResume()
-        DefaultLauncherManager(this).checkAndPromptIfNeeded()
-        com.ailife.clox.qs.QsPermissionHelper.requestMissing(this)
         if (overlayController.isNotificationActive()) notifications.onPanelOpened()
+
+        // Defer non-critical UI operations to after the first frame so the
+        // watchface GL surface can render without competing for UI thread time.
+        gestureRoot.post {
+            DefaultLauncherManager(this@MainActivity).checkAndPromptIfNeeded()
+            com.ailife.clox.qs.QsPermissionHelper.requestMissing(this@MainActivity)
+            com.ailife.clox.watchface.WatchfaceAutoChanger.checkOnResume(this@MainActivity, lifecycleScope)
+        }
 
         // Auto-enter RTOS on resume after screen off (if enabled and not already active)
         if (!RtosManager.isActive && RtosPrefs.isEnabled(this) &&
             RtosPrefs.autoEnter(this) && RtosPrefs.passwordHash(this) != null) {
             RtosManager.enter(this)
         }
-
-        com.ailife.clox.watchface.WatchfaceAutoChanger.checkOnResume(this, lifecycleScope)
 
         // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
         appLaunchedFromList = false
@@ -410,6 +423,66 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
                     gestureRoot.removeView(iv)
+                }
+            })
+            start()
+        }
+    }
+
+    private fun playLaunchAnimation(item: AppItem, iconBounds: Rect, onAnimEnd: () -> Unit) {
+        val sw = screenW.toInt(); val sh = screenH.toInt()
+        val rootLoc = IntArray(2)
+        gestureRoot.getLocationOnScreen(rootLoc)
+
+        val iconLeft = iconBounds.left - rootLoc[0]
+        val iconTop  = iconBounds.top  - rootLoc[1]
+        val iconW    = iconBounds.width().coerceAtLeast(1)
+        val iconH    = iconBounds.height().coerceAtLeast(1)
+
+        // Full-screen black scrim, starts transparent
+        val scrim = android.view.View(this).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            alpha = 0f
+        }
+        gestureRoot.addView(scrim, FrameLayout.LayoutParams(sw, sh))
+
+        // Icon overlay starting at the icon's position
+        val iv = ImageView(this).apply {
+            setImageDrawable(item.icon)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            pivotX = iconW / 2f; pivotY = iconH / 2f
+            isClickable = false; isFocusable = false
+        }
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(iconW, iconH).apply {
+            leftMargin = iconLeft; topMargin = iconTop
+        })
+
+        // End state: icon centred, scaled up to a reasonable hero size (~40% of screen)
+        val heroSize = (minOf(sw, sh) * 0.40f)
+        val targetScale = heroSize / minOf(iconW, iconH)
+        val targetTx = (sw / 2f) - (iconLeft + iconW / 2f)
+        val targetTy = (sh / 2f) - (iconTop  + iconH / 2f)
+
+        android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 400
+            interpolator = android.view.animation.DecelerateInterpolator(1.8f)
+            addUpdateListener { va ->
+                val t = va.animatedValue as Float
+                iv.scaleX = 1f + (targetScale - 1f) * t
+                iv.scaleY = 1f + (targetScale - 1f) * t
+                iv.translationX = targetTx * t
+                iv.translationY = targetTy * t
+                scrim.alpha = t
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    // Screen is now fully black with icon centred — start the app
+                    onAnimEnd()
+                    // Keep the scrim up while the app window renders, then clean up
+                    gestureRoot.postDelayed({
+                        gestureRoot.removeView(iv)
+                        gestureRoot.removeView(scrim)
+                    }, 500)
                 }
             })
             start()

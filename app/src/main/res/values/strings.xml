@@ -127,6 +127,15 @@
         <item>custom</item>
     </string-array>
 
+    <string-array name="launch_anim_entries">
+        <item>System default</item>
+        <item>Android 12 icon expand</item>
+    </string-array>
+    <string-array name="launch_anim_values">
+        <item>system</item>
+        <item>custom</item>
+    </string-array>
+
     <!-- ── Tap Actions ───────────────────────────────────────────────────── -->
     <string name="pref_tap_title">Tap Actions</string>
     <string name="pref_tap_summary">Map watchface shortcuts to your preferred apps</string>
