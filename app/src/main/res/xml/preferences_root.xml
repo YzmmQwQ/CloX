@@ -98,4 +98,11 @@
         android:icon="@drawable/ic_power"
         android:fragment="com.ailife.clox.rtos.settings.RtosSettingsFragment" />
 
+    <Preference
+        android:key="nav_about"
+        android:title="About &amp; Update"
+        android:summary="Version, developers, Onyx project, update checker"
+        android:icon="@drawable/ic_info"
+        android:fragment="com.ailife.clox.settings.fragments.AboutFragment" />
+
 </PreferenceScreen>
