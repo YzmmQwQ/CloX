@@ -56,6 +56,16 @@ intent.putExtra("key",  "outdoor_temp");
 context.sendBroadcast(intent);
 ```
 
+**ADB shell example (testing from command line):**
+
+```bash
+adb shell 'am broadcast -a com.ailife.clox.WRITE_DATA \
+  -n com.ailife.clox/.cocos.bridge.ExternalDataReceiver \
+  --ei slot 1 \
+  --es data "hello world" \
+  --es key "test"'
+```
+
 > **Note:** `setPackage("com.ailife.clox")` is recommended so the broadcast is delivered only to CloX, not to any other receiver that might register for the same action.
 
 ---
