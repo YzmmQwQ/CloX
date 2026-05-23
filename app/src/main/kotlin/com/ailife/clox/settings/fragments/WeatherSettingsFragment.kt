@@ -12,6 +12,7 @@ import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.WeatherPrefs
 import com.ailife.clox.cocos.bridge.WeatherRepository
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,10 +69,19 @@ class WeatherSettingsFragment : PreferenceFragmentCompat() {
             pref.isEnabled = false
             pref.title = getString(R.string.pref_weather_refreshing)
             viewLifecycleOwner.lifecycleScope.launch {
-                WeatherRepository.refresh(ctx)
+                val error = WeatherRepository.refresh(ctx)
                 pref.title = getString(R.string.pref_weather_refresh_title)
                 pref.isEnabled = true
-                updateLastFetchSummary()
+                if (error != null) {
+                    val msg = error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
+                    MaterialAlertDialogBuilder(ctx)
+                        .setTitle(R.string.pref_weather_refresh_error_title)
+                        .setMessage(msg)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                } else {
+                    updateLastFetchSummary()
+                }
             }
             true
         }

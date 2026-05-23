@@ -227,19 +227,19 @@ class WatchfaceBridgeManager(
         // has elapsed since the last successful update and the feature is in use.
         scope.launch {
             while (isActive) {
-                delay(60_000)
-                val enabled     = WeatherPrefs.enabled(ctx)
+                val enabled      = WeatherPrefs.enabled(ctx)
                 val wantsWeather = watchfaceWantsWeather
-                val hasWidget   = hasWeatherWidget()
-                if (!enabled || (!wantsWeather && !hasWidget)) continue
-
-                val lastUpdate  = WeatherRepository.getLatestJson()?.optLong("lastUpdate", 0L) ?: 0L
-                val intervalMs  = WeatherPrefs.intervalMs(ctx)
-                val elapsed     = System.currentTimeMillis() - lastUpdate
-                Log.d(TAG, "Weather tick: elapsed=${elapsed / 60_000}min interval=${intervalMs / 60_000}min")
-                if (elapsed >= intervalMs) {
-                    WeatherRepository.refresh(ctx)
+                val hasWidget    = hasWeatherWidget()
+                if (enabled && (wantsWeather || hasWidget)) {
+                    val lastUpdate = WeatherRepository.getLatestJson()?.optLong("lastUpdate", 0L) ?: 0L
+                    val intervalMs = WeatherPrefs.intervalMs(ctx)
+                    val elapsed    = System.currentTimeMillis() - lastUpdate
+                    Log.d(TAG, "Weather tick: elapsed=${elapsed / 60_000}min interval=${intervalMs / 60_000}min")
+                    if (elapsed >= intervalMs) {
+                        WeatherRepository.refresh(ctx)
+                    }
                 }
+                delay(60_000)
             }
         }
 
@@ -254,7 +254,6 @@ class WatchfaceBridgeManager(
         // its configured interval has elapsed and the watchface requests it.
         scope.launch {
             while (isActive) {
-                delay(60_000)
                 val intervalMs = HealthPrefs.intervalMs(ctx)
                 for (metric in HealthHelper.Metric.entries) {
                     if (watchfaceWantsHealth[metric] != true) continue
@@ -266,6 +265,7 @@ class WatchfaceBridgeManager(
                         }
                     }
                 }
+                delay(60_000)
             }
         }
     }
@@ -303,10 +303,20 @@ class WatchfaceBridgeManager(
                         TapActionHandler.handle(ctx, shortcut)
                     }
                 }
-                "setWeatherEnabled" -> watchfaceWantsWeather = json.optBoolean("enabled")
+                "setWeatherEnabled" -> {
+                    val enabled = json.optBoolean("enabled")
+                    watchfaceWantsWeather = enabled
+                    if (enabled && WeatherPrefs.enabled(ctx)) {
+                        scope.launch { checkAndRefreshWeather() }
+                    }
+                }
                 "setHealthEnabled" -> {
                     val metric = HealthHelper.metricFromName(json.optString("metric"))
-                    if (metric != null) watchfaceWantsHealth[metric] = json.optBoolean("enabled")
+                    val enabled = json.optBoolean("enabled")
+                    if (metric != null) {
+                        watchfaceWantsHealth[metric] = enabled
+                        if (enabled) scope.launch { checkAndRefreshHealth(metric) }
+                    }
                 }
                 "setSensorEnabled" -> sensorHelper.setEnabled(
                     json.optString("sensor"),
@@ -354,6 +364,22 @@ class WatchfaceBridgeManager(
             glView.queueEvent(block)
         } else {
             Log.w(TAG, "queueOnGL skipped — GL view not ready")
+        }
+    }
+
+    private suspend fun checkAndRefreshWeather() {
+        val lastUpdate = WeatherRepository.getLatestJson()?.optLong("lastUpdate", 0L) ?: 0L
+        val elapsed    = System.currentTimeMillis() - lastUpdate
+        if (elapsed >= WeatherPrefs.intervalMs(ctx)) WeatherRepository.refresh(ctx)
+    }
+
+    private suspend fun checkAndRefreshHealth(metric: HealthHelper.Metric) {
+        val lastFetch = HealthHelper.getLastFetchTimeMs(metric) ?: 0L
+        val elapsed   = System.currentTimeMillis() - lastFetch
+        if (elapsed >= HealthPrefs.intervalMs(ctx)) {
+            HealthHelper.fetchAndUpdate(metric, ctx) { interim ->
+                sendToLua(HealthHelper.metricCategory(metric), interim)
+            }
         }
     }
 

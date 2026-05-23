@@ -48,9 +48,10 @@ object WeatherRepository {
      *
      * Must be called from a coroutine (suspend).
      */
-    suspend fun refresh(ctx: Context) {
+    /** Returns null on success, or the exception on failure. */
+    suspend fun refresh(ctx: Context): Exception? {
         Log.d(TAG, "refresh() called, enabled=${WeatherPrefs.enabled(ctx)}")
-        if (!WeatherPrefs.enabled(ctx)) return
+        if (!WeatherPrefs.enabled(ctx)) return null
 
         // Optionally refresh the primary coordinates via IP geolocation
         var lat = WeatherPrefs.lat(ctx)
@@ -69,10 +70,10 @@ object WeatherRepository {
 
         if (lat == 0.0 && lon == 0.0) {
             Log.w(TAG, "No location set — skipping weather fetch")
-            return
+            return Exception("No location set. Please configure your location in settings.")
         }
 
-        try {
+        return try {
             val provider = WeatherProvider.forKey(WeatherPrefs.provider(ctx))
             val result   = provider.fetch(ctx, lat, lon)
             val json     = result.toJson(WeatherPrefs.roundTemp(ctx))
@@ -81,8 +82,10 @@ object WeatherRepository {
             persist(ctx, json)
             broadcast(ctx)
             Log.d(TAG, "Weather refreshed via ${WeatherPrefs.provider(ctx)}")
+            null
         } catch (e: Exception) {
             Log.e(TAG, "Weather fetch failed", e)
+            e
         }
     }
 

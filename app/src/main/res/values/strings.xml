@@ -159,6 +159,7 @@
     <string name="pref_weather_refreshing">Refreshing…</string>
     <string name="pref_weather_disabled_toast">Enable weather first</string>
     <string name="pref_weather_last_fetch">Last: %1$d° %2$s at %3$s</string>
+    <string name="pref_weather_refresh_error_title">Weather fetch failed</string>
 
     <string-array name="weather_provider_entries">
         <item>MET.no (free, no key)</item>

@@ -52,11 +52,11 @@ class WidgetDrawerAdapter(
         const val VT_BUILTIN_CLOCK   = 4
         const val VT_BUILTIN_WEATHER = 5
 
-        fun builtInCardParams(ctx: android.content.Context, heightDp: Int): RecyclerView.LayoutParams {
+        fun builtInCardParams(ctx: android.content.Context): RecyclerView.LayoutParams {
             val d = ctx.resources.displayMetrics.density
             return RecyclerView.LayoutParams(
                 RecyclerView.LayoutParams.MATCH_PARENT,
-                (heightDp * d).toInt()
+                RecyclerView.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = (10 * d).toInt() }
         }
     }
@@ -154,13 +154,13 @@ class WidgetDrawerAdapter(
             VT_EDIT_PILL   -> EditPillViewHolder(inf.inflate(R.layout.item_widget_edit_pill, parent, false))
             VT_BUILTIN_CLOCK -> {
                 val v = BuiltInClockCardView(parent.context).apply {
-                    layoutParams = builtInCardParams(parent.context, heightDp = 100)
+                    layoutParams = builtInCardParams(parent.context)
                 }
                 BuiltInClockViewHolder(v)
             }
             VT_BUILTIN_WEATHER -> {
                 val v = BuiltInWeatherCardView(parent.context).apply {
-                    layoutParams = builtInCardParams(parent.context, heightDp = 172)
+                    layoutParams = builtInCardParams(parent.context)
                 }
                 BuiltInWeatherViewHolder(v)
             }
