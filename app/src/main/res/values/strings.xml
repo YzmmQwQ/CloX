@@ -348,6 +348,17 @@
     <string name="pref_wf_remote_summary">Manage watch faces via browser on any device on the same network</string>
     <string name="pref_wf_import_title">Import watch faces</string>
     <string name="pref_wf_import_summary">Copy .watch files from device storage</string>
+    <string name="pref_wf_gallery_title">Image gallery</string>
+    <string name="pref_wf_gallery_summary">Manage images used by Lua watch faces</string>
+
+    <!-- Gallery -->
+    <string name="gallery_title">Image Gallery</string>
+    <string name="gallery_empty">No images yet.\nTap + to import from your device.</string>
+    <string name="gallery_fab_desc">Import images</string>
+    <string name="gallery_item_desc">Gallery image</string>
+    <string name="gallery_delete_title">Delete image</string>
+    <string name="gallery_delete_message">Delete \"%s\" from the gallery?</string>
+    <string name="gallery_delete_confirm">Delete</string>
 
     <!-- Gesture settings -->
     <string name="pref_gestures_watchface_category">Watch Face Gestures</string>

@@ -6,6 +6,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.watchface.WatchfaceBatchImportActivity
+import com.ailife.clox.watchface.gallery.GalleryActivity
 import com.ailife.clox.watchface.remote.RemoteManagementActivity
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
 import com.ailife.clox.watchface.store.WatchfaceStoreActivity
@@ -32,6 +33,11 @@ class WatchfaceSettingsFragment : PreferenceFragmentCompat() {
 
         findPreference<Preference>("nav_wf_import")?.setOnPreferenceClickListener {
             startActivity(Intent(requireContext(), WatchfaceBatchImportActivity::class.java))
+            true
+        }
+
+        findPreference<Preference>("nav_wf_gallery")?.setOnPreferenceClickListener {
+            startActivity(Intent(requireContext(), GalleryActivity::class.java))
             true
         }
     }

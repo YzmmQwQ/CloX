@@ -119,6 +119,13 @@
             android:label="@string/wf_import"
             android:theme="@style/Theme.CloX.Settings" />
 
+        <!-- Gallery activity -->
+        <activity
+            android:name=".watchface.gallery.GalleryActivity"
+            android:exported="false"
+            android:label="@string/gallery_title"
+            android:theme="@style/Theme.CloX.Settings" />
+
         <!-- .watch file import handler -->
         <activity
             android:name=".watchface.WatchfaceImportHandlerActivity"
@@ -228,6 +235,15 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.ailife.clox.WRITE_DATA" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Watchface change API — receives com.android.watchengine.changeface broadcasts -->
+        <receiver
+            android:name=".watchface.ChangeFaceReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.watchengine.changeface" />
             </intent-filter>
         </receiver>
 
