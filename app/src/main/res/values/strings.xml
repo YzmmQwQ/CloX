@@ -348,10 +348,20 @@
     <string name="pref_wf_import_title">Import watch faces</string>
     <string name="pref_wf_import_summary">Copy .watch files from device storage</string>
 
-    <!-- Gesture long press -->
+    <!-- Gesture settings -->
+    <string name="pref_gestures_watchface_category">Watch Face Gestures</string>
     <string name="pref_long_press_title">Long-press action</string>
     <string name="pref_home_press_screen_off_title">Home button turns off screen</string>
     <string name="pref_home_press_screen_off_summary">When already on the watchface, pressing Home turns the screen off (requires Accessibility permission)</string>
+
+    <!-- Button mapping -->
+    <string name="pref_btn_map_category">Hardware Button Mapping</string>
+    <string name="pref_btn_map_record_title">Mapped button</string>
+    <string name="pref_btn_map_record_summary">Tap to record a button</string>
+    <string name="pref_btn_single_title">Single press</string>
+    <string name="pref_btn_double_title">Double press</string>
+    <string name="pref_btn_long_title">Long press</string>
+    <string name="pref_btn_map_clear_title">Clear button mapping</string>
 
     <!-- Watchface selector UI -->
     <string name="wf_selector_title">Watch Faces</string>

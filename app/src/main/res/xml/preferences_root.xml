@@ -29,7 +29,7 @@
     <Preference
         android:key="nav_gestures"
         android:title="Gestures"
-        android:summary="Double-tap, long-press actions"
+        android:summary="Double-tap, long-press, hardware button mapping"
         android:fragment="com.ailife.clox.settings.fragments.GesturesSettingsFragment" />
 
     <Preference

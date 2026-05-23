@@ -32,7 +32,7 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         executeAction(action)
     }
 
-    private fun executeAction(action: String) {
+    internal fun executeAction(action: String) {
         when (action) {
             "screen_off"         -> turnScreenOff()
             "watchface_selector" -> openWatchfaceSelector()

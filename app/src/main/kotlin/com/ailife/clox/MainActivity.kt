@@ -31,6 +31,7 @@ import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.applist.AppListFragment
 import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
+import com.ailife.clox.gesture.ButtonMappingHandler
 import com.ailife.clox.gesture.GestureHandler
 import com.ailife.clox.gesture.GestureInterceptorLayout
 import com.ailife.clox.gesture.GestureLockManager
@@ -86,6 +87,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var pendingGestureFollowOn = false
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private lateinit var gestureHandler: GestureHandler
+    private lateinit var buttonMappingHandler: ButtonMappingHandler
     private lateinit var aodManager: AodManager
     private lateinit var gestureLockIcon: ImageView
 
@@ -172,6 +174,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         setupBackPressHandler()
 
         gestureHandler = GestureHandler(this, window)
+        buttonMappingHandler = ButtonMappingHandler(this, gestureHandler)
         gestureLockIcon = findViewById(R.id.gestureLockIcon)
         setupGestures()
         setupGestureLock()
@@ -807,6 +810,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (RtosManager.isActive) return true   // block all hardware keys in RTOS mode
+        if (event != null && buttonMappingHandler.handleKeyDown(keyCode, event)) return true
         // BACK is handled by onBackPressedDispatcher (setupBackPressHandler).
         // HOME physical key: dismiss outermost layer, same logic.
         if (keyCode == KeyEvent.KEYCODE_HOME) {
@@ -818,5 +822,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return true
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (RtosManager.isActive) return true
+        if (event != null && buttonMappingHandler.handleKeyUp(keyCode, event)) return true
+        return super.onKeyUp(keyCode, event)
     }
 }
