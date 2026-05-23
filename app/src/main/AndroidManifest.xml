@@ -283,7 +283,7 @@
             android:name=".rtos.fakesettings.FakeSettingsLauncher"
             android:targetActivity=".rtos.fakesettings.FakeSettingsActivity"
             android:label="Settings"
-            android:icon="@mipmap/ic_launcher_rtos"
+            android:icon="@mipmap/ic_launcher_settings"
             android:enabled="false"
             android:exported="true">
             <intent-filter>
