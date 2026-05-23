@@ -103,7 +103,7 @@
             android:name=".WatchfaceSelectorLauncher"
             android:targetActivity=".watchface.selector.WatchfaceSelectorActivity"
             android:label="@string/wf_selector_title"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@mipmap/ic_launcher_watchface"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -178,7 +178,7 @@
             android:name=".SettingsLauncher"
             android:targetActivity=".settings.SettingsActivity"
             android:label="CloX Settings"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@mipmap/ic_launcher_settings"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -259,7 +259,7 @@
             android:name=".rtos.RtosEntryLauncher"
             android:targetActivity=".rtos.RtosEntryActivity"
             android:label="RTOS Mode"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@mipmap/ic_launcher_rtos"
             android:enabled="false"
             android:exported="true">
             <intent-filter>
@@ -283,7 +283,7 @@
             android:name=".rtos.fakesettings.FakeSettingsLauncher"
             android:targetActivity=".rtos.fakesettings.FakeSettingsActivity"
             android:label="Settings"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@mipmap/ic_launcher_rtos"
             android:enabled="false"
             android:exported="true">
             <intent-filter>
