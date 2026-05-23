@@ -12,10 +12,12 @@ import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.settings.SettingsActivity
+import com.ailife.clox.watchface.WatchfaceAutoChanger
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
 import com.ailife.clox.watchface.WatchfaceSnapshot
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
+import kotlinx.coroutines.MainScope
 
 class GestureHandler(private val ctx: Context, private val window: Window) {
 
@@ -36,6 +38,7 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         when (action) {
             "screen_off"         -> turnScreenOff()
             "watchface_selector" -> openWatchfaceSelector()
+            "random_watchface"   -> WatchfaceAutoChanger.pickRandom(ctx, MainScope())
             "open_settings"      -> openSettings()
             "lock_gesture"       -> GestureLockManager.toggleManual()
             "start_rtos"         -> enterRtosMode()

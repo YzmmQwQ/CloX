@@ -27,6 +27,24 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/pref_wf_category_auto">
+
+        <SwitchPreferenceCompat
+            android:key="wf_auto_change_on_screen_on"
+            android:title="@string/pref_wf_auto_screen_on_title"
+            android:summary="@string/pref_wf_auto_screen_on_summary"
+            android:defaultValue="false" />
+
+        <ListPreference
+            android:key="wf_auto_change_interval"
+            android:title="@string/pref_wf_auto_interval_title"
+            android:summary="%s"
+            android:entries="@array/wf_auto_interval_entries"
+            android:entryValues="@array/wf_auto_interval_values"
+            android:defaultValue="none" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/pref_wf_category_management">
 
         <Preference

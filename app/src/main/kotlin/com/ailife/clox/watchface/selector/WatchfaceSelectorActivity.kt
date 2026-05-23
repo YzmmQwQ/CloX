@@ -543,6 +543,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             if (items.isEmpty()) return@launch
             val pick = items.random()
             WatchfacePrefs.setActivePath(this@WatchfaceSelectorActivity, pick.absolutePath)
+            android.widget.Toast.makeText(this@WatchfaceSelectorActivity, "Selected ${pick.name}", android.widget.Toast.LENGTH_SHORT).show()
             finishWithNoAnim()
         }
     }

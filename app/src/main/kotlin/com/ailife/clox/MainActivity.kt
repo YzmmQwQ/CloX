@@ -319,6 +319,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             RtosManager.enter(this)
         }
 
+        com.ailife.clox.watchface.WatchfaceAutoChanger.checkOnResume(this, lifecycleScope)
+
         // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
         appLaunchedFromList = false
 

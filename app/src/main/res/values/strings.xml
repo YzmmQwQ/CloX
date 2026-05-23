@@ -434,6 +434,7 @@
         <item>Nothing</item>
         <item>Turn screen off</item>
         <item>Open watch face selector</item>
+        <item>Random watch face</item>
         <item>Open settings</item>
         <item>Toggle gesture lock</item>
         <item>Enter RTOS mode</item>
@@ -442,9 +443,27 @@
         <item>nothing</item>
         <item>screen_off</item>
         <item>watchface_selector</item>
+        <item>random_watchface</item>
         <item>open_settings</item>
         <item>lock_gesture</item>
         <item>start_rtos</item>
+    </string-array>
+
+    <!-- Watch face auto-change -->
+    <string name="pref_wf_category_auto">Auto Change</string>
+    <string name="pref_wf_auto_screen_on_title">Change on screen on</string>
+    <string name="pref_wf_auto_screen_on_summary">Pick a random watch face every time the screen turns on</string>
+    <string name="pref_wf_auto_interval_title">Change on interval</string>
+    <string name="pref_wf_auto_interval_summary">Pick a random watch face after the interval has passed (checked when screen turns on)</string>
+    <string-array name="wf_auto_interval_entries">
+        <item>Off</item>
+        <item>Every hour</item>
+        <item>Every day</item>
+    </string-array>
+    <string-array name="wf_auto_interval_values">
+        <item>none</item>
+        <item>hourly</item>
+        <item>daily</item>
     </string-array>
 
     <!-- AOD settings -->
