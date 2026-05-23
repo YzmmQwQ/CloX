@@ -11,6 +11,7 @@ import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.databinding.ActivitySettingsBinding
 import com.ailife.clox.settings.fragments.RootSettingsFragment
+import com.ailife.clox.update.OtaManager
 
 class SettingsActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
@@ -37,6 +38,7 @@ class SettingsActivity : AppCompatActivity(),
             supportFragmentManager.commit {
                 replace(R.id.settingsContainer, RootSettingsFragment(), "root")
             }
+            OtaManager(this).checkUpdate(silent = true)
         }
 
         supportFragmentManager.addOnBackStackChangedListener {
