@@ -145,6 +145,7 @@ object BlurEngine {
         // Wait for next vsync so the GL surface has a committed frame ready.
         Choreographer.getInstance().postFrameCallback {
             if (seq != captureSeq) { return@postFrameCallback }
+            if (glView.holder?.surface?.isValid != true) { onDone(); return@postFrameCallback }
             val dm = context.resources.displayMetrics
             val w  = dm.widthPixels
             val h  = dm.heightPixels
