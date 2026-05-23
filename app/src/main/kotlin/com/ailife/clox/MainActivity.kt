@@ -837,8 +837,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     internal fun updateBackEnabled() {
-        backCallback.isEnabled = !RtosManager.isActive &&
-            (overlayController.hasActiveOverlay() || appListOpen)
+        // Always consume back — never let the system close the launcher activity.
+        backCallback.isEnabled = true
     }
 
     // ── Widget setup ──────────────────────────────────────────────────────────

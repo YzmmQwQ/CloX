@@ -81,8 +81,9 @@ class QsTilePageAdapter(
 
                     val stateFlow = stateManager.stateFor(tileId)
                     if (stateFlow != null) {
+                        bindState(tile, tileId, stateFlow.value, ctx)
                         stateFlow.onEach { state ->
-                            tile.post { bindState(tile, tileId, state, ctx) }
+                            bindState(tile, tileId, state, ctx)
                         }.launchIn(scope)
                     } else {
                         // Stateless tile (e.g. RTOS mode): apply neutral "off" style immediately
