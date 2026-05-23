@@ -3,26 +3,182 @@ package com.ailife.clox.settings.fragments
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import android.text.InputType
-import android.widget.EditText
-import androidx.appcompat.app.AlertDialog
-import androidx.preference.ListPreference
-import androidx.preference.Preference
-import androidx.preference.PreferenceManager
-import androidx.preference.SwitchPreferenceCompat
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import com.ailife.clox.R
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPrefs
 import com.ailife.clox.qs.privilege.PrivilegeLevel
 import com.ailife.clox.qs.privilege.PrivilegeManager
+import com.ailife.clox.settings.fragments.TileEditorFragment
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.slider.Slider
 
-class QuickSettingsSettingsFragment : BasePreferenceFragment() {
+class QuickSettingsSettingsFragment : BaseSettingsFragment() {
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.preferences_quick_settings, rootKey)
-        setupColorPreferences()
-        setupSystemColorToggle()
-        setupPrivilege()
+    private lateinit var tvQsPrivilegeStatus: TextView
+    private lateinit var tvQsAccessibilityStatus: TextView
+    private lateinit var tvQsColorConnected: TextView
+    private lateinit var tvQsColorIdle: TextView
+    private lateinit var tvQsColorDisconnected: TextView
+    private lateinit var tvQsColorOff: TextView
+    private lateinit var rowQsColorConnected: View
+    private lateinit var rowQsColorIdle: View
+    private lateinit var rowQsColorDisconnected: View
+    private lateinit var rowQsColorOff: View
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        inflater.inflate(R.layout.fragment_settings_quick_settings, container, false)
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        tvQsPrivilegeStatus     = view.findViewById(R.id.tvQsPrivilegeStatus)
+        tvQsAccessibilityStatus = view.findViewById(R.id.tvQsAccessibilityStatus)
+        tvQsColorConnected      = view.findViewById(R.id.tvQsColorConnected)
+        tvQsColorIdle           = view.findViewById(R.id.tvQsColorIdle)
+        tvQsColorDisconnected   = view.findViewById(R.id.tvQsColorDisconnected)
+        tvQsColorOff            = view.findViewById(R.id.tvQsColorOff)
+        rowQsColorConnected     = view.findViewById(R.id.rowQsColorConnected)
+        rowQsColorIdle          = view.findViewById(R.id.rowQsColorIdle)
+        rowQsColorDisconnected  = view.findViewById(R.id.rowQsColorDisconnected)
+        rowQsColorOff           = view.findViewById(R.id.rowQsColorOff)
+
+        val tileRowEntries = resources.getStringArray(R.array.tile_rows_entries)
+        val tileRowValues  = resources.getStringArray(R.array.tile_rows_values)
+        val tileStyleEntries = resources.getStringArray(R.array.qs_tile_style_entries)
+        val tileStyleValues  = resources.getStringArray(R.array.qs_tile_style_values)
+        val privilegeEntries = resources.getStringArray(R.array.privilege_entries)
+        val privilegeValues  = resources.getStringArray(R.array.privilege_values)
+
+        // QS enabled
+        val switchEnabled = view.findViewById<MaterialSwitch>(R.id.switchQsEnabled)
+        switchEnabled.isChecked = prefs.getBoolean(QsPrefs.QS_ENABLED, true)
+        switchEnabled.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(QsPrefs.QS_ENABLED, checked).apply()
+        }
+
+        // Sensitivity slider
+        val sliderSens = view.findViewById<Slider>(R.id.sliderQsSensitivity)
+        val tvSens     = view.findViewById<TextView>(R.id.tvQsSensitivity)
+        val sensVal = prefs.getInt("qs_sensitivity", 60).toFloat()
+        sliderSens.value = sensVal.coerceIn(20f, 200f); tvSens.text = "${sensVal.toInt()}"
+        sliderSens.addOnChangeListener { _, value, _ ->
+            tvSens.text = "${value.toInt()}"
+            prefs.edit().putInt("qs_sensitivity", value.toInt()).apply()
+        }
+
+        // Tile rows picker
+        val tvTileRows = view.findViewById<TextView>(R.id.tvQsTileRows)
+        fun refreshTileRows() {
+            val v = prefs.getString(QsPrefs.TILE_ROWS, "2") ?: "2"
+            tvTileRows.text = tileRowEntries.getOrElse(tileRowValues.indexOf(v)) { v }
+        }
+        refreshTileRows()
+        view.findViewById<View>(R.id.rowQsTileRows).setOnClickListener {
+            showListPicker(getString(R.string.qs_tile_rows_title), tileRowEntries, tileRowValues,
+                prefs.getString(QsPrefs.TILE_ROWS, "2") ?: "2") { v, _ ->
+                prefs.edit().putString(QsPrefs.TILE_ROWS, v).apply()
+                refreshTileRows()
+            }
+        }
+
+        // Tile editor nav
+        view.findViewById<View>(R.id.rowQsTileEditor).setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.settingsContainer, TileEditorFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+
+        // Flashlight hardware
+        val switchFlash = view.findViewById<MaterialSwitch>(R.id.switchQsFlashlightHw)
+        switchFlash.isChecked = prefs.getBoolean(QsPrefs.FLASHLIGHT_HARDWARE, false)
+        switchFlash.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(QsPrefs.FLASHLIGHT_HARDWARE, checked).apply()
+        }
+
+        // Tile style picker
+        val tvTileStyle = view.findViewById<TextView>(R.id.tvQsTileStyle)
+        fun refreshTileStyle() {
+            val v = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) ?: QsPrefs.TILE_STYLE_STROKE
+            tvTileStyle.text = tileStyleEntries.getOrElse(tileStyleValues.indexOf(v)) { v }
+        }
+        refreshTileStyle()
+        view.findViewById<View>(R.id.rowQsTileStyle).setOnClickListener {
+            showListPicker("Tile style", tileStyleEntries, tileStyleValues,
+                prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) ?: QsPrefs.TILE_STYLE_STROKE) { v, _ ->
+                prefs.edit().putString(QsPrefs.TILE_STYLE, v).apply()
+                refreshTileStyle()
+            }
+        }
+
+        // Color tiles switch
+        val switchColorTiles = view.findViewById<MaterialSwitch>(R.id.switchQsColorTiles)
+        switchColorTiles.isChecked = prefs.getBoolean(QsPrefs.COLORED_TILES, true)
+        switchColorTiles.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(QsPrefs.COLORED_TILES, checked).apply()
+        }
+
+        // System color toggle
+        val switchSystemColor = view.findViewById<MaterialSwitch>(R.id.switchQsSystemColor)
+        switchSystemColor.isChecked = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
+        fun updateColorRowsEnabled(enabled: Boolean) {
+            listOf(rowQsColorConnected, rowQsColorIdle, rowQsColorDisconnected, rowQsColorOff).forEach {
+                it.alpha = if (enabled) 0.4f else 1f
+                it.isEnabled = !enabled
+            }
+        }
+        updateColorRowsEnabled(switchSystemColor.isChecked)
+        switchSystemColor.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(QsPrefs.USE_SYSTEM_COLOR, checked).apply()
+            updateColorRowsEnabled(checked)
+        }
+
+        // Color pickers
+        tvQsColorConnected.text    = prefs.getString(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) ?: QsPrefs.DEFAULT_COLOR_CONNECTED
+        tvQsColorIdle.text         = prefs.getString(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE) ?: QsPrefs.DEFAULT_COLOR_IDLE
+        tvQsColorDisconnected.text = prefs.getString(QsPrefs.COLOR_DISCONNECTED, QsPrefs.DEFAULT_COLOR_DISCONNECTED) ?: QsPrefs.DEFAULT_COLOR_DISCONNECTED
+        tvQsColorOff.text          = prefs.getString(QsPrefs.COLOR_OFF, QsPrefs.DEFAULT_COLOR_OFF) ?: QsPrefs.DEFAULT_COLOR_OFF
+
+        rowQsColorConnected.setOnClickListener {
+            showColorDialog(getString(R.string.qs_color_connected_title), QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED, tvQsColorConnected)
+        }
+        rowQsColorIdle.setOnClickListener {
+            showColorDialog(getString(R.string.qs_color_idle_title), QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE, tvQsColorIdle)
+        }
+        rowQsColorDisconnected.setOnClickListener {
+            showColorDialog(getString(R.string.qs_color_disconnected_title), QsPrefs.COLOR_DISCONNECTED, QsPrefs.DEFAULT_COLOR_DISCONNECTED, tvQsColorDisconnected)
+        }
+        rowQsColorOff.setOnClickListener {
+            showColorDialog(getString(R.string.qs_color_off_title), QsPrefs.COLOR_OFF, QsPrefs.DEFAULT_COLOR_OFF, tvQsColorOff)
+        }
+
+        // Privilege picker
+        val tvPrivilege = view.findViewById<TextView>(R.id.tvQsPrivilege)
+        fun refreshPrivilege() {
+            val v = prefs.getString(QsPrefs.PRIVILEGE_MODE, "none") ?: "none"
+            tvPrivilege.text = privilegeEntries.getOrElse(privilegeValues.indexOf(v)) { v }
+        }
+        refreshPrivilege()
+        view.findViewById<View>(R.id.rowQsPrivilege).setOnClickListener {
+            showListPicker(getString(R.string.qs_privilege_title), privilegeEntries, privilegeValues,
+                prefs.getString(QsPrefs.PRIVILEGE_MODE, "none") ?: "none") { v, _ ->
+                if (v == "shizuku") { PrivilegeManager.invalidate(); PrivilegeManager.requestShizukuPermission(99) }
+                prefs.edit().putString(QsPrefs.PRIVILEGE_MODE, v).apply()
+                PrivilegeManager.invalidate()
+                refreshPrivilege()
+                updatePrivilegeStatus()
+            }
+        }
+
+        // Accessibility
+        view.findViewById<View>(R.id.rowQsAccessibility).setOnClickListener {
+            requireContext().startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 
     override fun onResume() {
@@ -31,21 +187,9 @@ class QuickSettingsSettingsFragment : BasePreferenceFragment() {
         updateAccessibilityStatus()
     }
 
-    private fun setupPrivilege() {
-        findPreference<ListPreference>(QsPrefs.PRIVILEGE_MODE)?.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue == "shizuku") {
-                PrivilegeManager.invalidate()
-                PrivilegeManager.requestShizukuPermission(99)
-            }
-            PrivilegeManager.invalidate()
-            true
-        }
-    }
-
     private fun updatePrivilegeStatus() {
-        val pref = findPreference<Preference>("qs_privilege_status") ?: return
         val level = PrivilegeManager.level(requireContext())
-        pref.summary = when (level) {
+        tvQsPrivilegeStatus.text = when (level) {
             PrivilegeLevel.SHIZUKU -> "Shizuku active"
             PrivilegeLevel.ROOT    -> "Root available"
             PrivilegeLevel.NONE    -> "No elevated privileges"
@@ -53,73 +197,15 @@ class QuickSettingsSettingsFragment : BasePreferenceFragment() {
     }
 
     private fun updateAccessibilityStatus() {
-        val pref = findPreference<Preference>("qs_accessibility_status") ?: return
         val running = CloXAccessibilityService.isRunning()
-        pref.summary = if (running) "Enabled — power menu and recents available"
-                       else "Tap to enable in Accessibility Settings"
-        pref.setOnPreferenceClickListener {
-            requireContext().startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
-        }
+        tvQsAccessibilityStatus.text = if (running) "Enabled — power menu and recents available"
+                                       else "Tap to enable in Accessibility Settings"
     }
 
-    private val manualColorKeys = listOf(
-        QsPrefs.COLOR_CONNECTED, QsPrefs.COLOR_IDLE, QsPrefs.COLOR_DISCONNECTED, QsPrefs.COLOR_OFF
-    )
-
-    private fun setupSystemColorToggle() {
-        val toggle = findPreference<SwitchPreferenceCompat>(QsPrefs.USE_SYSTEM_COLOR) ?: return
-        updateColorPickersEnabled(!toggle.isChecked)
-        toggle.setOnPreferenceChangeListener { _, newValue ->
-            updateColorPickersEnabled(!(newValue as Boolean))
-            true
+    private fun showColorDialog(title: String, key: String, default: String, tvColor: TextView) {
+        showColorDialog(title, prefs.getString(key, default) ?: default) { value ->
+            prefs.edit().putString(key, value).apply()
+            tvColor.text = value
         }
-    }
-
-    private fun updateColorPickersEnabled(enabled: Boolean) {
-        manualColorKeys.forEach { key ->
-            findPreference<Preference>(key)?.isEnabled = enabled
-        }
-    }
-
-    private fun setupColorPreferences() {
-        val colorKeys = listOf(
-            QsPrefs.COLOR_CONNECTED    to QsPrefs.DEFAULT_COLOR_CONNECTED,
-            QsPrefs.COLOR_IDLE         to QsPrefs.DEFAULT_COLOR_IDLE,
-            QsPrefs.COLOR_DISCONNECTED to QsPrefs.DEFAULT_COLOR_DISCONNECTED,
-            QsPrefs.COLOR_OFF          to QsPrefs.DEFAULT_COLOR_OFF,
-        )
-        colorKeys.forEach { (key, default) ->
-            findPreference<Preference>(key)?.apply {
-                val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
-                summary = prefs.getString(key, default) ?: default
-                setOnPreferenceClickListener {
-                    showColorDialog(key, default)
-                    true
-                }
-            }
-        }
-    }
-
-    private fun showColorDialog(key: String, default: String) {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        val current = prefs.getString(key, default) ?: default
-        val input = EditText(requireContext()).apply {
-            setText(current)
-            inputType = InputType.TYPE_CLASS_TEXT
-        }
-        AlertDialog.Builder(requireContext())
-            .setTitle("Enter hex color (e.g. #FF0000)")
-            .setView(input)
-            .setPositiveButton("OK") { _, _ ->
-                val value = input.text.toString().trim()
-                if (value.matches(Regex("#[0-9A-Fa-f]{6}"))) {
-                    prefs.edit().putString(key, value).apply()
-                    findPreference<Preference>(key)?.summary = value
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
     }
 }

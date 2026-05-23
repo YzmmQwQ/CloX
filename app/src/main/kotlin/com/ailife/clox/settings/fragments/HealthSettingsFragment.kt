@@ -3,49 +3,150 @@ package com.ailife.clox.settings.fragments
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.ListPreference
-import androidx.preference.Preference
-import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.BhtApiClient
 import com.ailife.clox.cocos.bridge.HealthHelper
 import com.ailife.clox.cocos.bridge.HealthPrefs
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class HealthSettingsFragment : BasePreferenceFragment() {
+class HealthSettingsFragment : BaseSettingsFragment() {
 
     private var refreshJob: Job? = null
     private var observeJob: Job? = null
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.preferences_health, rootKey)
+    private lateinit var tvStepsSummary: TextView
+    private lateinit var tvHrSummary: TextView
+    private lateinit var tvSpo2Summary: TextView
+    private lateinit var switchSteps: MaterialSwitch
+    private lateinit var switchHr: MaterialSwitch
+    private lateinit var switchSpo2: MaterialSwitch
+    private lateinit var switchInstantSteps: MaterialSwitch
+    private lateinit var switchInstantHrSpo2: MaterialSwitch
+    private lateinit var rowInstantSteps: View
+    private lateinit var rowInstantHrSpo2: View
+    private lateinit var btnRefresh: MaterialButton
+    private lateinit var tvHealthInterval: TextView
 
-        setupBhtStatus()
-        setupMetricSwitch(HealthPrefs.KEY_STEPS_ENABLED)
-        setupMetricSwitch(HealthPrefs.KEY_HR_ENABLED)
-        setupMetricSwitch(HealthPrefs.KEY_SPO2_ENABLED)
-        setupRefreshButton()
-        updateDependentVisibility()
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        inflater.inflate(R.layout.fragment_settings_health, container, false)
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        tvStepsSummary    = view.findViewById(R.id.tvStepsSummary)
+        tvHrSummary       = view.findViewById(R.id.tvHrSummary)
+        tvSpo2Summary     = view.findViewById(R.id.tvSpo2Summary)
+        switchSteps       = view.findViewById(R.id.switchSteps)
+        switchHr          = view.findViewById(R.id.switchHr)
+        switchSpo2        = view.findViewById(R.id.switchSpo2)
+        switchInstantSteps    = view.findViewById(R.id.switchInstantSteps)
+        switchInstantHrSpo2   = view.findViewById(R.id.switchInstantHrSpo2)
+        rowInstantSteps   = view.findViewById(R.id.rowInstantSteps)
+        rowInstantHrSpo2  = view.findViewById(R.id.rowInstantHrSpo2)
+        btnRefresh        = view.findViewById(R.id.btnRefreshHealth)
+        tvHealthInterval  = view.findViewById(R.id.tvHealthInterval)
+
+        val intervalEntries = resources.getStringArray(R.array.health_interval_entries)
+        val intervalValues  = resources.getStringArray(R.array.health_interval_values)
+
+        // BHT status
+        val cardBht     = view.findViewById<View>(R.id.cardBhtStatus)
+        val tvBhtStatus = view.findViewById<TextView>(R.id.tvBhtStatus)
+        val ivBhtAction = view.findViewById<View>(R.id.ivBhtAction)
+        fun refreshBhtStatus() {
+            val installed = BhtApiClient.isInstalled(requireContext())
+            tvBhtStatus.text = getString(if (installed) R.string.pref_health_bht_installed else R.string.pref_health_bht_not_installed)
+            ivBhtAction.visibility = if (installed) View.GONE else View.VISIBLE
+            cardBht.isClickable = !installed
+            cardBht.isFocusable = !installed
+        }
+        refreshBhtStatus()
+        cardBht.setOnClickListener { openPlayStore() }
+
+        // Metric switches
+        switchSteps.isChecked = HealthPrefs.stepsEnabled(requireContext())
+        switchSteps.setOnCheckedChangeListener { _, checked ->
+            if (checked && !BhtApiClient.isInstalled(requireContext())) {
+                Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
+                switchSteps.isChecked = false
+                return@setOnCheckedChangeListener
+            }
+            prefs.edit().putBoolean(HealthPrefs.KEY_STEPS_ENABLED, checked).apply()
+            updateVisibility()
+        }
+
+        switchHr.isChecked = HealthPrefs.hrEnabled(requireContext())
+        switchHr.setOnCheckedChangeListener { _, checked ->
+            if (checked && !BhtApiClient.isInstalled(requireContext())) {
+                Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
+                switchHr.isChecked = false
+                return@setOnCheckedChangeListener
+            }
+            prefs.edit().putBoolean(HealthPrefs.KEY_HR_ENABLED, checked).apply()
+            updateVisibility()
+        }
+
+        switchSpo2.isChecked = HealthPrefs.spo2Enabled(requireContext())
+        switchSpo2.setOnCheckedChangeListener { _, checked ->
+            if (checked && !BhtApiClient.isInstalled(requireContext())) {
+                Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
+                switchSpo2.isChecked = false
+                return@setOnCheckedChangeListener
+            }
+            prefs.edit().putBoolean(HealthPrefs.KEY_SPO2_ENABLED, checked).apply()
+            updateVisibility()
+        }
+
+        switchInstantSteps.isChecked = HealthPrefs.instantSteps(requireContext())
+        switchInstantSteps.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(HealthPrefs.KEY_INSTANT_STEPS, checked).apply()
+        }
+
+        switchInstantHrSpo2.isChecked = HealthPrefs.instantHrSpo2(requireContext())
+        switchInstantHrSpo2.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(HealthPrefs.KEY_INSTANT_HR_SPO2, checked).apply()
+        }
+
+        // Interval picker
+        fun refreshInterval() {
+            val v = prefs.getString(HealthPrefs.KEY_INTERVAL_MINUTES, "10") ?: "10"
+            tvHealthInterval.text = intervalEntries.getOrElse(intervalValues.indexOf(v)) { v }
+        }
+        refreshInterval()
+        view.findViewById<View>(R.id.rowHealthInterval).setOnClickListener {
+            showListPicker(getString(R.string.pref_health_interval_title),
+                intervalEntries, intervalValues,
+                prefs.getString(HealthPrefs.KEY_INTERVAL_MINUTES, "10") ?: "10") { v, _ ->
+                prefs.edit().putString(HealthPrefs.KEY_INTERVAL_MINUTES, v).apply()
+                refreshInterval()
+            }
+        }
+
+        // Refresh button
+        btnRefresh.setOnClickListener { startRefresh() }
+
+        updateVisibility()
+        updateAllSummaries()
     }
 
     override fun onResume() {
         super.onResume()
-        setupBhtStatus()
-        updateDependentVisibility()
         updateAllSummaries()
-
-        // Observe dataUpdated so summaries refresh automatically after any fetch
         observeJob?.cancel()
         observeJob = viewLifecycleOwner.lifecycleScope.launch {
-            HealthHelper.dataUpdated.collect { metric ->
-                updateMetricSummary(metric)
-            }
+            HealthHelper.dataUpdated.collect { metric -> updateMetricSummary(metric) }
         }
     }
 
@@ -55,85 +156,29 @@ class HealthSettingsFragment : BasePreferenceFragment() {
         observeJob = null
     }
 
-    // ── BHT status ────────────────────────────────────────────────────────────
-
-    private fun setupBhtStatus() {
-        val pref = findPreference<Preference>("health_bht_status") ?: return
-        val ctx  = requireContext()
-        if (BhtApiClient.isInstalled(ctx)) {
-            pref.summary = getString(R.string.pref_health_bht_installed)
-            pref.onPreferenceClickListener = null
-        } else {
-            pref.summary = getString(R.string.pref_health_bht_not_installed)
-            pref.onPreferenceClickListener = Preference.OnPreferenceClickListener {
-                openPlayStore()
-                true
-            }
-        }
-    }
-
     private fun openPlayStore() {
         val ctx = requireContext()
-        val marketIntent = Intent(Intent.ACTION_VIEW,
-            Uri.parse("market://details?id=${BhtApiClient.PACKAGE}"))
-        if (marketIntent.resolveActivity(ctx.packageManager) != null) {
-            startActivity(marketIntent)
-        } else {
-            startActivity(Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://play.google.com/store/apps/details?id=${BhtApiClient.PACKAGE}")))
-        }
-    }
-
-    // ── Metric switches ───────────────────────────────────────────────────────
-
-    private fun setupMetricSwitch(key: String) {
-        val pref = findPreference<SwitchPreferenceCompat>(key) ?: return
-        pref.setOnPreferenceChangeListener { _, newValue ->
-            val enabling = newValue as Boolean
-            if (enabling && !BhtApiClient.isInstalled(requireContext())) {
-                Toast.makeText(requireContext(),
-                    R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
-                return@setOnPreferenceChangeListener false
-            }
-            view?.post { updateDependentVisibility() }
-            true
-        }
-    }
-
-    // ── Refresh button ────────────────────────────────────────────────────────
-
-    private fun setupRefreshButton() {
-        findPreference<Preference>("health_refresh_now")?.setOnPreferenceClickListener {
-            startRefresh()
-            true
-        }
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${BhtApiClient.PACKAGE}"))
+        if (intent.resolveActivity(ctx.packageManager) != null) startActivity(intent)
+        else startActivity(Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=${BhtApiClient.PACKAGE}")))
     }
 
     private fun startRefresh() {
         if (refreshJob?.isActive == true) return
-        val refreshPref = findPreference<Preference>("health_refresh_now") ?: return
         val ctx = requireContext()
-
         if (!BhtApiClient.isInstalled(ctx)) {
             Toast.makeText(ctx, R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
             return
         }
-
-        refreshPref.title = getString(R.string.pref_health_refreshing)
-        refreshPref.isEnabled = false
-
+        btnRefresh.text = getString(R.string.pref_health_refreshing)
+        btnRefresh.isEnabled = false
         refreshJob = viewLifecycleOwner.lifecycleScope.launch {
-            for (metric in HealthHelper.Metric.entries) {
-                // fetchAndUpdate emits dataUpdated → WatchfaceBridgeManager pushes to Lua,
-                // and our observeJob collector updates the summary UI.
-                HealthHelper.fetchAndUpdate(metric, ctx)
-            }
-            refreshPref.title = getString(R.string.pref_health_refresh_title)
-            refreshPref.isEnabled = true
+            for (metric in HealthHelper.Metric.entries) HealthHelper.fetchAndUpdate(metric, ctx)
+            btnRefresh.text = getString(R.string.pref_health_refresh_title)
+            btnRefresh.isEnabled = true
         }
     }
-
-    // ── Summaries ─────────────────────────────────────────────────────────────
 
     private fun updateAllSummaries() {
         for (metric in HealthHelper.Metric.entries) updateMetricSummary(metric)
@@ -141,62 +186,40 @@ class HealthSettingsFragment : BasePreferenceFragment() {
 
     private fun updateMetricSummary(metric: HealthHelper.Metric) {
         val ctx = requireContext()
-        val prefKey = when (metric) {
-            HealthHelper.Metric.STEPS      -> HealthPrefs.KEY_STEPS_ENABLED
-            HealthHelper.Metric.HEART_RATE -> HealthPrefs.KEY_HR_ENABLED
-            HealthHelper.Metric.SPO2       -> HealthPrefs.KEY_SPO2_ENABLED
+        val tv = when (metric) {
+            HealthHelper.Metric.STEPS      -> tvStepsSummary
+            HealthHelper.Metric.HEART_RATE -> tvHrSummary
+            HealthHelper.Metric.SPO2       -> tvSpo2Summary
         }
-        val pref = findPreference<SwitchPreferenceCompat>(prefKey) ?: return
-
+        val defaultText = when (metric) {
+            HealthHelper.Metric.STEPS      -> getString(R.string.pref_health_steps_summary)
+            HealthHelper.Metric.HEART_RATE -> getString(R.string.pref_health_hr_summary)
+            HealthHelper.Metric.SPO2       -> getString(R.string.pref_health_spo2_summary)
+        }
         val lastTime = HealthHelper.getLastFetchTimeMs(metric)
         if (lastTime == null || !HealthHelper.isEnabled(ctx, metric)) {
-            pref.summary = defaultSummary(metric)
-            return
+            tv.text = defaultText; return
         }
-
         val data = HealthHelper.getLatestData(metric)
         val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(lastTime))
-        pref.summary = when (metric) {
+        tv.text = when (metric) {
             HealthHelper.Metric.STEPS -> {
-                val steps = data.optInt("steps")
-                val dist  = data.optDouble("distance")
-                val cal   = data.optDouble("calories")
-                "%,d steps · %.1f km · %.0f kcal · %s".format(steps, dist, cal, timeStr)
+                "%,d steps · %.1f km · %.0f kcal · %s".format(
+                    data.optInt("steps"), data.optDouble("distance"), data.optDouble("calories"), timeStr)
             }
-            HealthHelper.Metric.HEART_RATE -> {
-                val bpm = data.optInt("bpm")
-                "$bpm bpm · $timeStr"
-            }
-            HealthHelper.Metric.SPO2 -> {
-                val pct = data.optInt("percent")
-                "$pct% SpO2 · $timeStr"
-            }
+            HealthHelper.Metric.HEART_RATE -> "${data.optInt("bpm")} bpm · $timeStr"
+            HealthHelper.Metric.SPO2       -> "${data.optInt("percent")}% SpO2 · $timeStr"
         }
     }
 
-    private fun defaultSummary(metric: HealthHelper.Metric): String = when (metric) {
-        HealthHelper.Metric.STEPS      -> getString(R.string.pref_health_steps_summary)
-        HealthHelper.Metric.HEART_RATE -> getString(R.string.pref_health_hr_summary)
-        HealthHelper.Metric.SPO2       -> getString(R.string.pref_health_spo2_summary)
-    }
-
-    // ── Visibility ────────────────────────────────────────────────────────────
-
-    private fun updateDependentVisibility() {
+    private fun updateVisibility() {
         val ctx = requireContext()
-
-        val stepsOn = findPreference<SwitchPreferenceCompat>(HealthPrefs.KEY_STEPS_ENABLED)?.isChecked
-            ?: HealthPrefs.stepsEnabled(ctx)
-        findPreference<SwitchPreferenceCompat>(HealthPrefs.KEY_INSTANT_STEPS)?.isVisible = stepsOn
-
-        val hrOn   = findPreference<SwitchPreferenceCompat>(HealthPrefs.KEY_HR_ENABLED)?.isChecked
-            ?: HealthPrefs.hrEnabled(ctx)
-        val spo2On = findPreference<SwitchPreferenceCompat>(HealthPrefs.KEY_SPO2_ENABLED)?.isChecked
-            ?: HealthPrefs.spo2Enabled(ctx)
-        findPreference<SwitchPreferenceCompat>(HealthPrefs.KEY_INSTANT_HR_SPO2)?.isVisible = hrOn || spo2On
-
-        // Refresh button only useful when at least one metric is enabled
-        findPreference<Preference>("health_refresh_now")?.isEnabled =
-            (stepsOn || hrOn || spo2On) && BhtApiClient.isInstalled(ctx)
+        val stepsOn = switchSteps.isChecked
+        val hrOn    = switchHr.isChecked
+        val spo2On  = switchSpo2.isChecked
+        rowInstantSteps.visibility  = if (stepsOn) View.VISIBLE else View.GONE
+        rowInstantHrSpo2.visibility = if (hrOn || spo2On) View.VISIBLE else View.GONE
+        val anyEnabled = (stepsOn || hrOn || spo2On) && BhtApiClient.isInstalled(ctx)
+        btnRefresh.isEnabled = anyEnabled
     }
 }

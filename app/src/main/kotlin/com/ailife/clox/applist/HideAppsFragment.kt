@@ -18,7 +18,7 @@ import com.ailife.clox.R
 import com.ailife.clox.icon.IconResolver
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import android.content.Intent
@@ -105,7 +105,7 @@ class HideAppsFragment : Fragment() {
         view.findViewById<View>(R.id.btnDeselectAll).setOnClickListener { adapter?.deselectAll() }
 
         // Secret code lock switch
-        val switchLock = view.findViewById<SwitchMaterial>(R.id.switchLock)
+        val switchLock = view.findViewById<MaterialSwitch>(R.id.switchLock)
         val tvCodeHint = view.findViewById<TextView>(R.id.tvCodeHint)
         val currentPassword = AppListPrefs.hideAppsPassword(ctx)
         switchLock.isChecked = currentPassword != null
@@ -118,7 +118,6 @@ class HideAppsFragment : Fragment() {
             if (checked) promptSetPassword(tvCodeHint)
             else {
                 AppListPrefs.saveHideAppsPassword(ctx, null)
-                AppListPrefs.hideAppsUnlocked = false
                 tvCodeHint.visibility = View.GONE
             }
         }
@@ -159,7 +158,7 @@ class HideAppsFragment : Fragment() {
             .setMessage("Once set, this screen will be hidden from Settings.\n\nTo access it again, open your phone dialer and type:\n\n*#*#YOUR_PASSWORD#*#*\n\nYou will see a notification confirming access.")
             .setPositiveButton("Set password") { _, _ -> promptPasswordInput(tvCodeHint) }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
-                view?.findViewById<SwitchMaterial>(R.id.switchLock)?.isChecked = false
+                view?.findViewById<MaterialSwitch>(R.id.switchLock)?.isChecked = false
             }
             .setCancelable(false)
             .show()
@@ -182,12 +181,11 @@ class HideAppsFragment : Fragment() {
                     return@setPositiveButton
                 }
                 AppListPrefs.saveHideAppsPassword(ctx, pw)
-                AppListPrefs.hideAppsUnlocked = false
                 tvCodeHint.text = "Dial *#*#$pw#*#* to unlock"
                 tvCodeHint.visibility = View.VISIBLE
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
-                view?.findViewById<SwitchMaterial>(R.id.switchLock)?.isChecked = false
+                view?.findViewById<MaterialSwitch>(R.id.switchLock)?.isChecked = false
             }
             .setCancelable(false)
             .show()

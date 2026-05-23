@@ -8,35 +8,36 @@ import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
-import androidx.preference.SwitchPreferenceCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.SensorsPrefs
+import com.google.android.material.materialswitch.MaterialSwitch
 
-class SensorsSettingsFragment : BasePreferenceFragment() {
+class SensorsSettingsFragment : BaseSettingsFragment() {
 
     private lateinit var sensorManager: SensorManager
 
-    // Launched when the user turns on calendar access and permission isn't yet granted.
-    // On result: grant → save pref + flip switch on; deny → show rationale or redirect to settings.
     private val calendarPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
             SensorsPrefs.setCalendarEnabled(requireContext(), true)
-            findPreference<SwitchPreferenceCompat>(SensorsPrefs.KEY_CALENDAR)?.isChecked = true
+            view?.findViewById<MaterialSwitch>(R.id.switchCalendar)?.isChecked = true
         } else {
-            val canAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.READ_CALENDAR)
-            if (canAskAgain) {
+            val canAsk = shouldShowRequestPermissionRationale(Manifest.permission.READ_CALENDAR)
+            if (canAsk) {
                 Toast.makeText(requireContext(), R.string.pref_calendar_permission_denied, Toast.LENGTH_SHORT).show()
             } else {
-                // Permanently denied — direct user to app settings
                 AlertDialog.Builder(requireContext())
                     .setTitle(R.string.pref_calendar_permission_denied)
-                    .setMessage("Calendar permission was denied. Please enable it in App Settings > Permissions.")
+                    .setMessage("Calendar permission was denied. Please enable it in App Settings.")
                     .setPositiveButton("Open Settings") { _, _ ->
                         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", requireContext().packageName, null)
@@ -48,63 +49,55 @@ class SensorsSettingsFragment : BasePreferenceFragment() {
         }
     }
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.preferences_sensors, rootKey)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        inflater.inflate(R.layout.fragment_settings_sensors, container, false)
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         sensorManager = requireContext().getSystemService(SensorManager::class.java)
 
-        setupCalendar()
-        setupSensor(SensorsPrefs.KEY_ACCELEROMETER, Sensor.TYPE_ACCELEROMETER, R.string.pref_sensor_unavailable)
-        setupSensor(SensorsPrefs.KEY_COMPASS,       Sensor.TYPE_MAGNETIC_FIELD, R.string.pref_sensor_unavailable)
-        setupSensor(SensorsPrefs.KEY_BAROMETER,     Sensor.TYPE_PRESSURE,       R.string.pref_sensor_unavailable)
+        setupCalendar(view)
+        setupSensor(view, R.id.switchAccelerometer, R.id.tvAccelerometerSummary,
+            SensorsPrefs.KEY_ACCELEROMETER, Sensor.TYPE_ACCELEROMETER)
+        setupSensor(view, R.id.switchCompass, R.id.tvCompassSummary,
+            SensorsPrefs.KEY_COMPASS, Sensor.TYPE_MAGNETIC_FIELD)
+        setupSensor(view, R.id.switchBarometer, R.id.tvBarometerSummary,
+            SensorsPrefs.KEY_BAROMETER, Sensor.TYPE_PRESSURE)
     }
 
-    // ── Calendar ─────────────────────────────────────────────────────────────
-
-    private fun setupCalendar() {
-        val pref = findPreference<SwitchPreferenceCompat>(SensorsPrefs.KEY_CALENDAR) ?: return
-
-        pref.setOnPreferenceChangeListener { _, newValue ->
-            val enabling = newValue as Boolean
-            if (!enabling) return@setOnPreferenceChangeListener true   // disabling always allowed
-
-            val hasPermission = ContextCompat.checkSelfPermission(
-                requireContext(), Manifest.permission.READ_CALENDAR
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (hasPermission) {
-                true  // save immediately
+    private fun setupCalendar(view: View) {
+        val sw = view.findViewById<MaterialSwitch>(R.id.switchCalendar)
+        sw.isChecked = prefs.getBoolean(SensorsPrefs.KEY_CALENDAR, false)
+        sw.setOnCheckedChangeListener { _, checked ->
+            if (!checked) {
+                prefs.edit().putBoolean(SensorsPrefs.KEY_CALENDAR, false).apply()
+                return@setOnCheckedChangeListener
+            }
+            val has = ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_CALENDAR) ==
+                    PackageManager.PERMISSION_GRANTED
+            if (has) {
+                prefs.edit().putBoolean(SensorsPrefs.KEY_CALENDAR, true).apply()
             } else {
-                // Don't save yet; save only after permission is granted (see launcher above)
+                sw.isChecked = false
                 calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
-                false
             }
         }
     }
 
-    // ── Hardware sensors ──────────────────────────────────────────────────────
-
-    private fun setupSensor(prefKey: String, sensorType: Int, unavailableStringRes: Int) {
-        val pref = findPreference<SwitchPreferenceCompat>(prefKey) ?: return
+    private fun setupSensor(view: View, switchId: Int, summaryId: Int, key: String, sensorType: Int) {
+        val sw = view.findViewById<MaterialSwitch>(switchId)
+        val tv = view.findViewById<TextView>(summaryId)
         val available = sensorManager.getDefaultSensor(sensorType) != null
-
         if (!available) {
-            // Device doesn't have this sensor — lock it off
-            pref.isChecked = false
-            pref.isEnabled = false
-            pref.summary = getString(unavailableStringRes)
-            // Clear any previously saved true value so SensorHelper won't see it as enabled
-            if (pref.sharedPreferences?.getBoolean(prefKey, false) == true) {
-                pref.sharedPreferences?.edit()?.putBoolean(prefKey, false)?.apply()
-            }
+            sw.isChecked = false
+            sw.isEnabled = false
+            tv.text = getString(R.string.pref_sensor_unavailable)
+            if (prefs.getBoolean(key, false)) prefs.edit().putBoolean(key, false).apply()
             return
         }
-
-        pref.setOnPreferenceChangeListener { _, newValue ->
-            val enabling = newValue as Boolean
-            if (!enabling) return@setOnPreferenceChangeListener true
-
-            // Re-check at the moment of enabling (belt-and-suspenders)
-            sensorManager.getDefaultSensor(sensorType) != null
+        sw.isChecked = prefs.getBoolean(key, false)
+        sw.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(key, checked).apply()
         }
     }
 }

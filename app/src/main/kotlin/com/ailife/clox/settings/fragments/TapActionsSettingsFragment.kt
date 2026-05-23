@@ -3,89 +3,71 @@ package com.ailife.clox.settings.fragments
 import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.os.Bundle
-import androidx.appcompat.app.AlertDialog
-import androidx.preference.Preference
-import androidx.preference.PreferenceCategory
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.ailife.clox.R
 import com.ailife.clox.tapaction.TapActionHandler
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
-class TapActionsSettingsFragment : BasePreferenceFragment() {
+class TapActionsSettingsFragment : BaseSettingsFragment() {
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        val ctx    = requireContext()
-        val screen = preferenceManager.createPreferenceScreen(ctx)
-        preferenceScreen = screen
+    private val actionRows = mutableMapOf<String, TextView>()
 
-        // ── Info about built-in actions ───────────────────────────────────────
-        PreferenceCategory(ctx).apply {
-            title = getString(R.string.pref_tap_category_builtin)
-            screen.addPreference(this)
-            addPreference(Preference(ctx).apply {
-                summary = getString(R.string.pref_tap_builtin_desc)
-                isSelectable = false
-            })
-        }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
+        inflater.inflate(R.layout.fragment_settings_tap_actions, container, false)
 
-        // ── Configurable app shortcuts ────────────────────────────────────────
-        PreferenceCategory(ctx).apply {
-            title = getString(R.string.pref_tap_category_shortcuts)
-            screen.addPreference(this)
-            for (def in TapActionHandler.CONFIGURABLE_ACTIONS) {
-                addPreference(buildActionPref(def))
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val container = view.findViewById<LinearLayout>(R.id.containerTapActions)
+        val inflater  = LayoutInflater.from(requireContext())
+
+        for ((index, def) in TapActionHandler.CONFIGURABLE_ACTIONS.withIndex()) {
+            val row = inflater.inflate(R.layout.row_tap_action, container, false)
+            row.findViewById<TextView>(R.id.tvTapActionName).text = def.displayName
+            val tvSummary = row.findViewById<TextView>(R.id.tvTapActionSummary)
+            tvSummary.text = currentSummary(def.key)
+            actionRows[def.key] = tvSummary
+            if (index > 0) {
+                val params = row.layoutParams as LinearLayout.LayoutParams
+                params.topMargin = (14 * resources.displayMetrics.density).toInt()
             }
+            row.setOnClickListener { showAppPicker(def) }
+            container.addView(row)
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // Refresh summaries in case the user installed/uninstalled apps
         for (def in TapActionHandler.CONFIGURABLE_ACTIONS) {
-            findPreference<Preference>("tap_action_${def.key}")?.summary = currentSummary(def.key)
+            actionRows[def.key]?.text = currentSummary(def.key)
         }
     }
 
-    private fun buildActionPref(def: TapActionHandler.ActionDef): Preference =
-        Preference(requireContext()).apply {
-            key     = "tap_action_${def.key}"
-            title   = def.displayName
-            summary = currentSummary(def.key)
-            setOnPreferenceClickListener {
-                showAppPicker(def)
-                true
-            }
-        }
-
-    private fun currentSummary(actionKey: String): String {
-        val label = TapActionHandler.getMappedAppLabel(requireContext(), actionKey)
-        return label ?: getString(R.string.pref_tap_not_configured)
-    }
-
-    // ── App picker ────────────────────────────────────────────────────────────
+    private fun currentSummary(key: String) =
+        TapActionHandler.getMappedAppLabel(requireContext(), key) ?: getString(R.string.pref_tap_not_configured)
 
     private fun showAppPicker(def: TapActionHandler.ActionDef) {
         val ctx = requireContext()
         val pm  = ctx.packageManager
-
-        val apps: List<ResolveInfo> = pm
-            .queryIntentActivities(
-                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
-            )
-            .sortedBy { it.loadLabel(pm).toString().lowercase() }
-
+        val apps: List<ResolveInfo> = pm.queryIntentActivities(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
+        ).sortedBy { it.loadLabel(pm).toString().lowercase() }
         val labels = apps.map { it.loadLabel(pm).toString() }.toTypedArray()
 
-        AlertDialog.Builder(ctx)
+        MaterialAlertDialogBuilder(ctx)
             .setTitle(def.displayName)
             .setItems(labels) { _, which ->
-                val info      = apps[which].activityInfo
-                val component = "${info.packageName}/${info.name}"
-                TapActionHandler.setComponent(ctx, def.key, component)
-                findPreference<Preference>("tap_action_${def.key}")?.summary = labels[which]
+                val info = apps[which].activityInfo
+                TapActionHandler.setComponent(ctx, def.key, "${info.packageName}/${info.name}")
+                actionRows[def.key]?.text = labels[which]
             }
             .setNeutralButton(R.string.pref_tap_clear) { _, _ ->
                 TapActionHandler.setComponent(ctx, def.key, "")
-                findPreference<Preference>("tap_action_${def.key}")?.summary =
-                    getString(R.string.pref_tap_not_configured)
+                actionRows[def.key]?.text = getString(R.string.pref_tap_not_configured)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()

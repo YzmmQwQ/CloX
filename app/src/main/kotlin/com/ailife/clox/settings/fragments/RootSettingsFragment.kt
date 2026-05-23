@@ -31,7 +31,6 @@ class RootSettingsFragment : BasePreferenceFragment() {
     private fun updateHideAppsVisibility() {
         val pref = findPreference<Preference>("nav_hide_apps") ?: return
         val password = AppListPrefs.hideAppsPassword(requireContext())
-        // Show the entry if: no password set, OR the secret code was dialled this session
-        pref.isVisible = (password == null) || AppListPrefs.hideAppsUnlocked
+        pref.isVisible = password == null
     }
 }

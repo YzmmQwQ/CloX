@@ -173,9 +173,6 @@ object AppListPrefs {
     const val KEY_HIDDEN_COMPONENTS = "hidden_components"   // Set<"pkg/activity">
     const val KEY_HIDE_APPS_PASSWORD = "hide_apps_password"
 
-    /** In-process unlock flag — resets when the process dies. */
-    var hideAppsUnlocked: Boolean = false
-
     fun hideMode(ctx: Context): String =
         get(ctx).getString(KEY_HIDE_MODE, HIDE_MODE_BLACKLIST) ?: HIDE_MODE_BLACKLIST
 

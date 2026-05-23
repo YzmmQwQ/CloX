@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp">
+
+        <!-- Primary location -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/pref_location_category_primary"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <!-- City -->
+                <LinearLayout android:id="@+id/rowLocationCity"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_city_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvLocationCity"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_city_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Latitude -->
+                <LinearLayout android:id="@+id/rowLocationLat"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_lat_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvLocationLat"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_lat_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Longitude -->
+                <LinearLayout android:id="@+id/rowLocationLon"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_lon_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvLocationLon"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_lon_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- GPS button -->
+                <LinearLayout android:id="@+id/rowLocationGps"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_gps_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvLocationGps"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_gps_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_location" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Auto-update via IP -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_auto_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_auto_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchLocationAutoUpdate"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Extra timezone clocks -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/pref_location_category_extra"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <!-- Slot 2 -->
+                <LinearLayout android:id="@+id/rowSlot2City"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot2_city"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot2City"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <LinearLayout android:id="@+id/rowSlot2Tz"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot2_tz"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot2Tz"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Slot 3 -->
+                <LinearLayout android:id="@+id/rowSlot3City"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot3_city"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot3City"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <LinearLayout android:id="@+id/rowSlot3Tz"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot3_tz"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot3Tz"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Slot 4 -->
+                <LinearLayout android:id="@+id/rowSlot4City"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot4_city"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot4City"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <LinearLayout android:id="@+id/rowSlot4Tz"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot4_tz"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot4Tz"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Slot 5 -->
+                <LinearLayout android:id="@+id/rowSlot5City"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot5_city"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot5City"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <LinearLayout android:id="@+id/rowSlot5Tz"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_slot5_tz"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvSlot5Tz"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

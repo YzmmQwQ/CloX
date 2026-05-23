@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp">
+
+        <!-- Watchface gestures -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/pref_gestures_watchface_category"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <!-- Double-tap -->
+                <LinearLayout android:id="@+id/rowDoubleTap"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_double_tap_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvDoubleTap"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Long press -->
+                <LinearLayout android:id="@+id/rowLongPress"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_long_press_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvLongPress"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Home press screen off -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_home_press_screen_off_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_home_press_screen_off_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchHomePressOff"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Hardware button mapping -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/pref_btn_map_category"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <!-- Record button -->
+                <LinearLayout android:id="@+id/rowBtnRecord"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_btn_map_record_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvBtnRecord"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_btn_map_record_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_tune" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Single press action -->
+                <LinearLayout android:id="@+id/rowBtnSingle"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_btn_single_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvBtnSingle"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Double press action -->
+                <LinearLayout android:id="@+id/rowBtnDouble"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_btn_double_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvBtnDouble"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Long press action -->
+                <LinearLayout android:id="@+id/rowBtnLong"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_btn_long_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvBtnLong"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Clear button mapping -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnClearBtnMap"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/pref_btn_map_clear_title"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -123,11 +123,11 @@ class TileListAdapter(
         descriptor?.iconRes?.let { holder.icon.setImageResource(it) }
         if (isActive) {
             holder.dragHandle.visibility = View.VISIBLE
-            holder.action.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            holder.action.setImageResource(R.drawable.ic_close)
             holder.action.setOnClickListener { onRemove?.invoke(id) }
         } else {
             holder.dragHandle.visibility = View.GONE
-            holder.action.setImageResource(android.R.drawable.ic_input_add)
+            holder.action.setImageResource(R.drawable.ic_add)
             holder.action.setOnClickListener { onAdd?.invoke(id) }
         }
     }

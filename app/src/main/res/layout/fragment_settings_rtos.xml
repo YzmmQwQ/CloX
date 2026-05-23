@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp">
+
+        <!-- Enable RTOS -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical" android:padding="14dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Enable RTOS Mode"
+                        android:textSize="14sp" android:textStyle="bold"
+                        android:textColor="?attr/colorOnSurface" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Disguise launcher as an RTOS Bluetooth watch"
+                        android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchRtosEnabled"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Mode + Options -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Options"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <!-- Mode -->
+                <LinearLayout android:id="@+id/rowRtosMode"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Mode"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvRtosMode"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Auto-enter on screen off -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Auto-enter on screen off"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Activate RTOS mode when screen turns off"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchRtosAutoEnter"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- Show launcher icon -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show launcher icon"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Adds an icon to the app launcher to activate RTOS mode"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchRtosLauncherIcon"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Password -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Password"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <!-- Password type -->
+                <LinearLayout android:id="@+id/rowRtosPasswordType"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Password Type"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvRtosPasswordType"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <!-- Set password nav -->
+                <LinearLayout android:id="@+id/rowRtosSetPassword"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Set Password"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Configure unlock code"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_right" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Whitelisted apps -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="App Restrictions"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <LinearLayout android:id="@+id/rowRtosWhitelist"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Allowed Apps (Mode 2)"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Select which apps appear in the app list"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_right" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Block non-whitelisted apps"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Enable accessibility service first, then turn this on"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchRtosBlockApps"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Accessibility -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp" android:layout_marginBottom="10dp"
+            app:cardCornerRadius="16dp" app:cardElevation="0dp"
+            app:strokeWidth="1dp" app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Accessibility"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
+
+                <LinearLayout android:id="@+id/rowRtosAccessibility"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Accessibility Service"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvRtosAccessibilityStatus"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_settings" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

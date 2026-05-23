@@ -24,7 +24,7 @@ class SecretCodeReceiver : BroadcastReceiver() {
         val storedPassword = AppListPrefs.hideAppsPassword(context) ?: return
 
         if (receivedCode == storedPassword) {
-            AppListPrefs.hideAppsUnlocked = true
+            AppListPrefs.saveHideAppsPassword(context, null)
             Toast.makeText(
                 context,
                 "Hidden apps settings unlocked — open Settings to continue",
