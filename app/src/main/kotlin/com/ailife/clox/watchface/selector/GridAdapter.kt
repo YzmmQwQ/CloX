@@ -180,7 +180,7 @@ class GridAdapter(
             activeFrame.visibility = if (item.isActive) View.VISIBLE else View.GONE
 
             val primary = MaterialColors.getColor(itemView.context,
-                com.google.android.material.R.attr.colorPrimary, 0)
+                androidx.appcompat.R.attr.colorPrimary, 0)
             if (item.isActive) {
                 card.strokeWidth = 3
                 card.strokeColor = primary
@@ -222,7 +222,7 @@ class GridAdapter(
             tvName.setText(R.string.wf_default_watchface)
 
             val primary = MaterialColors.getColor(itemView.context,
-                com.google.android.material.R.attr.colorPrimary, 0)
+                androidx.appcompat.R.attr.colorPrimary, 0)
             if (activeIsDefault) {
                 activeFrame.visibility = View.VISIBLE
                 card.strokeWidth = 3

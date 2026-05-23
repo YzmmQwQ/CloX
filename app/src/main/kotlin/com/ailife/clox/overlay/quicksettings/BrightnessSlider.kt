@@ -23,7 +23,7 @@ class BrightnessSlider @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         val sidePad = (field("trackSidePadding") as Int).toFloat()
-        val trkH   = (field("trackHeight")       as Int).toFloat()
+        val trkH   = (field("trackThickness")    as Int).toFloat()
         val trkW   = (field("trackWidth")        as Int).toFloat()
         val thumbW = (field("thumbWidth")         as Int).toFloat()
         val thumbH = (field("thumbHeight")        as Int).toFloat()

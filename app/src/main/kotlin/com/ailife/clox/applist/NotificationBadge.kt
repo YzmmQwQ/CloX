@@ -25,7 +25,7 @@ object NotificationBadge {
         // Set Material error color background on first show
         if (badge.tag == null) {
             val bg = MaterialColors.getColor(
-                badge.context, com.google.android.material.R.attr.colorError, Color.RED
+                badge.context, androidx.appcompat.R.attr.colorError, Color.RED
             )
             val fg = MaterialColors.getColor(
                 badge.context, com.google.android.material.R.attr.colorOnError, Color.WHITE
@@ -54,7 +54,7 @@ object NotificationBadge {
     /** Create a badge view for backends that build icons programmatically. */
     fun makeView(context: Context): TextView {
         val d = context.resources.displayMetrics.density
-        val bg = MaterialColors.getColor(context, com.google.android.material.R.attr.colorError, Color.RED)
+        val bg = MaterialColors.getColor(context, androidx.appcompat.R.attr.colorError, Color.RED)
         val fg = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnError, Color.WHITE)
         return TextView(context).apply {
             background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(bg) }

@@ -123,7 +123,7 @@ class PagerAdapter(
             btnPin.visibility = View.GONE
 
             val primary = MaterialColors.getColor(itemView.context,
-                com.google.android.material.R.attr.colorPrimary, 0)
+                androidx.appcompat.R.attr.colorPrimary, 0)
             if (activeIsDefault) {
                 activeFrame.visibility = View.VISIBLE
                 card.strokeWidth = 4
@@ -163,7 +163,7 @@ class PagerAdapter(
             activeFrame.visibility = if (item.isActive) View.VISIBLE else View.GONE
 
             val primary = MaterialColors.getColor(
-                itemView.context, com.google.android.material.R.attr.colorPrimary, 0)
+                itemView.context, androidx.appcompat.R.attr.colorPrimary, 0)
             if (item.isActive) {
                 card.strokeWidth = 4
                 card.strokeColor = primary

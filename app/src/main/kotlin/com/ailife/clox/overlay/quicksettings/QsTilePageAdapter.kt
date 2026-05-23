@@ -230,9 +230,9 @@ class QsTilePageAdapter(
         // disconnected → colorError   (warning/red)
         // off        → null           (use default dim ring, no color)
         val attr = when (key) {
-            QsPrefs.COLOR_CONNECTED    -> com.google.android.material.R.attr.colorPrimary
+            QsPrefs.COLOR_CONNECTED    -> androidx.appcompat.R.attr.colorPrimary
             QsPrefs.COLOR_IDLE         -> com.google.android.material.R.attr.colorTertiary
-            QsPrefs.COLOR_DISCONNECTED -> com.google.android.material.R.attr.colorError
+            QsPrefs.COLOR_DISCONNECTED -> androidx.appcompat.R.attr.colorError
             else                       -> return null
         }
         return try {

@@ -132,7 +132,7 @@ class QsTileView @JvmOverloads constructor(
             icon.setColorFilter(onFill)
             label.setTextColor(onFill)
             detail.setTextColor(onFill)
-            arcColor = ringColor ?: resolveAttrColor(com.google.android.material.R.attr.colorPrimary)
+            arcColor = ringColor ?: resolveAttrColor(androidx.appcompat.R.attr.colorPrimary)
         } else {
             val fill   = resolveAttrColor(com.google.android.material.R.attr.colorSurfaceVariant)
             val onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnSurfaceVariant)

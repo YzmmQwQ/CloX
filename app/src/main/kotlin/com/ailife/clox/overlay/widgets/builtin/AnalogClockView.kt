@@ -20,7 +20,7 @@ class AnalogClockView @JvmOverloads constructor(
 ) : View(ctx, attrs) {
 
     private val onSurface  = resolveColor(com.google.android.material.R.attr.colorOnSurface)
-    private val accent     = resolveColor(com.google.android.material.R.attr.colorPrimary)
+    private val accent     = resolveColor(androidx.appcompat.R.attr.colorPrimary)
     private val surface    = resolveColor(com.google.android.material.R.attr.colorSurfaceVariant)
 
     private val paintFace  = Paint(Paint.ANTI_ALIAS_FLAG).apply {

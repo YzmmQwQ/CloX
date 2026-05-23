@@ -211,7 +211,7 @@ class NotificationListAdapter(
         if (!actions.isNullOrEmpty()) {
             holder.actionsRow.visibility = View.VISIBLE
             actions.take(3).forEach { action ->
-                val btn = MaterialButton(holder.itemView.context,null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
+                val btn = MaterialButton(holder.itemView.context,null, android.R.attr.borderlessButtonStyle).apply {
                     text = action.title
                     textSize = 12f
                     val hasRemoteInput = action.remoteInputs?.isNotEmpty() == true

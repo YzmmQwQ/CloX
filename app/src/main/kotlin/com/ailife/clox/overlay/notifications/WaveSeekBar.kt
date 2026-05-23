@@ -89,7 +89,7 @@ class WaveSeekBar @JvmOverloads constructor(
         val fraction = if (max > 0) progress.toFloat() / max else 0f
         val progressX = pad + fraction * trackW
 
-        val colorPrimary = resolveColor(com.google.android.material.R.attr.colorPrimary)
+        val colorPrimary = resolveColor(androidx.appcompat.R.attr.colorPrimary)
         val colorSurface  = resolveColor(com.google.android.material.R.attr.colorSurfaceVariant)
 
         trackPaint.color = colorSurface; trackPaint.strokeWidth = trackH
