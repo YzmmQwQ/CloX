@@ -36,6 +36,7 @@ class SettingsActivity : AppCompatActivity(),
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
+                setReorderingAllowed(true)
                 replace(R.id.settingsContainer, RootSettingsFragment(), "root")
             }
             OtaManager(this).checkUpdate(silent = true)
@@ -57,6 +58,13 @@ class SettingsActivity : AppCompatActivity(),
         fragment.arguments = pref.extras
 
         supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            setCustomAnimations(
+                R.animator.settings_frag_enter,
+                R.animator.settings_frag_exit,
+                R.animator.settings_frag_pop_enter,
+                R.animator.settings_frag_pop_exit
+            )
             replace(R.id.settingsContainer, fragment)
             addToBackStack(pref.key)
         }

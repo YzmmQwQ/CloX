@@ -19,6 +19,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
+import androidx.activity.BackEventCompat
 import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -160,7 +161,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             findViewById(R.id.overlayScrim),
             findViewById(R.id.blurLayer)
         ).also { ctrl ->
-            ctrl.onDismissed = { rebuildAppListLayer() }
+            ctrl.onDismissed = { rebuildAppListLayer(); updateBackEnabled() }
+            ctrl.onShown = { updateBackEnabled() }
         }
 
         stateManager = com.ailife.clox.qs.QsStateManager(this)
@@ -222,6 +224,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     }
                     overlayController.startDrag(SwipeDirection.RIGHT, screenW, screenH)
                     overlayController.commitDrag()
+                    // onShown fires from commitDrag → updateBackEnabled() already called
                 }
             }
         }
@@ -687,11 +690,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             v.buildLayer()
         }
         springAppList(0f)
+        updateBackEnabled()
     }
 
     private fun closeAppList() {
         appListOpen = false; gestureRoot.appListOpen = false
         springAppList(screenW)
+        updateBackEnabled()
     }
 
     private fun springAppList(target: Float) {
@@ -720,19 +725,47 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // ── Back press ───────────────────────────────────────────────────────────
 
+    private lateinit var backCallback: OnBackPressedCallback
+
     private fun setupBackPressHandler() {
-        // Covers both gesture-nav back (all APIs via AppCompat) and physical back key.
-        // Never propagates — a launcher should never exit on back.
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (RtosManager.isActive) return   // block back in RTOS mode
+        // Disabled when nothing is dismissible so predictive back shows no preview at idle.
+        // Re-enabled whenever the app list or an overlay becomes active.
+        backCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackStarted(backEvent: BackEventCompat) {
+                appListSpring?.cancel()
+            }
+
+            override fun handleOnBackProgressed(backEvent: BackEventCompat) {
+                val p = backEvent.progress
                 when {
-                    AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
+                    overlayController.hasActiveOverlay() ->
+                        overlayController.setPredictiveProgress(p)
+                    appListOpen ->
+                        appListFragment?.view?.translationX = (p * screenW).coerceIn(0f, screenW)
+                }
+            }
+
+            override fun handleOnBackCancelled() {
+                when {
+                    overlayController.hasActiveOverlay() -> overlayController.cancelPredictiveBack()
+                    appListOpen -> springAppList(0f)
+                }
+            }
+
+            override fun handleOnBackPressed() {
+                when {
+                    AppContextMenu.isShowing             -> { AppContextMenu.dismissCurrent(); updateBackEnabled() }
                     overlayController.hasActiveOverlay() -> overlayController.dismissActive()
                     appListOpen                          -> closeAppList()
                 }
             }
-        })
+        }
+        onBackPressedDispatcher.addCallback(this, backCallback)
+    }
+
+    internal fun updateBackEnabled() {
+        backCallback.isEnabled = !RtosManager.isActive &&
+            (overlayController.hasActiveOverlay() || appListOpen)
     }
 
     // ── Widget setup ──────────────────────────────────────────────────────────
@@ -810,8 +843,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // ── RTOS mode ────────────────────────────────────────────────────────────
 
-    private fun onRtosEntered() = rtosDelegate.enter()
-    private fun onRtosExited()  = rtosDelegate.exit()
+    private fun onRtosEntered() {
+        rtosDelegate.enter()
+        updateBackEnabled()
+    }
+
+    private fun onRtosExited() {
+        rtosDelegate.exit()
+        updateBackEnabled()
+    }
 
     // ── Keys ─────────────────────────────────────────────────────────────────
 

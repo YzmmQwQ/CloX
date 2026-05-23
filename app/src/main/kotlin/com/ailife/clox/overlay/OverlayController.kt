@@ -31,6 +31,9 @@ class OverlayController(
     /** Fires when an active overlay is dismissed (either via direct dismiss or collapse commit). */
     var onDismissed: (() -> Unit)? = null
 
+    /** Fires when an overlay is fully committed open. */
+    var onShown: (() -> Unit)? = null
+
     private var screenW = 0f
     private var screenH = 0f
 
@@ -111,6 +114,7 @@ class OverlayController(
             }.start()
         BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
         scrimView.animate().alpha(maxScrimAlpha()).setDuration(200).start()
+        onShown?.invoke()
     }
 
     fun cancelDrag() {
@@ -193,6 +197,26 @@ class OverlayController(
             .setInterpolator(DecelerateInterpolator()).start()
         BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
         scrimView.animate().alpha(maxScrimAlpha()).setDuration(180).start()
+    }
+
+    // ── Predictive-back progress (drives overlay during gesture) ────────────
+
+    fun setPredictiveProgress(progress: Float) {
+        val overlay = activeOverlay ?: return
+        val direction = activeDirection ?: return
+        val (endX, endY) = exitTranslation(direction)
+        overlay.translationX = endX * progress
+        overlay.translationY = endY * progress
+        scrimView.alpha = maxScrimAlpha() * (1f - progress)
+        BlurEngine.updateProgress(scrimView.context, blurLayer, 1f - progress)
+    }
+
+    fun cancelPredictiveBack() {
+        val overlay = activeOverlay ?: return
+        overlay.animate().translationX(0f).translationY(0f).setDuration(180)
+            .setInterpolator(DecelerateInterpolator()).start()
+        scrimView.animate().alpha(maxScrimAlpha()).setDuration(180).start()
+        BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
     }
 
     // ── Instant dismiss (back button, double-tap) ────────────────────────────
