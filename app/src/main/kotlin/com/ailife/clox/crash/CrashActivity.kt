@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import com.ailife.clox.R
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -34,7 +35,7 @@ class CrashActivity : AppCompatActivity() {
         binding.btnCopy.setOnClickListener {
             val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("CloX crash report", report))
-            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.crash_copied, Toast.LENGTH_SHORT).show()
         }
 
         binding.btnShare.setOnClickListener {

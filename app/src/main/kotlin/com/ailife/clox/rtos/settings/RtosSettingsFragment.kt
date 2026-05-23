@@ -55,7 +55,7 @@ class RtosSettingsFragment : Fragment() {
         switchEnabled.isChecked = RtosPrefs.isEnabled(requireContext())
         switchEnabled.setOnCheckedChangeListener { _, checked ->
             if (checked && RtosPrefs.passwordHash(requireContext()) == null) {
-                Toast.makeText(requireContext(), "Set a password first", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.toast_rtos_set_password_first, Toast.LENGTH_SHORT).show()
                 switchEnabled.isChecked = false
                 return@setOnCheckedChangeListener
             }
@@ -70,7 +70,7 @@ class RtosSettingsFragment : Fragment() {
         }
         refreshMode()
         view.findViewById<View>(R.id.rowRtosMode).setOnClickListener {
-            showListPicker("Mode", modeEntries, modeValues,
+            showListPicker(getString(R.string.rtos_setting_mode_title), modeEntries, modeValues,
                 rtosPrefs.getString(RtosPrefs.KEY_MODE, RtosPrefs.MODE_WATCHFACE_ONLY) ?: RtosPrefs.MODE_WATCHFACE_ONLY) { v, _ ->
                 rtosPrefs.edit().putString(RtosPrefs.KEY_MODE, v).apply()
                 refreshMode()
@@ -100,14 +100,14 @@ class RtosSettingsFragment : Fragment() {
         }
         refreshPasswordType()
         view.findViewById<View>(R.id.rowRtosPasswordType).setOnClickListener {
-            showListPicker("Password Type", passwordEntries, passwordValues,
+            showListPicker(getString(R.string.rtos_setting_password_type_title), passwordEntries, passwordValues,
                 rtosPrefs.getString(RtosPrefs.KEY_PASSWORD_TYPE, RtosPrefs.PASSWORD_KEYPAD) ?: RtosPrefs.PASSWORD_KEYPAD) { v, _ ->
                 rtosPrefs.edit().putString(RtosPrefs.KEY_PASSWORD_TYPE, v).apply()
                 RtosPrefs.setPassword(requireContext(), emptyList(), "")
                 rtosPrefs.edit().remove(RtosPrefs.KEY_PASSWORD_HASH).remove(RtosPrefs.KEY_PASSWORD_SEQ).apply()
                 RtosPrefs.setEnabled(requireContext(), false)
                 switchEnabled.isChecked = false
-                Toast.makeText(requireContext(), "Password cleared — set a new password for the selected type", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), R.string.toast_rtos_password_cleared, Toast.LENGTH_LONG).show()
                 refreshPasswordType()
             }
         }
@@ -127,7 +127,7 @@ class RtosSettingsFragment : Fragment() {
         switchBlockApps.isChecked = RtosPrefs.blockApps(requireContext())
         switchBlockApps.setOnCheckedChangeListener { _, checked ->
             if (checked && !CloXAccessibilityService.isRunning()) {
-                Toast.makeText(requireContext(), "Enable the accessibility service first", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.toast_rtos_accessibility_first, Toast.LENGTH_SHORT).show()
                 QsPermissionHelper.ensureAccessibilityEnabled(requireContext())
                 switchBlockApps.isChecked = false
                 return@setOnCheckedChangeListener
@@ -144,7 +144,7 @@ class RtosSettingsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val running = CloXAccessibilityService.isRunning()
-        tvRtosAccessibilityStatus.text = if (running) "✓ Enabled" else "Tap to enable — required for app blocking"
+        tvRtosAccessibilityStatus.text = getString(if (running) R.string.rtos_accessibility_enabled else R.string.rtos_accessibility_disabled)
     }
 
     private fun showListPicker(title: String, entries: Array<String>, values: Array<String>,

@@ -3,6 +3,7 @@ package com.ailife.clox.overlay.notifications
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -154,7 +155,7 @@ class WaveSeekBar @JvmOverloads constructor(
 
     private fun resolveColor(attr: Int): Int {
         val ta = context.obtainStyledAttributes(intArrayOf(attr))
-        val c = ta.getColor(0, 0xFFFFFFFF.toInt())
+        val c = ta.getColor(0, Color.WHITE)
         ta.recycle()
         return c
     }

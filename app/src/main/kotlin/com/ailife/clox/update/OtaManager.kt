@@ -14,6 +14,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.ailife.clox.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.json.JSONException
 import org.json.JSONObject
@@ -54,7 +55,7 @@ class OtaManager(private val context: Context) {
     fun checkUpdate(silent: Boolean = false) {
         if (silent && !isUpdateCheckEnabled()) return
         if (!isNetworkAvailable()) {
-            if (!silent) showToast("No internet connection")
+            if (!silent) showToast(context.getString(R.string.toast_ota_no_internet))
             return
         }
 
@@ -70,14 +71,14 @@ class OtaManager(private val context: Context) {
                     readTimeout = 10000
                 }
                 if (conn.responseCode != HttpURLConnection.HTTP_OK) {
-                    if (!silent) showToast("Update check failed (${conn.responseCode})")
+                    if (!silent) showToast(context.getString(R.string.toast_ota_check_failed_code, conn.responseCode))
                     return@thread
                 }
                 val body = conn.inputStream.bufferedReader().use { it.readText() }
                 parseRelease(body, silent)
             } catch (e: Exception) {
                 Log.e(TAG, "Check failed: ${e.message}")
-                if (!silent) showToast("Update check failed: ${e.message}")
+                if (!silent) showToast(context.getString(R.string.toast_ota_check_failed, e.message))
             } finally {
                 conn?.disconnect()
             }
@@ -104,13 +105,13 @@ class OtaManager(private val context: Context) {
             }
 
             if (downloadUrl == null) {
-                if (!silent) showToast("No APK found in release")
+                if (!silent) showToast(context.getString(R.string.toast_ota_no_apk))
                 return
             }
             promptIfNewer(silent)
         } catch (e: JSONException) {
             Log.e(TAG, "Parse error: ${e.message}")
-            if (!silent) showToast("Failed to parse release info")
+            if (!silent) showToast(context.getString(R.string.toast_ota_parse_failed))
         }
     }
 
@@ -120,7 +121,7 @@ class OtaManager(private val context: Context) {
             val newer = compareVersions(current, latestVersion ?: "0.0.0") < 0
             mainHandler.post {
                 if (newer) showUpdateDialog()
-                else if (!silent) showToast("Already up to date ($current)")
+                else if (!silent) showToast(context.getString(R.string.toast_ota_up_to_date, current))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Version compare failed: ${e.message}")
@@ -129,13 +130,13 @@ class OtaManager(private val context: Context) {
 
     private fun showUpdateDialog() {
         MaterialAlertDialogBuilder(context)
-            .setTitle("Update available — v$latestVersion")
+            .setTitle(context.getString(R.string.dialog_ota_update_title, latestVersion))
             .setMessage(changelog)
-            .setPositiveButton("Update") { _, _ -> startDownload() }
-            .setNeutralButton("Later", null)
-            .setNegativeButton("Don't ask again") { _, _ ->
+            .setPositiveButton(R.string.dialog_ota_update_positive) { _, _ -> startDownload() }
+            .setNeutralButton(R.string.dialog_ota_update_neutral, null)
+            .setNegativeButton(R.string.dialog_ota_update_negative) { _, _ ->
                 setUpdateCheckEnabled(false)
-                showToast("Auto-update checks disabled")
+                showToast(context.getString(R.string.toast_ota_auto_disabled))
             }
             .show()
     }
@@ -147,14 +148,14 @@ class OtaManager(private val context: Context) {
 
         val req = DownloadManager.Request(Uri.parse(url))
             .setMimeType(MIME_TYPE)
-            .setTitle("CloX update")
+            .setTitle(context.getString(R.string.ota_download_notif_title))
             .setDescription("v$latestVersion")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalFilesDir(context, null, DOWNLOAD_FILE)
 
         (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
         listenForDownload(dest)
-        showToast("Downloading update…")
+        showToast(context.getString(R.string.toast_ota_downloading))
     }
 
     private fun listenForDownload(file: File) {
@@ -188,7 +189,7 @@ class OtaManager(private val context: Context) {
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
         } catch (e: Exception) {
             Log.e(TAG, "Install failed: ${e.message}")
-            showToast("Install failed: ${e.message}")
+            showToast(context.getString(R.string.toast_ota_install_failed, e.message))
         }
     }
 

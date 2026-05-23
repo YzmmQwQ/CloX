@@ -31,7 +31,7 @@
                 android:maxLines="1"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/on_dark_primary"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="12sp"
                 android:autoSizeMaxTextSize="18sp" />
@@ -44,7 +44,7 @@
                 android:visibility="gone"
                 android:maxLines="1"
                 android:textSize="11sp"
-                android:textColor="#AAAAAA" />
+                android:textColor="@color/on_dark_inactive" />
 
         </LinearLayout>
 
@@ -58,7 +58,7 @@
             android:maxLines="1"
             android:ellipsize="end"
             android:textSize="14sp"
-            android:textColor="#CCFFFFFF"
+            android:textColor="@color/on_dark_medium"
             android:autoSizeTextType="uniform"
             android:autoSizeMinTextSize="10sp"
             android:autoSizeMaxTextSize="14sp" />

@@ -2,6 +2,7 @@ package com.ailife.clox.watchface
 
 import android.content.Context
 import android.widget.Toast
+import com.ailife.clox.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,7 +17,7 @@ object WatchfaceAutoChanger {
             val pick = items.random()
             WatchfacePrefs.setActivePath(ctx, pick.absolutePath)
             withContext(Dispatchers.Main) {
-                Toast.makeText(ctx, "Selected ${pick.name}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, ctx.getString(R.string.toast_wf_selected, pick.name), Toast.LENGTH_SHORT).show()
             }
         }
     }

@@ -4,12 +4,14 @@ import android.app.Application
 import android.content.pm.PackageManager
 import com.ailife.clox.crash.CrashHandler
 import com.ailife.clox.qs.privilege.ShizukuOperations
+import com.google.android.material.color.DynamicColors
 import rikka.shizuku.Shizuku
 
 class CloXApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        DynamicColors.applyToActivitiesIfAvailable(this)
         CrashHandler.install(this)
         initShizuku()
     }

@@ -26,7 +26,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="CloX"
+            android:text="@string/app_name"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="?attr/colorOnSurface" />
@@ -60,7 +60,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Part of Onyx Project"
+                    android:text="@string/about_onyx_project"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorPrimary"
@@ -69,7 +69,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="CloX is part of the Onyx open-source system for Android wearables."
+                    android:text="@string/about_onyx_description"
                     android:textSize="12sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:layout_marginBottom="10dp" />
@@ -93,14 +93,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="OnyxUI"
+                            android:text="@string/about_onyxui_name"
                             android:textSize="14sp"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="codeberg.org/OnyxUI/OnyxUI"
+                            android:text="@string/about_onyxui_url"
                             android:textSize="12sp"
                             android:textColor="?attr/colorPrimary" />
 
@@ -138,7 +138,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Developers"
+                    android:text="@string/about_developers_category"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorPrimary"
@@ -163,14 +163,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="AILIFE"
+                            android:text="@string/about_dev1_name"
                             android:textSize="14sp"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="gitlab.com/ailife8881"
+                            android:text="@string/about_dev1_url"
                             android:textSize="12sp"
                             android:textColor="?attr/colorPrimary" />
 
@@ -204,14 +204,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="4NF"
+                            android:text="@string/about_dev2_name"
                             android:textSize="14sp"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="gitlab.com/Iroha9876"
+                            android:text="@string/about_dev2_url"
                             android:textSize="12sp"
                             android:textColor="?attr/colorPrimary" />
 
@@ -250,7 +250,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Updates"
+                    android:text="@string/about_updates_category"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorPrimary"
@@ -273,14 +273,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Auto-update checks"
+                            android:text="@string/about_auto_update_title"
                             android:textSize="14sp"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Check for new releases on launch"
+                            android:text="@string/about_auto_update_summary"
                             android:textSize="12sp"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -313,14 +313,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Check for updates"
+                            android:text="@string/about_check_updates_btn"
                             android:textSize="14sp"
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="gitlab.com/ailife8881/clox"
+                            android:text="@string/about_repo_url"
                             android:textSize="12sp"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 

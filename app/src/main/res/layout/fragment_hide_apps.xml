@@ -29,14 +29,14 @@
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Blacklist" />
+                android:text="@string/hide_apps_tab_blacklist" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipWhitelist"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Whitelist" />
+                android:text="@string/hide_apps_tab_whitelist" />
 
         </com.google.android.material.chip.ChipGroup>
 
@@ -97,7 +97,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hide with secret code"
+                android:text="@string/hide_apps_secret_code_btn"
                 android:textAppearance="?attr/textAppearanceBodyMedium" />
 
             <TextView

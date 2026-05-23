@@ -108,7 +108,7 @@ class QsTileView @JvmOverloads constructor(
         isActive = active
         setDetail(detailText)
         setBadge(badgeText)
-        arcColor = ringColor ?: if (active) Color.parseColor("#379950") else Color.WHITE
+        arcColor = ringColor ?: if (active) context.getColor(R.color.qs_active_arc) else Color.WHITE
         if (active) setActiveStroke(arcColor) else setInactiveStroke()
         icon.setColorFilter(Color.WHITE)
         label.setTextColor(Color.WHITE)

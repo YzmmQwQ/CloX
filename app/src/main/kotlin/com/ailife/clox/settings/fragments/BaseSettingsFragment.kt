@@ -2,6 +2,7 @@ package com.ailife.clox.settings.fragments
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -26,7 +27,7 @@ abstract class BaseSettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         view.setBackgroundColor(
-            MaterialColors.getColor(view, com.google.android.material.R.attr.colorSurface, 0xFFFFFFFF.toInt())
+            MaterialColors.getColor(view, com.google.android.material.R.attr.colorSurface, Color.WHITE)
         )
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom

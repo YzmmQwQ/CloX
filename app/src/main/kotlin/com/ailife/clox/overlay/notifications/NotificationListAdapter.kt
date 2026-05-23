@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.transition.AutoTransition
 import androidx.transition.TransitionManager
+import androidx.core.content.ContextCompat
 import com.ailife.clox.R
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -68,12 +69,12 @@ class NotificationListAdapter(
         // Card appearance style
         val solidStyle = prefs.getString(NotificationPrefs.NOTIF_CARD_STYLE, NotificationPrefs.CARD_STYLE_GLASS) == NotificationPrefs.CARD_STYLE_SOLID
         if (solidStyle) {
-            holder.card.setCardBackgroundColor(0xFF2A2A2A.toInt())
+            holder.card.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.notif_card_bg))
             holder.card.strokeWidth = 0
         } else {
-            holder.card.setCardBackgroundColor(0xCC1A1A1A.toInt())
+            holder.card.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.notif_card_bg_dim))
             holder.card.strokeWidth = (1f * ctx.resources.displayMetrics.density).toInt()
-            holder.card.setStrokeColor(android.content.res.ColorStateList.valueOf(0x33FFFFFF.toInt()))
+            holder.card.setStrokeColor(android.content.res.ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.notif_card_stroke)))
         }
 
         // Text size

@@ -131,7 +131,7 @@
             android:id="@+id/btnOpenNotif"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Open"
+            android:text="@string/notif_action_open"
             android:layout_marginBottom="6dp"
             app:icon="@drawable/ic_open_in_new"
             style="@style/Widget.Material3.Button.TonalButton" />
@@ -141,7 +141,7 @@
             android:id="@+id/btnShowMore"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Show more"
+            android:text="@string/notif_action_show_more"
             style="@style/Widget.Material3.Button.OutlinedButton" />
 
     </LinearLayout>

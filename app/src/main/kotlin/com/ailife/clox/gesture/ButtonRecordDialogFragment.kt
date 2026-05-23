@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import com.ailife.clox.R
 
 class ButtonRecordDialogFragment : DialogFragment() {
 
@@ -12,9 +13,9 @@ class ButtonRecordDialogFragment : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = AlertDialog.Builder(requireContext())
-            .setTitle("Record Button")
-            .setMessage("Press any hardware button (Volume Up/Down, Camera, etc.) to map it.\n\nBack button cancels.")
-            .setNegativeButton("Cancel", null)
+            .setTitle(R.string.dialog_btn_record_title)
+            .setMessage(R.string.dialog_btn_record_message)
+            .setNegativeButton(R.string.btn_cancel, null)
             .create()
 
         dialog.setOnKeyListener { _, keyCode, event ->

@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentActivity
 import androidx.preference.PreferenceManager
+import com.ailife.clox.R
 
 object QsPermissionHelper {
 
@@ -75,19 +76,16 @@ object QsPermissionHelper {
 
     private fun showSettingsDialog(activity: FragmentActivity) {
         AlertDialog.Builder(activity)
-            .setTitle("Permissions Required")
-            .setMessage(
-                "Some permissions were permanently denied. " +
-                "Please open App Settings and grant them under Permissions."
-            )
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.dialog_qs_permissions_title)
+            .setMessage(R.string.dialog_qs_permissions_message)
+            .setPositiveButton(R.string.btn_open_settings) { _, _ ->
                 activity.startActivity(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.fromParts("package", activity.packageName, null)
                     }
                 )
             }
-            .setNegativeButton("Not Now", null)
+            .setNegativeButton(R.string.btn_not_now, null)
             .show()
     }
 

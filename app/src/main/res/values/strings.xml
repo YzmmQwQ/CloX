@@ -519,4 +519,192 @@
         <item>shizuku</item>
         <item>root</item>
     </string-array>
+
+    <!-- ── Crash activity ───────────────────────────────────────────────── -->
+    <string name="crash_title">App crashed</string>
+    <string name="crash_message">The error report is shown below. You can copy or share it.</string>
+    <string name="crash_btn_close">Close</string>
+    <string name="crash_btn_copy">Copy</string>
+    <string name="crash_btn_share">Share</string>
+    <string name="crash_copied">Copied to clipboard</string>
+
+    <!-- ── Notification overlay ─────────────────────────────────────────── -->
+    <string name="notif_panel_title">Notifications</string>
+    <string name="notif_grant_permission">Grant permission</string>
+    <string name="notif_try_anyway">Try anyway</string>
+    <string name="notif_empty">No notifications</string>
+    <string name="notif_dismiss_all_desc">Dismiss all</string>
+
+    <!-- ── Volume dialog ────────────────────────────────────────────────── -->
+    <string name="dialog_volume_title">Volume</string>
+
+    <!-- ── RTOS toast messages ──────────────────────────────────────────── -->
+    <string name="toast_rtos_activated">RTOS mode activated</string>
+    <string name="toast_rtos_deactivated">RTOS mode deactivated</string>
+    <string name="toast_rtos_set_password_first">Set a password first</string>
+    <string name="toast_rtos_password_cleared">Password cleared — set a new password for the selected type</string>
+    <string name="toast_rtos_accessibility_first">Enable the accessibility service first</string>
+    <string name="toast_rtos_password_saved">Password saved</string>
+    <string name="toast_rtos_passwords_dont_match">Passwords don\'t match — try again</string>
+    <string name="toast_rtos_password_too_short">Need at least 4 symbols, not all the same</string>
+    <string name="rtos_accessibility_enabled">✓ Enabled</string>
+    <string name="rtos_accessibility_disabled">Tap to enable — required for app blocking</string>
+
+    <!-- ── Quick Settings toast messages ────────────────────────────────── -->
+    <string name="toast_qs_rtos_not_configured">RTOS mode not configured</string>
+    <string name="toast_qs_app_not_found">App not found: %s</string>
+    <string name="toast_qs_elevated_required">Requires elevated privileges for %s settings</string>
+
+    <!-- ── OTA toast messages ───────────────────────────────────────────── -->
+    <string name="toast_ota_no_internet">No internet connection</string>
+    <string name="toast_ota_check_failed_code">Update check failed (%d)</string>
+    <string name="toast_ota_check_failed">Update check failed: %s</string>
+    <string name="toast_ota_no_apk">No APK found in release</string>
+    <string name="toast_ota_parse_failed">Failed to parse release info</string>
+    <string name="toast_ota_up_to_date">Already up to date (%s)</string>
+    <string name="toast_ota_auto_disabled">Auto-update checks disabled</string>
+    <string name="toast_ota_downloading">Downloading update…</string>
+    <string name="toast_ota_install_failed">Install failed: %s</string>
+
+    <!-- ── OTA dialog ────────────────────────────────────────────────────── -->
+    <string name="dialog_ota_update_title">Update available — v%s</string>
+    <string name="dialog_ota_update_positive">Update</string>
+    <string name="dialog_ota_update_neutral">Later</string>
+    <string name="dialog_ota_update_negative">Don\'t ask again</string>
+    <string name="ota_download_notif_title">CloX update</string>
+
+    <!-- ── Default launcher dialog ──────────────────────────────────────── -->
+    <string name="dialog_default_launcher_title">Set as Default Launcher</string>
+    <string name="dialog_default_launcher_message">CloX needs to be set as your default launcher to work properly.\n\nNote: Some devices don\'t allow setting \'Always\' on first selection — if that happens, just select it again.</string>
+    <string name="dialog_default_launcher_positive">Set Now</string>
+    <string name="dialog_default_launcher_neutral">Ask Later</string>
+    <string name="dialog_default_launcher_negative">Never</string>
+
+    <!-- ── RTOS settings fragment ────────────────────────────────────────── -->
+    <string name="rtos_setting_enabled_title">Enable RTOS Mode</string>
+    <string name="rtos_setting_enabled_summary">Disguise launcher as an RTOS Bluetooth watch</string>
+    <string name="rtos_setting_options_category">Options</string>
+    <string name="rtos_setting_mode_title">Mode</string>
+    <string name="rtos_setting_auto_enter_title">Auto-enter on screen off</string>
+    <string name="rtos_setting_auto_enter_summary">Activate RTOS mode when screen turns off</string>
+    <string name="rtos_setting_launcher_icon_title">Show launcher icon</string>
+    <string name="rtos_setting_launcher_icon_summary">Adds an icon to the app launcher to activate RTOS mode</string>
+    <string name="rtos_setting_password_category">Password</string>
+    <string name="rtos_setting_password_type_title">Password Type</string>
+    <string name="rtos_setting_set_password_title">Set Password</string>
+    <string name="rtos_setting_set_password_summary">Configure unlock code</string>
+    <string name="rtos_setting_app_restrictions_category">App Restrictions</string>
+    <string name="rtos_setting_allowed_apps_title">Allowed Apps (Mode 2)</string>
+    <string name="rtos_setting_allowed_apps_summary">Select which apps appear in the app list</string>
+    <string name="rtos_setting_block_apps_title">Block non-whitelisted apps</string>
+    <string name="rtos_setting_block_apps_summary">Enable accessibility service first, then turn this on</string>
+    <string name="rtos_setting_accessibility_category">Accessibility</string>
+    <string name="rtos_setting_accessibility_title">Accessibility Service</string>
+
+    <!-- ── Hide apps fragment ────────────────────────────────────────────── -->
+    <string name="hide_apps_tab_blacklist">Blacklist</string>
+    <string name="hide_apps_tab_whitelist">Whitelist</string>
+    <string name="hide_apps_secret_code_btn">Hide with secret code</string>
+
+    <!-- ── Tile editor ───────────────────────────────────────────────────── -->
+    <string name="tile_editor_active_tiles">Active Tiles</string>
+    <string name="tile_editor_available_tiles">Available Tiles</string>
+    <string name="tile_editor_add_custom">Add Custom</string>
+
+    <!-- ── Notification item actions ────────────────────────────────────── -->
+    <string name="notif_action_open">Open</string>
+    <string name="notif_action_show_more">Show more</string>
+
+    <!-- ── Quick Settings settings fragment ─────────────────────────────── -->
+    <string name="qs_setting_general_category">General</string>
+    <string name="qs_setting_tiles_category">Tiles</string>
+    <string name="qs_setting_flashlight_category">Flashlight</string>
+    <string name="qs_setting_appearance_category">Appearance</string>
+    <string name="qs_setting_tile_style_title">Tile style</string>
+    <string name="qs_setting_elevated_privileges_category">Elevated Privileges</string>
+    <string name="qs_setting_accessibility_category">Accessibility</string>
+
+    <!-- ── Notifications settings fragment ──────────────────────────────── -->
+    <string name="notif_setting_enabled_title">Enable notifications</string>
+    <string name="notif_setting_enabled_summary">Show notification panel on swipe right</string>
+    <string name="notif_setting_display_category">Display</string>
+    <string name="notif_setting_card_style_title">Card style</string>
+    <string name="notif_setting_view_style_title">View style</string>
+    <string name="notif_setting_text_size_title">Text size</string>
+    <string name="notif_setting_media_controls_title">Media controls</string>
+    <string name="notif_setting_media_controls_summary">Show music player card when playing</string>
+    <string name="notif_setting_alerts_category">Alerts on new notification</string>
+    <string name="notif_setting_wake_title">Wake screen</string>
+    <string name="notif_setting_open_panel_title">Open notification panel</string>
+    <string name="notif_setting_vibrate_title">Vibrate</string>
+    <string name="notif_setting_filtering_category">Filtering</string>
+    <string name="notif_setting_group_title">Group notifications</string>
+    <string name="notif_setting_group_summary">Chat at top, normal middle, persistent bottom</string>
+    <string name="notif_setting_hide_persistent_title">Hide persistent notifications</string>
+    <string name="notif_setting_hide_persistent_summary">Block ongoing notifications from appearing</string>
+    <string name="notif_setting_access_title">Notification access</string>
+
+    <!-- ── App list settings fragment ───────────────────────────────────── -->
+    <string name="applist_setting_general_category">General</string>
+    <string name="applist_setting_hidden_apps_summary">Manage which apps appear in the launcher</string>
+    <string name="applist_setting_launch_anim_title">Launch animation</string>
+    <string name="applist_setting_background_category">Background</string>
+    <string name="applist_setting_bg_image_title">Background image</string>
+    <string name="applist_setting_bg_image_summary">Tap to choose an image</string>
+    <string name="applist_setting_darken_bg_title">Darken background</string>
+    <string name="applist_setting_clear_bg_btn">Clear background image</string>
+    <string name="applist_setting_list_options_category">List options</string>
+    <string name="applist_setting_grid_options_category">Grid options</string>
+    <string name="applist_setting_waterfall_options_category">Waterfall options</string>
+    <string name="applist_setting_honeycomb_options_category">Honeycomb options</string>
+    <string name="applist_setting_grid2d_options_category">Grid 2D options</string>
+    <string name="applist_setting_pages_options_category">Pages options</string>
+
+    <!-- ── Common dialog buttons ────────────────────────────────────────── -->
+    <string name="btn_open_settings">Open Settings</string>
+    <string name="btn_not_now">Not Now</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="btn_send">Send</string>
+    <string name="btn_cancel">Cancel</string>
+
+    <!-- ── Button record dialog ──────────────────────────────────────────── -->
+    <string name="dialog_btn_record_title">Record Button</string>
+    <string name="dialog_btn_record_message">Press any hardware button (Volume Up/Down, Camera, etc.) to map it.\n\nBack button cancels.</string>
+
+    <!-- ── Calendar permission dialog ───────────────────────────────────── -->
+    <string name="dialog_calendar_perm_message">Calendar permission was denied. Please enable it in App Settings.</string>
+
+    <!-- ── QS permissions dialog ────────────────────────────────────────── -->
+    <string name="dialog_qs_permissions_title">Permissions Required</string>
+    <string name="dialog_qs_permissions_message">Some permissions were permanently denied. Please open App Settings and grant them under Permissions.</string>
+
+    <!-- ── Notification reply dialog ────────────────────────────────────── -->
+    <string name="dialog_reply_title">Reply</string>
+
+    <!-- ── Secret code unlock dialog ────────────────────────────────────── -->
+    <string name="dialog_secret_code_title">Secret code unlock</string>
+    <string name="dialog_secret_code_message">Once set, this screen will be hidden from Settings.\n\nTo access it again, open your phone dialer and type:\n\n*#*#YOUR_PASSWORD#*#*\n\nYou will see a notification confirming access.</string>
+    <string name="dialog_secret_code_positive">Set password</string>
+    <string name="dialog_enter_password_title">Enter password</string>
+    <string name="dialog_enter_password_message">Minimum 4 digits</string>
+
+    <!-- ── Watch face toasts ────────────────────────────────────────────── -->
+    <string name="toast_wf_selected">Selected %s</string>
+    <string name="toast_remote_server_failed">Failed to start server</string>
+
+    <!-- ── About fragment ───────────────────────────────────────────────── -->
+    <string name="about_onyx_project">Part of Onyx Project</string>
+    <string name="about_onyx_description">CloX is part of the Onyx open-source system for Android wearables.</string>
+    <string name="about_onyxui_name">OnyxUI</string>
+    <string name="about_onyxui_url">codeberg.org/OnyxUI/OnyxUI</string>
+    <string name="about_developers_category">Developers</string>
+    <string name="about_dev1_name">AILIFE</string>
+    <string name="about_dev1_url">gitlab.com/ailife8881</string>
+    <string name="about_dev2_name">4NF</string>
+    <string name="about_dev2_url">gitlab.com/Iroha9876</string>
+    <string name="about_updates_category">Updates</string>
+    <string name="about_auto_update_title">Auto-update checks</string>
+    <string name="about_auto_update_summary">Check for new releases on launch</string>
+    <string name="about_check_updates_btn">Check for updates</string>
+    <string name="about_repo_url">gitlab.com/ailife8881/clox</string>
 </resources>

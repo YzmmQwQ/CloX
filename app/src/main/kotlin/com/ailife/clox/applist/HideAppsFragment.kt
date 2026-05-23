@@ -154,9 +154,9 @@ class HideAppsFragment : Fragment() {
 
         // Step 1: explain mechanism
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Secret code unlock")
-            .setMessage("Once set, this screen will be hidden from Settings.\n\nTo access it again, open your phone dialer and type:\n\n*#*#YOUR_PASSWORD#*#*\n\nYou will see a notification confirming access.")
-            .setPositiveButton("Set password") { _, _ -> promptPasswordInput(tvCodeHint) }
+            .setTitle(R.string.dialog_secret_code_title)
+            .setMessage(R.string.dialog_secret_code_message)
+            .setPositiveButton(R.string.dialog_secret_code_positive) { _, _ -> promptPasswordInput(tvCodeHint) }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
                 view?.findViewById<MaterialSwitch>(R.id.switchLock)?.isChecked = false
             }
@@ -171,10 +171,10 @@ class HideAppsFragment : Fragment() {
         val editText = inputLayout.editText!!
 
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Enter password")
-            .setMessage("Minimum 4 digits")
+            .setTitle(R.string.dialog_enter_password_title)
+            .setMessage(R.string.dialog_enter_password_message)
             .setView(inputLayout)
-            .setPositiveButton("Confirm") { _, _ ->
+            .setPositiveButton(R.string.btn_confirm) { _, _ ->
                 val pw = editText.text?.toString()?.trim() ?: ""
                 if (pw.length < 4 || !pw.all { it.isDigit() }) {
                     promptPasswordInput(tvCodeHint)  // re-prompt on invalid

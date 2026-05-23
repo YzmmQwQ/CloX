@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.ailife.clox.R
 import com.ailife.clox.rtos.RtosPrefs
 
 /**
@@ -38,7 +39,7 @@ class RtosWhitelistActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         hideSystemBars()
 
-        val root = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#111111")) }
+        val root = FrameLayout(this).apply { setBackgroundColor(getColor(R.color.rtos_bg)) }
 
         val topBar = buildTopBar()
         root.addView(topBar, FrameLayout.LayoutParams(
@@ -118,7 +119,7 @@ class RtosWhitelistActivity : AppCompatActivity() {
 
     private fun buildTopBar(): LinearLayout {
         return LinearLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#1A1A2E"))
+            setBackgroundColor(getColor(R.color.rtos_whitelist_bg))
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), 0, dp(8), 0)

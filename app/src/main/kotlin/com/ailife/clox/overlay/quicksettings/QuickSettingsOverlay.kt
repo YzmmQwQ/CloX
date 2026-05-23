@@ -495,7 +495,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
 
     private fun handleRtosMode() {
         if (!RtosPrefs.isEnabled(context) || RtosPrefs.passwordHash(context) == null) {
-            Toast.makeText(context, "RTOS mode not configured", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.toast_qs_rtos_not_configured, Toast.LENGTH_SHORT).show()
             return
         }
         onDismissRequest?.invoke()   // close QS panel first
@@ -528,7 +528,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     })
                 } catch (_: ActivityNotFoundException) {
-                    Toast.makeText(context, "App not found: $component", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.toast_qs_app_not_found, component), Toast.LENGTH_SHORT).show()
                 }
             }
             CustomTileMode.WRITE_SETTINGS -> {
@@ -552,7 +552,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
                         ShizukuOperations.writeSettings(ns, key, newVal)
                     priv == PrivilegeLevel.ROOT ->
                         scope?.launch(Dispatchers.IO) { RootOperations.writeSettings(ns, key, newVal) }
-                    else -> Toast.makeText(context, "Requires elevated privileges for $ns settings", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(context, context.getString(R.string.toast_qs_elevated_required, ns), Toast.LENGTH_SHORT).show()
                 }
             }
         }

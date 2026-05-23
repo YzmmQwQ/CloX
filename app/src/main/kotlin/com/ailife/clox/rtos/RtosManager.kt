@@ -2,6 +2,7 @@ package com.ailife.clox.rtos
 
 import android.content.Context
 import android.widget.Toast
+import com.ailife.clox.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,13 +22,13 @@ object RtosManager {
         currentMode = RtosPrefs.mode(ctx)
         RtosPrefs.get(ctx).edit().putBoolean(RtosPrefs.KEY_WAS_ACTIVE, true).apply()
         _active.value = true
-        Toast.makeText(ctx, "RTOS mode activated", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, ctx.getString(R.string.toast_rtos_activated), Toast.LENGTH_SHORT).show()
     }
 
     fun exit(ctx: Context) {
         RtosPrefs.get(ctx).edit().putBoolean(RtosPrefs.KEY_WAS_ACTIVE, false).apply()
         _active.value = false
-        Toast.makeText(ctx, "RTOS mode deactivated", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, ctx.getString(R.string.toast_rtos_deactivated), Toast.LENGTH_SHORT).show()
     }
 
     /** Restores active state after process death. Call from MainActivity after setup. */

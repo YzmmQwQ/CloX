@@ -25,7 +25,7 @@
             android:id="@+id/notifPermTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Notifications"
+            android:text="@string/notif_panel_title"
             android:textAppearance="?attr/textAppearanceTitleLarge"
             android:textColor="?attr/colorOnSurface"
             android:gravity="center"
@@ -45,13 +45,13 @@
             android:id="@+id/btnNotifPermGrant"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Grant permission" />
+            android:text="@string/notif_grant_permission" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnNotifPermTryAnyway"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Try anyway"
+            android:text="@string/notif_try_anyway"
             android:layout_marginTop="8dp"
             style="@style/Widget.Material3.Button.TextButton"
             android:visibility="gone" />
@@ -89,7 +89,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:text="No notifications"
+            android:text="@string/notif_empty"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             android:textColor="?attr/colorOnSurface"
             android:elevation="8dp"
@@ -103,7 +103,7 @@
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
             app:srcCompat="@drawable/ic_delete"
-            android:contentDescription="Dismiss all"
+            android:contentDescription="@string/notif_dismiss_all_desc"
             android:visibility="gone" />
 
     </FrameLayout>

@@ -101,7 +101,7 @@ class RemoteManagementActivity : AppCompatActivity() {
         val ok = WatchfaceServerManager.start(this)
         if (!ok) {
             switchServer.isChecked = false
-            Toast.makeText(this, "Failed to start server", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.toast_remote_server_failed, Toast.LENGTH_LONG).show()
             return
         }
         val ip = getLocalIpAddress() ?: "?.?.?.?"

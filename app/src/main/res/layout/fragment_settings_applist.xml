@@ -24,7 +24,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="General"
+                    android:text="@string/applist_setting_general_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -108,7 +108,7 @@
                             android:text="@string/pref_hidden_apps_title"
                             android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Manage which apps appear in the launcher"
+                            android:text="@string/applist_setting_hidden_apps_summary"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                     <ImageView android:layout_width="20dp" android:layout_height="20dp"
@@ -125,7 +125,7 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Launch animation"
+                            android:text="@string/applist_setting_launch_anim_title"
                             android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:id="@+id/tvLaunchAnim"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -148,7 +148,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Background"
+                    android:text="@string/applist_setting_background_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -161,11 +161,11 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Background image"
+                            android:text="@string/applist_setting_bg_image_title"
                             android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:id="@+id/tvBgImageStatus"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Tap to choose an image"
+                            android:text="@string/applist_setting_bg_image_summary"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                     <ImageView android:layout_width="20dp" android:layout_height="20dp"
@@ -180,7 +180,7 @@
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:orientation="horizontal" android:gravity="center_vertical">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                            android:layout_weight="1" android:text="Darken background"
+                            android:layout_weight="1" android:text="@string/applist_setting_darken_bg_title"
                             android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:id="@+id/tvWallpaperDim"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -199,7 +199,7 @@
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Clear background image"
+                    android:text="@string/applist_setting_clear_bg_btn"
                     android:visibility="gone" />
 
             </LinearLayout>
@@ -268,7 +268,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="List options"
+                    android:text="@string/applist_setting_list_options_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -355,7 +355,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Grid options"
+                    android:text="@string/applist_setting_grid_options_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -401,7 +401,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Waterfall options"
+                    android:text="@string/applist_setting_waterfall_options_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -476,7 +476,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Honeycomb options"
+                    android:text="@string/applist_setting_honeycomb_options_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -549,7 +549,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Grid 2D options"
+                    android:text="@string/applist_setting_grid2d_options_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
@@ -631,7 +631,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="14dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Pages options"
+                    android:text="@string/applist_setting_pages_options_category"
                     android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 

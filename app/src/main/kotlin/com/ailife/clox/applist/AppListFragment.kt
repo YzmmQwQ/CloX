@@ -124,7 +124,7 @@ class AppListFragment : Fragment() {
         val ta = requireContext().obtainStyledAttributes(
             intArrayOf(com.google.android.material.R.attr.colorSurface)
         )
-        root.setBackgroundColor(ta.getColor(0, 0xFF1C1B1F.toInt()))
+        root.setBackgroundColor(ta.getColor(0, requireContext().getColor(R.color.fallback_surface)))
         ta.recycle()
     }
 

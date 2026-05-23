@@ -38,8 +38,8 @@ class RtosQsOverlay @JvmOverloads constructor(
     private var touchStartY = 0f
     private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
 
-    private val TILE_OFF = Color.parseColor("#2A2A2A")
-    private val TILE_ON  = Color.parseColor("#1565C0")
+    private val TILE_OFF get() = ContextCompat.getColor(context, R.color.qs_tile_off)
+    private val TILE_ON  get() = ContextCompat.getColor(context, R.color.qs_tile_on)
 
     private lateinit var btTile: FrameLayout
     private lateinit var sndTile: FrameLayout

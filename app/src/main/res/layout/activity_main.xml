@@ -32,7 +32,7 @@
         android:id="@+id/overlayScrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#000000"
+        android:background="@color/clox_bg"
         android:alpha="0"
         android:visibility="gone" />
 
@@ -60,7 +60,7 @@
         android:id="@+id/flashlightOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
+        android:background="@android:color/white"
         android:visibility="gone" />
 
     <!-- Gesture lock indicator: shown at top-center when gestures are locked -->
@@ -71,7 +71,7 @@
         android:layout_gravity="top|center_horizontal"
         android:layout_marginTop="12dp"
         android:src="@drawable/ic_lock_gesture"
-        android:tint="#CCFFFFFF"
+        android:tint="@color/on_dark_medium"
         android:visibility="gone"
         android:alpha="0.85"
         android:importantForAccessibility="no" />

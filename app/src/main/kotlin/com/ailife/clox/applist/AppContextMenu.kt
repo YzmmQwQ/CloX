@@ -60,7 +60,7 @@ object AppContextMenu {
             android.R.attr.colorBackground,
             com.google.android.material.R.attr.colorSurface
         ))
-        val surfaceColor = ta.getColor(1, ta.getColor(0, 0xFF1C1B1F.toInt()))
+        val surfaceColor = ta.getColor(1, ta.getColor(0, context.getColor(R.color.fallback_surface)))
         ta.recycle()
 
         val bg = GradientDrawable().apply {

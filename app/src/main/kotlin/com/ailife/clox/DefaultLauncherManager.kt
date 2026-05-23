@@ -41,14 +41,14 @@ class DefaultLauncherManager(private val activity: Activity) {
 
     private fun showLauncherDialog() {
         MaterialAlertDialogBuilder(activity)
-            .setTitle("Set as Default Launcher")
-            .setMessage("CloX needs to be set as your default launcher to work properly.\n\nNote: Some devices don't allow setting 'Always' on first selection — if that happens, just select it again.")
-            .setPositiveButton("Set Now") { _, _ ->
+            .setTitle(R.string.dialog_default_launcher_title)
+            .setMessage(R.string.dialog_default_launcher_message)
+            .setPositiveButton(R.string.dialog_default_launcher_positive) { _, _ ->
                 prefs.edit().putBoolean(KEY_USER_WANTS_SET, true).apply()
                 openLauncherChooser()
             }
-            .setNeutralButton("Ask Later") { d, _ -> d.dismiss() }
-            .setNegativeButton("Never") { d, _ ->
+            .setNeutralButton(R.string.dialog_default_launcher_neutral) { d, _ -> d.dismiss() }
+            .setNegativeButton(R.string.dialog_default_launcher_negative) { d, _ ->
                 prefs.edit().putBoolean(KEY_NEVER_ASK, true).apply()
                 d.dismiss()
             }

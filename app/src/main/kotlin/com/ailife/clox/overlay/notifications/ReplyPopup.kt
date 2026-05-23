@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
+import com.ailife.clox.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -31,9 +32,9 @@ object ReplyPopup {
         layout.addView(inputLayout)
 
         MaterialAlertDialogBuilder(context)
-            .setTitle("Reply")
+            .setTitle(R.string.dialog_reply_title)
             .setView(layout)
-            .setPositiveButton("Send") { _, _ ->
+            .setPositiveButton(R.string.btn_send) { _, _ ->
                 val text = editText.text?.toString() ?: return@setPositiveButton
                 val intent = Intent().apply {
                     val bundle = Bundle()
@@ -42,7 +43,7 @@ object ReplyPopup {
                 }
                 try { replyAction.actionIntent.send(context, 0, intent) } catch (e: Exception) {}
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.btn_cancel, null)
             .show()
     }
 }

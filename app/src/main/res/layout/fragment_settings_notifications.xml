@@ -28,10 +28,10 @@
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Enable notifications"
+                        android:text="@string/notif_setting_enabled_title"
                         android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Show notification panel on swipe right"
+                        android:text="@string/notif_setting_enabled_summary"
                         android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
                 <com.google.android.material.materialswitch.MaterialSwitch
@@ -54,7 +54,7 @@
                 android:orientation="vertical" android:padding="14dp">
 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Display" android:textSize="13sp" android:textStyle="bold"
+                    android:text="@string/notif_setting_display_category" android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
                 <!-- Card style list -->
@@ -66,7 +66,7 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Card style" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                            android:text="@string/notif_setting_card_style_title" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:id="@+id/tvNotifCardStyle"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
@@ -86,7 +86,7 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="View style" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                            android:text="@string/notif_setting_view_style_title" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:id="@+id/tvNotifViewStyle"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
@@ -102,7 +102,7 @@
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:orientation="horizontal" android:gravity="center_vertical">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                            android:layout_weight="1" android:text="Text size"
+                            android:layout_weight="1" android:text="@string/notif_setting_text_size_title"
                             android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:id="@+id/tvNotifTextSize"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -122,9 +122,9 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Media controls" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                            android:text="@string/notif_setting_media_controls_title" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Show music player card when playing"
+                            android:text="@string/notif_setting_media_controls_summary"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -149,13 +149,13 @@
                 android:orientation="vertical" android:padding="14dp">
 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Alerts on new notification" android:textSize="13sp" android:textStyle="bold"
+                    android:text="@string/notif_setting_alerts_category" android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:gravity="center_vertical">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Wake screen"
+                        android:layout_weight="1" android:text="@string/notif_setting_wake_title"
                         android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchNotifWake"
@@ -166,7 +166,7 @@
                     android:orientation="horizontal" android:gravity="center_vertical"
                     android:layout_marginTop="14dp">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Open notification panel"
+                        android:layout_weight="1" android:text="@string/notif_setting_open_panel_title"
                         android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchNotifAutoOpen"
@@ -177,7 +177,7 @@
                     android:orientation="horizontal" android:gravity="center_vertical"
                     android:layout_marginTop="14dp">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Vibrate"
+                        android:layout_weight="1" android:text="@string/notif_setting_vibrate_title"
                         android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchNotifVibrate"
@@ -201,7 +201,7 @@
                 android:orientation="vertical" android:padding="14dp">
 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Filtering" android:textSize="13sp" android:textStyle="bold"
+                    android:text="@string/notif_setting_filtering_category" android:textSize="13sp" android:textStyle="bold"
                     android:textColor="?attr/colorPrimary" android:layout_marginBottom="10dp" />
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -209,9 +209,9 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Group notifications" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                            android:text="@string/notif_setting_group_title" android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Chat at top, normal middle, persistent bottom"
+                            android:text="@string/notif_setting_group_summary"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -225,10 +225,10 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Hide persistent notifications" android:textSize="14sp"
+                            android:text="@string/notif_setting_hide_persistent_title" android:textSize="14sp"
                             android:textColor="?attr/colorOnSurface" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Block ongoing notifications from appearing"
+                            android:text="@string/notif_setting_hide_persistent_summary"
                             android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -256,7 +256,7 @@
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Notification access" android:textSize="14sp"
+                        android:text="@string/notif_setting_access_title" android:textSize="14sp"
                         android:textColor="?attr/colorOnSurface" />
                     <TextView android:id="@+id/tvNotifPermission"
                         android:layout_width="wrap_content" android:layout_height="wrap_content"

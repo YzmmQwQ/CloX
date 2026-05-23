@@ -37,13 +37,13 @@ class SensorsSettingsFragment : BaseSettingsFragment() {
             } else {
                 AlertDialog.Builder(requireContext())
                     .setTitle(R.string.pref_calendar_permission_denied)
-                    .setMessage("Calendar permission was denied. Please enable it in App Settings.")
-                    .setPositiveButton("Open Settings") { _, _ ->
+                    .setMessage(R.string.dialog_calendar_perm_message)
+                    .setPositiveButton(R.string.btn_open_settings) { _, _ ->
                         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", requireContext().packageName, null)
                         })
                     }
-                    .setNegativeButton("Cancel", null)
+                    .setNegativeButton(R.string.btn_cancel, null)
                     .show()
             }
         }

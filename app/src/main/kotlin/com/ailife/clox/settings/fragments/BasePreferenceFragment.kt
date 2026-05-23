@@ -1,5 +1,6 @@
 package com.ailife.clox.settings.fragments
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.ViewCompat
@@ -14,7 +15,7 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat() {
         // PreferenceFragmentCompat inflates a transparent LinearLayout — give it an opaque
         // surface background so it doesn't flicker during enter/exit animations.
         view.setBackgroundColor(
-            MaterialColors.getColor(view, com.google.android.material.R.attr.colorSurface, 0xFFFFFFFF.toInt())
+            MaterialColors.getColor(view, com.google.android.material.R.attr.colorSurface, Color.WHITE)
         )
         ViewCompat.setOnApplyWindowInsetsListener(listView) { v, insets ->
             val bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom

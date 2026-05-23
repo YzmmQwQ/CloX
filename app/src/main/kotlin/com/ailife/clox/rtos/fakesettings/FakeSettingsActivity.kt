@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.ailife.clox.R
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
 import com.ailife.clox.watchface.WatchfaceSnapshot
@@ -39,12 +40,12 @@ class FakeSettingsActivity : AppCompatActivity() {
         const val PAGE_QR = "qr"
     }
 
-    private val BG      = Color.parseColor("#0D1B2A")
-    private val TOPBAR  = Color.parseColor("#0D1B2A")
-    private val ITEM_BG = Color.parseColor("#1A2B3C")
+    private val BG      get() = getColor(R.color.rtos_dark_bg)
+    private val TOPBAR  get() = getColor(R.color.rtos_dark_bg)
+    private val ITEM_BG get() = getColor(R.color.rtos_item_bg)
     private val WHITE   = Color.WHITE
-    private val BLUE    = Color.parseColor("#4FC3F7")
-    private val ARROW   = Color.parseColor("#4FC3F7")
+    private val BLUE    get() = getColor(R.color.rtos_accent_blue)
+    private val ARROW   get() = getColor(R.color.rtos_accent_blue)
 
     private lateinit var contentFrame: FrameLayout
     private val fakeBleMac = generateMac()
@@ -213,7 +214,7 @@ class FakeSettingsActivity : AppCompatActivity() {
         val macTv = TextView(this).apply {
             text = fakeBleMac
             textSize = 12f
-            setTextColor(Color.parseColor("#AAAAAA"))
+            setTextColor(getColor(R.color.rtos_hint_text))
             gravity = Gravity.CENTER
         }
         col.addView(macTv)
@@ -268,7 +269,7 @@ class FakeSettingsActivity : AppCompatActivity() {
                 val valTv = TextView(this@FakeSettingsActivity).apply {
                     text     = value
                     textSize = 13f
-                    setTextColor(Color.parseColor("#AAAAAA"))
+                    setTextColor(getColor(R.color.rtos_hint_text))
                 }
                 addView(valTv)
             }

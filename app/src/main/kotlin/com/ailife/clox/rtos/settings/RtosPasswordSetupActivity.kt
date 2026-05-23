@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.ailife.clox.R
 import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.rtos.password.PasswordValidator
 
@@ -71,7 +72,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
             "Your code must be at least 4 symbols and not all the same."
         }
 
-        val bodyTv = label(body, 13f, Color.parseColor("#CCCCCC"))
+        val bodyTv = label(body, 13f, getColor(R.color.rtos_body_text))
         bodyTv.gravity = Gravity.START
         col.addView(bodyTv)
         col.addView(spacer(dp(32)))
@@ -118,10 +119,10 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         val col = columnLayout()
         col.addView(label(title, 20f, Color.WHITE))
         col.addView(spacer(dp(8)))
-        col.addView(label(hint, 13f, Color.parseColor("#AAAAAA")))
+        col.addView(label(hint, 13f, getColor(R.color.rtos_hint_text)))
         col.addView(spacer(dp(24)))
 
-        val indicator = label("", 18f, Color.parseColor("#4FC3F7"))
+        val indicator = label("", 18f, getColor(R.color.rtos_accent_blue))
         indicator.gravity = Gravity.CENTER
         col.addView(indicator)
         inputIndicator = indicator
@@ -147,9 +148,8 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
 
         // The big input surface
         val surface = FrameLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#111111"))
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#111111"))
+                setColor(getColor(R.color.rtos_bg))
                 cornerRadius = dp(12).toFloat()
             }
         }
@@ -207,8 +207,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
             PasswordValidator.isValidMorsePassword(inputWindow)
 
         if (!valid) {
-            Toast.makeText(this,
-                "Need at least 4 symbols, not all the same", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_rtos_password_too_short, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -219,10 +218,10 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
             if (inputWindow == firstEntry) {
                 val hash = PasswordValidator.hash(firstEntry)
                 RtosPrefs.setPassword(this, firstEntry, hash)
-                Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_rtos_password_saved, Toast.LENGTH_SHORT).show()
                 finish()
             } else {
-                Toast.makeText(this, "Passwords don't match — try again", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_rtos_passwords_dont_match, Toast.LENGTH_SHORT).show()
                 showInputScreen(isConfirm = true)
             }
         }
@@ -231,7 +230,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
     private fun drawKeypadGrid(surface: FrameLayout) {
         surface.post {
             val w = surface.width; val h = surface.height
-            val lineColor = Color.parseColor("#333333")
+            val lineColor = getColor(R.color.rtos_line)
             // Vertical lines
             for (i in 1..2) {
                 val x = w * i / 3
@@ -250,7 +249,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
                 val tv = TextView(this).apply {
                     text = digit.toString()
                     textSize = 22f
-                    setTextColor(Color.parseColor("#555555"))
+                    setTextColor(getColor(R.color.rtos_dim_text))
                     gravity = Gravity.CENTER
                 }
                 surface.addView(tv, FrameLayout.LayoutParams(w / 3, h / 3).apply {
@@ -292,7 +291,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         setTextColor(Color.WHITE)
         gravity = Gravity.CENTER
         background = GradientDrawable().apply {
-            setColor(Color.parseColor("#1F4068"))
+            setColor(getColor(R.color.rtos_highlight))
             cornerRadius = dp(28).toFloat()
         }
     }

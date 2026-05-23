@@ -4,4 +4,40 @@
     <color name="clox_accent">#FF1E88E5</color>
     <color name="overlay_scrim">#CC000000</color>
     <color name="notif_badge">#B3261E</color>
+
+    <!-- ── RTOS / FakeSettings overlay ──────────────────────────────────── -->
+    <color name="rtos_bg">#111111</color>
+    <color name="rtos_line">#333333</color>
+    <color name="rtos_dim_text">#555555</color>
+    <color name="rtos_hint_text">#AAAAAA</color>
+    <color name="rtos_body_text">#CCCCCC</color>
+    <color name="rtos_accent_blue">#4FC3F7</color>
+    <color name="rtos_highlight">#1F4068</color>
+    <color name="rtos_dark_bg">#0D1B2A</color>
+    <color name="rtos_item_bg">#1A2B3C</color>
+    <color name="rtos_whitelist_bg">#1A1A2E</color>
+
+    <!-- ── Quick Settings tiles ──────────────────────────────────────────── -->
+    <color name="qs_tile_off">#2A2A2A</color>
+    <color name="qs_tile_on">#1565C0</color>
+    <color name="qs_active_arc">#379950</color>
+
+    <!-- ── Text on dark / media backgrounds ─────────────────────────────── -->
+    <color name="on_dark_primary">#FFFFFF</color>
+    <color name="on_dark_secondary">#AAFFFFFF</color>
+    <color name="on_dark_medium">#CCFFFFFF</color>
+    <color name="on_dark_muted">#88FFFFFF</color>
+    <color name="on_dark_inactive">#AAAAAA</color>
+    <color name="on_dark_scrim">#40FFFFFF</color>
+
+    <!-- ── Notification panel ────────────────────────────────────────────── -->
+    <color name="notif_card_bg">#FF2A2A2A</color>
+    <color name="notif_card_bg_dim">#CC1A1A1A</color>
+    <color name="notif_card_stroke">#33FFFFFF</color>
+
+    <!-- ── App grid ──────────────────────────────────────────────────────── -->
+    <color name="app_label_scrim">#99000000</color>
+
+    <!-- ── Fallback colors (used when theme attributes are unavailable) ─── -->
+    <color name="fallback_surface">#FF1C1B1F</color>
 </resources>
