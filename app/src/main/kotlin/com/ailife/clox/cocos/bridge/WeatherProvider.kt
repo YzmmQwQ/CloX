@@ -315,17 +315,17 @@ sealed class WeatherProvider {
             val hCodes   = hourlyObj.getJSONArray("weather_code")
             val hourly   = (0 until minOf(hTemps.length(), 12)).map { i ->
                 val code = hCodes.getInt(i)
-                WeatherResult.HourlyItem(hTemps.getDouble(i).toFloat(), wmoText(code), mapWmo(code))
+                WeatherResult.HourlyItem(hTemps.getDouble(i).toFloat(), wmoText(ctx, code), mapWmo(code))
             }
 
             val days = (0 until minOf(high5.length(), 5)).map { i ->
                 val dCode = wmo5.getInt(i)
                 val avg = ((high5.getDouble(i) + low5.getDouble(i)) / 2).toFloat()
-                WeatherResult.DailyItem(avg, high5.getDouble(i).toFloat(), low5.getDouble(i).toFloat(), wmoText(dCode), mapWmo(dCode))
+                WeatherResult.DailyItem(avg, high5.getDouble(i).toFloat(), low5.getDouble(i).toFloat(), wmoText(ctx, dCode), mapWmo(dCode))
             }
 
             return WeatherResult(
-                currentTemp, high, low, wmoText(wmoCode), mapWmo(wmoCode, daytime),
+                currentTemp, high, low, wmoText(ctx, wmoCode), mapWmo(wmoCode, daytime),
                 humidity, pressure, windSpeed, windDir, cloud, rain,
                 daytime, sunrise, sunset, moonPhase(today), System.currentTimeMillis(),
                 hourly, days
@@ -349,19 +349,19 @@ sealed class WeatherProvider {
             else                         -> WeatherIcon.CLEAR
         }
 
-        private fun wmoText(code: Int) = when {
-            code == 0            -> "Clear sky"
-            code == 1            -> "Mainly clear"
-            code == 2            -> "Partly cloudy"
-            code == 3            -> "Overcast"
-            code in 45..48       -> "Fog"
-            code in 51..55       -> "Drizzle"
-            code in 61..65       -> "Rain"
-            code in 71..75       -> "Snow"
-            code in 80..82       -> "Rain showers"
-            code in 85..86       -> "Snow showers"
-            code in 95..99       -> "Thunderstorm"
-            else                 -> "Unknown"
+        private fun wmoText(ctx: android.content.Context, code: Int) = when {
+            code == 0            -> ctx.getString(com.ailife.clox.R.string.weather_clear_sky)
+            code == 1            -> ctx.getString(com.ailife.clox.R.string.weather_mainly_clear)
+            code == 2            -> ctx.getString(com.ailife.clox.R.string.weather_partly_cloudy)
+            code == 3            -> ctx.getString(com.ailife.clox.R.string.weather_overcast)
+            code in 45..48       -> ctx.getString(com.ailife.clox.R.string.weather_fog)
+            code in 51..55       -> ctx.getString(com.ailife.clox.R.string.weather_drizzle)
+            code in 61..65       -> ctx.getString(com.ailife.clox.R.string.weather_rain)
+            code in 71..75       -> ctx.getString(com.ailife.clox.R.string.weather_snow)
+            code in 80..82       -> ctx.getString(com.ailife.clox.R.string.weather_rain_showers)
+            code in 85..86       -> ctx.getString(com.ailife.clox.R.string.weather_snow_showers)
+            code in 95..99       -> ctx.getString(com.ailife.clox.R.string.weather_thunderstorm)
+            else                 -> ctx.getString(com.ailife.clox.R.string.weather_unknown)
         }
     }
 

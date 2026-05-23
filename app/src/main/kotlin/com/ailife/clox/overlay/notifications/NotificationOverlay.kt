@@ -134,7 +134,7 @@ class NotificationOverlay @JvmOverloads constructor(
         notifPager.visibility       = View.GONE
         fabDismissAll.visibility    = View.GONE
         emptyText.visibility        = View.VISIBLE
-        emptyText.text              = "No notifications"
+        emptyText.text              = context.getString(R.string.notif_empty)
     }
 
     private fun checkAndShow() {
@@ -161,9 +161,9 @@ class NotificationOverlay @JvmOverloads constructor(
         val isOldApi = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q
 
         if (isLowRam && isOldApi) {
-            permTitle.text   = "Not supported"
-            permMessage.text = "Notification access may not be available on this device."
-            btnGrant.text    = "View notifications"
+            permTitle.text   = context.getString(R.string.notif_perm_not_supported)
+            permMessage.text = context.getString(R.string.notif_perm_not_supported_desc)
+            btnGrant.text    = context.getString(R.string.notif_perm_view_btn)
             btnGrant.setOnClickListener {
                 try {
                     context.startActivity(
@@ -176,9 +176,9 @@ class NotificationOverlay @JvmOverloads constructor(
             btnTryAnyway.visibility = View.VISIBLE
             btnTryAnyway.setOnClickListener { openNotificationListenerSettings() }
         } else {
-            permTitle.text   = "Permission required"
-            permMessage.text = "Grant notification access so CloX can display your notifications."
-            btnGrant.text    = "Grant permission"
+            permTitle.text   = context.getString(R.string.notif_perm_title)
+            permMessage.text = context.getString(R.string.notif_perm_desc)
+            btnGrant.text    = context.getString(R.string.notif_perm_grant_btn)
             btnGrant.setOnClickListener { openNotificationListenerSettings() }
             btnTryAnyway.visibility = View.GONE
         }

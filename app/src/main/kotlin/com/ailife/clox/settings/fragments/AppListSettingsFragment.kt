@@ -211,7 +211,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
 
     private fun updateBgState() {
         val hasImage = AppListPrefs.bgImagePath(requireContext()) != null
-        tvBgImageStatus.text = if (hasImage) "Image set — tap to replace" else "Tap to choose an image"
+        tvBgImageStatus.text = if (hasImage) getString(R.string.app_list_bg_set) else getString(R.string.app_list_bg_not_set)
         btnBgImageClear.visibility = if (hasImage) View.VISIBLE else View.GONE
         rowWallpaperDim.visibility  = if (hasImage) View.VISIBLE else View.GONE
     }

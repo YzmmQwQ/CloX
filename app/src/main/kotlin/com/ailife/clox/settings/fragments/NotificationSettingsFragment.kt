@@ -64,7 +64,7 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
         }
         refreshCardStyleLabel()
         view.findViewById<View>(R.id.rowNotifCardStyle).setOnClickListener {
-            showListPicker("Card style", cardStyleEntries, cardStyleValues,
+            showListPicker(getString(R.string.notif_pick_card_style), cardStyleEntries, cardStyleValues,
                 prefs.getString("notif_card_style", "glass") ?: "glass") { v, _ ->
                 prefs.edit().putString("notif_card_style", v).apply()
                 refreshCardStyleLabel()
@@ -78,7 +78,7 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
         }
         refreshViewStyleLabel()
         view.findViewById<View>(R.id.rowNotifViewStyle).setOnClickListener {
-            showListPicker("View style", viewStyleEntries, viewStyleValues,
+            showListPicker(getString(R.string.notif_pick_view_style), viewStyleEntries, viewStyleValues,
                 prefs.getString("notif_style", "list") ?: "list") { v, _ ->
                 prefs.edit().putString("notif_style", v).apply()
                 refreshViewStyleLabel()
@@ -88,9 +88,9 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
         // Text size slider
         val textSize = prefs.getInt("notif_text_size", 14).toFloat()
         sliderTextSize.value = textSize.coerceIn(10f, 30f)
-        tvTextSize.text = "${textSize.toInt()}sp"
+        tvTextSize.text = getString(R.string.unit_sp, textSize.toInt())
         sliderTextSize.addOnChangeListener { _, value, _ ->
-            tvTextSize.text = "${value.toInt()}sp"
+            tvTextSize.text = getString(R.string.unit_sp, value.toInt())
             prefs.edit().putInt("notif_text_size", value.toInt()).apply()
         }
 

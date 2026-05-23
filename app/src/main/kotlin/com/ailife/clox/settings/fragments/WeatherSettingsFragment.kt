@@ -81,13 +81,13 @@ class WeatherSettingsFragment : BaseSettingsFragment() {
 
         // API key rows
         fun maskedKey(key: String) = prefs.getString(key, "")?.let {
-            if (it.isBlank()) getString(R.string.pref_weather_weatherapi_key_summary) else "••••${it.takeLast(4)}"
+            if (it.isBlank()) getString(R.string.pref_weather_weatherapi_key_summary) else "····${it.takeLast(4)}"
         } ?: ""
         tvWeatherApiKey.text = maskedKey(WeatherPrefs.KEY_WEATHERAPI_KEY)
         rowWeatherApiKey.setOnClickListener {
             showTextInputDialog(getString(R.string.pref_weather_weatherapi_key_title),
                 prefs.getString(WeatherPrefs.KEY_WEATHERAPI_KEY, "") ?: "",
-                hint = "API key",
+                hint = getString(R.string.api_key_hint),
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             ) { v ->
                 prefs.edit().putString(WeatherPrefs.KEY_WEATHERAPI_KEY, v).apply()
@@ -96,11 +96,11 @@ class WeatherSettingsFragment : BaseSettingsFragment() {
         }
 
         tvOwmKey.text = prefs.getString(WeatherPrefs.KEY_OWM_KEY, "")
-            ?.let { if (it.isBlank()) getString(R.string.pref_weather_owm_key_summary) else "••••${it.takeLast(4)}" } ?: ""
+            ?.let { if (it.isBlank()) getString(R.string.pref_weather_owm_key_summary) else "····${it.takeLast(4)}" } ?: ""
         rowOwmKey.setOnClickListener {
             showTextInputDialog(getString(R.string.pref_weather_owm_key_title),
                 prefs.getString(WeatherPrefs.KEY_OWM_KEY, "") ?: "",
-                hint = "API key",
+                hint = getString(R.string.api_key_hint),
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             ) { v ->
                 prefs.edit().putString(WeatherPrefs.KEY_OWM_KEY, v).apply()

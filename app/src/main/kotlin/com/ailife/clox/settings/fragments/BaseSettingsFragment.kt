@@ -10,6 +10,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import com.ailife.clox.R
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
@@ -85,7 +86,7 @@ abstract class BaseSettingsFragment : Fragment() {
         currentValue: String,
         onConfirm: (String) -> Unit
     ) {
-        showTextInputDialog(title, currentValue, hint = "#RRGGBB",
+        showTextInputDialog(title, currentValue, hint = getString(R.string.color_picker_hint),
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         ) { raw ->
             if (raw.matches(Regex("#[0-9A-Fa-f]{6}"))) onConfirm(raw)

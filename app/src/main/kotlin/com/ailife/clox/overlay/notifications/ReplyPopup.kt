@@ -25,7 +25,7 @@ object ReplyPopup {
             setPadding(48, 16, 48, 16)
         }
         val inputLayout = TextInputLayout(context).apply {
-            hint = remoteInput.label?.toString() ?: "Reply"
+            hint = remoteInput.label?.toString() ?: context.getString(R.string.notif_reply_hint)
         }
         val editText = TextInputEditText(context)
         inputLayout.addView(editText)

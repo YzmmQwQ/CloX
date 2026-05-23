@@ -149,7 +149,7 @@ class OtaManager(private val context: Context) {
         val req = DownloadManager.Request(Uri.parse(url))
             .setMimeType(MIME_TYPE)
             .setTitle(context.getString(R.string.ota_download_notif_title))
-            .setDescription("v$latestVersion")
+            .setDescription(context.getString(R.string.ota_version_label, latestVersion))
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalFilesDir(context, null, DOWNLOAD_FILE)
 

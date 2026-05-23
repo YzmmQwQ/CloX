@@ -261,11 +261,11 @@ class NotificationListAdapter(
         val ctx = holder.itemView.context
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val isBlocked = CloXNotificationListenerService.blockedApps(prefs).contains(sbn.packageName)
-        val blockLabel = if (isBlocked) "Unblock app" else "Block app"
+        val blockLabel = if (isBlocked) ctx.getString(R.string.notif_unblock_app) else ctx.getString(R.string.notif_block_app)
 
         MaterialAlertDialogBuilder(ctx)
             .setTitle(holder.appName.text)
-            .setItems(arrayOf(blockLabel, "App notification settings")) { _, which ->
+            .setItems(arrayOf(blockLabel, ctx.getString(R.string.notif_app_notif_settings))) { _, which ->
                 when (which) {
                     0 -> {
                         CloXNotificationListenerService.setAppBlocked(prefs, sbn.packageName, !isBlocked)

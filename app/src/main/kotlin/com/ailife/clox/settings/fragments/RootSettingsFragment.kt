@@ -18,7 +18,7 @@ class RootSettingsFragment : BasePreferenceFragment() {
                 .replace(R.id.settingsContainer, HideAppsFragment())
                 .addToBackStack("hide_apps")
                 .commit()
-            requireActivity().title = "Hidden apps"
+            requireActivity().title = getString(R.string.hidden_apps_title)
             true
         }
     }

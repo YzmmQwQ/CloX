@@ -34,7 +34,7 @@ class CrashActivity : AppCompatActivity() {
 
         binding.btnCopy.setOnClickListener {
             val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("CloX crash report", report))
+            cm.setPrimaryClip(ClipData.newPlainText(getString(R.string.crash_clip_label), report))
             Toast.makeText(this, R.string.crash_copied, Toast.LENGTH_SHORT).show()
         }
 
@@ -42,10 +42,10 @@ class CrashActivity : AppCompatActivity() {
             startActivity(Intent.createChooser(
                 Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "CloX crash report")
+                    putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crash_subject))
                     putExtra(Intent.EXTRA_TEXT, report)
                 },
-                "Share crash report"
+                getString(R.string.crash_share_title)
             ))
         }
 
@@ -53,11 +53,11 @@ class CrashActivity : AppCompatActivity() {
     }
 
     private fun loadReport(): String {
-        val path = intent.getStringExtra(EXTRA_CRASH_FILE) ?: return "No crash data available."
+        val path = intent.getStringExtra(EXTRA_CRASH_FILE) ?: return getString(R.string.crash_no_data)
         return try {
             File(path).readText()
         } catch (_: Exception) {
-            "Failed to read crash report."
+            getString(R.string.crash_read_failed)
         }
     }
 

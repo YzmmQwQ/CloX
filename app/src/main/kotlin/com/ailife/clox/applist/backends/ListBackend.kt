@@ -102,7 +102,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     private fun buildSearchField(ctx: Context): EditText {
         val bg = ctx.getDrawable(R.drawable.bg_search_field)
         return EditText(ctx).apply {
-            hint = "Search apps…"
+            hint = context.getString(R.string.app_list_search_hint)
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
             background = bg

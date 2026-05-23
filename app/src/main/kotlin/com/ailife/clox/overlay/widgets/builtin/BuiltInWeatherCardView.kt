@@ -77,7 +77,7 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
         if (json != null) {
             bindWeather(json)
         } else {
-            tvTemp.text = "--"
+            tvTemp.text = context.getString(R.string.weather_temp_placeholder)
             tvCondition.text = context.getString(R.string.widget_weather_no_data)
             tvHigh.text = ""; tvLow.text = ""
             ivIcon.setImageResource(R.drawable.ic_weather_cloudy)
@@ -117,8 +117,8 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
         val lastUpdate    = json.optLong("lastUpdate", 0L)
 
         tvTemp.text      = formatTemp(temp, round)
-        tvHigh.text      = "↑ ${formatTemp(high, round)}"
-        tvLow.text       = "↓ ${formatTemp(low, round)}"
+        tvHigh.text      = String.format(context.getString(R.string.weather_high_indicator), formatTemp(high, round))
+        tvLow.text       = String.format(context.getString(R.string.weather_low_indicator), formatTemp(low, round))
         tvCondition.text = conditionText
         ivIcon.setImageResource(conditionIconRes(conditionIcon))
 
@@ -174,7 +174,7 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
     }
 
     private fun formatTemp(t: Double, round: Boolean): String {
-        if (t.isNaN()) return "--"
+        if (t.isNaN()) return context.getString(R.string.weather_temp_placeholder)
         return if (round) "${t.toInt()}°" else "%.1f°".format(t)
     }
 

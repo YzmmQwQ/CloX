@@ -76,8 +76,8 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             val ctx = requireContext()
             val keyCode = ButtonMappingPrefs.getMappedKeyCode(ctx)
             val hasButton = keyCode != 0
-            val name = ButtonMappingPrefs.keyCodeToName(keyCode)
-            tvRecord.text = if (hasButton) "Mapped: $name — tap to change" else getString(R.string.pref_btn_map_record_summary)
+            val name = ButtonMappingPrefs.keyCodeToName(ctx, keyCode)
+            tvRecord.text = if (hasButton) getString(R.string.gesture_mapped_format, name) else getString(R.string.pref_btn_map_record_summary)
             val alpha = if (hasButton) 1f else 0.4f
             rowSingle.alpha = alpha; rowSingle.isEnabled = hasButton
             rowDouble.alpha = alpha; rowDouble.isEnabled = hasButton

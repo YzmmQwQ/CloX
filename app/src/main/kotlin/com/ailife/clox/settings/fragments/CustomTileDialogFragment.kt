@@ -12,6 +12,7 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
 import androidx.fragment.app.DialogFragment
+import com.ailife.clox.R
 import com.ailife.clox.qs.tile.CustomTileConfig
 import com.ailife.clox.qs.tile.CustomTileMode
 import java.util.UUID
@@ -29,22 +30,22 @@ class CustomTileDialogFragment(
             orientation = LinearLayout.VERTICAL
             setPadding(48, 32, 48, 32)
         }
-        val labelEdit = EditText(ctx).apply { hint = "Tile label" }
+        val labelEdit = EditText(ctx).apply { hint = ctx.getString(R.string.custom_tile_label_hint) }
         val modeGroup = RadioGroup(ctx).apply { orientation = RadioGroup.HORIZONTAL }
-        val radioActivity = RadioButton(ctx).apply { text = "Launch App"; id = 1 }
-        val radioSettings = RadioButton(ctx).apply { text = "Write Setting"; id = 2 }
+        val radioActivity = RadioButton(ctx).apply { text = ctx.getString(R.string.custom_tile_launch_app); id = 1 }
+        val radioSettings = RadioButton(ctx).apply { text = ctx.getString(R.string.custom_tile_write_setting); id = 2 }
         modeGroup.addView(radioActivity)
         modeGroup.addView(radioSettings)
         modeGroup.check(1)
 
-        val activityInput = EditText(ctx).apply { hint = "com.pkg/.Activity" }
+        val activityInput = EditText(ctx).apply { hint = ctx.getString(R.string.custom_tile_component_hint) }
         val namespaceSpinner = Spinner(ctx).apply {
             adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_item,
                 listOf("system", "secure", "global")).also {
                 it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             }
         }
-        val keyInput = EditText(ctx).apply { hint = "settings_key" }
+        val keyInput = EditText(ctx).apply { hint = ctx.getString(R.string.custom_tile_settings_key_hint) }
         val settingsGroup = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
@@ -57,9 +58,9 @@ class CustomTileDialogFragment(
             settingsGroup.visibility = if (id == 2) View.VISIBLE else View.GONE
         }
 
-        val saveBtn = Button(ctx).apply { text = "Add Tile" }
+        val saveBtn = Button(ctx).apply { text = ctx.getString(R.string.custom_tile_add_btn) }
         saveBtn.setOnClickListener {
-            val label = labelEdit.text.toString().trim().ifEmpty { "Custom" }
+            val label = labelEdit.text.toString().trim().ifEmpty { ctx.getString(R.string.custom_tile_default_label) }
             val mode = if (modeGroup.checkedRadioButtonId == 1) CustomTileMode.LAUNCH_ACTIVITY else CustomTileMode.WRITE_SETTINGS
             val config = CustomTileConfig(
                 uuid = UUID.randomUUID().toString(),

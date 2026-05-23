@@ -57,7 +57,7 @@ object TileLayoutManager {
     }
 
     fun descriptorFor(id: String, ctx: Context): TileDescriptor? {
-        TileRegistry.forId(id)?.let { return it }
+        TileRegistry.forId(id, ctx)?.let { return it }
         if (id.startsWith("custom:")) {
             val uuid = id.removePrefix("custom:")
             val config = loadCustomTiles(ctx).firstOrNull { it.uuid == uuid } ?: return null

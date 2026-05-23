@@ -550,6 +550,115 @@
     <string name="rtos_accessibility_enabled">✓ Enabled</string>
     <string name="rtos_accessibility_disabled">Tap to enable — required for app blocking</string>
 
+    <!-- ── Quick Settings tile labels ──────────────────────────────────── -->
+    <string name="tile_wifi">Wi-Fi</string>
+    <string name="tile_data">Data</string>
+    <string name="tile_bluetooth">Bluetooth</string>
+    <string name="tile_volume">Volume</string>
+    <string name="tile_dnd">DND</string>
+    <string name="tile_rotate">Rotate</string>
+    <string name="tile_flashlight">Flashlight</string>
+    <string name="tile_location">Location</string>
+    <string name="tile_aod">Always On</string>
+    <string name="tile_airplane">Airplane</string>
+    <string name="tile_hotspot">Hotspot</string>
+    <string name="tile_rtos_mode">RTOS Mode</string>
+
+    <!-- ── Button mapping ───────────────────────────────────────────────── -->
+    <string name="btn_volume_up">Volume Up</string>
+    <string name="btn_volume_down">Volume Down</string>
+    <string name="btn_camera">Camera</string>
+    <string name="btn_menu">Menu</string>
+    <string name="btn_search">Search</string>
+    <string name="btn_play_pause">Play/Pause</string>
+    <string name="btn_next_track">Next Track</string>
+    <string name="btn_prev_track">Previous Track</string>
+    <string name="btn_none">None</string>
+    <string name="btn_format">Button (%d)</string>
+
+    <!-- ── Tap action labels ────────────────────────────────────────────── -->
+    <string name="tap_launcher_home">Launcher / Home</string>
+    <string name="tap_weather">Weather</string>
+    <string name="tap_health">Health</string>
+    <string name="tap_calendar_widget">Calendar widget</string>
+    <string name="tap_agenda">Agenda</string>
+    <string name="tap_fitness">Fitness</string>
+    <string name="tap_heart_rate">Heart rate</string>
+    <string name="tap_compass">Compass</string>
+    <string name="tap_notes">Notes</string>
+    <string name="tap_email">Email</string>
+    <string name="tap_calendar_app">Calendar app</string>
+    <string name="tap_voice_search">Voice search</string>
+    <string name="tap_contacts">Contacts</string>
+    <string name="tap_sports">Sports</string>
+    <string name="tap_gallery_photos">Gallery / Photos</string>
+    <string name="tap_messages">Messages</string>
+    <string name="tap_camera">Camera</string>
+    <string name="tap_phone_dialer">Phone / Dialer</string>
+    <string name="tap_music_player">Music player</string>
+    <string name="tap_clock_alarm">Clock / Alarm</string>
+    <string name="tap_calculator">Calculator</string>
+    <string name="tap_wallet_payment">Wallet / Payment</string>
+    <string name="tap_maps_navigation">Maps / Navigation</string>
+    <string name="tap_browser">Browser</string>
+    <string name="tap_flashlight">Flashlight</string>
+    <string name="tap_social_media">Social media</string>
+
+    <!-- ── Weather condition labels ─────────────────────────────────────── -->
+    <string name="weather_clear_sky">Clear sky</string>
+    <string name="weather_mainly_clear">Mainly clear</string>
+    <string name="weather_partly_cloudy">Partly cloudy</string>
+    <string name="weather_overcast">Overcast</string>
+    <string name="weather_fog">Fog</string>
+    <string name="weather_drizzle">Drizzle</string>
+    <string name="weather_rain">Rain</string>
+    <string name="weather_snow">Snow</string>
+    <string name="weather_rain_showers">Rain showers</string>
+    <string name="weather_snow_showers">Snow showers</string>
+    <string name="weather_thunderstorm">Thunderstorm</string>
+    <string name="weather_unknown">Unknown</string>
+
+    <!-- ── Custom tile dialog ──────────────────────────────────────────── -->
+    <string name="custom_tile_label_hint">Tile label</string>
+    <string name="custom_tile_launch_app">Launch App</string>
+    <string name="custom_tile_write_setting">Write Setting</string>
+    <string name="custom_tile_component_hint">com.pkg/.Activity</string>
+    <string name="custom_tile_settings_key_hint">settings_key</string>
+    <string name="custom_tile_add_btn">Add Tile</string>
+    <string name="custom_tile_default_label">Custom</string>
+
+    <!-- ── Appearance ──────────────────────────────────────────────────── -->
+    <string name="appearance_density_default">0 = system default</string>
+
+    <!-- ── Base settings ───────────────────────────────────────────────── -->
+    <string name="color_picker_hint">#RRGGBB</string>
+
+    <!-- ── Weather API ─────────────────────────────────────────────────── -->
+    <string name="api_key_hint">API key</string>
+
+    <!-- ── OTA ─────────────────────────────────────────────────────────── -->
+    <string name="ota_version_label">v%s</string>
+
+    <!-- ── Watchface store ─────────────────────────────────────────────── -->
+    <string name="store_download_count">%d ⬇</string>
+    <string name="store_downloads_label">%d downloads</string>
+    <string name="store_uploaded_label">Uploaded %s</string>
+    <string name="store_download_failed">Download failed: %s</string>
+
+    <!-- ── Notification badge ──────────────────────────────────────────── -->
+    <string name="badge_overflow">99+</string>
+
+    <!-- ── Unit suffixes ───────────────────────────────────────────────── -->
+    <string name="unit_seconds">%ds</string>
+    <string name="unit_sp">%dsp</string>
+
+    <!-- ── Gestures ────────────────────────────────────────────────────── -->
+    <string name="gesture_mapped_format">Mapped: %s — tap to change</string>
+
+    <!-- ── Notification style pickers ───────────────────────────────────- -->
+    <string name="notif_pick_card_style">Card style</string>
+    <string name="notif_pick_view_style">View style</string>
+
     <!-- ── Quick Settings toast messages ────────────────────────────────── -->
     <string name="toast_qs_rtos_not_configured">RTOS mode not configured</string>
     <string name="toast_qs_app_not_found">App not found: %s</string>
@@ -691,6 +800,81 @@
     <!-- ── Watch face toasts ────────────────────────────────────────────── -->
     <string name="toast_wf_selected">Selected %s</string>
     <string name="toast_remote_server_failed">Failed to start server</string>
+
+    <!-- ── Crash activity ──────────────────────────────────────────────── -->
+    <string name="crash_clip_label">CloX crash report</string>
+    <string name="crash_subject">CloX crash report</string>
+    <string name="crash_share_title">Share crash report</string>
+    <string name="crash_no_data">No crash data available.</string>
+    <string name="crash_read_failed">Failed to read crash report.</string>
+
+    <!-- ── Secret code ─────────────────────────────────────────────────── -->
+    <string name="secret_code_unlocked">Hidden apps settings unlocked — open Settings to continue</string>
+    <string name="secret_code_dial_hint">Dial *#*#%s#*#* to unlock</string>
+
+    <!-- ── Notifications ───────────────────────────────────────────────── -->
+    <string name="notif_block_app">Block app</string>
+    <string name="notif_unblock_app">Unblock app</string>
+    <string name="notif_app_notif_settings">App notification settings</string>
+    <string name="notif_reply_hint">Reply</string>
+    <string name="notif_perm_not_supported">Not supported</string>
+    <string name="notif_perm_not_supported_desc">Notification access may not be available on this device.</string>
+    <string name="notif_perm_view_btn">View notifications</string>
+    <string name="notif_perm_title">Permission required</string>
+    <string name="notif_perm_desc">Grant notification access so CloX can display your notifications.</string>
+    <string name="notif_perm_grant_btn">Grant permission</string>
+
+    <!-- ── Weather card ─────────────────────────────────────────────────- -->
+    <string name="weather_temp_placeholder">--</string>
+    <string name="weather_high_indicator">↑ %s</string>
+    <string name="weather_low_indicator">↓ %s</string>
+
+    <!-- ── QS tile states ───────────────────────────────────────────────- -->
+    <string name="qs_tile_connected">Connected</string>
+    <string name="qs_tile_not_in_use">Not in use</string>
+    <string name="qs_tile_on">On</string>
+    <string name="qs_tile_off">Off</string>
+    <string name="qs_tile_on_detail">on</string>
+    <string name="qs_tile_silent">Silent</string>
+    <string name="qs_tile_vibrate">Vibrate</string>
+    <string name="qs_tile_auto">Auto</string>
+    <string name="qs_tile_locked">Locked</string>
+    <string name="qs_privilege_shizuku">Shizuku active</string>
+    <string name="qs_privilege_root">Root available</string>
+    <string name="qs_privilege_none">No elevated privileges</string>
+    <string name="qs_accessibility_enabled">Enabled — power menu and recents available</string>
+    <string name="qs_accessibility_disabled">Tap to enable in Accessibility Settings</string>
+
+    <!-- ── Location hints ─────────────────────────────────────────────── -->
+    <string name="location_lat_hint">e.g. 22.3193</string>
+    <string name="location_lon_hint">e.g. 114.1694</string>
+    <string name="location_city_hint">City name</string>
+    <string name="location_slot_placeholder">—</string>
+
+    <!-- ── App list ───────────────────────────────────────────────────── -->
+    <string name="app_list_search_hint">Search apps…</string>
+    <string name="app_list_bg_set">Image set — tap to replace</string>
+    <string name="app_list_bg_not_set">Tap to choose an image</string>
+    <string name="hidden_apps_title">Hidden apps</string>
+
+    <!-- ── Widget ─────────────────────────────────────────────────────── -->
+    <string name="widget_unavailable">Widget unavailable</string>
+
+    <!-- ── About ──────────────────────────────────────────────────────── -->
+    <string name="about_version">Version %s</string>
+    <string name="about_version_unknown">Version unknown</string>
+
+    <!-- ── Appearance section labels ──────────────────────────────────── -->
+    <string name="appearance_section_display">Display</string>
+    <string name="appearance_dpi_label">App display density (DPI)</string>
+    <string name="appearance_dpi_default">0 (system default)</string>
+    <string name="appearance_section_blur">Blur</string>
+
+    <!-- ── Sensors section labels ─────────────────────────────────────── -->
+    <string name="sensors_section_data">Data</string>
+
+    <!-- ── Health ───────────────────────────────────────────────────────── -->
+    <string name="health_bht_name">Better Health Tracker</string>
 
     <!-- ── About fragment ───────────────────────────────────────────────── -->
     <string name="about_onyx_project">Part of Onyx Project</string>

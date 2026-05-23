@@ -53,9 +53,9 @@ class AodSettingsFragment : BaseSettingsFragment() {
         // Timeout slider
         val timeout = prefs.getInt(AodPrefs.KEY_TIMEOUT_SECONDS, AodPrefs.DEFAULT_TIMEOUT_SECONDS).toFloat()
         sliderTimeout.value = timeout.coerceIn(5f, 300f)
-        tvTimeout.text = "${timeout.toInt()}s"
+        tvTimeout.text = getString(R.string.unit_seconds, timeout.toInt())
         sliderTimeout.addOnChangeListener { _, value, _ ->
-            tvTimeout.text = "${value.toInt()}s"
+            tvTimeout.text = getString(R.string.unit_seconds, value.toInt())
             prefs.edit().putInt(AodPrefs.KEY_TIMEOUT_SECONDS, value.toInt()).apply()
         }
 
@@ -86,9 +86,9 @@ class AodSettingsFragment : BaseSettingsFragment() {
         // Lock gesture delay slider
         val delay = prefs.getInt(AodPrefs.KEY_LOCK_GESTURE_DELAY, AodPrefs.DEFAULT_LOCK_GESTURE_DELAY).toFloat()
         sliderLockDelay.value = delay.coerceIn(0f, 30f)
-        tvLockDelay.text = "${delay.toInt()}s"
+        tvLockDelay.text = getString(R.string.unit_seconds, delay.toInt())
         sliderLockDelay.addOnChangeListener { _, value, _ ->
-            tvLockDelay.text = "${value.toInt()}s"
+            tvLockDelay.text = getString(R.string.unit_seconds, value.toInt())
             prefs.edit().putInt(AodPrefs.KEY_LOCK_GESTURE_DELAY, value.toInt()).apply()
         }
 

@@ -29,13 +29,13 @@ class AppearanceSettingsFragment : BaseSettingsFragment() {
         // DPI override row
         fun refreshDpi() {
             val v = prefs.getString("app_dpi_override", "0") ?: "0"
-            tvDpi.text = if (v.isEmpty() || v == "0") "0 (system default)" else v
+            tvDpi.text = if (v.isEmpty() || v == "0") getString(R.string.appearance_dpi_default) else v
         }
         refreshDpi()
         view.findViewById<View>(R.id.rowDpiOverride).setOnClickListener {
-            showTextInputDialog("App display density (DPI)",
+            showTextInputDialog(getString(R.string.appearance_dpi_label),
                 prefs.getString("app_dpi_override", "0") ?: "0",
-                hint = "0 = system default",
+                hint = getString(R.string.appearance_density_default),
                 inputType = InputType.TYPE_CLASS_NUMBER
             ) { raw ->
                 prefs.edit().putString("app_dpi_override", raw).apply()
@@ -58,7 +58,7 @@ class AppearanceSettingsFragment : BaseSettingsFragment() {
         }
         refreshBlurMode()
         view.findViewById<View>(R.id.rowBlurMode).setOnClickListener {
-            showListPicker("Blur mode", blurModeEntries, blurModeValues,
+            showListPicker(getString(R.string.appearance_section_blur), blurModeEntries, blurModeValues,
                 prefs.getString("blur_mode", "BLURVIEW") ?: "BLURVIEW") { v, _ ->
                 prefs.edit().putString("blur_mode", v).apply()
                 refreshBlurMode()

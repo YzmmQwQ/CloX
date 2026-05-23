@@ -128,7 +128,7 @@ class QsTilePageAdapter(
                 tile.setIconRes(wifiSignalDrawable(state.signalLevel))
                 val detail = when {
                     state.connected && state.ssid != null -> state.ssid
-                    state.connected -> "Connected"
+                    state.connected -> ctx.getString(R.string.qs_tile_connected)
                     else -> null
                 }
                 val badge = if (state.connected && state.frequency != null) state.frequency else null
@@ -144,7 +144,7 @@ class QsTilePageAdapter(
                 tile.setIconRes(cellularSignalDrawable(if (state.activelyRouting) state.signalLevel else 0))
                 val detail = when {
                     state.activelyRouting -> state.operatorName
-                    state.enabled         -> "Not in use"
+                    state.enabled         -> ctx.getString(R.string.qs_tile_not_in_use)
                     else                  -> null
                 }
                 val badge = if (state.activelyRouting && state.networkType != null) state.networkType else null
@@ -160,7 +160,7 @@ class QsTilePageAdapter(
                 val detail = when {
                     !state.enabled                    -> null
                     state.connectedDeviceName != null -> state.connectedDeviceName
-                    else                              -> "on"
+                    else                              -> ctx.getString(R.string.qs_tile_on_detail)
                 }
                 val color = when {
                     state.connectedDeviceName != null ->
@@ -175,8 +175,8 @@ class QsTilePageAdapter(
             is TileState.VolumeState -> {
                 val pct = if (state.max > 0) "${(state.level * 100f / state.max).toInt()}%" else "--"
                 val detail = when (state.ringerMode) {
-                    android.media.AudioManager.RINGER_MODE_SILENT  -> "Silent"
-                    android.media.AudioManager.RINGER_MODE_VIBRATE -> "Vibrate  $pct"
+                    android.media.AudioManager.RINGER_MODE_SILENT  -> ctx.getString(R.string.qs_tile_silent)
+                    android.media.AudioManager.RINGER_MODE_VIBRATE -> ctx.getString(R.string.qs_tile_vibrate) + "  $pct"
                     else -> pct
                 }
                 val active = state.ringerMode != android.media.AudioManager.RINGER_MODE_SILENT && state.level > 0
@@ -186,8 +186,8 @@ class QsTilePageAdapter(
 
             is TileState.DndState -> {
                 val detail = when (state.ringerMode) {
-                    android.media.AudioManager.RINGER_MODE_SILENT  -> "Silent"
-                    android.media.AudioManager.RINGER_MODE_VIBRATE -> "Vibrate"
+                    android.media.AudioManager.RINGER_MODE_SILENT  -> ctx.getString(R.string.qs_tile_silent)
+                    android.media.AudioManager.RINGER_MODE_VIBRATE -> ctx.getString(R.string.qs_tile_vibrate)
                     else -> null
                 }
                 applyTileState(state.active, detail, null,
@@ -195,7 +195,7 @@ class QsTilePageAdapter(
             }
 
             is TileState.RotateState ->
-                applyTileState(!state.locked, if (!state.locked) "Auto" else "Locked", null, null)
+                applyTileState(!state.locked, if (!state.locked) ctx.getString(R.string.qs_tile_auto) else ctx.getString(R.string.qs_tile_locked), null, null)
 
             is TileState.FlashlightState ->
                 applyTileState(state.on, null, null, null)
@@ -205,15 +205,15 @@ class QsTilePageAdapter(
                     if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
 
             is TileState.AodState ->
-                applyTileState(state.enabled, if (state.enabled) "On" else null, null,
+                applyTileState(state.enabled, if (state.enabled) ctx.getString(R.string.qs_tile_on) else null, null,
                     if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
 
             is TileState.AirplaneState ->
-                applyTileState(state.enabled, if (state.enabled) "On" else "Off", null,
+                applyTileState(state.enabled, if (state.enabled) ctx.getString(R.string.qs_tile_on) else ctx.getString(R.string.qs_tile_off), null,
                     if (state.enabled) stateColor(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE) else null)
 
             is TileState.HotspotState ->
-                applyTileState(state.enabled, if (state.enabled) "On" else "Off", null,
+                applyTileState(state.enabled, if (state.enabled) ctx.getString(R.string.qs_tile_on) else ctx.getString(R.string.qs_tile_off), null,
                     if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
 
             is TileState.BatteryState -> { /* no battery tile */ }
@@ -272,8 +272,10 @@ class QsTilePageAdapter(
         } else null
 
         val solidStyle = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
-        if (solidStyle) tile.applyStateSolid(active, if (active) "On" else "Off", null, color)
-        else tile.applyState(active, if (active) "On" else "Off", null, color)
+        val onLabel = ctx.getString(R.string.qs_tile_on)
+        val offLabel = ctx.getString(R.string.qs_tile_off)
+        if (solidStyle) tile.applyStateSolid(active, if (active) onLabel else offLabel, null, color)
+        else tile.applyState(active, if (active) onLabel else offLabel, null, color)
     }
 
     private fun wifiSignalDrawable(level: Int) = when (level) {

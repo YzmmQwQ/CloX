@@ -275,7 +275,7 @@ class StoreAdapter(
     override fun onBindViewHolder(holder: VH, pos: Int) {
         val item = items[pos]
         holder.tvName.text = item.name
-        holder.tvDownloads.text = "${item.downloadCount} ⬇"
+        holder.tvDownloads.text = holder.itemView.context.getString(R.string.store_download_count, item.downloadCount)
         holder.ivPreview.setImageBitmap(null)
         holder.ivDownloaded.visibility = if (item.isDownloaded) View.VISIBLE else View.GONE
         holder.itemView.setOnClickListener { onItemClick(item) }
@@ -338,11 +338,11 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<TextView>(R.id.tvDetailName).text = name
         view.findViewById<TextView>(R.id.tvDetailDesc).text = args.getString("desc")
         view.findViewById<TextView>(R.id.tvDetailDownloads).text =
-            "${args.getInt("downloadCount")} downloads"
+            getString(R.string.store_downloads_label, args.getInt("downloadCount"))
         val uploadDate = args.getString("uploadDate", "")
         val tvDate = view.findViewById<TextView>(R.id.tvDetailDate)
         if (uploadDate.isNotEmpty()) {
-            tvDate.text = "Uploaded $uploadDate"
+            tvDate.text = getString(R.string.store_uploaded_label, uploadDate)
             tvDate.visibility = View.VISIBLE
         } else {
             tvDate.visibility = View.GONE
@@ -374,7 +374,7 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
                     progressLayout.visibility = View.GONE
                     btnDownload.visibility = View.VISIBLE
                     Toast.makeText(requireContext(),
-                        "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        getString(R.string.store_download_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }

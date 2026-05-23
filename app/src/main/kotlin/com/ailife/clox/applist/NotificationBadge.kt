@@ -7,6 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.TextView
+import com.ailife.clox.R
 import com.google.android.material.color.MaterialColors
 
 object NotificationBadge {
@@ -41,7 +42,8 @@ object NotificationBadge {
         badge.visibility = View.VISIBLE
         val d = badge.context.resources.displayMetrics.density
         if (showCount) {
-            badge.text = if (count > 99) "99+" else count.toString()
+            val ctx = badge.context
+            badge.text = if (count > 99) ctx.getString(R.string.badge_overflow) else count.toString()
             val sz = (18 * d).toInt()
             badge.minWidth = sz; badge.minHeight = sz
         } else {

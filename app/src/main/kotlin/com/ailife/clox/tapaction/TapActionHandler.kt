@@ -9,6 +9,7 @@ import android.provider.AlarmClock
 import android.util.Log
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
+import com.ailife.clox.R
 
 /**
  * Handles watchface tap actions sent from Lua via WatchfaceBridge.tapAction(shortcut).
@@ -24,36 +25,36 @@ object TapActionHandler {
     private const val TAG         = "TapActionHandler"
     private const val PREF_PREFIX = "tap_action_"
 
-    data class ActionDef(val key: String, val displayName: String)
+    data class ActionDef(val key: String, val displayNameRes: Int)
 
     /** Ordered list of user-configurable named actions. */
     val CONFIGURABLE_ACTIONS = listOf(
-        ActionDef("tap_launcher",    "Launcher / Home"),
-        ActionDef("widget_weather",  "Weather"),
-        ActionDef("widget_health",   "Health"),
-        ActionDef("widget_calendar", "Calendar widget"),
-        ActionDef("w_agenda",        "Agenda"),
-        ActionDef("w_fit",           "Fitness"),
-        ActionDef("w_heart_rate",    "Heart rate"),
-        ActionDef("w_compass",       "Compass"),
-        ActionDef("w_keep",          "Notes"),
-        ActionDef("m_email",         "Email"),
-        ActionDef("m_calendar",      "Calendar app"),
-        ActionDef("voice_search",    "Voice search"),
-        ActionDef("w_contacts",      "Contacts"),
-        ActionDef("w_sports",        "Sports"),
-        ActionDef("w_gallery",       "Gallery / Photos"),
-        ActionDef("w_messaging",     "Messages"),
-        ActionDef("w_camera",        "Camera"),
-        ActionDef("w_dialer",        "Phone / Dialer"),
-        ActionDef("w_music",         "Music player"),
-        ActionDef("w_clock",         "Clock / Alarm"),
-        ActionDef("w_calculator",    "Calculator"),
-        ActionDef("w_payment",       "Wallet / Payment"),
-        ActionDef("w_map",           "Maps / Navigation"),
-        ActionDef("browser",         "Browser"),
-        ActionDef("flashlight",      "Flashlight"),
-        ActionDef("socialmedia",     "Social media"),
+        ActionDef("tap_launcher",    R.string.tap_launcher_home),
+        ActionDef("widget_weather",  R.string.tap_weather),
+        ActionDef("widget_health",   R.string.tap_health),
+        ActionDef("widget_calendar", R.string.tap_calendar_widget),
+        ActionDef("w_agenda",        R.string.tap_agenda),
+        ActionDef("w_fit",           R.string.tap_fitness),
+        ActionDef("w_heart_rate",    R.string.tap_heart_rate),
+        ActionDef("w_compass",       R.string.tap_compass),
+        ActionDef("w_keep",          R.string.tap_notes),
+        ActionDef("m_email",         R.string.tap_email),
+        ActionDef("m_calendar",      R.string.tap_calendar_app),
+        ActionDef("voice_search",    R.string.tap_voice_search),
+        ActionDef("w_contacts",      R.string.tap_contacts),
+        ActionDef("w_sports",        R.string.tap_sports),
+        ActionDef("w_gallery",       R.string.tap_gallery_photos),
+        ActionDef("w_messaging",     R.string.tap_messages),
+        ActionDef("w_camera",        R.string.tap_camera),
+        ActionDef("w_dialer",        R.string.tap_phone_dialer),
+        ActionDef("w_music",         R.string.tap_music_player),
+        ActionDef("w_clock",         R.string.tap_clock_alarm),
+        ActionDef("w_calculator",    R.string.tap_calculator),
+        ActionDef("w_payment",       R.string.tap_wallet_payment),
+        ActionDef("w_map",           R.string.tap_maps_navigation),
+        ActionDef("browser",         R.string.tap_browser),
+        ActionDef("flashlight",      R.string.tap_flashlight),
+        ActionDef("socialmedia",     R.string.tap_social_media),
     )
 
     /**

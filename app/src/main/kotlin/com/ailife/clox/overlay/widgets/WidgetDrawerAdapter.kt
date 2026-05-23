@@ -218,7 +218,7 @@ class WidgetDrawerAdapter(
             } else {
                 widgetContainer.removeAllViews()
                 val placeholder = TextView(itemView.context).apply {
-                    text = "Widget unavailable"
+                    text = itemView.context.getString(R.string.widget_unavailable)
                     gravity = android.view.Gravity.CENTER
                 }
                 widgetContainer.addView(placeholder)

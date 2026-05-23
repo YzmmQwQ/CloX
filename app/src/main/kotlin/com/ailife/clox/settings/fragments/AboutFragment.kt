@@ -27,9 +27,9 @@ class AboutFragment : BaseSettingsFragment() {
         val tvVersion = view.findViewById<TextView>(R.id.tvVersion)
         try {
             val info = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-            tvVersion.text = "Version ${info.versionName}"
+            tvVersion.text = getString(R.string.about_version, info.versionName)
         } catch (_: Exception) {
-            tvVersion.text = "Version unknown"
+            tvVersion.text = getString(R.string.about_version_unknown)
         }
 
         // Onyx project link

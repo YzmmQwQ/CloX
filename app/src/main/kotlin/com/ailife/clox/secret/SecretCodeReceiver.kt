@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import com.ailife.clox.R
 import com.ailife.clox.applist.AppListPrefs
 
 /**
@@ -27,7 +28,7 @@ class SecretCodeReceiver : BroadcastReceiver() {
             AppListPrefs.saveHideAppsPassword(context, null)
             Toast.makeText(
                 context,
-                "Hidden apps settings unlocked — open Settings to continue",
+                R.string.secret_code_unlocked,
                 Toast.LENGTH_LONG
             ).show()
         }

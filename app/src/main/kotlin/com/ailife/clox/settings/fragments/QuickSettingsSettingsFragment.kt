@@ -190,16 +190,16 @@ class QuickSettingsSettingsFragment : BaseSettingsFragment() {
     private fun updatePrivilegeStatus() {
         val level = PrivilegeManager.level(requireContext())
         tvQsPrivilegeStatus.text = when (level) {
-            PrivilegeLevel.SHIZUKU -> "Shizuku active"
-            PrivilegeLevel.ROOT    -> "Root available"
-            PrivilegeLevel.NONE    -> "No elevated privileges"
+            PrivilegeLevel.SHIZUKU -> getString(R.string.qs_privilege_shizuku)
+            PrivilegeLevel.ROOT    -> getString(R.string.qs_privilege_root)
+            PrivilegeLevel.NONE    -> getString(R.string.qs_privilege_none)
         }
     }
 
     private fun updateAccessibilityStatus() {
         val running = CloXAccessibilityService.isRunning()
-        tvQsAccessibilityStatus.text = if (running) "Enabled — power menu and recents available"
-                                       else "Tap to enable in Accessibility Settings"
+        tvQsAccessibilityStatus.text = if (running) getString(R.string.qs_accessibility_enabled)
+                                       else getString(R.string.qs_accessibility_disabled)
     }
 
     private fun showColorDialog(title: String, key: String, default: String, tvColor: TextView) {

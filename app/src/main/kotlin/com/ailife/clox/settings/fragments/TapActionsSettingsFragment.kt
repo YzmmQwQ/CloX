@@ -27,7 +27,7 @@ class TapActionsSettingsFragment : BaseSettingsFragment() {
 
         for ((index, def) in TapActionHandler.CONFIGURABLE_ACTIONS.withIndex()) {
             val row = inflater.inflate(R.layout.row_tap_action, container, false)
-            row.findViewById<TextView>(R.id.tvTapActionName).text = def.displayName
+            row.findViewById<TextView>(R.id.tvTapActionName).text = getString(def.displayNameRes)
             val tvSummary = row.findViewById<TextView>(R.id.tvTapActionSummary)
             tvSummary.text = currentSummary(def.key)
             actionRows[def.key] = tvSummary
@@ -59,7 +59,7 @@ class TapActionsSettingsFragment : BaseSettingsFragment() {
         val labels = apps.map { it.loadLabel(pm).toString() }.toTypedArray()
 
         MaterialAlertDialogBuilder(ctx)
-            .setTitle(def.displayName)
+            .setTitle(def.displayNameRes)
             .setItems(labels) { _, which ->
                 val info = apps[which].activityInfo
                 TapActionHandler.setComponent(ctx, def.key, "${info.packageName}/${info.name}")

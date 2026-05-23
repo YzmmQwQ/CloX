@@ -111,7 +111,7 @@ class HideAppsFragment : Fragment() {
         switchLock.isChecked = currentPassword != null
         if (currentPassword != null) {
             tvCodeHint.visibility = View.VISIBLE
-            tvCodeHint.text = "Dial *#*#$currentPassword#*#* to unlock"
+            tvCodeHint.text = getString(R.string.secret_code_dial_hint, currentPassword)
         }
 
         switchLock.setOnCheckedChangeListener { _, checked ->
@@ -181,7 +181,7 @@ class HideAppsFragment : Fragment() {
                     return@setPositiveButton
                 }
                 AppListPrefs.saveHideAppsPassword(ctx, pw)
-                tvCodeHint.text = "Dial *#*#$pw#*#* to unlock"
+                tvCodeHint.text = getString(R.string.secret_code_dial_hint, pw)
                 tvCodeHint.visibility = View.VISIBLE
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->

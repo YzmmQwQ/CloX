@@ -71,7 +71,7 @@ class LocationSettingsFragment : BaseSettingsFragment() {
         view.findViewById<View>(R.id.rowLocationLat).setOnClickListener {
             showTextInputDialog(getString(R.string.pref_location_lat_title),
                 prefs.getString(WeatherPrefs.KEY_LAT, "") ?: "",
-                hint = "e.g. 22.3193",
+                hint = getString(R.string.location_lat_hint),
                 inputType = coordInputType
             ) { v ->
                 val d = v.toDoubleOrNull()
@@ -93,7 +93,7 @@ class LocationSettingsFragment : BaseSettingsFragment() {
         view.findViewById<View>(R.id.rowLocationLon).setOnClickListener {
             showTextInputDialog(getString(R.string.pref_location_lon_title),
                 prefs.getString(WeatherPrefs.KEY_LON, "") ?: "",
-                hint = "e.g. 114.1694",
+                hint = getString(R.string.location_lon_hint),
                 inputType = coordInputType
             ) { v ->
                 val d = v.toDoubleOrNull()
@@ -125,7 +125,7 @@ class LocationSettingsFragment : BaseSettingsFragment() {
         fun setupSlot(tvCity: TextView, rowCity: View, tvTz: TextView, rowTz: View,
                       cityKey: String, tzKey: String, cityLabel: String, tzLabel: String) {
             fun refreshSlotCity() {
-                tvCity.text = prefs.getString(cityKey, "").orEmpty().ifBlank { "—" }
+                tvCity.text = prefs.getString(cityKey, "").orEmpty().ifBlank { getString(R.string.location_slot_placeholder) }
             }
             fun refreshSlotTz() {
                 val v = prefs.getString(tzKey, "0") ?: "0"
@@ -135,7 +135,7 @@ class LocationSettingsFragment : BaseSettingsFragment() {
             refreshSlotTz()
             rowCity.setOnClickListener {
                 showTextInputDialog(cityLabel, prefs.getString(cityKey, "") ?: "",
-                    hint = "City name", inputType = InputType.TYPE_CLASS_TEXT) { v ->
+                    hint = getString(R.string.location_city_hint), inputType = InputType.TYPE_CLASS_TEXT) { v ->
                     prefs.edit().putString(cityKey, v).apply(); refreshSlotCity()
                 }
             }

@@ -3,6 +3,7 @@ package com.ailife.clox.gesture
 import android.content.Context
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
+import com.ailife.clox.R
 
 object ButtonMappingPrefs {
     const val KEY_KEYCODE = "btn_map_keycode"
@@ -27,16 +28,16 @@ object ButtonMappingPrefs {
     fun getLongAction(ctx: Context): String =
         PreferenceManager.getDefaultSharedPreferences(ctx).getString(KEY_LONG, "nothing") ?: "nothing"
 
-    fun keyCodeToName(keyCode: Int): String = when (keyCode) {
-        KeyEvent.KEYCODE_VOLUME_UP   -> "Volume Up"
-        KeyEvent.KEYCODE_VOLUME_DOWN -> "Volume Down"
-        KeyEvent.KEYCODE_CAMERA      -> "Camera"
-        KeyEvent.KEYCODE_MENU        -> "Menu"
-        KeyEvent.KEYCODE_SEARCH      -> "Search"
-        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> "Play/Pause"
-        KeyEvent.KEYCODE_MEDIA_NEXT  -> "Next Track"
-        KeyEvent.KEYCODE_MEDIA_PREVIOUS  -> "Previous Track"
-        0 -> "None"
-        else -> "Button ($keyCode)"
+    fun keyCodeToName(ctx: Context, keyCode: Int): String = when (keyCode) {
+        KeyEvent.KEYCODE_VOLUME_UP   -> ctx.getString(R.string.btn_volume_up)
+        KeyEvent.KEYCODE_VOLUME_DOWN -> ctx.getString(R.string.btn_volume_down)
+        KeyEvent.KEYCODE_CAMERA      -> ctx.getString(R.string.btn_camera)
+        KeyEvent.KEYCODE_MENU        -> ctx.getString(R.string.btn_menu)
+        KeyEvent.KEYCODE_SEARCH      -> ctx.getString(R.string.btn_search)
+        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> ctx.getString(R.string.btn_play_pause)
+        KeyEvent.KEYCODE_MEDIA_NEXT  -> ctx.getString(R.string.btn_next_track)
+        KeyEvent.KEYCODE_MEDIA_PREVIOUS  -> ctx.getString(R.string.btn_prev_track)
+        0 -> ctx.getString(R.string.btn_none)
+        else -> ctx.getString(R.string.btn_format, keyCode)
     }
 }
