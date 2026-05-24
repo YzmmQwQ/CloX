@@ -173,18 +173,22 @@ class OverlayController(
         val overlay = activeOverlay ?: return
         val direction = activeDirection ?: return
         isCollapsing = false
-        if (direction == SwipeDirection.DOWN) {
-            (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-        }
-        if (overlay === widgets) widgets.onPanelClosed()
         activeOverlay = null
         activeDirection = null
-        onDismissed?.invoke()
 
+        // Start animation immediately — cleanup runs in withEndAction so it
+        // never blocks the main thread before the animation begins.
         val (endX, endY) = exitTranslation(direction)
         overlay.animate().translationX(endX).translationY(endY).setDuration(180)
             .setInterpolator(DecelerateInterpolator())
-            .withEndAction { overlay.visibility = View.GONE }.start()
+            .withEndAction {
+                overlay.visibility = View.GONE
+                if (direction == SwipeDirection.DOWN) {
+                    (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                }
+                if (overlay === widgets) widgets.onPanelClosed()
+                onDismissed?.invoke()
+            }.start()
         BlurEngine.clearBlur(window, blurLayer)
         scrimView.animate().alpha(0f).setDuration(180)
             .withEndAction { scrimView.visibility = View.GONE }.start()
@@ -227,20 +231,27 @@ class OverlayController(
         overlay.animate().cancel()
         isDragging = false
         isCollapsing = false
-        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-        if (overlay === widgets) widgets.onPanelClosed()
         activeOverlay = null
         activeDirection = null
-        onDismissed?.invoke()
 
         if (direction != null) {
             val (endX, endY) = exitTranslation(direction)
             overlay.animate().translationX(endX).translationY(endY).setDuration(200)
                 .setInterpolator(DecelerateInterpolator())
-                .withEndAction { overlay.visibility = View.GONE }.start()
+                .withEndAction {
+                    overlay.visibility = View.GONE
+                    (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                    if (overlay === widgets) widgets.onPanelClosed()
+                    onDismissed?.invoke()
+                }.start()
         } else {
             overlay.animate().alpha(0f).setDuration(150)
-                .withEndAction { overlay.visibility = View.GONE; overlay.alpha = 1f }.start()
+                .withEndAction {
+                    overlay.visibility = View.GONE; overlay.alpha = 1f
+                    (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                    if (overlay === widgets) widgets.onPanelClosed()
+                    onDismissed?.invoke()
+                }.start()
         }
 
         BlurEngine.clearBlur(window, blurLayer)
