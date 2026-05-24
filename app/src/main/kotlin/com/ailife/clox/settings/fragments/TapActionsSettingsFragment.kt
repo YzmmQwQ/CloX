@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.ailife.clox.R
@@ -56,14 +58,23 @@ class TapActionsSettingsFragment : BaseSettingsFragment() {
         val apps: List<ResolveInfo> = pm.queryIntentActivities(
             Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
         ).sortedBy { it.loadLabel(pm).toString().lowercase() }
-        val labels = apps.map { it.loadLabel(pm).toString() }.toTypedArray()
+
+        val adapter = object : ArrayAdapter<ResolveInfo>(ctx, R.layout.item_app_list, apps) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = convertView ?: LayoutInflater.from(ctx).inflate(R.layout.item_app_list, parent, false)
+                val ri = getItem(position)!!
+                view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(ri.loadIcon(pm))
+                view.findViewById<TextView>(R.id.appLabel).text = ri.loadLabel(pm)
+                return view
+            }
+        }
 
         MaterialAlertDialogBuilder(ctx)
             .setTitle(def.displayNameRes)
-            .setItems(labels) { _, which ->
+            .setAdapter(adapter) { _, which ->
                 val info = apps[which].activityInfo
                 TapActionHandler.setComponent(ctx, def.key, "${info.packageName}/${info.name}")
-                actionRows[def.key]?.text = labels[which]
+                actionRows[def.key]?.text = apps[which].loadLabel(pm).toString()
             }
             .setNeutralButton(R.string.pref_tap_clear) { _, _ ->
                 TapActionHandler.setComponent(ctx, def.key, "")

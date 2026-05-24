@@ -3,11 +3,13 @@ package com.ailife.clox.rtos.settings
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.CheckBox
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -29,6 +31,7 @@ class RtosWhitelistActivity : AppCompatActivity() {
         val label: String,
         val packageName: String,
         val activityName: String,
+        val icon: Drawable,
         var allowed: Boolean
     )
 
@@ -85,7 +88,7 @@ class RtosWhitelistActivity : AppCompatActivity() {
                 if (wl.isEmpty()) isSystem && !nameBlocked else key in wl
             }
 
-            val entry = AppEntry(label, pkg, act, defaultAllowed)
+            val entry = AppEntry(label, pkg, act, ri.loadIcon(pm), defaultAllowed)
             entries.add(entry)
 
             val row = buildRow(entry)
@@ -107,6 +110,12 @@ class RtosWhitelistActivity : AppCompatActivity() {
                 }
             }
             addView(cb, LinearLayout.LayoutParams(dp(40), dp(40)))
+
+            val iconView = ImageView(this@RtosWhitelistActivity).apply {
+                setImageDrawable(entry.icon)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+            }
+            addView(iconView, LinearLayout.LayoutParams(dp(36), dp(36)).apply { marginStart = dp(8); marginEnd = dp(12) })
 
             val tv = TextView(this@RtosWhitelistActivity).apply {
                 text = entry.label
