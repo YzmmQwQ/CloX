@@ -1,5 +1,5 @@
--- CloX Debug Watchface — data inspector
--- Font 40px. Nav buttons float just below content.
+-- CloX Watchface — classic watch face on page 1, debug data pages 2–9.
+-- All sizes auto-scale to screen width (reference: 480 px).
 
 require "bridge"
 require "watchface_bridge"
@@ -11,15 +11,10 @@ function WatchfaceScene:ctor()
     self._page = 1
 end
 
--- ── Layout constants ──────────────────────────────────────────────────────────
+-- ── Page registry ─────────────────────────────────────────────────────────────
 
-local PAGE_NAMES = { "Core", "Device", "Network", "Health", "Sensors", "Weather", "Calendar", "Perf" }
+local PAGE_NAMES = { "Watch", "Core", "Device", "Network", "Health", "Sensors", "Weather", "Calendar", "Perf" }
 local NUM_PAGES  = #PAGE_NAMES
-local FONT_BODY  = 40
-local FONT_TITLE = 22
-local FONT_BTN   = 40
-local FONT_TOG   = 32
-local LINE_H     = 48
 
 -- ── Sensor enable state ───────────────────────────────────────────────────────
 
@@ -43,9 +38,9 @@ local function S(s) return (s ~= nil and s ~= "") and tostring(s) or "-" end
 local function trunc(s, n) s = tostring(s); return #s > n and ("…"..s:sub(-n+1)) or s end
 local function iN(v) return math.floor(tonumber(v) or 0) end
 
--- ── Page builders ─────────────────────────────────────────────────────────────
+-- ── Data page builders (pages 2–8, index shifted +1 from old pg1–pg7) ─────────
 
-local function pg1()
+local function pg2()   -- Core (was pg1)
     local t   = os.date("*t")
     local wfp = WF.settings.watchfacePath
     if wfp == false then wfp = "(not set)" end
@@ -60,7 +55,7 @@ local function pg1()
     }
 end
 
-local function pg2()
+local function pg3()   -- Device (was pg2)
     local d, s, st = WF.device, WF.settings, WF.storage
     local wfp = s.watchfacePath; if wfp == false then wfp = "(not set)" end
     return {
@@ -75,7 +70,7 @@ local function pg2()
     }
 end
 
-local function pg3()
+local function pg4()   -- Network (was pg3)
     local n   = WF.network
     local loc = WF.location
     local lines = {
@@ -94,7 +89,7 @@ local function pg3()
     return lines
 end
 
-local function pg4()
+local function pg5()   -- Health (was pg4)
     local hs = WF.health_steps; local hr = WF.health_heartRate; local sp = WF.health_spo2
     local hist = {}
     for i = 10, 6, -1 do
@@ -114,7 +109,7 @@ local function pg4()
     }
 end
 
-local function pg5()
+local function pg6()   -- Sensors (was pg5)
     local a = WF.sensor_accelerometer; local c = WF.sensor_compass; local b = WF.sensor_barometer
     return {
         "── ACCELEROMETER ──",
@@ -128,7 +123,7 @@ local function pg5()
     }
 end
 
-local function pg6()
+local function pg7()   -- Weather (was pg6)
     local w = WF.weather
     local upd = (w.lastUpdate and w.lastUpdate > 0)
         and os.date("%H:%M", math.floor(w.lastUpdate/1000)) or "-"
@@ -155,7 +150,7 @@ local function pg6()
     }
 end
 
-local function pg7()
+local function pg8()   -- Calendar (was pg7)
     local lines = { "Events: "..B(WF.calendar.hasEvents) }
     local shown = 0
     for _, ev in ipairs(WF.calendar.events or {}) do
@@ -179,11 +174,12 @@ local function pg7()
     return lines
 end
 
-local function pg8() return { "" } end  -- visuals handled by animation layer
+local function pg9() return { "" } end  -- Perf: visuals handled by animation layer
 
-local pageBuilders = { pg1, pg2, pg3, pg4, pg5, pg6, pg7, pg8 }
+-- page 1 has no data builder; it renders its own dedicated nodes
+local pageBuilders = { nil, pg2, pg3, pg4, pg5, pg6, pg7, pg8, pg9 }
 
--- ── HSV → RGB helper ──────────────────────────────────────────────────────────
+-- ── HSV → RGB ─────────────────────────────────────────────────────────────────
 
 local function hsv(h, s, v)
     h = h % 1
@@ -203,20 +199,20 @@ local function hsv(h, s, v)
     return cc.c4f(r, g, b, 1)
 end
 
--- ── Toggle specs ──────────────────────────────────────────────────────────────
+-- ── Toggle specs (pages 5/6/7 = Health/Sensors/Weather) ──────────────────────
 
 local pageToggles = {
-    [4] = {
+    [5] = {
         { label="Steps",   key="steps",     apply=function(v) WatchfaceBridge.setHealthEnabled("steps",v) end },
         { label="Heart",   key="heartRate", apply=function(v) WatchfaceBridge.setHealthEnabled("heartRate",v) end },
         { label="SpO2",    key="spo2",      apply=function(v) WatchfaceBridge.setHealthEnabled("spo2",v) end },
     },
-    [5] = {
+    [6] = {
         { label="Accel",   key="accelerometer", apply=function(v) WatchfaceBridge.setSensorEnabled("accelerometer",v) end },
         { label="Compass", key="compass",       apply=function(v) WatchfaceBridge.setSensorEnabled("compass",v) end },
         { label="Baro",    key="barometer",     apply=function(v) WatchfaceBridge.setSensorEnabled("barometer",v) end },
     },
-    [6] = {
+    [7] = {
         { label="Weather", key="weather", apply=function(v) WatchfaceBridge.setWeatherEnabled(v) end },
     },
 }
@@ -232,19 +228,81 @@ function WatchfaceScene:onEnter()
     self._W, self._H   = W, H
     self._cx, self._cy = cx, cy
 
+    -- Auto-scale factor relative to 480 px reference width
+    local sc = W / 480.0
+
+    self._sc         = sc
+    self._FONT_CLOCK = math.max(20, math.floor(52 * sc))
+    self._FONT_DATE  = math.max(10, math.floor(18 * sc))
+    self._FONT_BODY  = math.max(16, math.floor(40 * sc))
+    self._FONT_TITLE = math.max(12, math.floor(22 * sc))
+    self._FONT_BTN   = math.max(16, math.floor(40 * sc))
+    self._FONT_TOG   = math.max(12, math.floor(32 * sc))
+    self._LINE_H     = math.max(12, math.floor(48 * sc))
+    self._SQ_HALF    = math.max(8,  math.floor(16 * sc))
+
     self:addChild(cc.LayerColor:create(cc.c4b(0,0,0,255)), -1)
 
-    self._titleLabel = cc.Label:createWithSystemFont("", "sans-serif", FONT_TITLE)
+    -- ── Page 1: classic watchface nodes ──────────────────────────────────────
+    self._watchNode = cc.Node:create()
+    self:addChild(self._watchNode, 2)
+
+    self._clockLabel = cc.Label:createWithSystemFont("00:00:00", "sans-serif", self._FONT_CLOCK)
+    self._clockLabel:setPosition(cx, cy + math.floor(20 * sc))
+    self._clockLabel:setTextColor(cc.c4b(255, 255, 255, 255))
+    self._watchNode:addChild(self._clockLabel)
+
+    self._dateLabel = cc.Label:createWithSystemFont("", "sans-serif", self._FONT_DATE)
+    self._dateLabel:setPosition(cx, cy - math.floor(20 * sc))
+    self._dateLabel:setTextColor(cc.c4b(180, 180, 180, 255))
+    self._watchNode:addChild(self._dateLabel)
+
+    local sqH = self._SQ_HALF
+    local square = cc.DrawNode:create()
+    square:drawSolidRect(cc.p(-sqH, -sqH), cc.p(sqH, sqH), cc.c4f(0.12, 0.53, 0.9, 0.85))
+    square:setPosition(cx, cy - math.floor(80 * sc))
+    square:runAction(cc.RepeatForever:create(cc.RotateBy:create(3.0, 360)))
+    self._watchNode:addChild(square)
+
+    self._touchFeedback = cc.Label:createWithSystemFont("", "sans-serif", math.floor(20 * sc))
+    self._touchFeedback:setPosition(cx, cy - math.floor(150 * sc))
+    self._touchFeedback:setTextColor(cc.c4b(80, 220, 80, 255))
+    self._watchNode:addChild(self._touchFeedback, 1)
+
+    local tf = self._touchFeedback
+    local touchBtn = ccui.Button:create()
+    touchBtn:setTitleText("Touch Test")
+    touchBtn:setTitleFontSize(math.floor(18 * sc))
+    touchBtn:setTitleColor(cc.c3b(255, 255, 255))
+    touchBtn:setPosition(cx, cy - math.floor(200 * sc))
+    touchBtn:addTouchEventListener(function(_, eventType)
+        if eventType == ccui.TouchEventType.ended then
+            tf:setString("Touch works!")
+            tf:stopAllActions()
+            tf:runAction(cc.Sequence:create(
+                cc.DelayTime:create(1.5),
+                cc.FadeOut:create(0.4),
+                cc.CallFunc:create(function()
+                    tf:setString("")
+                    tf:setOpacity(255)
+                end)
+            ))
+        end
+    end)
+    self._watchNode:addChild(touchBtn, 1)
+
+    -- ── Data pages: shared UI nodes ───────────────────────────────────────────
+    self._titleLabel = cc.Label:createWithSystemFont("", "sans-serif", self._FONT_TITLE)
     self._titleLabel:setTextColor(cc.c4b(60, 180, 255, 255))
     self:addChild(self._titleLabel, 2)
 
-    self._contentLabel = cc.Label:createWithSystemFont("", "monospace", FONT_BODY)
+    self._contentLabel = cc.Label:createWithSystemFont("", "monospace", self._FONT_BODY)
     self._contentLabel:setTextColor(cc.c4b(220, 220, 220, 255))
     self:addChild(self._contentLabel, 2)
 
     self._prevBtn = ccui.Button:create()
     self._prevBtn:setTitleText("< Prev")
-    self._prevBtn:setTitleFontSize(FONT_BTN)
+    self._prevBtn:setTitleFontSize(self._FONT_BTN)
     self._prevBtn:addTouchEventListener(function(_, ev)
         if ev == ccui.TouchEventType.ended then self:changePage(-1) end
     end)
@@ -252,35 +310,36 @@ function WatchfaceScene:onEnter()
 
     self._nextBtn = ccui.Button:create()
     self._nextBtn:setTitleText("Next >")
-    self._nextBtn:setTitleFontSize(FONT_BTN)
+    self._nextBtn:setTitleFontSize(self._FONT_BTN)
     self._nextBtn:addTouchEventListener(function(_, ev)
         if ev == ccui.TouchEventType.ended then self:changePage(1) end
     end)
     self:addChild(self._nextBtn, 3)
 
-    self._pageInd = cc.Label:createWithSystemFont("", "sans-serif", FONT_TITLE)
+    self._pageInd = cc.Label:createWithSystemFont("", "sans-serif", self._FONT_TITLE)
     self._pageInd:setTextColor(cc.c4b(120, 120, 120, 255))
     self:addChild(self._pageInd, 2)
 
     self._toggleNode = cc.Node:create()
     self:addChild(self._toggleNode, 3)
 
-    -- ── Page 8 animation layer ────────────────────────────────────────────────
+    -- ── Page 9: animation layer ───────────────────────────────────────────────
     self._animNode = cc.DrawNode:create()
     self:addChild(self._animNode, 4)
     self._animNode:setVisible(false)
 
-    -- Initialise balls with random positions/velocities
     self._balls = {}
     math.randomseed(os.time())
     local NUM_BALLS = 25
+    local ballR_min = math.max(8,  math.floor(18 * sc))
+    local ballR_max = math.max(12, math.floor(45 * sc))
     for i = 1, NUM_BALLS do
         table.insert(self._balls, {
-            x  = math.random(50, W - 50),
-            y  = math.random(50, H - 50),
-            vx = (math.random() - 0.5) * 500,
-            vy = (math.random() - 0.5) * 500,
-            r  = math.random(18, 45),
+            x   = math.random(50, W - 50),
+            y   = math.random(50, H - 50),
+            vx  = (math.random() - 0.5) * 500 * sc,
+            vy  = (math.random() - 0.5) * 500 * sc,
+            r   = math.random(ballR_min, ballR_max),
             hue = i / NUM_BALLS,
         })
     end
@@ -291,7 +350,7 @@ function WatchfaceScene:onEnter()
     self._fpsAccum   = 0
     self._fps        = 0
 
-    self._fpsLabel = cc.Label:createWithSystemFont("FPS: --", "monospace", 36)
+    self._fpsLabel = cc.Label:createWithSystemFont("FPS: --", "monospace", math.floor(36 * sc))
     self._fpsLabel:setTextColor(cc.c4b(255, 255, 0, 255))
     self._fpsLabel:setVisible(false)
     self:addChild(self._fpsLabel, 5)
@@ -303,6 +362,9 @@ function WatchfaceScene:onEnter()
     self._clockTimer = director:getScheduler():scheduleScriptFunc(function()
         self:renderPage()
     end, 1.0, false)
+
+    Bridge.onEvent("battery", function(payload) end)
+    Bridge.onEvent("steps",   function(payload) end)
 end
 
 function WatchfaceScene:onExit()
@@ -313,6 +375,8 @@ function WatchfaceScene:onExit()
     end
     self:stopAnim()
 end
+
+-- ── Perf animation ────────────────────────────────────────────────────────────
 
 function WatchfaceScene:startAnim()
     if self._animTimer then return end
@@ -337,12 +401,12 @@ end
 
 function WatchfaceScene:stepAnim(dt)
     local W, H  = self._W, self._H
+    local sc    = self._sc
     local dn    = self._animNode
     self._animTime  = self._animTime + dt
-    self._spinAngle = self._spinAngle + dt * 120  -- 120°/s
+    self._spinAngle = self._spinAngle + dt * 120
     local t = self._animTime
 
-    -- FPS counter: update every 0.5 s
     self._fpsCounter = self._fpsCounter + 1
     self._fpsAccum   = self._fpsAccum   + dt
     if self._fpsAccum >= 0.5 then
@@ -350,58 +414,56 @@ function WatchfaceScene:stepAnim(dt)
         self._fpsCounter = 0
         self._fpsAccum   = 0
         self._fpsLabel:setString(string.format("FPS: %d", self._fps))
-        self._fpsLabel:setPosition(W / 2, H - 60)
+        self._fpsLabel:setPosition(W / 2, H - math.floor(60 * sc))
     end
 
     dn:clear()
 
-    -- Bouncing balls
     for _, b in ipairs(self._balls) do
         b.x = b.x + b.vx * dt
         b.y = b.y + b.vy * dt
-        if b.x - b.r < 0    then b.x =  b.r;     b.vx = math.abs(b.vx)  end
-        if b.x + b.r > W    then b.x = W - b.r;  b.vx = -math.abs(b.vx) end
-        if b.y - b.r < 0    then b.y =  b.r;     b.vy = math.abs(b.vy)  end
-        if b.y + b.r > H    then b.y = H - b.r;  b.vy = -math.abs(b.vy) end
+        if b.x - b.r < 0 then b.x =  b.r;     b.vx =  math.abs(b.vx) end
+        if b.x + b.r > W then b.x = W - b.r;  b.vx = -math.abs(b.vx) end
+        if b.y - b.r < 0 then b.y =  b.r;     b.vy =  math.abs(b.vy) end
+        if b.y + b.r > H then b.y = H - b.r;  b.vy = -math.abs(b.vy) end
         local col = hsv((b.hue + t * 0.15) % 1, 0.85, 1.0)
         dn:drawSolidCircle(cc.p(b.x, b.y), b.r, 0, 20, 1, 1, col)
     end
 
-    -- Spinning star at centre
     local cx, cy = W / 2, H / 2
     local RAD = math.rad
     local spokes = 7
+    local outer  = math.floor(120 * sc)
+    local inner  = math.floor(50  * sc)
     for i = 0, spokes - 1 do
         local a1 = RAD(self._spinAngle + i * 360 / spokes)
         local a2 = RAD(self._spinAngle + i * 360 / spokes + 360 / spokes / 2)
-        local outer = 120
-        local inner = 50
         local x1, y1 = cx + math.cos(a1) * outer, cy + math.sin(a1) * outer
         local x2, y2 = cx + math.cos(a2) * inner, cy + math.sin(a2) * inner
         local x3, y3 = cx + math.cos(a1 + RAD(360/spokes)) * outer,
                         cy + math.sin(a1 + RAD(360/spokes)) * outer
         local col = hsv((i / spokes + t * 0.3) % 1, 1, 1)
-        dn:drawSolidTriangle(
-            cc.p(cx, cy), cc.p(x1, y1), cc.p(x2, y2), col)
-        dn:drawSolidTriangle(
-            cc.p(cx, cy), cc.p(x2, y2), cc.p(x3, y3), col)
+        dn:drawSolidTriangle(cc.p(cx, cy), cc.p(x1, y1), cc.p(x2, y2), col)
+        dn:drawSolidTriangle(cc.p(cx, cy), cc.p(x2, y2), cc.p(x3, y3), col)
     end
 
-    -- Pulsing rings from centre
     for ring = 0, 2 do
-        local phase = (t * 0.6 + ring / 3) % 1
+        local phase  = (t * 0.6 + ring / 3) % 1
         local radius = phase * math.min(W, H) * 0.55
         local alpha  = (1 - phase) * 0.7
-        local col = cc.c4f(1, 1, 1, alpha)
-        dn:drawCircle(cc.p(cx, cy), radius, 0, 40, false, 1, 1, col)
+        dn:drawCircle(cc.p(cx, cy), radius, 0, 40, false, 1, 1, cc.c4f(1, 1, 1, alpha))
     end
 end
+
+-- ── Page navigation ───────────────────────────────────────────────────────────
 
 function WatchfaceScene:changePage(delta)
     self._page = ((self._page - 1 + delta) % NUM_PAGES) + 1
-    if self._page == 8 then self:startAnim() else self:stopAnim() end
+    if self._page == 9 then self:startAnim() else self:stopAnim() end
     self:renderPage()
 end
+
+-- ── Render ────────────────────────────────────────────────────────────────────
 
 function WatchfaceScene:renderPage()
     local p  = self._page
@@ -409,7 +471,48 @@ function WatchfaceScene:renderPage()
     local cy = self._cy
     local W  = self._W
 
-    local isPerf = (p == 8)
+    local FONT_TITLE = self._FONT_TITLE
+    local FONT_BTN   = self._FONT_BTN
+    local FONT_TOG   = self._FONT_TOG
+    local LINE_H     = self._LINE_H
+    local sc         = self._sc
+
+    -- ── Page 1: classic watchface ─────────────────────────────────────────────
+    if p == 1 then
+        self._watchNode:setVisible(true)
+        self._titleLabel:setVisible(false)
+        self._contentLabel:setVisible(false)
+        self._prevBtn:setVisible(false)
+        self._nextBtn:setVisible(false)
+        self._pageInd:setVisible(false)
+        self._toggleNode:removeAllChildren()
+
+        local t = os.date("*t")
+        self._clockLabel:setString(string.format("%02d:%02d:%02d", t.hour, t.min, t.sec))
+        self._dateLabel:setString(os.date("%a, %d %b %Y"))
+
+        -- Nav: small page indicator and arrows at bottom
+        local navY  = math.floor(40 * sc)
+        local spread = math.min(cx * 0.55, math.floor(200 * sc))
+        self._prevBtn:setVisible(true)
+        self._nextBtn:setVisible(true)
+        self._pageInd:setVisible(true)
+        self._prevBtn:setPosition(cx - spread, navY)
+        self._nextBtn:setPosition(cx + spread, navY)
+        self._pageInd:setString("1/"..NUM_PAGES)
+        self._pageInd:setPosition(cx, navY)
+        return
+    end
+
+    -- ── Pages 2–9: data inspector ─────────────────────────────────────────────
+    self._watchNode:setVisible(false)
+    self._titleLabel:setVisible(true)
+    self._contentLabel:setVisible(true)
+    self._prevBtn:setVisible(true)
+    self._nextBtn:setVisible(true)
+    self._pageInd:setVisible(true)
+
+    local isPerf = (p == 9)
     self._contentLabel:setVisible(not isPerf)
     self._titleLabel:setString(string.format("[%d/%d]  %s", p, NUM_PAGES, PAGE_NAMES[p]))
     self._pageInd:setString(p.."/"..NUM_PAGES)
@@ -422,7 +525,7 @@ function WatchfaceScene:renderPage()
     if labelH <= 0 then labelH = #lines * LINE_H end
 
     local hasToggles = pageToggles[p] ~= nil
-    local GAP        = 20
+    local GAP        = math.floor(20 * sc)
     local TITLE_ROW  = FONT_TITLE * 1.4
     local NAV_ROW    = FONT_BTN   * 1.4
     local TOG_ROW    = FONT_TOG   * 1.4
@@ -439,7 +542,7 @@ function WatchfaceScene:renderPage()
     cursor = cursor - labelH - GAP
 
     local navCY  = cursor - NAV_ROW / 2
-    local spread = math.min(cx * 0.55, 200)
+    local spread = math.min(cx * 0.55, math.floor(200 * sc))
     self._prevBtn:setPosition(cx - spread, navCY)
     self._nextBtn:setPosition(cx + spread, navCY)
     self._pageInd:setPosition(cx, navCY)
