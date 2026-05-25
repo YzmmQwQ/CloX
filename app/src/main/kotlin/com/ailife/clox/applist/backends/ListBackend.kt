@@ -11,6 +11,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.ailife.clox.applist.NotificationBadge
+import com.ailife.clox.applist.ScaledIconCache
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -64,7 +65,14 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         adapter = AppListAdapter(
             itemLayoutRes = R.layout.item_app_list
         ) { view, item ->
-            view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
+            val iv = view.findViewById<ImageView>(R.id.appIcon)
+            val key = "${item.packageName}/${item.activityName}"
+            if (iv.measuredWidth > 0) {
+                val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
+                iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
+            } else {
+                iv.setImageDrawable(item.icon)
+            }
             view.findViewById<TextView>(R.id.appLabel).text = item.label
             NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
         }.also { adp ->

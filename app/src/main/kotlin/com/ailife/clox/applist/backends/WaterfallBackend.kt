@@ -12,9 +12,9 @@ import com.ailife.clox.applist.AppListAdapter
 import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.AppListTouchCallback
+import com.ailife.clox.applist.CircularIconCache
 import com.ailife.clox.applist.WaterfallLayoutManager
 import com.ailife.clox.applist.model.AppItem
-import com.ailife.clox.applist.toCircle
 
 class WaterfallBackend(private val ctx: Context) : AppListBackend {
 
@@ -42,11 +42,12 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
 
         adapter = AppListAdapter(R.layout.item_app_icon) { view, item ->
             val iv = view.findViewById<ImageView>(R.id.appIcon)
+            val key = "${item.packageName}/${item.activityName}"
             if (view.width > 0) {
-                iv.setImageDrawable(item.icon.toCircle(view.width))
+                iv.setImageDrawable(CircularIconCache.obtain(item.icon, view.width, key))
             } else {
-                iv.setImageDrawable(item.icon)
-                view.post { iv.setImageDrawable(item.icon.toCircle(view.width.coerceAtLeast(1))) }
+                iv.setImageDrawable(CircularIconCache.obtain(item.icon, 1, key))
+                view.post { iv.setImageDrawable(CircularIconCache.obtain(item.icon, view.width.coerceAtLeast(1), key)) }
             }
             NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
         }.also { adp ->

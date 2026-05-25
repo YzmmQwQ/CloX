@@ -19,6 +19,7 @@ import com.ailife.clox.applist.AppListAdapter
 import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.NotificationBadge
+import com.ailife.clox.applist.ScaledIconCache
 import com.ailife.clox.applist.model.AppItem
 import kotlin.math.min
 
@@ -361,7 +362,14 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                 itemAnimator = DefaultItemAnimator().apply { moveDuration = 100 }
             }
             val adp = AppListAdapter(R.layout.item_app_grid) { view, item ->
-                view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
+                val iv = view.findViewById<ImageView>(R.id.appIcon)
+                val key = "${item.packageName}/${item.activityName}"
+                if (iv.measuredWidth > 0) {
+                    val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
+                    iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
+                } else {
+                    iv.setImageDrawable(item.icon)
+                }
                 view.findViewById<TextView>(R.id.appLabel).apply {
                     text = item.label; visibility = View.VISIBLE
                 }

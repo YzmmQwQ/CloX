@@ -22,6 +22,8 @@ import com.ailife.clox.applist.model.AppItem
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+
+
 /**
  * Icons arranged in a true hexagonal shape (pointy-top axial coords).
  * Drag reorder: treats the flat hex cell order as a logical 1-D list; shift-based (same as Grid2DView).
@@ -130,7 +132,7 @@ class HoneycombView @JvmOverloads constructor(
 
             val iv = ImageView(context).apply {
                 scaleType = ImageView.ScaleType.FIT_CENTER
-                setImageDrawable(item.icon.toCircle(iconPx))
+                setImageDrawable(CircularIconCache.obtain(item.icon, iconPx, "${item.packageName}/${item.activityName}"))
                 isLongClickable = false
             }
             val badge = NotificationBadge.makeView(context)

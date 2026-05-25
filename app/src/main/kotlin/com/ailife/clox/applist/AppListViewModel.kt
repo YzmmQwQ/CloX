@@ -5,10 +5,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.icon.IconResolver
+import com.ailife.clox.applist.ScaledIconCache
 import com.ailife.clox.rtos.RtosAppGuard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,6 +86,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
                 rawOrder
             }
 
+            val maxIconSize = ctx.resources.displayMetrics.density.let { (48 * it).toInt() }
             val all = activities
                 .map { ri ->
                     val key = "${ri.activityInfo.packageName}/${ri.activityInfo.name}"
@@ -88,7 +94,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
                         packageName  = ri.activityInfo.packageName,
                         activityName = ri.activityInfo.name,
                         label        = ri.loadLabel(pm).toString(),
-                        icon         = IconResolver.resolve(ctx, ri.activityInfo.packageName, ri.activityInfo.name),
+                        icon         = downsampleIcon(IconResolver.resolve(ctx, ri.activityInfo.packageName, ri.activityInfo.name), maxIconSize),
                         isHidden     = key in hiddenComponents,
                         customOrder  = customOrder.indexOf(key)
                             .let { if (it < 0) Int.MAX_VALUE else it }
@@ -100,6 +106,15 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             val missing = all.map { "${it.packageName}/${it.activityName}" }.filterNot { it in orderSet }
             if (missing.isNotEmpty()) {
                 AppListPrefs.saveCustomOrder(ctx, customOrder + missing)
+            }
+
+            // Pre-warm the icon cache at the list-mode icon size (40dp, fixed by item_app_list.xml)
+            // so onBindViewHolder never does bitmap allocation on the main thread.
+            val density = ctx.resources.displayMetrics.density
+            val listIconPx = (40 * density + 0.5f).toInt()
+            for (item in all) {
+                val key = "${item.packageName}/${item.activityName}"
+                ScaledIconCache.obtain(item.icon, listIconPx, key)
             }
 
             cachedAllItems = all
@@ -165,6 +180,26 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             }
             loadApps(force = true)
         }
+    }
+
+    private fun downsampleIcon(drawable: Drawable, maxSize: Int): Drawable {
+        if (drawable is BitmapDrawable) {
+            val bmp = drawable.bitmap ?: return drawable
+            if (bmp.width <= maxSize && bmp.height <= maxSize) return drawable
+            val scale = maxSize.toFloat() / maxOf(bmp.width, bmp.height)
+            val w = (bmp.width * scale).toInt().coerceAtLeast(1)
+            val h = (bmp.height * scale).toInt().coerceAtLeast(1)
+            val scaled = Bitmap.createScaledBitmap(bmp, w, h, true)
+            return BitmapDrawable(getApplication<Application>().resources, scaled)
+        }
+        // Render non-bitmap drawables (AdaptiveIconDrawable, etc.) to bitmap here on the
+        // IO thread so onBindViewHolder never has to do it on the main thread.
+        val bmp = Bitmap.createBitmap(maxSize, maxSize, Bitmap.Config.ARGB_8888)
+        Canvas(bmp).also { canvas ->
+            drawable.setBounds(0, 0, maxSize, maxSize)
+            drawable.draw(canvas)
+        }
+        return BitmapDrawable(getApplication<Application>().resources, bmp)
     }
 
     override fun onCleared() {

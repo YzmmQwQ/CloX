@@ -14,6 +14,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.OverScroller
 import android.widget.TextView
+import com.ailife.clox.applist.ScaledIconCache
 import com.ailife.clox.applist.model.AppItem
 import com.google.android.material.color.MaterialColors
 import kotlin.math.abs
@@ -152,7 +153,7 @@ class Grid2DView @JvmOverloads constructor(
         }
         cell.addView(ImageView(context).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
-            setImageDrawable(item.icon)
+            setImageDrawable(ScaledIconCache.obtain(item.icon, iconPx, "${item.packageName}/${item.activityName}"))
         }, FrameLayout.LayoutParams(iconPx, iconPx).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
         })

@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import com.ailife.clox.applist.NotificationBadge
+import com.ailife.clox.applist.ScaledIconCache
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -38,7 +39,14 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
         // Always use item_app_grid.xml; icon size is identical with or without label
         adapter = AppListAdapter(R.layout.item_app_grid) { view, item ->
-            view.findViewById<ImageView>(R.id.appIcon).setImageDrawable(item.icon)
+            val iv = view.findViewById<ImageView>(R.id.appIcon)
+            val key = "${item.packageName}/${item.activityName}"
+            if (iv.measuredWidth > 0) {
+                val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
+                iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
+            } else {
+                iv.setImageDrawable(item.icon)
+            }
             val label = view.findViewById<TextView>(R.id.appLabel)
             if (showNames) { label.text = item.label; label.visibility = View.VISIBLE }
             else label.visibility = View.GONE

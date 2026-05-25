@@ -6,6 +6,8 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.util.SparseArray
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.applist.model.AppItem
@@ -30,10 +32,31 @@ class AppListAdapter(
 
     private val mutableItems = mutableListOf<AppItem>()
 
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long {
+        val item = mutableItems.getOrNull(position) ?: return RecyclerView.NO_ID
+        return (item.packageName + "/" + item.activityName).hashCode().toLong()
+    }
+
     fun submitList(list: List<AppItem>) {
+        val old = mutableItems.toList()
         mutableItems.clear()
         mutableItems.addAll(list)
-        notifyDataSetChanged()
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = old.size
+            override fun getNewListSize() = mutableItems.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean {
+                val a = old[oldPos]; val b = mutableItems[newPos]
+                return a.packageName == b.packageName && a.activityName == b.activityName
+            }
+            override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+                return old[oldPos] == mutableItems[newPos]
+            }
+        })
+        diff.dispatchUpdatesTo(this)
     }
 
     /** Updates mutableItems without triggering any notify — caller must handle the notify. */
@@ -64,6 +87,17 @@ class AppListAdapter(
     fun getDragItem(position: Int): AppItem? = mutableItems.getOrNull(position)
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
+        private val viewCache = SparseArray<View>()
+
+        @Suppress("UNCHECKED_CAST")
+        fun <T : View> cachedView(id: Int): T {
+            var v = viewCache.get(id)
+            if (v == null) {
+                v = itemView.findViewById(id)
+                viewCache.put(id, v)
+            }
+            return v as T
+        }
 
         private var downX = 0f
         private var downY = 0f

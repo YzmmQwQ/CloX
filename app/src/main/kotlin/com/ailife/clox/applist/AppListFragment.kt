@@ -66,6 +66,7 @@ class AppListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        NotificationBadge.resolveColors(requireContext())
         AppListPrefs.get(requireContext()).registerOnSharedPreferenceChangeListener(prefsListener)
         root.clipChildren = false
         root.clipToPadding = false
@@ -74,8 +75,7 @@ class AppListFragment : Fragment() {
         observeApps()
         observeNotifications()
         root.post {
-            root.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-            root.buildLayer()
+            root.setLayerType(android.view.View.LAYER_TYPE_NONE, null)
         }
     }
 
@@ -188,11 +188,6 @@ class AppListFragment : Fragment() {
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         ))
-        root.post {
-            root.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-            root.buildLayer()
-        }
-
         backend = newBackend
         lastBoundItems = null   // force bindItems on the fresh backend
         val isPages = style == AppListPrefs.STYLE_PAGES

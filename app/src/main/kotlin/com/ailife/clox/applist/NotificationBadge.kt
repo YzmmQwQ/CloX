@@ -12,6 +12,18 @@ import com.google.android.material.color.MaterialColors
 
 object NotificationBadge {
 
+    private var bgColor: Int = Color.RED
+    private var fgColor: Int = Color.WHITE
+    private var colorsResolved = false
+
+    /** Resolve theme colors once. Must be called from a themed context. */
+    fun resolveColors(context: Context) {
+        if (colorsResolved) return
+        bgColor = MaterialColors.getColor(context, androidx.appcompat.R.attr.colorError, Color.RED)
+        fgColor = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnError, Color.WHITE)
+        colorsResolved = true
+    }
+
     /** Bind notification count to a badge TextView (from XML layout or [makeView]). */
     fun bind(
         badge: TextView,
@@ -25,17 +37,12 @@ object NotificationBadge {
 
         // Set Material error color background on first show
         if (badge.tag == null) {
-            val bg = MaterialColors.getColor(
-                badge.context, androidx.appcompat.R.attr.colorError, Color.RED
-            )
-            val fg = MaterialColors.getColor(
-                badge.context, com.google.android.material.R.attr.colorOnError, Color.WHITE
-            )
+            if (!colorsResolved) resolveColors(badge.context)
             badge.background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(bg)
+                setColor(bgColor)
             }
-            badge.setTextColor(fg)
+            badge.setTextColor(fgColor)
             badge.tag = true
         }
 
