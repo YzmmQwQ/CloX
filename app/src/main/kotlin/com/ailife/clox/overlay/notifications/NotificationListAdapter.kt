@@ -221,7 +221,7 @@ class NotificationListAdapter(
                         if (hasRemoteInput) {
                             onReply(getItem(holder.bindingAdapterPosition))
                         } else {
-                            try { action.actionIntent.send() } catch (e: Exception) {}
+                            try { sendPendingIntent(action.actionIntent, holder.itemView.context) } catch (e: Exception) {}
                         }
                     }
                 }
@@ -329,9 +329,21 @@ class NotificationListAdapter(
 
         fun openNotification(sbn: StatusBarNotification, ctx: android.content.Context) {
             val intent = sbn.notification.contentIntent ?: return
-            try { intent.send(ctx, 0, null) } catch (e: Exception) { return }
+            try { sendPendingIntent(intent, ctx) } catch (e: Exception) { return }
             if ((sbn.notification.flags and android.app.Notification.FLAG_AUTO_CANCEL) != 0) {
                 CloXNotificationListenerService.dismissNotification(sbn.key)
+            }
+        }
+
+        fun sendPendingIntent(pi: android.app.PendingIntent, ctx: android.content.Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val opts = android.app.ActivityOptions.makeBasic()
+                opts.setPendingIntentBackgroundActivityStartMode(
+                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                )
+                pi.send(ctx, 0, null, null, null, null, opts.toBundle())
+            } else {
+                pi.send()
             }
         }
 

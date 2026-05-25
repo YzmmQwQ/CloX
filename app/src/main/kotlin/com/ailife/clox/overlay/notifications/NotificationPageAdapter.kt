@@ -203,7 +203,9 @@ class NotificationPageAdapter(
                     ).apply { bottomMargin = 8 }
                     setOnClickListener {
                         if (hasRemoteInput) onReply(sbn)
-                        else try { action.actionIntent.send() } catch (e: Exception) {}
+                        else try {
+                            NotificationListAdapter.sendPendingIntent(action.actionIntent, h.itemView.context)
+                        } catch (e: Exception) {}
                     }
                 }
                 h.actionsContainer.addView(btn)

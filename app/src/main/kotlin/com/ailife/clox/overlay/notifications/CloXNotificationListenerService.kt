@@ -51,7 +51,9 @@ class CloXNotificationListenerService : NotificationListenerService() {
 
         val filtered = (activeNotifications?.toList() ?: emptyList())
             .filter { sbn ->
-                sbn.packageName !in blockedApps && !(blockPersistent && isPersistent(sbn))
+                sbn.packageName !in blockedApps &&
+                        !(blockPersistent && isPersistent(sbn)) &&
+                        !isContentless(sbn)
             }
         _notifications.tryEmit(filtered)
     }
@@ -60,12 +62,22 @@ class CloXNotificationListenerService : NotificationListenerService() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val blockPersistent = prefs.getBoolean(NotificationPrefs.NOTIF_BLOCK_PERSISTENT, false)
         val blockedApps = blockedApps(prefs)
-        return sbn.packageName in blockedApps || (blockPersistent && isPersistent(sbn))
+        return sbn.packageName in blockedApps ||
+                (blockPersistent && isPersistent(sbn)) ||
+                isContentless(sbn)
     }
 
     private fun isPersistent(sbn: StatusBarNotification): Boolean {
         val flags = sbn.notification.flags
         return (flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE)) != 0
+    }
+
+    private fun isContentless(sbn: StatusBarNotification): Boolean {
+        val extras = sbn.notification.extras
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.trim()
+        val text  = extras.getCharSequence(Notification.EXTRA_TEXT)?.trim()
+            ?: extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.trim()
+        return title.isNullOrEmpty() && text.isNullOrEmpty()
     }
 
     private fun handleNewNotificationEffects(sbn: StatusBarNotification) {
