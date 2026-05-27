@@ -2,7 +2,9 @@ package com.ailife.clox.overlay.notifications
 
 import android.app.Notification
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,6 +20,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.collection.LruCache
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -36,6 +39,7 @@ class NotificationListAdapter(
 ) : ListAdapter<StatusBarNotification, NotificationListAdapter.VH>(DIFF) {
 
     private val expanded = mutableSetOf<String>()
+    private val iconCache = LruCache<String, Drawable>(64)
 
     inner class VH(val card: MaterialCardView) : RecyclerView.ViewHolder(card) {
         val iconSlot: ViewGroup      = card.findViewById(R.id.iconSlot)
@@ -93,19 +97,19 @@ class NotificationListAdapter(
 
         // Large icon handling
         val largeBitmap = extractLargeIcon(notif, ctx)
+        val cachedAppIcon = getCachedAppIcon(pm, sbn.packageName)
         if (largeBitmap != null) {
             holder.largeIcon.setImageBitmap(largeBitmap)
             holder.largeIcon.visibility = View.VISIBLE
             holder.appIcon.visibility = View.GONE
             holder.appIconBadge.visibility = View.VISIBLE
-            try { holder.appIconBadge.setImageDrawable(pm.getApplicationIcon(sbn.packageName)) }
-            catch (e: Exception) {}
+            if (cachedAppIcon != null) holder.appIconBadge.setImageDrawable(cachedAppIcon)
         } else {
             holder.largeIcon.visibility = View.GONE
             holder.appIconBadge.visibility = View.GONE
             holder.appIcon.visibility = View.VISIBLE
-            try { holder.appIcon.setImageDrawable(pm.getApplicationIcon(sbn.packageName)) }
-            catch (e: Exception) { holder.appIcon.setImageResource(R.drawable.ic_notifications) }
+            if (cachedAppIcon != null) holder.appIcon.setImageDrawable(cachedAppIcon)
+            else holder.appIcon.setImageResource(R.drawable.ic_notifications)
         }
 
         // Title + body — check for messaging style first
@@ -120,8 +124,10 @@ class NotificationListAdapter(
 
         // Expand / collapse
         val isExpanded = sbn.key in expanded
-        holder.body.maxLines  = if (isExpanded) Int.MAX_VALUE else 2
-        holder.body.ellipsize = if (isExpanded) null else android.text.TextUtils.TruncateAt.END
+        holder.title.maxLines  = if (isExpanded) Int.MAX_VALUE else 1
+        holder.title.ellipsize = if (isExpanded) null else android.text.TextUtils.TruncateAt.END
+        holder.body.maxLines   = if (isExpanded) Int.MAX_VALUE else 2
+        holder.body.ellipsize  = if (isExpanded) null else android.text.TextUtils.TruncateAt.END
         holder.btnExpand.setImageResource(if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
 
         bindExpandedContent(holder, notif, isExpanded)
@@ -162,6 +168,7 @@ class NotificationListAdapter(
         // getParcelable<Icon> crashes with ClassCastException when it's actually a Bitmap, so
         // read it untyped and branch on the runtime type.
         val rawLargeIcon = extras.getParcelable<android.os.Parcelable>(Notification.EXTRA_LARGE_ICON)
+        val pm = holder.itemView.context.packageManager
         when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                     rawLargeIcon is android.graphics.drawable.Icon -> try {
@@ -169,18 +176,14 @@ class NotificationListAdapter(
                 holder.largeIcon.visibility = View.VISIBLE
                 holder.appIcon.visibility = View.GONE
                 holder.appIconBadge.visibility = View.VISIBLE
-                val pm = holder.itemView.context.packageManager
-                try { holder.appIconBadge.setImageDrawable(pm.getApplicationIcon(sbn.packageName)) }
-                catch (_: Exception) {}
+                getCachedAppIcon(pm, sbn.packageName)?.let { holder.appIconBadge.setImageDrawable(it) }
             } catch (_: Exception) {}
             rawLargeIcon is android.graphics.Bitmap -> try {
                 holder.largeIcon.setImageBitmap(rawLargeIcon)
                 holder.largeIcon.visibility = View.VISIBLE
                 holder.appIcon.visibility = View.GONE
                 holder.appIconBadge.visibility = View.VISIBLE
-                val pm = holder.itemView.context.packageManager
-                try { holder.appIconBadge.setImageDrawable(pm.getApplicationIcon(sbn.packageName)) }
-                catch (_: Exception) {}
+                getCachedAppIcon(pm, sbn.packageName)?.let { holder.appIconBadge.setImageDrawable(it) }
             } catch (_: Exception) {}
         }
     }
@@ -255,6 +258,13 @@ class NotificationListAdapter(
             }
         }
         return resolve(Notification.EXTRA_LARGE_ICON_BIG) ?: resolve(Notification.EXTRA_LARGE_ICON)
+    }
+
+    private fun getCachedAppIcon(pm: PackageManager, packageName: String): Drawable? {
+        iconCache[packageName]?.let { return it }
+        return try {
+            pm.getApplicationIcon(packageName).also { iconCache.put(packageName, it) }
+        } catch (_: Exception) { null }
     }
 
     private fun showContextMenu(holder: VH, sbn: StatusBarNotification) {
