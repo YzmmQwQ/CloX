@@ -757,6 +757,8 @@
     <string name="applist_setting_general_category">General</string>
     <string name="applist_setting_hidden_apps_summary">Manage which apps appear in the launcher</string>
     <string name="applist_setting_launch_anim_title">Launch animation</string>
+    <string name="applist_setting_animations_title">Animations</string>
+    <string name="applist_setting_animations_summary">Open and return animation settings</string>
     <string name="applist_setting_background_category">Background</string>
     <string name="applist_setting_bg_image_title">Background image</string>
     <string name="applist_setting_bg_image_summary">Tap to choose an image</string>
@@ -768,6 +770,27 @@
     <string name="applist_setting_honeycomb_options_category">Honeycomb options</string>
     <string name="applist_setting_grid2d_options_category">Grid 2D options</string>
     <string name="applist_setting_pages_options_category">Pages options</string>
+
+    <!-- ── Animation settings fragment ──────────────────────────────────── -->
+    <string name="anim_setting_open_category">Open animation</string>
+    <string name="anim_setting_open_title">Animate app open</string>
+    <string name="anim_setting_open_summary">Play animation when launching an app</string>
+    <string name="anim_setting_open_type_title">Animation style</string>
+    <string name="anim_setting_return_category">Return animation</string>
+    <string name="anim_setting_return_title">Animate return to home</string>
+    <string name="anim_setting_return_summary_pre11">Shrink-to-icon animation on return (Android 10 and below)</string>
+    <string name="anim_setting_return_summary_11plus">Suppresses follow-on icon recoil; system gesture animation still plays</string>
+    <string name="anim_setting_speed_category">Speed</string>
+    <string name="anim_setting_speed_title">Animation speed</string>
+    <string name="anim_setting_speed_hint">0.5× (slow) — 2.0× (fast)</string>
+    <string-array name="open_anim_type_entries">
+        <item>Icon zoom</item>
+        <item>Window expand</item>
+    </string-array>
+    <string-array name="open_anim_type_values">
+        <item>icon_zoom</item>
+        <item>window_expand</item>
+    </string-array>
 
     <!-- ── Common dialog buttons ────────────────────────────────────────── -->
     <string name="btn_open_settings">Open Settings</string>

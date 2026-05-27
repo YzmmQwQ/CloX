@@ -30,7 +30,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
     private lateinit var tvAppListSort: TextView
     private lateinit var tvIconPack: TextView
     private lateinit var rowHiddenApps: View
-    private lateinit var tvLaunchAnim: TextView
+    private lateinit var rowAnimations: View
 
     private val appListPrefs by lazy { namedPrefs(AppListPrefs.PREFS_NAME) }
 
@@ -73,16 +73,14 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         tvAppListSort    = view.findViewById(R.id.tvAppListSort)
         tvIconPack       = view.findViewById(R.id.tvIconPack)
         rowHiddenApps    = view.findViewById(R.id.rowHiddenApps)
-        tvLaunchAnim     = view.findViewById(R.id.tvLaunchAnim)
+        rowAnimations    = view.findViewById(R.id.rowAnimations)
 
-        val styleEntries      = resources.getStringArray(R.array.app_list_style_entries)
-        val styleValues       = resources.getStringArray(R.array.app_list_style_values)
-        val sortEntries       = resources.getStringArray(R.array.app_list_sort_entries)
-        val sortValues        = resources.getStringArray(R.array.app_list_sort_values)
-        val launchAnimEntries = resources.getStringArray(R.array.launch_anim_entries)
-        val launchAnimValues  = resources.getStringArray(R.array.launch_anim_values)
-        val curveEntries      = resources.getStringArray(R.array.curve_entries)
-        val curveValues       = resources.getStringArray(R.array.curve_values)
+        val styleEntries = resources.getStringArray(R.array.app_list_style_entries)
+        val styleValues  = resources.getStringArray(R.array.app_list_style_values)
+        val sortEntries  = resources.getStringArray(R.array.app_list_sort_entries)
+        val sortValues   = resources.getStringArray(R.array.app_list_sort_values)
+        val curveEntries = resources.getStringArray(R.array.curve_entries)
+        val curveValues  = resources.getStringArray(R.array.curve_values)
 
         fun labelFor(entries: Array<String>, values: Array<String>, v: String) =
             entries.getOrElse(values.indexOf(v)) { v }
@@ -137,18 +135,14 @@ class AppListSettingsFragment : BaseSettingsFragment() {
             }
         }
 
-        // Launch animation picker
-        fun refreshLaunchAnim() {
-            val v = appListPrefs.getString(AppListPrefs.KEY_LAUNCH_ANIM, AppListPrefs.LAUNCH_ANIM_SYSTEM) ?: AppListPrefs.LAUNCH_ANIM_SYSTEM
-            tvLaunchAnim.text = labelFor(launchAnimEntries, launchAnimValues, v)
-        }
-        refreshLaunchAnim()
-        view.findViewById<View>(R.id.rowLaunchAnim).setOnClickListener {
-            showListPicker("Launch animation", launchAnimEntries, launchAnimValues,
-                appListPrefs.getString(AppListPrefs.KEY_LAUNCH_ANIM, AppListPrefs.LAUNCH_ANIM_SYSTEM) ?: AppListPrefs.LAUNCH_ANIM_SYSTEM) { v, _ ->
-                appListPrefs.edit().putString(AppListPrefs.KEY_LAUNCH_ANIM, v).apply()
-                refreshLaunchAnim()
-            }
+        // Animations subcategory nav
+        rowAnimations.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.settingsContainer, AnimationSettingsFragment())
+                .addToBackStack(null)
+                .commit()
+            (activity as? androidx.appcompat.app.AppCompatActivity)?.title =
+                getString(R.string.applist_setting_animations_title)
         }
 
         // Hidden apps nav — only visible when no password set or already unlocked this session

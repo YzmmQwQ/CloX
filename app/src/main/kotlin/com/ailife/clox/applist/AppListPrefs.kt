@@ -196,8 +196,24 @@ object AppListPrefs {
     const val LAUNCH_ANIM_SYSTEM     = "system"
     const val LAUNCH_ANIM_CUSTOM     = "custom"
 
+    const val KEY_OPEN_ANIM_TYPE        = "open_anim_type"
+    const val OPEN_ANIM_ICON_ZOOM       = "icon_zoom"
+    const val OPEN_ANIM_WINDOW_EXPAND   = "window_expand"
+
+    const val KEY_RETURN_ANIM_ENABLED   = "return_anim_enabled"
+    const val KEY_ANIM_SPEED            = "anim_speed"   // Float, 0.5..2.0
+
     fun useCustomLaunchAnim(ctx: Context) =
         get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_SYSTEM) == LAUNCH_ANIM_CUSTOM
+
+    fun openAnimType(ctx: Context) =
+        get(ctx).getString(KEY_OPEN_ANIM_TYPE, OPEN_ANIM_ICON_ZOOM) ?: OPEN_ANIM_ICON_ZOOM
+
+    fun returnAnimEnabled(ctx: Context) =
+        get(ctx).getBoolean(KEY_RETURN_ANIM_ENABLED, true)
+
+    fun animSpeed(ctx: Context) =
+        get(ctx).getFloat(KEY_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
 
     // ── Notification badges ──────────────────────────────────────────────────
 
