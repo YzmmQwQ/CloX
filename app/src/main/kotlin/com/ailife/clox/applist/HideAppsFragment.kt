@@ -1,6 +1,8 @@
 package com.ailife.clox.applist
 
 import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
@@ -30,7 +32,7 @@ class HideAppsFragment : Fragment() {
         val packageName: String,
         val activityName: String,
         val label: String,
-        val icon: Drawable,
+        val icon: Bitmap,   // pre-rendered at icon size — cheap to bind during scroll
         var selected: Boolean
     )
 
@@ -51,7 +53,7 @@ class HideAppsFragment : Fragment() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val entry = items[position]
-            holder.icon.setImageDrawable(entry.icon)
+            holder.icon.setImageBitmap(entry.icon)
             holder.label.text = entry.label
             holder.activity.text = entry.activityName.substringAfterLast('.')
             holder.check.isChecked = entry.selected
@@ -127,6 +129,7 @@ class HideAppsFragment : Fragment() {
             val pm = ctx.packageManager
             val intent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
             val hidden = AppListPrefs.hiddenComponents(ctx)
+            val iconSizePx = (36 * ctx.resources.displayMetrics.density + 0.5f).toInt()
             val entries = pm.queryIntentActivities(intent, 0)
                 .sortedBy { it.loadLabel(pm).toString().lowercase() }
                 .map { ri ->
@@ -135,7 +138,8 @@ class HideAppsFragment : Fragment() {
                         packageName  = ri.activityInfo.packageName,
                         activityName = ri.activityInfo.name,
                         label        = ri.loadLabel(pm).toString(),
-                        icon         = IconResolver.resolve(ctx, ri.activityInfo.packageName, ri.activityInfo.name),
+                        icon         = IconResolver.resolve(ctx, ri.activityInfo.packageName, ri.activityInfo.name)
+                                           .renderToBitmap(iconSizePx),
                         selected     = key in hidden
                     )
                 }.toMutableList()
@@ -190,4 +194,12 @@ class HideAppsFragment : Fragment() {
             .setCancelable(false)
             .show()
     }
+}
+
+private fun Drawable.renderToBitmap(size: Int): Bitmap {
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    setBounds(0, 0, size, size)
+    draw(canvas)
+    return bmp
 }
