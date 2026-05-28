@@ -158,10 +158,8 @@ class HealthSettingsFragment : BaseSettingsFragment() {
 
     private fun openPlayStore() {
         val ctx = requireContext()
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${BhtApiClient.PACKAGE}"))
-        if (intent.resolveActivity(ctx.packageManager) != null) startActivity(intent)
-        else startActivity(Intent(Intent.ACTION_VIEW,
-            Uri.parse("https://play.google.com/store/apps/details?id=${BhtApiClient.PACKAGE}")))
+        startActivity(Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://gitlab.com/ailife8881/better-health-tracker/-/releases")))
     }
 
     private fun startRefresh() {
