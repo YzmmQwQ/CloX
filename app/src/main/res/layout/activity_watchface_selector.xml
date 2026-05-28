@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:background="@color/clox_bg">
 
     <!-- ── Pager mode: RecyclerView + PagerSnapHelper, cards peek from sides ── -->
@@ -128,11 +131,16 @@
             android:clipToPadding="false" />
     </LinearLayout>
 
-    <!-- Snapshot overlay for enter/exit animation — rendered on top -->
+    <!-- Snapshot overlay for enter/exit animation — rendered on top.
+         Width/height are set programmatically to screenH×screenH so it
+         always matches the watchface's square render area (fit-to-height).
+         clipChildren=false on the root lets it extend past screen edges in
+         portrait mode (same clipping the watchface itself uses). -->
     <ImageView
         android:id="@+id/snapshotOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="centerCrop"
+        android:layout_gravity="center"
+        android:scaleType="fitXY"
         android:visibility="gone" />
 </FrameLayout>

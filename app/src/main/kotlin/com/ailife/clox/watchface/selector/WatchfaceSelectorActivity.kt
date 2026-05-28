@@ -8,9 +8,11 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -38,6 +40,7 @@ import kotlin.math.abs
 class WatchfaceSelectorActivity : AppCompatActivity() {
 
     private lateinit var snapshotOverlay: ImageView
+    private var overlaySquareSize = 0   // screenH — the watchface's square render dimension
     private var mode = WatchfacePrefs.SelectorMode.PAGER
 
     // Pager mode (RecyclerView + custom fling)
@@ -61,6 +64,16 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         hideSystemBars()
 
         snapshotOverlay = findViewById(R.id.snapshotOverlay)
+
+        // Make overlay square (screenH × screenH) so it matches the watchface's
+        // fit-to-height render area. On portrait it extends past screen edges (clipped
+        // by the window, same as the watchface itself). On landscape it's narrower
+        // than the screen, leaving black bars on the sides — matching watchface render.
+        overlaySquareSize = resources.displayMetrics.heightPixels
+        snapshotOverlay.layoutParams = FrameLayout.LayoutParams(overlaySquareSize, overlaySquareSize).apply {
+            gravity = Gravity.CENTER
+        }
+
         mode = WatchfacePrefs.getSelectorMode(this)
 
         val pagerContainer = findViewById<View>(R.id.pagerContainer)
@@ -314,12 +327,16 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
         val screenW = resources.displayMetrics.widthPixels.toFloat()
         val screenH = resources.displayMetrics.heightPixels.toFloat()
+        // Uniform scale: the overlay is a square (overlaySquareSize × overlaySquareSize)
+        // representing the watchface square. Scale by height ratio so the square maps
+        // exactly to the card's square preview — no aspect-ratio distortion.
+        val scale = cardBounds.height() / overlaySquareSize.toFloat()
 
         overlay.animate()
             .translationX(cardBounds.centerX() - screenW / 2f)
             .translationY(cardBounds.centerY() - screenH / 2f)
-            .scaleX(cardBounds.width() / screenW)
-            .scaleY(cardBounds.height() / screenH)
+            .scaleX(scale)
+            .scaleY(scale)
             .setDuration(360)
             .setInterpolator(android.view.animation.DecelerateInterpolator())
             .withEndAction {
@@ -348,12 +365,16 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         val cardBounds = Rect()
         previewImageView.getGlobalVisibleRect(cardBounds)
 
+        // Uniform scale: overlay is overlaySquareSize × overlaySquareSize, start it
+        // scaled down to match the card's square preview, then expand to fill screen.
+        val scale = cardBounds.height() / overlaySquareSize.toFloat()
+
         val overlay = snapshotOverlay
         overlay.setImageBitmap(preview)
         overlay.translationX = cardBounds.centerX() - screenW / 2f
         overlay.translationY = cardBounds.centerY() - screenH / 2f
-        overlay.scaleX = cardBounds.width() / screenW
-        overlay.scaleY = cardBounds.height() / screenH
+        overlay.scaleX = scale
+        overlay.scaleY = scale
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
 
