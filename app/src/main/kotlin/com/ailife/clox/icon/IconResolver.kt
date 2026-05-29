@@ -2,6 +2,8 @@ package com.ailife.clox.icon
 
 import android.content.ComponentName
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import com.ailife.clox.applist.AppListPrefs
 
@@ -46,4 +48,12 @@ object IconResolver {
             null
         }
     }
+}
+
+fun Drawable.renderToBitmap(size: Int): Bitmap {
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    setBounds(0, 0, size, size)
+    draw(canvas)
+    return bmp
 }

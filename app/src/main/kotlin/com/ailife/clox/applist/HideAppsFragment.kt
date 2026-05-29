@@ -2,7 +2,6 @@ package com.ailife.clox.applist
 
 import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
@@ -18,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
 import com.ailife.clox.icon.IconResolver
+import com.ailife.clox.icon.renderToBitmap
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -194,12 +194,4 @@ class HideAppsFragment : Fragment() {
             .setCancelable(false)
             .show()
     }
-}
-
-private fun Drawable.renderToBitmap(size: Int): Bitmap {
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bmp)
-    setBounds(0, 0, size, size)
-    draw(canvas)
-    return bmp
 }
