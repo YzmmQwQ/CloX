@@ -199,10 +199,11 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val sm = stateManager ?: return
         val sc = scope ?: return
 
-        // Tile height: 64dp minimum per row. VP2 = rows × tileH + row margins.
-        // Deferred via post{} so layout params apply after the view is fully attached.
+        // Tile height scales with system font scale so larger text always fits.
+        // All tiles use the same tileH so they remain uniform regardless of content.
         val density = context.resources.displayMetrics.density
-        val tileH = (64 * density).toInt()       // 64dp per tile row
+        val fontScale = context.resources.configuration.fontScale.coerceAtLeast(1f)
+        val tileH = (68 * density * fontScale).toInt()
         val rowMargin = (10 * density).toInt()    // 5dp top + 5dp bottom per tile
         val pagerH = rows * (tileH + rowMargin)
 
