@@ -64,7 +64,7 @@ object TileLayoutManager {
             return TileDescriptor(
                 id = id,
                 defaultLabel = config.label,
-                iconRes = com.ailife.clox.R.drawable.ic_settings,
+                iconRes = com.ailife.clox.R.drawable.baseline_settings_24,
                 isCustom = true
             )
         }

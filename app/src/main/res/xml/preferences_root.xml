@@ -5,104 +5,104 @@
         android:key="nav_notifications"
         android:title="Notifications"
         android:summary="Panel style, alerts, filtering, blocked apps"
-        android:icon="@drawable/ic_notifications"
+        android:icon="@drawable/baseline_notifications_24"
         android:fragment="com.ailife.clox.settings.fragments.NotificationSettingsFragment" />
 
     <Preference
         android:key="nav_quick_settings"
         android:title="@string/qs_title"
         android:summary="Tiles, columns, gestures, flashlight, colors, privileges"
-        android:icon="@drawable/ic_tune"
+        android:icon="@drawable/baseline_tune_24"
         android:fragment="com.ailife.clox.settings.fragments.QuickSettingsSettingsFragment" />
 
     <Preference
         android:key="nav_app_list"
         android:title="App list"
         android:summary="Style, sort order, icon pack"
-        android:icon="@drawable/ic_folder"
+        android:icon="@drawable/baseline_apps_24"
         android:fragment="com.ailife.clox.settings.fragments.AppListSettingsFragment" />
 
     <Preference
         android:key="nav_watchface"
         android:title="@string/pref_watchface_title"
         android:summary="@string/pref_watchface_summary"
-        android:icon="@drawable/ic_watchface_placeholder"
+        android:icon="@drawable/baseline_watch_24"
         android:fragment="com.ailife.clox.settings.fragments.WatchfaceSettingsFragment" />
 
     <Preference
         android:key="nav_gestures"
         android:title="Gestures"
         android:summary="Double-tap, long-press, hardware button mapping"
-        android:icon="@drawable/ic_gesture"
+        android:icon="@drawable/baseline_gesture_24"
         android:fragment="com.ailife.clox.settings.fragments.GesturesSettingsFragment" />
 
     <Preference
         android:key="nav_aod"
         android:title="@string/pref_aod_title"
         android:summary="@string/pref_aod_summary"
-        android:icon="@drawable/ic_aod"
+        android:icon="@drawable/baseline_aod_24"
         android:fragment="com.ailife.clox.settings.fragments.AodSettingsFragment" />
 
     <Preference
         android:key="nav_appearance"
         android:title="Appearance"
         android:summary="Blur mode and radius"
-        android:icon="@drawable/ic_palette"
+        android:icon="@drawable/baseline_palette_24"
         android:fragment="com.ailife.clox.settings.fragments.AppearanceSettingsFragment" />
 
     <Preference
         android:key="nav_tap_actions"
         android:title="@string/pref_tap_title"
         android:summary="@string/pref_tap_summary"
-        android:icon="@drawable/ic_tune"
+        android:icon="@drawable/baseline_touch_app_24"
         android:fragment="com.ailife.clox.settings.fragments.TapActionsSettingsFragment" />
 
     <Preference
         android:key="nav_weather"
         android:title="@string/pref_weather_title"
         android:summary="@string/pref_weather_summary"
-        android:icon="@drawable/ic_weather_cloudy"
+        android:icon="@drawable/baseline_wb_cloudy_24"
         android:fragment="com.ailife.clox.settings.fragments.WeatherSettingsFragment" />
 
     <Preference
         android:key="nav_location"
         android:title="@string/pref_location_title"
         android:summary="@string/pref_location_summary"
-        android:icon="@drawable/ic_location"
+        android:icon="@drawable/baseline_gps_fixed_24"
         android:fragment="com.ailife.clox.settings.fragments.LocationSettingsFragment" />
 
     <Preference
         android:key="nav_health"
         android:title="@string/pref_health_title"
         android:summary="@string/pref_health_summary"
-        android:icon="@drawable/ic_health"
+        android:icon="@drawable/baseline_monitor_heart_24"
         android:fragment="com.ailife.clox.settings.fragments.HealthSettingsFragment" />
 
     <Preference
         android:key="nav_sensors"
         android:title="@string/pref_sensors_title"
         android:summary="@string/pref_sensors_summary"
-        android:icon="@drawable/ic_rotate"
+        android:icon="@drawable/baseline_sensors_24"
         android:fragment="com.ailife.clox.settings.fragments.SensorsSettingsFragment" />
 
     <Preference
         android:key="nav_hide_apps"
         android:title="Hidden apps"
         android:summary="Blacklist or whitelist apps from the launcher"
-        android:icon="@drawable/ic_block" />
+        android:icon="@drawable/baseline_visibility_off_24" />
 
     <Preference
         android:key="nav_rtos"
         android:title="RTOS Mode"
         android:summary="Disguise launcher as a Bluetooth RTOS watch"
-        android:icon="@drawable/ic_power"
+        android:icon="@drawable/baseline_developer_board_24"
         android:fragment="com.ailife.clox.rtos.settings.RtosSettingsFragment" />
 
     <Preference
         android:key="nav_about"
         android:title="About &amp; Update"
         android:summary="Version, developers, Onyx project, update checker"
-        android:icon="@drawable/ic_info"
+        android:icon="@drawable/baseline_info_24"
         android:fragment="com.ailife.clox.settings.fragments.AboutFragment" />
 
 </PreferenceScreen>

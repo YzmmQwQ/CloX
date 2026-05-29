@@ -65,6 +65,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
     private lateinit var brightnessSlider: Slider
     private lateinit var qsTime: TextView
     private lateinit var qsBatteryPct: TextView
+    private lateinit var qsBatteryIcon: ImageView
     private lateinit var qsDate: TextView
     // blurBg removed — blur is now applied to the static blurLayer in activity_main.xml
     private lateinit var btnLauncherSettings: ImageButton
@@ -90,6 +91,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         brightnessSlider = findViewById(R.id.brightnessSlider)
         qsTime = findViewById(R.id.qsTime)
         qsBatteryPct = findViewById(R.id.qsBatteryPct)
+        qsBatteryIcon = findViewById(R.id.qsBatteryIcon)
         qsDate = findViewById(R.id.qsDate)
         // blurBg no longer inside overlay — see blurLayer in activity_main.xml
         btnLauncherSettings = findViewById(R.id.qsBtnLauncherSettings)
@@ -230,7 +232,11 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val sc = scope ?: return
         sm.time.onEach { qsTime.text = it }.launchIn(sc)
         sm.battery.onEach { state ->
-            qsBatteryPct.text = if (state.charging) "${state.level}%⚡" else "${state.level}%"
+            qsBatteryPct.text = "${state.level}%"
+            qsBatteryIcon.setImageResource(
+                if (state.charging) R.drawable.baseline_battery_charging_full_24
+                else R.drawable.baseline_battery_full_24
+            )
         }.launchIn(sc)
         qsDate.text = SimpleDateFormat("MM/dd", Locale.getDefault()).format(Date())
     }

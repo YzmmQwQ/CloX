@@ -23,14 +23,14 @@
         android:id="@+id/tileEditorAction"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:src="@drawable/ic_tune"
+        android:src="@drawable/baseline_tune_24"
         android:layout_marginStart="8dp" />
 
     <ImageView
         android:id="@+id/tileEditorDragHandle"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:src="@drawable/ic_drag_handle"
+        android:src="@drawable/baseline_drag_handle_24"
         android:layout_marginStart="4dp"
         android:visibility="gone" />
 

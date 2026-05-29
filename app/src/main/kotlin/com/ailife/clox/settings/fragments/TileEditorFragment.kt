@@ -123,11 +123,11 @@ class TileListAdapter(
         descriptor?.iconRes?.let { holder.icon.setImageResource(it) }
         if (isActive) {
             holder.dragHandle.visibility = View.VISIBLE
-            holder.action.setImageResource(R.drawable.ic_close)
+            holder.action.setImageResource(R.drawable.baseline_close_24)
             holder.action.setOnClickListener { onRemove?.invoke(id) }
         } else {
             holder.dragHandle.visibility = View.GONE
-            holder.action.setImageResource(R.drawable.ic_add)
+            holder.action.setImageResource(R.drawable.baseline_add_24)
             holder.action.setOnClickListener { onAdd?.invoke(id) }
         }
     }

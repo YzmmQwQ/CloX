@@ -48,7 +48,7 @@
                         android:id="@+id/qsBatteryIcon"
                         android:layout_width="18dp"
                         android:layout_height="18dp"
-                        android:src="@drawable/ic_battery"
+                        android:src="@drawable/baseline_battery_full_24"
                         android:tint="@color/on_dark_primary"/>
 
                     <TextView
@@ -118,7 +118,7 @@
                     android:layout_height="20dp"
                     android:layout_gravity="start|center_vertical"
                     android:layout_marginStart="20dp"
-                    android:src="@drawable/ic_brightness_low"
+                    android:src="@drawable/baseline_brightness_low_24"
                     android:tint="@color/on_dark_primary"/>
 
                 <ImageView
@@ -126,7 +126,7 @@
                     android:layout_height="20dp"
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="20dp"
-                    android:src="@drawable/ic_brightness_high"
+                    android:src="@drawable/baseline_brightness_high_24"
                     android:tint="@color/on_dark_primary"/>
 
             </FrameLayout>
@@ -177,7 +177,7 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:background="@drawable/qs_btn_bg"
-                    android:src="@drawable/ic_tune"
+                    android:src="@drawable/baseline_tune_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
                     android:contentDescription="Launcher Settings"/>
@@ -201,7 +201,7 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:background="@drawable/qs_btn_bg"
-                    android:src="@drawable/ic_flashlight"
+                    android:src="@drawable/baseline_flashlight_on_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
                     android:contentDescription="Flashlight"/>
@@ -213,7 +213,7 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:background="@drawable/qs_btn_bg"
-                    android:src="@drawable/ic_power"
+                    android:src="@drawable/baseline_power_settings_new_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
                     android:contentDescription="Power"/>
@@ -225,7 +225,7 @@
                     android:layout_width="52dp"
                     android:layout_height="52dp"
                     android:background="@drawable/qs_btn_bg"
-                    android:src="@drawable/ic_settings"
+                    android:src="@drawable/baseline_settings_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
                     android:contentDescription="Settings"/>
