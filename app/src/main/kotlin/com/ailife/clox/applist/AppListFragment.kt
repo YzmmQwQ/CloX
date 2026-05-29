@@ -174,7 +174,7 @@ class AppListFragment : Fragment() {
         newBackend.onAppLongPress = if (!RtosAppGuard.isLongPressAllowed) null else
             { item, anchor ->
                 AppContextMenu.show(ctx, anchor, item,
-                    onIconChanged = { viewModel.loadApps() },
+                    onIconChanged = { viewModel.loadApps(force = true) },
                     onHideApp = { viewModel.loadApps() }
                 )
             }
