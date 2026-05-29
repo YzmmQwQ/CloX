@@ -56,6 +56,7 @@ class AppListFragment : Fragment() {
             AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT,
             AppListPrefs.KEY_NOTIF_BADGE, AppListPrefs.KEY_NOTIF_BADGE_COUNT -> swapBackend()
             AppListPrefs.KEY_BG_IMAGE_PATH, AppListPrefs.KEY_WALLPAPER_DIM -> applyBackground()
+            AppListPrefs.KEY_ICON_PACK -> viewModel.loadApps(force = true)
         }
     }
 

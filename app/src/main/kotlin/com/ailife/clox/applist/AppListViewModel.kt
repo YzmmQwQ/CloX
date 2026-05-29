@@ -59,7 +59,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            if (force) ScaledIconCache.evictAll()
+            if (force) { ScaledIconCache.evictAll(); CircularIconCache.evictAll() }
             val ctx = getApplication<Application>()
             val pm = ctx.packageManager
             val sortMode = AppListPrefs.sort(ctx)
