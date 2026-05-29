@@ -87,7 +87,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
                 rawOrder
             }
 
-            val maxIconSize = ctx.resources.displayMetrics.density.let { (48 * it).toInt() }
+            val maxIconSize = ctx.resources.displayMetrics.density.let { (96 * it).toInt() }
             val all = activities
                 .map { ri ->
                     val key = "${ri.activityInfo.packageName}/${ri.activityInfo.name}"

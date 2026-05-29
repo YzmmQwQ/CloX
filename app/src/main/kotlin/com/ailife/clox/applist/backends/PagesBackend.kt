@@ -369,6 +369,10 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
                     iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
                 } else {
                     iv.setImageDrawable(item.icon)
+                    iv.post {
+                        val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
+                        iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
+                    }
                 }
                 view.findViewById<TextView>(R.id.appLabel).apply {
                     text = item.label; visibility = View.VISIBLE

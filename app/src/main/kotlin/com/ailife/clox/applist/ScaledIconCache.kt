@@ -26,7 +26,7 @@ object ScaledIconCache {
             drawable.setBounds(0, 0, sizePx, sizePx)
             drawable.draw(this)
         }
-        val result = BitmapDrawable(null, bitmap).apply { setFilterBitmap(false) }
+        val result = BitmapDrawable(null, bitmap).apply { setFilterBitmap(true) }
         cache.put(key, result)
         return result
     }

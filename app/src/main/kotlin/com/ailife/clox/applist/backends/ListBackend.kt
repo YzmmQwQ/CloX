@@ -72,6 +72,10 @@ class ListBackend(private val ctx: Context) : AppListBackend {
                 iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
             } else {
                 iv.setImageDrawable(item.icon)
+                iv.post {
+                    val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
+                    iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
+                }
             }
             view.findViewById<TextView>(R.id.appLabel).text = item.label
             NotificationBadge.bind(view.findViewById(R.id.notifBadge), item.packageName, notifCounts, showBadge, showCount)
