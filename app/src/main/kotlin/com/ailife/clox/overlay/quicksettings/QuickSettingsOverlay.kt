@@ -203,7 +203,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         // All tiles use the same tileH so they remain uniform regardless of content.
         val density = context.resources.displayMetrics.density
         val fontScale = context.resources.configuration.fontScale.coerceAtLeast(1f)
-        val tileH = (68 * density * fontScale).toInt()
+        val tileH = (64 * density * fontScale).toInt()
         val rowMargin = (10 * density).toInt()    // 5dp top + 5dp bottom per tile
         val pagerH = rows * (tileH + rowMargin)
 
