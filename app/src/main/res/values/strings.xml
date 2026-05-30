@@ -770,6 +770,7 @@
     <string name="applist_setting_honeycomb_options_category">Honeycomb options</string>
     <string name="applist_setting_grid2d_options_category">Grid 2D options</string>
     <string name="applist_setting_pages_options_category">Pages options</string>
+    <string name="pref_overscroll_title">Overscroll strength</string>
 
     <!-- ── Animation settings fragment ──────────────────────────────────── -->
     <string name="anim_setting_open_category">Open animation</string>

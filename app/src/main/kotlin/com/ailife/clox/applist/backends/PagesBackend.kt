@@ -128,19 +128,21 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
 
         val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
         val innerRv = vp.getChildAt(0) as? RecyclerView
+        val overscrollStrength = AppListPrefs.overscroll(context) / 5f
         innerRv?.edgeEffectFactory = object : RecyclerView.EdgeEffectFactory() {
             override fun createEdgeEffect(view: RecyclerView, direction: Int): EdgeEffect {
                 return object : EdgeEffect(view.context) {
                     private val sign = if (direction == DIRECTION_RIGHT) -1f else 1f
-                    override fun onPull(d: Float) { vp.translationX += sign * view.width * d * 0.18f }
-                    override fun onPull(d: Float, disp: Float) { vp.translationX += sign * view.width * d * 0.18f }
+                    override fun onPull(d: Float) { if (overscrollStrength > 0f) vp.translationX += sign * view.width * d * 0.18f * overscrollStrength }
+                    override fun onPull(d: Float, disp: Float) { if (overscrollStrength > 0f) vp.translationX += sign * view.width * d * 0.18f * overscrollStrength }
                     override fun onRelease() {
                         if (vp.translationX != 0f)
                             vp.animate().translationX(0f).setInterpolator(OvershootInterpolator(2f)).setDuration(350).start()
                     }
                     override fun onAbsorb(velocity: Int) {
+                        if (overscrollStrength == 0f) return
                         val density = view.resources.displayMetrics.density
-                        val kick = (sign * velocity * 0.008f).coerceIn(-40f * density, 40f * density)
+                        val kick = (sign * velocity * 0.008f * overscrollStrength).coerceIn(-40f * overscrollStrength * density, 40f * overscrollStrength * density)
                         vp.animate().translationX(kick).setDuration(80)
                             .withEndAction {
                                 vp.animate().translationX(0f).setInterpolator(OvershootInterpolator(2f)).setDuration(350).start()

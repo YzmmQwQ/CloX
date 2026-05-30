@@ -55,10 +55,13 @@ class HoneycombView @JvmOverloads constructor(
     private var isPanning = false
     private var pendingItems: List<AppItem> = emptyList()
 
+    var overscrollStiffness: Int = 5   // 0-10, default 5
+
     private var overScrollX_ = 0f
     private var overScrollY_ = 0f
     private var overScrollAnim: ValueAnimator? = null
-    private val maxOverScroll get() = dp(40).toFloat()
+    private val overDamp get() = overscrollStiffness * 0.06f
+    private val maxOverScroll get() = dp(overscrollStiffness * 8).toFloat()
 
     // ── Drag state ────────────────────────────────────────────────────────────
     private val orderedViews = mutableListOf<View>()
@@ -210,7 +213,7 @@ class HoneycombView @JvmOverloads constructor(
                 velTracker?.addMovement(ev)
                 if (!isPanning) {
                     if (abs(ev.x - lastX) > touchSlop || abs(ev.y - lastY) > touchSlop) {
-                        isPanning = true; lastX = ev.x; lastY = ev.y
+                        isPanning = true
                         parent?.requestDisallowInterceptTouchEvent(true)
                     }
                 }
@@ -248,7 +251,7 @@ class HoneycombView @JvmOverloads constructor(
                 val rawX = scrollX_ - dx; val rawY = scrollY_ - dy
                 val clampedX = rawX.coerceIn(0f, maxScrollX); val clampedY = rawY.coerceIn(0f, maxScrollY)
                 scrollX_ = clampedX; scrollY_ = clampedY
-                val exX = (rawX - clampedX) * OVER_DAMP; val exY = (rawY - clampedY) * OVER_DAMP
+                val exX = (rawX - clampedX) * overDamp; val exY = (rawY - clampedY) * overDamp
                 overScrollX_ = if (exX != 0f) (overScrollX_ + exX).coerceIn(-maxOverScroll, maxOverScroll) else overScrollX_ * 0.7f
                 overScrollY_ = if (exY != 0f) (overScrollY_ + exY).coerceIn(-maxOverScroll, maxOverScroll) else overScrollY_ * 0.7f
                 applyScroll(); if (enable3d) apply3d()
@@ -256,11 +259,20 @@ class HoneycombView @JvmOverloads constructor(
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 velTracker?.computeCurrentVelocity(1000)
                 val vx = -(velTracker?.xVelocity ?: 0f); val vy = -(velTracker?.yVelocity ?: 0f)
-                scroller.fling(scrollX_.toInt(), scrollY_.toInt(),
-                    vx.toInt(), vy.toInt(), 0, maxScrollX.toInt(), 0, maxScrollY.toInt())
                 recycleVelocity(); isPanning = false
-                springBackOverscroll()
-                post(flingRunnable)
+                val overDist = if (overscrollStiffness > 0) dp(overscrollStiffness * 8) else 0
+                val minFling = ViewConfiguration.get(context).scaledMinimumFlingVelocity.toFloat()
+                if (abs(vx) > minFling || abs(vy) > minFling) {
+                    overScrollAnim?.cancel(); overScrollAnim = null
+                    val startX = (scrollX_ + overScrollX_).toInt().coerceIn(-overDist, maxScrollX.toInt() + overDist)
+                    val startY = (scrollY_ + overScrollY_).toInt().coerceIn(-overDist, maxScrollY.toInt() + overDist)
+                    overScrollX_ = 0f; overScrollY_ = 0f
+                    scroller.fling(startX, startY, vx.toInt(), vy.toInt(),
+                        0, maxScrollX.toInt(), 0, maxScrollY.toInt(), overDist, overDist)
+                    post(flingRunnable)
+                } else {
+                    springBackOverscroll()
+                }
             }
         }
         return true
@@ -269,8 +281,12 @@ class HoneycombView @JvmOverloads constructor(
     private val flingRunnable: Runnable = object : Runnable {
         override fun run() {
             if (scroller.computeScrollOffset()) {
-                scrollX_ = scroller.currX.toFloat(); scrollY_ = scroller.currY.toFloat()
+                val rawX = scroller.currX.toFloat(); val rawY = scroller.currY.toFloat()
+                scrollX_ = rawX.coerceIn(0f, maxScrollX); scrollY_ = rawY.coerceIn(0f, maxScrollY)
+                overScrollX_ = rawX - scrollX_; overScrollY_ = rawY - scrollY_
                 applyScroll(); if (enable3d) apply3d(); postOnAnimation(this)
+            } else {
+                overScrollX_ = 0f; overScrollY_ = 0f; applyScroll()
             }
         }
     }
@@ -381,7 +397,6 @@ class HoneycombView @JvmOverloads constructor(
     companion object {
         private const val GAP_RATIO = 0.12f
         private const val DRAG_THRESHOLD_SQ = 400f
-        private const val OVER_DAMP = 0.3f
     }
 }
 

@@ -61,7 +61,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             )
             clipToPadding = false
             setPadding(0, 0, 0, 8.dp(context))
-            edgeEffectFactory = SpringEdgeEffectFactory()
+            edgeEffectFactory = SpringEdgeEffectFactory(AppListPrefs.overscroll(context))
         }
 
         adapter = AppListAdapter(

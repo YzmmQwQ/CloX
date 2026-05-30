@@ -184,6 +184,17 @@ class AppListSettingsFragment : BaseSettingsFragment() {
             appListPrefs.edit().putBoolean("notif_badge_count", checked).apply()
         }
 
+        // Overscroll strength
+        val tvOverscroll = view.findViewById<TextView>(R.id.tvOverscrollStiffness)
+        val sliderOverscroll = view.findViewById<Slider>(R.id.sliderOverscrollStiffness)
+        val overscrollVal = appListPrefs.getInt("overscroll", 5).toFloat()
+        sliderOverscroll.value = overscrollVal.coerceIn(0f, 10f)
+        tvOverscroll.text = "${overscrollVal.toInt()}"
+        sliderOverscroll.addOnChangeListener { _, value, _ ->
+            tvOverscroll.text = "${value.toInt()}"
+            appListPrefs.edit().putInt("overscroll", value.toInt()).apply()
+        }
+
         // Style-specific sliders and switches
         setupListStyleOptions(view, appListPrefs, curveEntries, curveValues)
         setupGridStyleOptions(view, appListPrefs)

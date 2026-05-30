@@ -39,7 +39,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
         val rv = RecyclerView(context).also { rv3d = it }.apply {
             layoutManager = wlm
             clipToPadding = false
-            edgeEffectFactory = SpringEdgeEffectFactory()
+            edgeEffectFactory = SpringEdgeEffectFactory(AppListPrefs.overscroll(context))
         }
 
         adapter = AppListAdapter(R.layout.item_app_icon) { view, item ->

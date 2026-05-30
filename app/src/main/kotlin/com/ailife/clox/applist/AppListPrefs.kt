@@ -68,6 +68,9 @@ object AppListPrefs {
     const val KEY_PAGES_COLS = "pages_cols"
     const val KEY_PAGES_ROWS = "pages_rows"
 
+    // ── Overscroll ───────────────────────────────────────────────────────────
+    const val KEY_OVERSCROLL = "overscroll"         // 0-10, default 5
+
     // ── Persistence ──────────────────────────────────────────────────────────
     const val KEY_CUSTOM_ORDER  = "custom_order"   // JSON array of "packageName/activityName" strings
     const val KEY_CUSTOM_ICONS  = "custom_icons"   // JSON object: pkg → file path
@@ -121,6 +124,8 @@ object AppListPrefs {
 
     fun pagesCols(ctx: Context) = get(ctx).getInt(KEY_PAGES_COLS, 4)
     fun pagesRows(ctx: Context) = get(ctx).getInt(KEY_PAGES_ROWS, 5)
+
+    fun overscroll(ctx: Context) = get(ctx).getInt(KEY_OVERSCROLL, 5)
 
     // ── Custom order ─────────────────────────────────────────────────────────
 

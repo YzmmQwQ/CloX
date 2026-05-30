@@ -5,7 +5,10 @@ import android.view.animation.OvershootInterpolator
 import android.widget.EdgeEffect
 import androidx.recyclerview.widget.RecyclerView
 
-class SpringEdgeEffectFactory : RecyclerView.EdgeEffectFactory() {
+class SpringEdgeEffectFactory(private val stiffness: Int = 5) : RecyclerView.EdgeEffectFactory() {
+
+    // stiffness 0-10, default 5. strength 0.0–2.0, normalized to 1.0 at default.
+    private val strength get() = stiffness.coerceIn(0, 10) / 5f
 
     override fun createEdgeEffect(view: RecyclerView, direction: Int): EdgeEffect {
         return object : EdgeEffect(view.context) {
@@ -16,8 +19,9 @@ class SpringEdgeEffectFactory : RecyclerView.EdgeEffectFactory() {
             override fun onPull(deltaDistance: Float, displacement: Float) { nudge(deltaDistance) }
 
             private fun nudge(delta: Float) {
+                if (strength == 0f) return
                 val size = if (vertical) view.height else view.width
-                val shift = sign * size * delta * PULL_MAGNITUDE
+                val shift = sign * size * delta * BASE_PULL_MAGNITUDE * strength
                 if (vertical) view.translationY += shift else view.translationX += shift
             }
 
@@ -32,8 +36,9 @@ class SpringEdgeEffectFactory : RecyclerView.EdgeEffectFactory() {
             }
 
             override fun onAbsorb(velocity: Int) {
+                if (strength == 0f) return
                 val density = view.resources.displayMetrics.density
-                val maxKick = ABSORB_MAX_DP * density
+                val maxKick = BASE_ABSORB_MAX_DP * strength * density
                 val kick = (sign * velocity * ABSORB_VELOCITY_FACTOR).coerceIn(-maxKick, maxKick)
                 if (vertical) {
                     view.animate().translationY(kick).setDuration(80).setInterpolator(DecelerateInterpolator())
@@ -51,8 +56,8 @@ class SpringEdgeEffectFactory : RecyclerView.EdgeEffectFactory() {
     }
 
     companion object {
-        private const val PULL_MAGNITUDE = 0.18f
-        private const val ABSORB_MAX_DP = 40f
+        private const val BASE_PULL_MAGNITUDE = 0.18f
+        private const val BASE_ABSORB_MAX_DP = 40f
         private const val ABSORB_VELOCITY_FACTOR = 0.008f
     }
 }

@@ -36,7 +36,7 @@ class GridBackend(private val ctx: Context) : AppListBackend {
         val rv = RecyclerView(context).also { recyclerView = it }.apply {
             layoutManager = GridLayoutManager(context, cols)
             clipToPadding = false
-            edgeEffectFactory = SpringEdgeEffectFactory()
+            edgeEffectFactory = SpringEdgeEffectFactory(AppListPrefs.overscroll(context))
         }
 
         // Always use item_app_grid.xml; icon size is identical with or without label

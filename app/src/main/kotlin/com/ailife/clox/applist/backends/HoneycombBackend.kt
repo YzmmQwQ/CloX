@@ -19,6 +19,7 @@ class HoneycombBackend(private val ctx: Context) : AppListBackend {
     override fun createContentView(context: Context): View {
         return HoneycombView(context).also { v ->
             honeycombView = v
+            v.overscrollStiffness = AppListPrefs.overscroll(ctx)
             v.enable3d      = AppListPrefs.honeycomb3d(ctx)
             v.effect3DConfig = AppListPrefs.honeycomb3dConfig(ctx)
             v.iconSizeDp    = AppListPrefs.honeycombIconSize(ctx)
