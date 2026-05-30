@@ -271,14 +271,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return
         }
 
-        // If we launched an app from the list, this is the return Home press.
-        // Suppress the system transition here (earliest possible point) so our
-        // custom animation plays cleanly in onResume without racing the system one.
         if (appLaunchedFromList) {
             appLaunchedFromList = false
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
-            }
             return
         }
 
@@ -356,23 +350,34 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val item = lastLaunchedItem; val bounds = lastLaunchBounds
         if (item != null && bounds != null) {
             lastLaunchedItem = null; lastLaunchBounds = null
+            suppressSystemTransition()
             val returnEnabled = com.ailife.clox.applist.AppListPrefs.returnAnimEnabled(this)
             when {
-                // Pre-10: no system animation — play our own shrink-to-icon
                 Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q -> {
-                    @Suppress("DEPRECATION") overridePendingTransition(0, 0)
                     if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds) }
                 }
-                // Android 11+: system animation flew the app window to the icon; recoil the icon
                 pendingGestureFollowOn -> {
                     pendingGestureFollowOn = false
                     if (returnEnabled) gestureRoot.post { playGestureFollowOnAnimation(item, bounds) }
                     else lastLaunchIconView = null
                 }
+                else -> {
+                    if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds) }
+                }
             }
         } else {
             pendingGestureFollowOn = false
             lastLaunchIconView = null
+        }
+    }
+
+    private fun suppressSystemTransition() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
         }
     }
 
@@ -393,53 +398,169 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     private fun playReturnAnimation(item: AppItem, iconBounds: Rect) {
+        val type = com.ailife.clox.applist.AppListPrefs.closeAnimType(this)
+        if (type == com.ailife.clox.applist.AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND) {
+            playReturnWindowExpandAnimation(item, iconBounds)
+        } else {
+            playReturnIconZoomAnimation(item, iconBounds)
+        }
+    }
+
+    private fun playReturnIconZoomAnimation(item: AppItem, iconBounds: Rect) {
         val sw = screenW.toInt(); val sh = screenH.toInt()
-        val speed = com.ailife.clox.applist.AppListPrefs.animSpeed(this)
+        val speed = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
+        val delay = com.ailife.clox.applist.AppListPrefs.closeAnimDelay(this).toLong()
 
         val rootLoc = IntArray(2)
         gestureRoot.getLocationOnScreen(rootLoc)
         val iconCxLocal = iconBounds.centerX() - rootLoc[0]
         val iconCyLocal = iconBounds.centerY() - rootLoc[1]
-        val iconW = iconBounds.width(); val iconH = iconBounds.height()
+        val iconW = iconBounds.width().coerceAtLeast(1)
+        val iconH = iconBounds.height().coerceAtLeast(1)
 
-        val startSize = (minOf(sw, sh) * 0.6f).toInt().coerceAtLeast(1)
-        val startCx = sw / 2; val startCy = sh / 2
+        val heroSize = (minOf(sw, sh) * 0.40f).toInt().coerceAtLeast(1)
+        val startCx = sw / 2f; val startCy = sh / 2f
+
+        // Add views immediately at t=0 state so they're visible as soon as system transition ends
+        val scrim = android.view.View(this).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            alpha = 1f
+        }
+        gestureRoot.addView(scrim, FrameLayout.LayoutParams(sw, sh))
 
         val iv = ImageView(this).apply {
             setImageDrawable(item.icon)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            pivotX = startSize / 2f; pivotY = startSize / 2f
+            pivotX = heroSize / 2f; pivotY = heroSize / 2f
             isClickable = false; isFocusable = false
         }
-        gestureRoot.addView(iv, FrameLayout.LayoutParams(startSize, startSize).apply {
-            leftMargin = startCx - startSize / 2
-            topMargin  = startCy - startSize / 2
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(heroSize, heroSize).apply {
+            leftMargin = (startCx - heroSize / 2f).toInt()
+            topMargin  = (startCy - heroSize / 2f).toInt()
         })
 
-        val targetScaleX = iconW.toFloat() / startSize
-        val targetScaleY = iconH.toFloat() / startSize
-        val tx = iconCxLocal - startCx.toFloat()
-        val ty = iconCyLocal - startCy.toFloat()
+        val realIcon = lastLaunchIconView?.get()
+        lastLaunchIconView = null
+        realIcon?.visibility = View.INVISIBLE
 
-        android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = (350L / speed).toLong()
-            interpolator = DecelerateInterpolator(1.5f)
-            addUpdateListener { va ->
-                val t   = va.animatedValue as Float
-                val raw = va.animatedFraction
-                iv.scaleX = 1f - (1f - targetScaleX) * t
-                iv.scaleY = 1f - (1f - targetScaleY) * t
-                iv.translationX = tx * t
-                iv.translationY = ty * t
-                iv.alpha = if (raw < 0.65f) 1f else (1f - raw) / 0.35f
+        val targetScaleX = iconW.toFloat() / heroSize
+        val targetScaleY = iconH.toFloat() / heroSize
+        val tx = iconCxLocal - startCx
+        val ty = iconCyLocal - startCy
+
+        // Delay animator start until the system back-transition has finished rendering over us
+        gestureRoot.postDelayed({
+            if (isFinishing || isDestroyed) {
+                gestureRoot.removeView(iv); gestureRoot.removeView(scrim)
+                realIcon?.visibility = View.VISIBLE
+                return@postDelayed
             }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    gestureRoot.removeView(iv)
+            android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = (350L / speed).toLong()
+                interpolator = DecelerateInterpolator(1.5f)
+                addUpdateListener { va ->
+                    val t = va.animatedValue as Float
+                    iv.scaleX = 1f - (1f - targetScaleX) * t
+                    iv.scaleY = 1f - (1f - targetScaleY) * t
+                    iv.translationX = tx * t
+                    iv.translationY = ty * t
+                    scrim.alpha = 1f - t
                 }
-            })
-            start()
+                addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        gestureRoot.removeView(iv)
+                        gestureRoot.removeView(scrim)
+                        realIcon?.visibility = View.VISIBLE
+                    }
+                })
+                start()
+            }
+        }, delay)
+    }
+
+    private fun playReturnWindowExpandAnimation(item: AppItem, iconBounds: Rect) {
+        val sw = screenW; val sh = screenH
+        val speed = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
+        val delay = com.ailife.clox.applist.AppListPrefs.closeAnimDelay(this).toLong()
+
+        val rootLoc = IntArray(2)
+        gestureRoot.getLocationOnScreen(rootLoc)
+        val iconLeft = (iconBounds.left - rootLoc[0]).toFloat()
+        val iconTop  = (iconBounds.top  - rootLoc[1]).toFloat()
+        val iconW    = iconBounds.width().coerceAtLeast(1)
+        val iconH    = iconBounds.height().coerceAtLeast(1)
+        val iconCx   = iconLeft + iconW / 2f
+        val iconCy   = iconTop  + iconH / 2f
+
+        val surfaceColor = com.google.android.material.color.MaterialColors.getColor(
+            gestureRoot,
+            com.google.android.material.R.attr.colorSurface,
+            android.graphics.Color.BLACK
+        )
+        val cornerRadiusPx = 56f * resources.displayMetrics.density
+
+        // Add views immediately at t=0 state so they're visible as soon as system transition ends
+        val cardView = WindowCardView(this).apply { cardColor = surfaceColor }
+        cardView.update(0f, 0f, sw, sh, 0f)
+        gestureRoot.addView(cardView, FrameLayout.LayoutParams(sw.toInt(), sh.toInt()))
+
+        val heroSize  = minOf(sw, sh) * 0.40f
+        val heroScale = heroSize / minOf(iconW.toFloat(), iconH.toFloat())
+        val startCx = sw / 2f; val startCy = sh / 2f
+
+        val iv = ImageView(this).apply {
+            setImageDrawable(item.icon)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            pivotX = iconW / 2f; pivotY = iconH / 2f
+            scaleX = heroScale; scaleY = heroScale
+            isClickable = false; isFocusable = false
         }
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(iconW, iconH).apply {
+            leftMargin = (startCx - iconW / 2f).toInt()
+            topMargin  = (startCy - iconH / 2f).toInt()
+        })
+
+        val realIcon = lastLaunchIconView?.get()
+        lastLaunchIconView = null
+        realIcon?.visibility = View.INVISIBLE
+
+        val endTx = iconCx - startCx
+        val endTy = iconCy - startCy
+
+        // Delay animator start until the system back-transition has finished rendering over us
+        gestureRoot.postDelayed({
+            if (isFinishing || isDestroyed) {
+                gestureRoot.removeView(iv); gestureRoot.removeView(cardView)
+                realIcon?.visibility = View.VISIBLE
+                return@postDelayed
+            }
+            android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = (350L / speed).toLong()
+                interpolator = DecelerateInterpolator(1.5f)
+                addUpdateListener { va ->
+                    val t = va.animatedValue as Float
+                    cardView.update(
+                        left   = iconCx * t,
+                        top    = iconCy * t,
+                        right  = iconCx + (sw - iconCx) * (1f - t),
+                        bottom = iconCy + (sh - iconCy) * (1f - t),
+                        radius = cornerRadiusPx * t
+                    )
+                    iv.scaleX = heroScale - (heroScale - 1f) * t
+                    iv.scaleY = heroScale - (heroScale - 1f) * t
+                    iv.translationX = endTx * t
+                    iv.translationY = endTy * t
+                }
+                addListener(object : android.animation.AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        gestureRoot.removeView(iv)
+                        gestureRoot.removeView(cardView)
+                        realIcon?.visibility = View.VISIBLE
+                    }
+                })
+                start()
+            }
+        }, delay)
     }
 
     private fun playLaunchAnimation(item: AppItem, iconBounds: Rect, onAnimEnd: () -> Unit) {
@@ -658,7 +779,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // Android 11+: after the system shrinks the app window into the icon, recoil the icon
     // away from screen center (where the gesture animation originated) then spring it back.
     private fun playGestureFollowOnAnimation(item: AppItem, iconBounds: Rect) {
-        val speed    = com.ailife.clox.applist.AppListPrefs.animSpeed(this)
+        val speed    = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
         val realIcon = lastLaunchIconView?.get()
         lastLaunchIconView = null
         realIcon?.visibility = View.INVISIBLE
@@ -730,6 +851,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         super.onPause()
         CocosManager.onPause()
         aodManager.onPause()
+        suppressSystemTransition()
     }
 
     override fun onDestroy() {

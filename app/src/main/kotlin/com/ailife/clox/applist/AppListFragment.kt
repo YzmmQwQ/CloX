@@ -150,11 +150,12 @@ class AppListFragment : Fragment() {
             val useCustomAnim = AppListPrefs.useCustomLaunchAnim(ctx)
             val doLaunch: () -> Unit = if (useCustomAnim) {
                 {
-                    val opts = ActivityOptions.makeCustomAnimation(ctx, 0, 0).toBundle()
-                    runCatching { ctx.startActivity(intent, opts) }.onFailure {
+                    runCatching {
+                        ctx.startActivity(intent)
+                    }.onFailure {
                         ctx.packageManager.getLaunchIntentForPackage(item.packageName)
                             ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let { ctx.startActivity(it, opts) }
+                            ?.let { ctx.startActivity(it) }
                     }
                 }
             } else {
@@ -162,7 +163,9 @@ class AppListFragment : Fragment() {
                     val opts = ActivityOptions.makeScaleUpAnimation(
                         boundsView, 0, 0, boundsView.width, boundsView.height
                     ).toBundle()
-                    runCatching { ctx.startActivity(intent, opts) }.onFailure {
+                    runCatching {
+                        ctx.startActivity(intent, opts)
+                    }.onFailure {
                         ctx.packageManager.getLaunchIntentForPackage(item.packageName)
                             ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                             ?.let { ctx.startActivity(it, opts) }

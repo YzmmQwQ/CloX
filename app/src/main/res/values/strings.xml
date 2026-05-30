@@ -780,14 +780,28 @@
     <string name="anim_setting_return_title">Animate return to home</string>
     <string name="anim_setting_return_summary_pre11">Shrink-to-icon animation on return (Android 10 and below)</string>
     <string name="anim_setting_return_summary_11plus">Suppresses follow-on icon recoil; system gesture animation still plays</string>
-    <string name="anim_setting_speed_category">Speed</string>
-    <string name="anim_setting_speed_title">Animation speed</string>
+    <string name="anim_setting_speed_category">Open speed</string>
+    <string name="anim_setting_speed_title">Open animation speed</string>
     <string name="anim_setting_speed_hint">0.5× (slow) — 2.0× (fast)</string>
     <string-array name="open_anim_type_entries">
         <item>Icon zoom</item>
         <item>Window expand</item>
     </string-array>
     <string-array name="open_anim_type_values">
+        <item>icon_zoom</item>
+        <item>window_expand</item>
+    </string-array>
+    <string name="anim_setting_close_category">Close animation</string>
+    <string name="anim_setting_close_type_title">Animation style</string>
+    <string name="anim_setting_close_speed_category">Close speed</string>
+    <string name="anim_setting_close_speed_title">Close animation speed</string>
+    <string name="anim_setting_close_delay_title">Start delay</string>
+    <string name="anim_setting_close_delay_hint">0 ms (immediate) — 500 ms</string>
+    <string-array name="close_anim_type_entries">
+        <item>Reverse icon zoom</item>
+        <item>Reverse window expand</item>
+    </string-array>
+    <string-array name="close_anim_type_values">
         <item>icon_zoom</item>
         <item>window_expand</item>
     </string-array>

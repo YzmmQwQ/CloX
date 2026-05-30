@@ -203,6 +203,12 @@ object AppListPrefs {
     const val KEY_RETURN_ANIM_ENABLED   = "return_anim_enabled"
     const val KEY_ANIM_SPEED            = "anim_speed"   // Float, 0.5..2.0
 
+    const val KEY_CLOSE_ANIM_TYPE       = "close_anim_type"
+    const val CLOSE_ANIM_ICON_ZOOM      = "icon_zoom"
+    const val CLOSE_ANIM_WINDOW_EXPAND  = "window_expand"
+    const val KEY_CLOSE_ANIM_SPEED      = "close_anim_speed"  // Float, 0.5..2.0
+    const val KEY_CLOSE_ANIM_DELAY      = "close_anim_delay"  // Int ms, 0..500
+
     fun useCustomLaunchAnim(ctx: Context) =
         get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_SYSTEM) == LAUNCH_ANIM_CUSTOM
 
@@ -214,6 +220,15 @@ object AppListPrefs {
 
     fun animSpeed(ctx: Context) =
         get(ctx).getFloat(KEY_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
+
+    fun closeAnimType(ctx: Context) =
+        get(ctx).getString(KEY_CLOSE_ANIM_TYPE, CLOSE_ANIM_ICON_ZOOM) ?: CLOSE_ANIM_ICON_ZOOM
+
+    fun closeAnimSpeed(ctx: Context) =
+        get(ctx).getFloat(KEY_CLOSE_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
+
+    fun closeAnimDelay(ctx: Context) =
+        get(ctx).getInt(KEY_CLOSE_ANIM_DELAY, 50).coerceIn(0, 500)
 
     // ── Notification badges ──────────────────────────────────────────────────
 

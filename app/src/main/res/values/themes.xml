@@ -4,6 +4,7 @@
     <!-- ── Launcher / watchface screen — black, no system bars ── -->
     <style name="Theme.CloX" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowAnimationStyle">@null</item>
     </style>
 
     <!-- For activities that finish immediately without showing any UI -->
