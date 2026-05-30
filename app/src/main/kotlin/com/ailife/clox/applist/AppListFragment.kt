@@ -54,7 +54,15 @@ class AppListFragment : Fragment() {
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT,
-            AppListPrefs.KEY_NOTIF_BADGE, AppListPrefs.KEY_NOTIF_BADGE_COUNT -> swapBackend()
+            AppListPrefs.KEY_NOTIF_BADGE, AppListPrefs.KEY_NOTIF_BADGE_COUNT,
+            AppListPrefs.KEY_LIST_SEARCH,
+            AppListPrefs.KEY_LIST_3D, AppListPrefs.KEY_LIST_3D_MIN_SCALE, AppListPrefs.KEY_LIST_3D_CURVE,
+            AppListPrefs.KEY_GRID_COLS, AppListPrefs.KEY_GRID_NAMES,
+            AppListPrefs.KEY_WATERFALL_3D, AppListPrefs.KEY_WATERFALL_3D_MIN_SCALE, AppListPrefs.KEY_WATERFALL_3D_CURVE,
+            AppListPrefs.KEY_HONEYCOMB_3D, AppListPrefs.KEY_HONEYCOMB_3D_MIN_SCALE, AppListPrefs.KEY_HONEYCOMB_ICON_SIZE, AppListPrefs.KEY_HONEYCOMB_3D_CURVE,
+            AppListPrefs.KEY_GRID2D_NAMES, AppListPrefs.KEY_GRID2D_3D, AppListPrefs.KEY_GRID2D_3D_MIN_SCALE, AppListPrefs.KEY_GRID2D_ICON_SIZE, AppListPrefs.KEY_GRID2D_3D_CURVE,
+            AppListPrefs.KEY_PAGES_COLS, AppListPrefs.KEY_PAGES_ROWS,
+            AppListPrefs.KEY_OVERSCROLL -> swapBackend()
             AppListPrefs.KEY_BG_IMAGE_PATH, AppListPrefs.KEY_WALLPAPER_DIM -> applyBackground()
             AppListPrefs.KEY_ICON_PACK -> viewModel.loadApps(force = true)
         }

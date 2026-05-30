@@ -3,10 +3,11 @@ package com.ailife.clox.applist.backends
 import android.content.Context
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -32,6 +33,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var searchField: EditText
+    private lateinit var searchContainer: View
     private var adapter: AppListAdapter? = null
     private var allItems: List<AppItem> = emptyList()
     private val showSearch  = AppListPrefs.listSearch(ctx)
@@ -50,9 +52,11 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             )
         }
 
-        searchField = buildSearchField(context)
-        searchField.visibility = if (showSearch) View.VISIBLE else View.GONE
-        root.addView(searchField)
+        val (container, editText) = buildSearchBar(context)
+        searchContainer = container
+        searchField = editText
+        searchContainer.visibility = if (showSearch) View.VISIBLE else View.GONE
+        root.addView(searchContainer)
 
         recyclerView = RecyclerView(context).apply {
             layoutManager = LinearLayoutManager(context)
@@ -113,19 +117,27 @@ class ListBackend(private val ctx: Context) : AppListBackend {
         updateVisibleBadges(recyclerView, counts)
     }
 
-    private fun buildSearchField(ctx: Context): EditText {
-        val bg = ctx.getDrawable(R.drawable.bg_search_field)
-        return EditText(ctx).apply {
-            hint = context.getString(R.string.app_list_search_hint)
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
-            background = bg
-            val p = 12.dp(ctx); val pv = 8.dp(ctx)
-            setPadding(p, pv, p, pv)
+    private fun buildSearchBar(ctx: Context): Pair<View, EditText> {
+        val margin = 12.dp(ctx)
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            background = ctx.getDrawable(R.drawable.bg_search_field)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(12.dp(ctx), 12.dp(ctx), 12.dp(ctx), 0) }
+            ).apply { setMargins(margin, margin, margin, 0) }
+        }
+
+        var clearButton: ImageButton? = null
+
+        val editText = EditText(ctx).apply {
+            hint = ctx.getString(R.string.app_list_search_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+            background = null
+            val pv = 8.dp(ctx); val ph = margin
+            setPadding(ph, pv, 4.dp(ctx), pv)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
                 override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
@@ -135,9 +147,32 @@ class ListBackend(private val ctx: Context) : AppListBackend {
                         if (q.isEmpty()) allItems
                         else allItems.filter { it.label.lowercase().contains(q) }
                     )
+                    clearButton?.visibility = if (q.isEmpty()) View.GONE else View.VISIBLE
                 }
             })
         }
+
+        clearButton = ImageButton(ctx).apply {
+            setImageResource(R.drawable.ic_close)
+            background = null
+            visibility = View.GONE
+            val pad = 8.dp(ctx)
+            setPadding(pad, pad, pad, pad)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setOnClickListener {
+                editText.text.clear()
+                editText.clearFocus()
+                val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(editText.windowToken, 0)
+            }
+        }
+
+        container.addView(editText)
+        container.addView(clearButton)
+        return Pair(container, editText)
     }
 
     private fun attach3d(rv: RecyclerView) {

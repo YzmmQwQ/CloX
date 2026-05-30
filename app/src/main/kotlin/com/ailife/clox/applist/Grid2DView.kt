@@ -115,7 +115,6 @@ class Grid2DView @JvmOverloads constructor(
         if (iconPx <= 0) return
         cellIconPx = iconPx
 
-        val labelH = if (showNames) dp(LABEL_DP) else 0
         val cellW = iconPx + gap
         val cellH = cellW
 
@@ -128,7 +127,7 @@ class Grid2DView @JvmOverloads constructor(
             val x = col * cellW + gap / 2; val y = row * cellH + gap / 2
             maxX = maxX.coerceAtLeast(x + cellW); maxY = maxY.coerceAtLeast(y + cellH)
 
-            val cell = buildCell(item, iconPx, labelH) as FrameLayout
+            val cell = buildCell(item, iconPx) as FrameLayout
             val badge = NotificationBadge.makeView(context)
             cell.addView(badge, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -136,7 +135,7 @@ class Grid2DView @JvmOverloads constructor(
             ).apply { gravity = Gravity.TOP or Gravity.END })
             badgeViews.add(badge)
 
-            addView(cell, FrameLayout.LayoutParams(iconPx, iconPx + labelH).apply {
+            addView(cell, FrameLayout.LayoutParams(iconPx, iconPx).apply {
                 leftMargin = x; topMargin = y
             })
             orderedViews.add(cell)
@@ -155,27 +154,31 @@ class Grid2DView @JvmOverloads constructor(
         dragActive = false; draggingPos = -1; draggingViewRef = null; pendingDragIdx = -1
     }
 
-    private fun buildCell(item: AppItem, iconPx: Int, labelH: Int): View {
+    private fun buildCell(item: AppItem, iconPx: Int): View {
         val cell = FrameLayout(context).apply {
             isClickable = true; isFocusable = true; isLongClickable = false
             background = context.obtainStyledAttributes(
                 intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
             ).getDrawable(0)
+            clipChildren = false; clipToPadding = false
         }
         cell.addView(ImageView(context).apply {
             scaleType = ImageView.ScaleType.FIT_CENTER
             setImageDrawable(ScaledIconCache.obtain(item.icon, iconPx, "${item.packageName}/${item.activityName}"))
-        }, FrameLayout.LayoutParams(iconPx, iconPx).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        })
-        if (showNames && labelH > 0) {
+        }, FrameLayout.LayoutParams(iconPx, iconPx))
+        if (showNames) {
             cell.addView(TextView(context).apply {
                 text = item.label; maxLines = 1
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 gravity = Gravity.CENTER; textSize = 9f
+                setBackgroundColor(context.getColor(com.ailife.clox.R.color.app_label_scrim))
+                setTextColor(android.graphics.Color.WHITE)
+                val pv = dp(2); val ph = dp(2)
+                setPadding(ph, pv, ph, pv)
             }, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, labelH
-            ).apply { topMargin = iconPx + dp(2) })
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.BOTTOM })
         }
         cell.setOnClickListener {
             if (!AppContextMenu.isShowing) onAppClick?.invoke(item, cell)
@@ -417,7 +420,6 @@ class Grid2DView @JvmOverloads constructor(
     companion object {
         private const val TAG = "CloX/Grid2DView"
         private const val GAP_RATIO = 0.12f
-        private const val LABEL_DP = 16
         private const val DRAG_THRESHOLD_SQ = 400f
     }
 }
