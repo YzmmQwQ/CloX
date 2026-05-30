@@ -186,8 +186,9 @@ class MediaPlayerCard(root: View, private val onVolumeClick: () -> Unit) {
     }
 
     private fun formatMs(ms: Long): String {
-        val m = TimeUnit.MILLISECONDS.toMinutes(ms)
+        val h = TimeUnit.MILLISECONDS.toHours(ms)
+        val m = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
         val s = TimeUnit.MILLISECONDS.toSeconds(ms) % 60
-        return "%d:%02d".format(m, s)
+        return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
     }
 }
