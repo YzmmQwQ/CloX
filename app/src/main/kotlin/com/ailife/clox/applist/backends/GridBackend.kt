@@ -14,6 +14,7 @@ import com.ailife.clox.applist.AppListAdapter
 import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.AppListTouchCallback
+import com.ailife.clox.applist.SpringEdgeEffectFactory
 import com.ailife.clox.applist.model.AppItem
 
 class GridBackend(private val ctx: Context) : AppListBackend {
@@ -35,6 +36,7 @@ class GridBackend(private val ctx: Context) : AppListBackend {
         val rv = RecyclerView(context).also { recyclerView = it }.apply {
             layoutManager = GridLayoutManager(context, cols)
             clipToPadding = false
+            edgeEffectFactory = SpringEdgeEffectFactory()
         }
 
         // Always use item_app_grid.xml; icon size is identical with or without label

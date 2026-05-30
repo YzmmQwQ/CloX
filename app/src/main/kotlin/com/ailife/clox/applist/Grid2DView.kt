@@ -1,5 +1,6 @@
 package com.ailife.clox.applist
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
 import android.util.Log
@@ -10,6 +11,7 @@ import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.OverScroller
@@ -48,6 +50,11 @@ class Grid2DView @JvmOverloads constructor(
     private var maxScrollX = 0f; private var maxScrollY = 0f
     private var isPanning = false
     private var pendingItems: List<AppItem> = emptyList()
+
+    private var overScrollX_ = 0f
+    private var overScrollY_ = 0f
+    private var overScrollAnim: ValueAnimator? = null
+    private val maxOverScroll get() = dp(40).toFloat()
 
     // ── Drag reorder ──────────────────────────────────────────────────────────
     // orderedViews[i] = the view currently at visual position i
@@ -138,6 +145,7 @@ class Grid2DView @JvmOverloads constructor(
         maxScrollX = (maxX - width).toFloat().coerceAtLeast(0f)
         maxScrollY = (maxY - height).toFloat().coerceAtLeast(0f)
         scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
+        overScrollX_ = 0f; overScrollY_ = 0f; overScrollAnim?.cancel(); overScrollAnim = null
         applyScroll()
         if (enable3d) post { apply3d() }
         if (lastBadgeCounts.isNotEmpty()) refreshBadges(lastBadgeCounts)
@@ -189,6 +197,7 @@ class Grid2DView @JvmOverloads constructor(
                 Log.d(TAG, "intercept DOWN: pendingDragIdx=$pendingDragIdx dragReorderEnabled=$dragReorderEnabled")
                 AppContextMenu.dismissCurrent(); pendingDragIdx = -1
                 scroller.forceFinished(true)
+                overScrollAnim?.cancel(); overScrollAnim = null; overScrollX_ = 0f; overScrollY_ = 0f
                 lastX = ev.x; lastY = ev.y; isPanning = false
                 // Right 2/3: block GIL from DOWN so scrolling is always reliable
                 if (ev.x >= width / 3f) parent?.requestDisallowInterceptTouchEvent(true)
@@ -242,6 +251,7 @@ class Grid2DView @JvmOverloads constructor(
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 scroller.forceFinished(true)
+                overScrollAnim?.cancel(); overScrollAnim = null; overScrollX_ = 0f; overScrollY_ = 0f
                 lastX = ev.x; lastY = ev.y
                 initVelocity(ev); return true
             }
@@ -249,8 +259,12 @@ class Grid2DView @JvmOverloads constructor(
                 if (!dragActive) {
                     val dx = ev.x - lastX; val dy = ev.y - lastY
                     lastX = ev.x; lastY = ev.y
-                    scrollX_ = (scrollX_ - dx).coerceIn(0f, maxScrollX)
-                    scrollY_ = (scrollY_ - dy).coerceIn(0f, maxScrollY)
+                    val rawX = scrollX_ - dx; val rawY = scrollY_ - dy
+                    val clampedX = rawX.coerceIn(0f, maxScrollX); val clampedY = rawY.coerceIn(0f, maxScrollY)
+                    scrollX_ = clampedX; scrollY_ = clampedY
+                    val exX = (rawX - clampedX) * OVER_DAMP; val exY = (rawY - clampedY) * OVER_DAMP
+                    overScrollX_ = if (exX != 0f) (overScrollX_ + exX).coerceIn(-maxOverScroll, maxOverScroll) else overScrollX_ * 0.7f
+                    overScrollY_ = if (exY != 0f) (overScrollY_ + exY).coerceIn(-maxOverScroll, maxOverScroll) else overScrollY_ * 0.7f
                     applyScroll()
                     if (enable3d) apply3d()
                 }
@@ -261,7 +275,9 @@ class Grid2DView @JvmOverloads constructor(
                 val vy = -(velTracker?.yVelocity ?: 0f)
                 scroller.fling(scrollX_.toInt(), scrollY_.toInt(),
                     vx.toInt(), vy.toInt(), 0, maxScrollX.toInt(), 0, maxScrollY.toInt())
-                recycleVelocity(); isPanning = false; post(flingRunnable)
+                recycleVelocity(); isPanning = false
+                springBackOverscroll()
+                post(flingRunnable)
             }
         }
         return true
@@ -276,7 +292,24 @@ class Grid2DView @JvmOverloads constructor(
         }
     }
 
-    private fun applyScroll() = scrollTo(scrollX_.toInt(), scrollY_.toInt())
+    private fun applyScroll() = scrollTo((scrollX_ + overScrollX_).toInt(), (scrollY_ + overScrollY_).toInt())
+
+    private fun springBackOverscroll() {
+        if (overScrollX_ == 0f && overScrollY_ == 0f) return
+        val startX = overScrollX_; val startY = overScrollY_
+        overScrollAnim = ValueAnimator.ofFloat(1f, 0f).apply {
+            duration = 350
+            interpolator = OvershootInterpolator(2f)
+            addUpdateListener { anim ->
+                val t = anim.animatedValue as Float
+                overScrollX_ = startX * t
+                overScrollY_ = startY * t
+                applyScroll()
+                if (enable3d) apply3d()
+            }
+        }
+        overScrollAnim?.start()
+    }
 
     private fun apply3d() {
         val cx = scrollX_ + width / 2f; val cy = scrollY_ + height / 2f
@@ -370,5 +403,6 @@ class Grid2DView @JvmOverloads constructor(
         private const val GAP_RATIO = 0.12f
         private const val LABEL_DP = 16
         private const val DRAG_THRESHOLD_SQ = 400f
+        private const val OVER_DAMP = 0.3f
     }
 }

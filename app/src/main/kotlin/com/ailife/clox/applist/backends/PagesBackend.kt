@@ -6,6 +6,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.view.animation.OvershootInterpolator
+import android.widget.EdgeEffect
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
@@ -122,8 +124,31 @@ class PagesBackend(private val ctx: Context) : AppListBackend {
 
         pagesAdapter = PagesAdapter().also { vp.adapter = it }
 
+        ct.clipChildren = false
+
         val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
         val innerRv = vp.getChildAt(0) as? RecyclerView
+        innerRv?.edgeEffectFactory = object : RecyclerView.EdgeEffectFactory() {
+            override fun createEdgeEffect(view: RecyclerView, direction: Int): EdgeEffect {
+                return object : EdgeEffect(view.context) {
+                    private val sign = if (direction == DIRECTION_RIGHT) -1f else 1f
+                    override fun onPull(d: Float) { vp.translationX += sign * view.width * d * 0.18f }
+                    override fun onPull(d: Float, disp: Float) { vp.translationX += sign * view.width * d * 0.18f }
+                    override fun onRelease() {
+                        if (vp.translationX != 0f)
+                            vp.animate().translationX(0f).setInterpolator(OvershootInterpolator(2f)).setDuration(350).start()
+                    }
+                    override fun onAbsorb(velocity: Int) {
+                        val density = view.resources.displayMetrics.density
+                        val kick = (sign * velocity * 0.008f).coerceIn(-40f * density, 40f * density)
+                        vp.animate().translationX(kick).setDuration(80)
+                            .withEndAction {
+                                vp.animate().translationX(0f).setInterpolator(OvershootInterpolator(2f)).setDuration(350).start()
+                            }.start()
+                    }
+                }
+            }
+        }
         innerRv?.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
             private var startX = 0f; private var fired = false
             override fun onInterceptTouchEvent(rv: RecyclerView, ev: MotionEvent): Boolean {

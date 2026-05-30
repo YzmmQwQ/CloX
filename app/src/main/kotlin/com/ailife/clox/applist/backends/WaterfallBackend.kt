@@ -13,6 +13,7 @@ import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.AppListTouchCallback
 import com.ailife.clox.applist.CircularIconCache
+import com.ailife.clox.applist.SpringEdgeEffectFactory
 import com.ailife.clox.applist.WaterfallLayoutManager
 import com.ailife.clox.applist.model.AppItem
 
@@ -38,6 +39,7 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
         val rv = RecyclerView(context).also { rv3d = it }.apply {
             layoutManager = wlm
             clipToPadding = false
+            edgeEffectFactory = SpringEdgeEffectFactory()
         }
 
         adapter = AppListAdapter(R.layout.item_app_icon) { view, item ->

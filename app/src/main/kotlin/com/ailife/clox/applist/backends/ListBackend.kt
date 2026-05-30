@@ -20,6 +20,7 @@ import com.ailife.clox.applist.AppListAdapter
 import com.ailife.clox.applist.AppListBackend
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.AppListTouchCallback
+import com.ailife.clox.applist.SpringEdgeEffectFactory
 import com.ailife.clox.applist.model.AppItem
 
 class ListBackend(private val ctx: Context) : AppListBackend {
@@ -60,6 +61,7 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             )
             clipToPadding = false
             setPadding(0, 0, 0, 8.dp(context))
+            edgeEffectFactory = SpringEdgeEffectFactory()
         }
 
         adapter = AppListAdapter(
