@@ -63,6 +63,8 @@ class SensorsSettingsFragment : BaseSettingsFragment() {
             SensorsPrefs.KEY_COMPASS, Sensor.TYPE_MAGNETIC_FIELD)
         setupSensor(view, R.id.switchBarometer, R.id.tvBarometerSummary,
             SensorsPrefs.KEY_BAROMETER, Sensor.TYPE_PRESSURE)
+        setupSensor(view, R.id.switchGyroscope, R.id.tvGyroscopeSummary,
+            SensorsPrefs.KEY_GYROSCOPE, Sensor.TYPE_GYROSCOPE)
     }
 
     private fun setupCalendar(view: View) {

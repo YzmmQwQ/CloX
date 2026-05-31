@@ -53,34 +53,39 @@ data class WeatherResult(
     val hourly: List<HourlyItem>,
     val daily: List<DailyItem>,
 ) {
-    data class HourlyItem(val temp: Float, val conditionText: String, val conditionIcon: Int)
+    // hourOfDay = -1 means "derive from position"; providers set it where available
+    data class HourlyItem(val temp: Float, val conditionText: String, val conditionIcon: Int, val hourOfDay: Int = -1)
     data class DailyItem(val avgTemp: Float, val high: Float, val low: Float, val conditionText: String, val conditionIcon: Int)
 
-    fun toJson(roundTemp: Boolean): JSONObject {
+    fun toJson(roundTemp: Boolean, locationName: String = "", tempUnit: String = "C"): JSONObject {
         fun Float.t() = if (roundTemp) Math.round(this).toFloat() else this
+        val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) // used for hourly index
         return JSONObject().apply {
-            put("currentTemp",    currentTemp.t())
-            put("highTemp",       highTemp.t())
-            put("lowTemp",        lowTemp.t())
-            put("conditionText",  conditionText)
-            put("conditionIcon",  conditionIcon)
-            put("humidity",       humidity)
-            put("pressure",       pressure.toDouble())
-            put("windSpeed",      windSpeed.toDouble())
+            put("currentTemp",         currentTemp.t())
+            put("highTemp",            highTemp.t())
+            put("lowTemp",             lowTemp.t())
+            put("conditionText",       conditionText)
+            put("conditionIcon",       conditionIcon)
+            put("humidity",            humidity)
+            put("pressure",            pressure.toDouble())
+            put("windSpeed",           windSpeed.toDouble())
             put("windDirection",  windDirection)
             put("cloudiness",     cloudiness)
             put("rainVolume",     rainVolume.toDouble())
             put("isDaytime",      isDaytime)
             put("sunrise",        sunrise)
             put("sunset",         sunset)
-            put("moonPhase",      moonPhase)
-            put("lastUpdate",     lastUpdate)
+            put("moonPhase",           moonPhase)
+            put("lastUpdate",          lastUpdate)
+            put("locationName",        locationName)
+            put("tempUnit",            tempUnit)
             put("hourly", JSONArray().also { arr ->
-                hourly.forEach { h ->
+                hourly.forEachIndexed { index, h ->
                     arr.put(JSONObject().apply {
                         put("temp",          h.temp.t())
                         put("conditionText", h.conditionText)
                         put("conditionIcon", h.conditionIcon)
+                        put("hourOfDay",     if (h.hourOfDay >= 0) h.hourOfDay else (currentHour + index) % 24)
                     })
                 }
             })
@@ -97,6 +102,7 @@ data class WeatherResult(
             })
         }
     }
+
 }
 
 // ── Provider interface ────────────────────────────────────────────────────────

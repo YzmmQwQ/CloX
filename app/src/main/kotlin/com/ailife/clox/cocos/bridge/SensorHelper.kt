@@ -61,6 +61,7 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
                 sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
             }
         }
+        // Gyroscope is a single sensor; no secondary registration needed
     }
 
     private fun unregisterSensor(name: String) {
@@ -83,7 +84,6 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
                     })
                 }
                 if ("compass" in activeSensors) {
-                    // Low-pass filter for gravity
                     val alpha = 0.8f
                     gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
                     gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
@@ -106,6 +106,15 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
                     })
                 }
             }
+            Sensor.TYPE_GYROSCOPE -> {
+                if ("gyroscope" in activeSensors) {
+                    cb("gyroscope", JSONObject().apply {
+                        put("x", event.values[0].toDouble())
+                        put("y", event.values[1].toDouble())
+                        put("z", event.values[2].toDouble())
+                    })
+                }
+            }
         }
     }
 
@@ -116,8 +125,8 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
             SensorManager.getOrientation(rotMatrix, orientation)
             cb("compass", JSONObject().apply {
                 put("azimuth", Math.toDegrees(orientation[0].toDouble()))
-                put("pitch", Math.toDegrees(orientation[1].toDouble()))
-                put("roll", Math.toDegrees(orientation[2].toDouble()))
+                put("pitch",   Math.toDegrees(orientation[1].toDouble()))
+                put("roll",    Math.toDegrees(orientation[2].toDouble()))
             })
         }
     }
@@ -126,8 +135,9 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
 
     private fun sensorTypeFor(name: String): Int? = when (name) {
         "accelerometer" -> Sensor.TYPE_ACCELEROMETER
-        "barometer" -> Sensor.TYPE_PRESSURE
-        "compass" -> Sensor.TYPE_ACCELEROMETER // primary; magnetic field registered separately
-        else -> null
+        "barometer"     -> Sensor.TYPE_PRESSURE
+        "gyroscope"     -> Sensor.TYPE_GYROSCOPE
+        "compass"       -> Sensor.TYPE_ACCELEROMETER // primary; magnetic field registered separately
+        else            -> null
     }
 }

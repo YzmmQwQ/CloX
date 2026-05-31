@@ -1,13 +1,19 @@
 package com.ailife.clox.cocos.bridge
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import com.ailife.clox.tapaction.TapActionHandler
 import android.database.ContentObserver
 import android.opengl.GLSurfaceView
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.CalendarContract
+import android.provider.Settings
 import android.util.Log
 import androidx.preference.PreferenceManager
 import com.ailife.clox.cocos.CocosManager
@@ -65,6 +71,18 @@ class WatchfaceBridgeManager(
         }
     }
 
+    private val brightnessObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            sendToLua("system", LiveDataHelper.systemStateJson(ctx))
+        }
+    }
+
+    private val systemStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            sendToLua("system", LiveDataHelper.systemStateJson(ctx))
+        }
+    }
+
     // Keys that belong to the "location" Lua category (names + timezone offsets)
     private val locationKeys = (1..5).map { "location_name_$it" }.toSet() +
                                (1..4).map { "location_timezone_$it" }.toSet()
@@ -85,7 +103,10 @@ class WatchfaceBridgeManager(
                     }
                 }
             }
-            key in locationKeys -> sendToLua("location", LiveDataHelper.locationSettingsJson(ctx))
+            key in locationKeys -> {
+                sendToLua("location", LiveDataHelper.locationSettingsJson(ctx))
+                sendToLua("timezones", LiveDataHelper.timezonesJson(ctx))
+            }
             key in watchfaceSettingsKeys -> sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
         }
     }
@@ -102,10 +123,25 @@ class WatchfaceBridgeManager(
             try {
                 ctx.contentResolver.registerContentObserver(
                     CalendarContract.Events.CONTENT_URI, true, calendarObserver)
-            } catch (_: Exception) {
-                // No calendar provider on this device (e.g. watches without a calendar app)
-            }
+            } catch (_: Exception) {}
         }
+
+        ctx.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS), false, brightnessObserver)
+
+        val sysFilter = IntentFilter().apply {
+            addAction("android.media.VOLUME_CHANGED_ACTION")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            }
+            addAction(Intent.ACTION_CONFIGURATION_CHANGED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ctx.registerReceiver(systemStateReceiver, sysFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            ctx.registerReceiver(systemStateReceiver, sysFilter)
+        }
+
         PreferenceManager.getDefaultSharedPreferences(ctx)
             .registerOnSharedPreferenceChangeListener(prefsListener)
     }
@@ -114,6 +150,8 @@ class WatchfaceBridgeManager(
         LuaBridge.luaReadyHandler = null
         LuaBridge.watchfaceActionHandler = null
         ctx.contentResolver.unregisterContentObserver(calendarObserver)
+        ctx.contentResolver.unregisterContentObserver(brightnessObserver)
+        runCatching { ctx.unregisterReceiver(systemStateReceiver) }
         PreferenceManager.getDefaultSharedPreferences(ctx)
             .unregisterOnSharedPreferenceChangeListener(prefsListener)
         scope.cancel()
@@ -148,6 +186,8 @@ class WatchfaceBridgeManager(
         ))
         sendToLua("thirdParty", ExternalDataStore.toJson(ctx))
         sendToLua("weather", WeatherHelper.getLatestData())   // cached data; weatherFlow collector keeps it fresh
+        sendToLua("system", LiveDataHelper.systemStateJson(ctx))
+        sendToLua("timezones", LiveDataHelper.timezonesJson(ctx))
         for (metric in HealthHelper.Metric.entries) {
             sendToLua(HealthHelper.metricCategory(metric), HealthHelper.getLatestData(metric))
         }
@@ -202,10 +242,10 @@ class WatchfaceBridgeManager(
             }
         }
 
-        // Storage and alarm don't have system observers; poll every 30s.
+        // Storage and alarm have no system observers; poll every 5s.
         scope.launch {
             while (isActive) {
-                delay(30_000)
+                delay(5_000)
                 val storage = withContext(Dispatchers.IO) { LiveDataHelper.storageJson(ctx) }
                 val alarm   = withContext(Dispatchers.IO) { LiveDataHelper.alarmJson(ctx) }
                 sendToLua("storage", storage)
@@ -333,20 +373,32 @@ class WatchfaceBridgeManager(
     private fun notificationJson(
         notifs: List<android.service.notification.StatusBarNotification>,
         listenerRunning: Boolean
-    ): JSONObject = JSONObject().apply {
-        put("count", if (listenerRunning) notifs.size else -1)
-        val last = notifs.maxByOrNull { it.postTime }
-        put("last", JSONObject().apply {
-            val extras = last?.notification?.extras
-            put("appName", last?.let {
+    ): JSONObject {
+        val sorted = notifs.sortedByDescending { it.postTime }
+
+        fun sbnToObj(sbn: android.service.notification.StatusBarNotification?): JSONObject {
+            val extras = sbn?.notification?.extras
+            val appName = sbn?.let {
                 try { ctx.packageManager.getApplicationLabel(
                     ctx.packageManager.getApplicationInfo(it.packageName, 0)).toString()
-                } catch (e: Exception) { it.packageName }
-            } ?: "")
-            put("title",   extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString() ?: "")
-            put("content", extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString() ?: "")
-            put("time",    last?.postTime ?: 0L)
-        })
+                } catch (_: Exception) { it.packageName }
+            } ?: ""
+            return JSONObject().apply {
+                put("appName", appName)
+                put("title",   extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString() ?: "")
+                put("content", extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString() ?: "")
+                put("time",    sbn?.postTime ?: 0L)
+            }
+        }
+
+        val list = org.json.JSONArray()
+        for (i in 0 until 10) list.put(sbnToObj(sorted.getOrNull(i)))
+
+        return JSONObject().apply {
+            put("count", if (listenerRunning) notifs.size else -1)
+            put("list",  list)
+            put("last",  sbnToObj(sorted.firstOrNull()))
+        }
     }
 
     private fun sendToLua(category: String, data: JSONObject) {

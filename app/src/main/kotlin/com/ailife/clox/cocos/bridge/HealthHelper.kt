@@ -94,12 +94,15 @@ object HealthHelper {
         }
         val distanceDeferred = async { BhtApiClient.requestDistance(ctx) }
         val calorieDeferred  = async { BhtApiClient.requestCalorie(ctx) }
+        val stepGoalDeferred = async { BhtApiClient.requestGoalStep(ctx) }
         val distance = distanceDeferred.await()
         val calories = calorieDeferred.await()
+        val stepGoal = stepGoalDeferred.await()
         JSONObject().apply {
             put("steps",    steps)
             put("distance", distance)
             put("calories", calories)
+            put("stepGoal", stepGoal)
         }
     }
 
@@ -107,12 +110,14 @@ object HealthHelper {
         ctx: Context,
         onInstant: ((JSONObject) -> Unit)?,
     ): JSONObject? {
-        val history = withContext(Dispatchers.IO) { BhtApiClient.queryRecentHrHistory(ctx, 10) }
+        val (history, maxHr) = withContext(Dispatchers.IO) {
+            Pair(BhtApiClient.queryRecentHrHistory(ctx, 10), BhtApiClient.queryMaxHrLast24h(ctx))
+        }
         val type = if (HealthPrefs.instantHrSpo2(ctx)) "NOW" else "AUTO"
         val bpm = BhtApiClient.requestHeartRate(ctx, type) { instantBpm ->
-            onInstant?.invoke(buildHrJson(instantBpm, System.currentTimeMillis(), measuring = true, history))
+            onInstant?.invoke(buildHrJson(instantBpm, System.currentTimeMillis(), measuring = true, history, maxHr))
         }
-        return buildHrJson(bpm, System.currentTimeMillis(), measuring = false, history)
+        return buildHrJson(bpm, System.currentTimeMillis(), measuring = false, history, maxHr)
     }
 
     private suspend fun fetchSpo2(
@@ -141,6 +146,7 @@ object HealthHelper {
         timestampMs: Long,
         measuring: Boolean,
         history: List<Pair<Int, Long>>,
+        maxHeartRate: Int = 200,
     ): JSONObject {
         val historyArray = JSONArray().apply {
             for ((hBpm, hUnixSec) in history) {
@@ -151,15 +157,17 @@ object HealthHelper {
             }
         }
         return JSONObject().apply {
-            put("bpm",       bpm)
-            put("timestamp", timestampMs)
-            put("measuring", measuring)
-            put("history",   historyArray)
+            put("bpm",          bpm)
+            put("timestamp",    timestampMs)
+            put("measuring",    measuring)
+            put("history",      historyArray)
+            put("maxHeartRate", maxHeartRate)
         }
     }
 
     private fun emptySteps() = JSONObject().apply {
         put("steps", 0); put("distance", 0.0); put("calories", 0.0)
+        put("stepGoal", 10000)
     }
 
     private fun emptyHeartRate(): JSONObject {

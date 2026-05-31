@@ -5,47 +5,59 @@ import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
+import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
+import android.os.PowerManager
 import android.os.StatFs
+import android.provider.Settings
 import androidx.preference.PreferenceManager
 import com.ailife.clox.qs.TileState
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 object LiveDataHelper {
 
     fun batteryJson(ctx: Context, state: TileState.BatteryState): JSONObject {
         val intent = ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val temperatureTenths = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
-        // EXTRA_PLUGGED is nonzero for any power source (USB, AC, wireless).
-        // This correctly catches "plugged in but full" which BATTERY_STATUS != CHARGING.
         val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        val voltageMilliV = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
+
+        val bm = ctx.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        val currentMicroA = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try { bm.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) } catch (_: Exception) { 0L }
+        } else 0L
+
         return JSONObject().apply {
-            put("level", state.level)
-            put("charging", plugged != 0)
+            put("level",       state.level)
+            put("charging",    plugged != 0)
             put("temperature", temperatureTenths / 10.0)
+            put("voltage",     voltageMilliV / 1000.0)
+            put("current",     currentMicroA / 1000.0)
         }
     }
 
     fun networkJson(ctx: Context, wifi: TileState.WifiState, data: TileState.DataState): JSONObject {
         val wifiIp = if (wifi.connected) getWifiIp(ctx) else ""
         return JSONObject().apply {
-            put("wifiEnabled", wifi.enabled)
+            put("wifiEnabled",   wifi.enabled)
             put("wifiConnected", wifi.connected)
-            put("wifiSsid", wifi.ssid ?: "")
+            put("wifiSsid",      wifi.ssid ?: "")
             put("wifiFrequency", wifi.frequency ?: "")
-            put("wifiSignal", wifi.signalLevel)
-            put("wifiIp", wifiIp)
-            put("dataEnabled", data.enabled)
+            put("wifiSignal",    wifi.signalLevel)
+            put("wifiIp",        wifiIp)
+            put("dataEnabled",   data.enabled)
             put("dataConnected", data.activelyRouting)
-            put("dataType", data.networkType ?: "")
-            put("dataSignal", data.signalLevel)
-            put("dataOperator", data.operatorName ?: "")
+            put("dataType",      data.networkType ?: "")
+            put("dataSignal",    data.signalLevel)
+            put("dataOperator",  data.operatorName ?: "")
         }
     }
 
@@ -62,24 +74,26 @@ object LiveDataHelper {
     fun connectivityJson(bt: TileState.BtState, loc: TileState.LocationState): JSONObject =
         JSONObject().apply {
             put("bluetoothEnabled", bt.enabled)
-            put("bluetoothDevice", bt.connectedDeviceName ?: "")
-            put("gpsEnabled", loc.enabled)
+            put("bluetoothDevice",  bt.connectedDeviceName ?: "")
+            put("gpsEnabled",       loc.enabled)
         }
 
     fun storageJson(ctx: Context): JSONObject {
         val stat = StatFs(Environment.getDataDirectory().path)
         val totalStorage = stat.totalBytes
-        val usedStorage = totalStorage - stat.availableBytes
+        val usedStorage  = totalStorage - stat.availableBytes
 
         val actMgr = ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val memInfo = ActivityManager.MemoryInfo()
         actMgr.getMemoryInfo(memInfo)
+        val totalRam = memInfo.totalMem
+        val usedRam  = totalRam - memInfo.availMem
 
         return JSONObject().apply {
             put("totalStorage", totalStorage)
-            put("usedStorage", usedStorage)
-            put("totalRam", memInfo.totalMem)
-            put("usedRam", memInfo.totalMem - memInfo.availMem)
+            put("usedStorage",  usedStorage)
+            put("totalRam",     totalRam)
+            put("usedRam",      usedRam)
         }
     }
 
@@ -96,41 +110,103 @@ object LiveDataHelper {
         } else ""
 
         return JSONObject().apply {
-            put("hasAlarm", withinDay)
-            put("alarmTime", alarmTime)
+            put("hasAlarm",      withinDay)
+            put("alarmTime",     alarmTime)
+            put("alarmTimestamp", if (withinDay) next!!.triggerTime else 0L)
         }
     }
 
-    /**
-     * Watchface display settings — these keys must match what the settings UI saves.
-     * Update the key constants below to match the actual SharedPreferences keys used by the watchface settings screen.
-     */
     fun watchfaceSettingsJson(ctx: Context): JSONObject {
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val path = prefs.getString("watchface_path", null)
         return JSONObject().apply {
-            // false (not empty string) so Lua `if WF.settings.watchfacePath then` correctly gates loading
             if (path.isNullOrEmpty()) put("watchfacePath", false) else put("watchfacePath", path)
-            put("zoom", prefs.getFloat("watchface_zoom", 1.0f).toDouble())
-            put("xOffset", prefs.getInt("watchface_x_offset", 0))
-            put("yOffset", prefs.getInt("watchface_y_offset", 0))
+            put("zoom",       prefs.getFloat("watchface_zoom", 1.0f).toDouble())
+            put("xOffset",    prefs.getInt("watchface_x_offset", 0))
+            put("yOffset",    prefs.getInt("watchface_y_offset", 0))
             put("fullscreen", prefs.getInt("watchface_fullscreen", 0))
-            put("frameRate", prefs.getInt("watchface_frame_rate", 60))
+            put("frameRate",  prefs.getInt("watchface_frame_rate", 60))
             put("aodEnabled", prefs.getBoolean("watchface_aod_enabled", false))
         }
     }
 
-    /**
-     * User-configured location names and timezones.
-     * Keys must match what the location/timezone settings screen saves.
-     */
     fun locationSettingsJson(ctx: Context): JSONObject {
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val names = (1..5).map { prefs.getString("location_name_$it", "") ?: "" }
         val zones = (1..4).map { prefs.getString("location_timezone_$it", "") ?: "" }
         return JSONObject().apply {
-            put("names", org.json.JSONArray(names))
+            put("names",     org.json.JSONArray(names))
             put("timezones", org.json.JSONArray(zones))
         }
+    }
+
+    /** Mutable system state: volume, brightness, dark mode, power saver. */
+    fun systemStateJson(ctx: Context): JSONObject {
+        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val curVol = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val volPercent = if (maxVol > 0) curVol * 100 / maxVol else 0
+
+        val brightness = try {
+            Settings.System.getInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
+        } catch (_: Exception) { 128 }
+
+        val nightMode = ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val isDarkMode = nightMode == Configuration.UI_MODE_NIGHT_YES
+
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val isLowPower = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            pm.isPowerSaveMode
+        } else false
+
+        return JSONObject().apply {
+            put("volume",       volPercent)
+            put("brightness",   brightness)
+            put("darkMode",     isDarkMode)
+            put("lowPowerMode", isLowPower)
+        }
+    }
+
+    /** Computed current-time data for 3 timezone slots:
+     *  tz1 = device local timezone, tz2/tz3 = user-configured (location_timezone_1/2). */
+    fun timezonesJson(ctx: Context): JSONObject {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+        val tz2Id = prefs.getString("location_timezone_1", "") ?: ""
+        val tz3Id = prefs.getString("location_timezone_2", "") ?: ""
+        return JSONObject().apply {
+            put("tz1", timezoneInfo(TimeZone.getDefault()))
+            put("tz2", if (tz2Id.isNotEmpty()) timezoneInfo(safeTimeZone(tz2Id) ?: TimeZone.getDefault()) else emptyTimezone())
+            put("tz3", if (tz3Id.isNotEmpty()) timezoneInfo(safeTimeZone(tz3Id) ?: TimeZone.getDefault()) else emptyTimezone())
+        }
+    }
+
+    private fun safeTimeZone(id: String): TimeZone? {
+        val tz = TimeZone.getTimeZone(id)
+        return if (tz.id == "GMT" && id != "GMT" && id != "UTC") null else tz
+    }
+
+    private fun timezoneInfo(tz: TimeZone): JSONObject {
+        val now = System.currentTimeMillis()
+        val offsetMs  = tz.getOffset(now)
+        val offsetMin = offsetMs / 60_000
+        val offsetHrs = offsetMin / 60
+        val offsetMinsRem = Math.abs(offsetMin % 60)
+        val offsetStr = "%+03d:%02d".format(offsetHrs, offsetMinsRem)
+        val shortName = try {
+            tz.toZoneId().getDisplayName(java.time.format.TextStyle.SHORT, Locale.US)
+        } catch (_: Exception) { tz.id }
+        return JSONObject().apply {
+            put("locationShort",    shortName)
+            put("locationLong",     tz.id)
+            put("utcOffset",        offsetStr)
+            put("utcOffsetMinutes", offsetMin)
+            put("dstActive",        tz.inDaylightTime(Date(now)))
+        }
+    }
+
+    private fun emptyTimezone() = JSONObject().apply {
+        put("locationShort", ""); put("locationLong", "")
+        put("utcOffset", ""); put("utcOffsetMinutes", 0)
+        put("dstActive", false)
     }
 }

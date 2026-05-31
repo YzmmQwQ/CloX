@@ -31,30 +31,38 @@
 --
 -- ── DATA CATEGORIES & FIELDS ─────────────────────────────────────────────────
 --   device:       apiLevel, language, deviceLabel, deviceModel, manufacturer,
---                 productName, osType, appVersion
+--                 productName, osType, appVersion, isRound, lastReboot
 --   settings:     watchfacePath, zoom, xOffset, yOffset, fullscreen, frameRate, aodEnabled
+--   system:       volume (0-100), brightness (0-255), darkMode, lowPowerMode
 --   location:     names[1..5], timezones[1..4]
---   battery:      level (0-100), charging (bool), temperature (°C float)
+--   timezones:    tz1/tz2/tz3: {locationShort, locationLong, utcOffset, utcOffsetMinutes, dstActive}
+--                 tz1=device local, tz2=location_timezone_1, tz3=location_timezone_2
+--                 Compute current time in Lua: os.time() + utcOffsetMinutes*60
+--   battery:      level (0-100), charging (bool), temperature (°C), voltage (V), current (mA)
 --   network:      wifiEnabled, wifiConnected, wifiSsid, wifiFrequency, wifiSignal (0-4), wifiIp,
 --                 dataEnabled, dataConnected, dataType ("4G"…), dataSignal (0-4), dataOperator
 --   connectivity: bluetoothEnabled, bluetoothDevice, gpsEnabled
---   notification: count, last: {appName, title, content, time (unix ms)}
---   alarm:        hasAlarm (bool), alarmTime ("HH:mm")
---   storage:      totalStorage, usedStorage, totalRam, usedRam (bytes)
+--   notification: count, list[1..10]: {appName, title, content, time (unix ms)},
+--                 last: {appName, title, content, time}
+--   alarm:        hasAlarm (bool), alarmTime ("HH:mm"), alarmTimestamp (unix ms, 0 if none)
+--   storage:      totalStorage, usedStorage, totalRam, usedRam  (bytes)
 --   calendar:     hasEvents (bool), events[1..10] each:
 --                   exists, id, title, beginTime, endTime, beginDate, endDate,
---                   allDay, location, color ("RRGGBB"), calendar
+--                   beginTimeMs, endTimeMs (unix ms), allDay, location, color ("RRGGBB"), calendar
 --   weather:      currentTemp, highTemp, lowTemp, conditionText, conditionIcon,
---                 humidity, pressure, windSpeed, windDirection, cloudiness, rainVolume,
---                 isDaytime, sunrise, sunset, moonPhase (0-1), lastUpdate (unix ms),
---                 hourly[1..12]: {temp, conditionText, conditionIcon}
+--                 humidity, pressure, windSpeed, windDirection (degrees),
+--                 cloudiness, rainVolume, isDaytime, sunrise, sunset ("HH:mm"),
+--                 moonPhase (0-1), lastUpdate (unix ms), locationName, tempUnit ("C"),
+--                 hourly[1..12]: {temp, conditionText, conditionIcon, hourOfDay (0-23)}
 --                 daily[1..5]:  {avgTemp, high, low, conditionText, conditionIcon}
---   health_steps:     steps, calories (kcal), distance (km)
---   health_heartRate: bpm, timestamp (unix ms), history[1..10]: {bpm, timestamp} (1=oldest, 10=newest)
+--   health_steps:     steps, distance (km), calories (kcal), stepGoal (from BHT)
+--   health_heartRate: bpm, timestamp (unix ms), maxHeartRate (peak from last 24h),
+--                     history[1..10]: {bpm, timestamp} (1=oldest, 10=newest)
 --   health_spo2:      percent, timestamp (unix ms)
---   thirdParty: slots[1..10]: {data (String), key (String), timestamp (unix ms)}
+--   thirdParty:       slots[1..10]: {data (String), key (String), timestamp (unix ms)}
 --   sensor_accelerometer: x, y, z  (m/s²)
---   sensor_compass:       azimuth, pitch, roll  (degrees)
+--   sensor_gyroscope:     x, y, z  (rad/s)
+--   sensor_compass:       azimuth, pitch, roll  (degrees; azimuth -180..180)
 --   sensor_barometer:     pressure  (hPa)
 
 local ok_json, json = pcall(require, "cjson")
@@ -69,48 +77,61 @@ end
 -- Pre-initialised with safe defaults so watchface code never reads nil.
 -- Java pushes a full snapshot per category; WF[category] is replaced atomically.
 
+local function emptyTz()
+    return { locationShort = "", locationLong = "", utcOffset = "", utcOffsetMinutes = 0, dstActive = false }
+end
+
 WF = {
     device = {
         apiLevel = 0, language = "", deviceLabel = "", deviceModel = "",
         manufacturer = "", productName = "CloX Launcher", osType = "Full Android", appVersion = "",
+        isRound = false, lastReboot = "",
     },
     settings = {
         watchfacePath = false,  -- false = not yet received; engine must gate loading on this
         zoom = 1.0, xOffset = 0, yOffset = 0,
         fullscreen = 0, frameRate = 60, aodEnabled = false,
     },
+    system   = { volume = 0, brightness = 128, darkMode = false, lowPowerMode = false },
     location = { names = { "", "", "", "", "" }, timezones = { "", "", "", "" } },
-    battery  = { level = 0, charging = false, temperature = 0.0 },
+    timezones = { tz1 = emptyTz(), tz2 = emptyTz(), tz3 = emptyTz() },
+    battery  = { level = 0, charging = false, temperature = 0.0, voltage = 0.0, current = 0.0 },
     network  = {
         wifiEnabled = false, wifiConnected = false, wifiSsid = "", wifiFrequency = "", wifiSignal = 0, wifiIp = "",
         dataEnabled = false, dataConnected = false, dataType = "", dataSignal = 0, dataOperator = "",
     },
     connectivity = { bluetoothEnabled = false, bluetoothDevice = "", gpsEnabled = false },
-    notification = { count = 0, last = { appName = "", title = "", content = "", time = 0 } },
-    alarm        = { hasAlarm = false, alarmTime = "" },
-    storage      = { totalStorage = 0, usedStorage = 0, totalRam = 0, usedRam = 0 },
-    calendar     = { hasEvents = false, events = {} },
-    weather = {
+    notification = {
+        count = 0,
+        list  = (function() local l = {} for i=1,10 do l[i] = {appName="",title="",content="",time=0} end return l end)(),
+        last  = { appName = "", title = "", content = "", time = 0 },
+    },
+    alarm   = { hasAlarm = false, alarmTime = "", alarmTimestamp = 0 },
+    storage = { totalStorage = 0, usedStorage = 0, totalRam = 0, usedRam = 0 },
+    calendar = { hasEvents = false, events = {} },
+    weather  = {
         currentTemp = 0, highTemp = 0, lowTemp = 0, conditionText = "", conditionIcon = 0,
-        humidity = 0, pressure = 0, windSpeed = 0, windDirection = 0, cloudiness = 0, rainVolume = 0,
-        isDaytime = true, sunrise = "", sunset = "", moonPhase = 0.0, lastUpdate = 0,
+        humidity = 0, pressure = 0, windSpeed = 0, windDirection = 0,
+        cloudiness = 0, rainVolume = 0,
+        isDaytime = true, sunrise = "", sunset = "",
+        moonPhase = 0.0, lastUpdate = 0, locationName = "", tempUnit = "C",
         hourly = {}, daily = {},
     },
-    health_steps     = { steps = 0, calories = 0.0, distance = 0.0 },
-    health_heartRate = { bpm = 0, timestamp = 0, history = (function()
+    health_steps     = { steps = 0, distance = 0.0, calories = 0.0, stepGoal = 10000 },
+    health_heartRate = { bpm = 0, timestamp = 0, maxHeartRate = 200, history = (function()
         local h = {}
         for i = 1, 10 do h[i] = { bpm = 0, timestamp = 0 } end
         return h
     end)() },
-    health_spo2      = { percent = 0, timestamp = 0 },
+    health_spo2 = { percent = 0, timestamp = 0 },
     -- 10 persistent slots written by third-party apps via broadcast API
-    -- Access: WF.thirdParty.slots[1].data, .key, .timestamp
     thirdParty = { slots = (function()
         local s = {}
         for i = 1, 10 do s[i] = { data = "", key = "", timestamp = 0 } end
         return s
     end)() },
     sensor_accelerometer = { x = 0.0, y = 0.0, z = 0.0 },
+    sensor_gyroscope     = { x = 0.0, y = 0.0, z = 0.0 },
     sensor_compass       = { azimuth = 0.0, pitch = 0.0, roll = 0.0 },
     sensor_barometer     = { pressure = 0.0 },
 }
@@ -173,7 +194,7 @@ function WatchfaceBridge.setHealthEnabled(metric, enabled)
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setHealthEnabled", metric = metric, enabled = enabled }))
 end
 
--- sensor: "accelerometer" | "compass" | "barometer"
+-- sensor: "accelerometer" | "compass" | "barometer" | "gyroscope"
 function WatchfaceBridge.setSensorEnabled(sensor, enabled)
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setSensorEnabled", sensor = sensor, enabled = enabled }))
 end

@@ -76,7 +76,7 @@ object WeatherRepository {
         return try {
             val provider = WeatherProvider.forKey(WeatherPrefs.provider(ctx))
             val result   = provider.fetch(ctx, lat, lon)
-            val json     = result.toJson(WeatherPrefs.roundTemp(ctx))
+            val json     = result.toJson(WeatherPrefs.roundTemp(ctx), locationName = WeatherPrefs.city(ctx), tempUnit = "C")
 
             weatherFlow.emit(json)
             persist(ctx, json)

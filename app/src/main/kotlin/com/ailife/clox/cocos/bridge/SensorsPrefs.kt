@@ -5,10 +5,11 @@ import androidx.preference.PreferenceManager
 
 object SensorsPrefs {
 
-    const val KEY_CALENDAR    = "sensor_calendar_access"
+    const val KEY_CALENDAR      = "sensor_calendar_access"
     const val KEY_ACCELEROMETER = "sensor_accelerometer"
-    const val KEY_COMPASS     = "sensor_compass"
-    const val KEY_BAROMETER   = "sensor_barometer"
+    const val KEY_COMPASS       = "sensor_compass"
+    const val KEY_BAROMETER     = "sensor_barometer"
+    const val KEY_GYROSCOPE     = "sensor_gyroscope"
 
     fun calendarEnabled(ctx: Context) =
         PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(KEY_CALENDAR, false)
@@ -22,10 +23,14 @@ object SensorsPrefs {
     fun barometerEnabled(ctx: Context) =
         PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(KEY_BAROMETER, false)
 
+    fun gyroscopeEnabled(ctx: Context) =
+        PreferenceManager.getDefaultSharedPreferences(ctx).getBoolean(KEY_GYROSCOPE, false)
+
     fun sensorEnabled(ctx: Context, sensorName: String) = when (sensorName) {
         "accelerometer" -> accelerometerEnabled(ctx)
         "compass"       -> compassEnabled(ctx)
         "barometer"     -> barometerEnabled(ctx)
+        "gyroscope"     -> gyroscopeEnabled(ctx)
         else            -> false
     }
 

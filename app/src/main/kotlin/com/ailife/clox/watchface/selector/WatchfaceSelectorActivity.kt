@@ -59,7 +59,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        overridePendingTransition(0, 0)
+        overridePendingTransition(R.anim.no_animation, R.anim.no_animation)
         setContentView(R.layout.activity_watchface_selector)
         hideSystemBars()
 
@@ -394,7 +394,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
     private fun finishWithNoAnim() {
         finish()
-        overridePendingTransition(0, 0)
+        overridePendingTransition(R.anim.no_animation, R.anim.no_animation)
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
@@ -600,7 +600,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             // Suppress system slide animation — we play our own snapshot transition
             if (ctx is android.app.Activity) {
                 @Suppress("DEPRECATION")
-                ctx.overridePendingTransition(0, 0)
+                ctx.overridePendingTransition(R.anim.no_animation, R.anim.no_animation)
             }
         }
     }

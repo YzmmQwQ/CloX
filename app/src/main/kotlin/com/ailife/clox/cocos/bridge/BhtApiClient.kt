@@ -74,7 +74,6 @@ object BhtApiClient {
 
     fun queryRecentHrHistory(ctx: Context, count: Int = 10): List<Pair<Int, Long>> {
         val nowSec  = System.currentTimeMillis() / 1000
-        // query a wide window and take the last `count` records with HR > 0
         val startSec = nowSec - 24 * 60 * 60
         val uri = Uri.withAppendedPath(AUTHORITY, "records/range/$startSec/$nowSec")
         val results = mutableListOf<Pair<Int, Long>>()
@@ -91,6 +90,24 @@ object BhtApiClient {
             }
         } catch (_: Exception) {}
         return results.takeLast(count)
+    }
+
+    fun queryMaxHrLast24h(ctx: Context): Int {
+        val nowSec   = System.currentTimeMillis() / 1000
+        val startSec = nowSec - 24 * 60 * 60
+        val uri = Uri.withAppendedPath(AUTHORITY, "records/range/$startSec/$nowSec")
+        var max = 0
+        try {
+            ctx.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val colHr = cursor.getColumnIndex("heartrate")
+                if (colHr < 0) return 0
+                while (cursor.moveToNext()) {
+                    val bpm = cursor.getInt(colHr)
+                    if (bpm > max) max = bpm
+                }
+            }
+        } catch (_: Exception) {}
+        return max
     }
 
     // ── Broadcast API ─────────────────────────────────────────────────────────
@@ -187,6 +204,47 @@ object BhtApiClient {
             }
         }
     }
+
+    // ── Settings API ─────────────────────────────────────────────────────────
+
+    private const val ACTION_SETTING_REQUEST = "com.ailife.betterhealth.SETTING_API"
+    private const val ACTION_SETTING_REPLY   = "com.ailife.betterhealth.SETTING_REPLY"
+
+    /** Read a single setting from BHT. Returns null on timeout or error. */
+    suspend fun requestSetting(ctx: Context, key: String): String? =
+        withContext(Dispatchers.Main) {
+            withTimeoutOrNull(5_000) {
+                suspendCancellableCoroutine { cont ->
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context, received: Intent) {
+                            if (received.getStringExtra("KEY") != key) return
+                            context.unregisterReceiver(this)
+                            if (received.getStringExtra("ERROR") != "NONE") {
+                                if (cont.isActive) cont.resume(null)
+                                return
+                            }
+                            if (cont.isActive) cont.resume(received.getStringExtra("VALUE"))
+                        }
+                    }
+                    val filter = IntentFilter(ACTION_SETTING_REPLY)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        ctx.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+                    } else {
+                        ctx.registerReceiver(receiver, filter)
+                    }
+                    cont.invokeOnCancellation { runCatching { ctx.unregisterReceiver(receiver) } }
+                    ctx.sendBroadcast(Intent(ACTION_SETTING_REQUEST).apply {
+                        setPackage(PACKAGE)
+                        addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                        putExtra("KEY", key)
+                        putExtra("MODE", "READ")
+                    })
+                }
+            }
+        }
+
+    suspend fun requestGoalStep(ctx: Context): Int =
+        requestSetting(ctx, "GOAL_STEP")?.toIntOrNull() ?: 10000
 
     private fun registerReceiver(ctx: Context, receiver: BroadcastReceiver) {
         val filter = IntentFilter(ACTION_REPLY)
