@@ -1,5 +1,6 @@
 #include "AppDelegate.h"
 #include <memory>
+#include <cstdio>
 #include <jni.h>
 #include "lua-bindings/manual/LuaEngine.h"
 #include "lua-bindings/manual/lua_module_register.h"
@@ -7,13 +8,62 @@
 #include "base/Director.h"
 #include "base/EventCustom.h"
 #include "base/EventDispatcher.h"
+#include "base/ZipUtils.h"
 #include "platform/FileUtils.h"
 #include "platform/RenderView.h"
 #include "platform/android/jni/JniHelper.h"
 #include "platform/android/FileUtils-android.h"
 #include "blur_postprocess.h"
+#include "lauxlib.h"
 
 using namespace ax;
+
+// ── axUnzipToDir(zipPath, destDir) → true | false, errmsg ────────────────────
+// Extracts all files from a ZIP archive to destDir (trailing slash required).
+// Creates subdirectories as needed. Called from Lua on the GL thread.
+static int lua_axUnzipToDir(lua_State* L) {
+    const char* zipPath = luaL_checkstring(L, 1);
+    const char* destDir = luaL_checkstring(L, 2);
+
+    auto fu  = FileUtils::getInstance();
+    auto zip = ZipFile::createFromFile(zipPath);
+    if (!zip) {
+        lua_pushboolean(L, 0);
+        lua_pushstring(L, "cannot open zip");
+        return 2;
+    }
+
+    fu->createDirectory(destDir);
+
+    std::string name = zip->getFirstFilename();
+    while (!name.empty()) {
+        std::string data;
+        ResizableBufferAdapter<std::string> buf(&data);
+        if (zip->getFileData(name, &buf) && !data.empty()) {
+            std::string out = std::string(destDir) + name;
+            auto slash = out.rfind('/');
+            if (slash != std::string::npos)
+                fu->createDirectory(out.substr(0, slash + 1));
+            if (FILE* f = fopen(out.c_str(), "wb")) {
+                fwrite(data.data(), 1, data.size(), f);
+                fclose(f);
+            }
+        }
+        name = zip->getNextFilename();
+    }
+    delete zip;
+
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+// ── axRemoveDir(dirPath) → true | false ──────────────────────────────────────
+static int lua_axRemoveDir(lua_State* L) {
+    const char* dir = luaL_checkstring(L, 1);
+    bool ok = FileUtils::getInstance()->removeDirectory(dir);
+    lua_pushboolean(L, ok ? 1 : 0);
+    return 1;
+}
 
 AppDelegate::AppDelegate()  {}
 AppDelegate::~AppDelegate() {}
@@ -46,6 +96,8 @@ bool AppDelegate::applicationDidFinishLaunching()
     ScriptEngineManager::getInstance()->setScriptEngine(engine);
     lua_State* L = engine->getLuaStack()->getLuaState();
     lua_module_register(L);
+    lua_register(L, "axUnzipToDir", lua_axUnzipToDir);
+    lua_register(L, "axRemoveDir",  lua_axRemoveDir);
 
     // "." = assets root; needed so "require 'axmol.init'" finds assets/axmol/init.lua
     engine->getLuaStack()->addSearchPath(".");

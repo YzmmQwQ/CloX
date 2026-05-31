@@ -13,7 +13,7 @@ end
 
 -- ── Page registry ─────────────────────────────────────────────────────────────
 
-local PAGE_NAMES = { "Watch", "Core", "Device", "Network", "Health", "Sensors", "Weather", "Calendar", "Perf" }
+local PAGE_NAMES = { "Watch", "Core", "Device", "Network", "Health", "Sensors", "Weather", "Calendar", "Perf", "WFParser" }
 local NUM_PAGES  = #PAGE_NAMES
 
 -- ── Sensor enable state ───────────────────────────────────────────────────────
@@ -176,8 +176,59 @@ end
 
 local function pg9() return { "" } end  -- Perf: visuals handled by animation layer
 
+-- ── Watchface extraction state (page 10) ─────────────────────────────────────
+
+local wfSourcePath      = nil   -- last extracted .watch file path (dedup guard)
+local wfExtractDir      = nil   -- writable path where .watch was extracted
+local wfXml             = nil   -- raw watch.xml content string
+local wfFirstImagePath  = nil   -- absolute path to first image layer asset
+
+local function extractWatchface(watchPath)
+    if not watchPath or watchPath == false or watchPath == "" then return end
+    if watchPath == wfSourcePath then return end  -- already extracted this file
+    wfSourcePath = watchPath
+    local writableDir = cc.FileUtils:getInstance():getWritablePath()
+    local destDir = writableDir .. "wf_preview/"
+    axRemoveDir(destDir)
+    local ok = axUnzipToDir(watchPath, destDir)
+    if not ok then
+        print("[WFParser] axUnzipToDir failed for: " .. tostring(watchPath))
+        return
+    end
+    wfExtractDir = destDir
+    wfXml = cc.FileUtils:getInstance():getStringFromFile(destDir .. "watch.xml")
+    -- find path of first image-type layer (bottom-most)
+    wfFirstImagePath = nil
+    if wfXml and #wfXml > 0 then
+        -- match type="image" ... path="..." or path="..." ... type="image" in any order
+        local p = wfXml:match('<Layer[^>]+type%s*=%s*"image"[^>]+path%s*=%s*"([^"]+)"')
+               or wfXml:match('<Layer[^>]+path%s*=%s*"([^"]+)"[^>]+type%s*=%s*"image"')
+        if p then
+            wfFirstImagePath = destDir .. "images/" .. p
+        end
+    end
+    print(string.format("[WFParser] extracted to %s  xml=%d bytes  firstImg=%s",
+        destDir, wfXml and #wfXml or 0, tostring(wfFirstImagePath)))
+end
+
+local function pg10()
+    if not wfXml then return { "(no watchface loaded yet)", "Navigate to page 1 and set a watchface" } end
+    local lines = {}
+    -- show watch.xml attribute summary from <Watch ...> tag
+    local attrs = wfXml:match("<Watch(.-)>") or ""
+    for k, v in attrs:gmatch('%s(%w+)%s*=%s*"([^"]*)"') do
+        table.insert(lines, k .. ": " .. v)
+    end
+    local layerCount = 0
+    for _ in wfXml:gmatch("<Layer") do layerCount = layerCount + 1 end
+    table.insert(lines, "")
+    table.insert(lines, "Layers: " .. layerCount)
+    table.insert(lines, "FirstImg: " .. (wfFirstImagePath and wfFirstImagePath:match("[^/]+$") or "none"))
+    return lines
+end
+
 -- page 1 has no data builder; it renders its own dedicated nodes
-local pageBuilders = { nil, pg2, pg3, pg4, pg5, pg6, pg7, pg8, pg9 }
+local pageBuilders = { nil, pg2, pg3, pg4, pg5, pg6, pg7, pg8, pg9, pg10 }
 
 -- ── HSV → RGB ─────────────────────────────────────────────────────────────────
 
@@ -355,6 +406,26 @@ function WatchfaceScene:onEnter()
     self._fpsLabel:setVisible(false)
     self:addChild(self._fpsLabel, 5)
 
+    -- ── Page 10: WFParser — image layer + XML scrim ───────────────────────────
+    self._wfParserNode = cc.Node:create()
+    self:addChild(self._wfParserNode, 1)
+    self._wfParserNode:setVisible(false)
+
+    -- Extract on settings change (watchfacePath delivered via settings category)
+    WatchfaceBridge.onChange("settings", function(data)
+        local path = data and data.watchfacePath
+        if path and path ~= "" then
+            extractWatchface(path)
+            if self._page == 10 then self:renderPage() end
+        end
+    end)
+
+    -- Also extract immediately if watchface already set before scene loaded
+    local initPath = WF.settings and WF.settings.watchfacePath
+    if initPath and initPath ~= "" then
+        extractWatchface(initPath)
+    end
+
     self:renderPage()
 
     Bridge.sendToAndroid("wf_lua_ready", "")
@@ -463,6 +534,48 @@ function WatchfaceScene:changePage(delta)
     self:renderPage()
 end
 
+function WatchfaceScene:buildWfParserPage()
+    local node = self._wfParserNode
+    node:removeAllChildren()
+    local W, H   = self._W, self._H
+    local cx, cy = self._cx, self._cy
+    local sc     = self._sc
+
+    -- Bottom layer: first image from watchface (if available)
+    if wfFirstImagePath and cc.FileUtils:getInstance():isFileExist(wfFirstImagePath) then
+        local sprite = cc.Sprite:create(wfFirstImagePath)
+        if sprite then
+            local iW = sprite:getContentSize().width
+            local iH = sprite:getContentSize().height
+            if iW > 0 and iH > 0 then
+                local scale = math.min(W / iW, H / iH)
+                sprite:setScale(scale)
+            end
+            sprite:setPosition(cx, cy)
+            node:addChild(sprite, 0)
+        end
+    end
+
+    -- Scrim: dark semi-transparent overlay to make XML readable
+    local scrim = cc.LayerColor:create(cc.c4b(0, 0, 0, 180), W, H)
+    scrim:setPosition(0, 0)
+    node:addChild(scrim, 1)
+
+    -- XML content: full watch.xml text
+    local xmlText = wfXml or "(no watch.xml — set a watchface first)"
+    -- truncate for label; very long XML would overflow label buffer
+    if #xmlText > 4000 then xmlText = xmlText:sub(1, 4000) .. "\n…" end
+    local fontSize = math.max(8, math.floor(14 * sc))
+    local xmlLabel = cc.Label:createWithSystemFont(xmlText, "monospace", fontSize)
+    xmlLabel:setTextColor(cc.c4b(160, 230, 160, 255))
+    xmlLabel:setAnchorPoint(cc.p(0.5, 1.0))
+    -- leave room for title (top) and nav (bottom)
+    local topY  = H - math.floor(50 * sc)
+    xmlLabel:setPosition(cx, topY)
+    xmlLabel:setMaxLineWidth(W - math.floor(20 * sc))
+    node:addChild(xmlLabel, 2)
+end
+
 -- ── Render ────────────────────────────────────────────────────────────────────
 
 function WatchfaceScene:renderPage()
@@ -479,6 +592,7 @@ function WatchfaceScene:renderPage()
 
     -- ── Page 1: classic watchface ─────────────────────────────────────────────
     if p == 1 then
+        self._wfParserNode:setVisible(false)
         self._watchNode:setVisible(true)
         self._titleLabel:setVisible(false)
         self._contentLabel:setVisible(false)
@@ -504,7 +618,30 @@ function WatchfaceScene:renderPage()
         return
     end
 
+    -- ── Page 10: WFParser ────────────────────────────────────────────────────
+    if p == 10 then
+        self._watchNode:setVisible(false)
+        self._wfParserNode:setVisible(true)
+        self._titleLabel:setVisible(true)
+        self._contentLabel:setVisible(false)
+        self._prevBtn:setVisible(true)
+        self._nextBtn:setVisible(true)
+        self._pageInd:setVisible(true)
+        self._titleLabel:setString(string.format("[10/%d]  WFParser", NUM_PAGES))
+        self._pageInd:setString("10/"..NUM_PAGES)
+        local navY   = math.floor(40 * self._sc)
+        local spread = math.min(self._cx * 0.55, math.floor(200 * self._sc))
+        self._prevBtn:setPosition(self._cx - spread, navY)
+        self._nextBtn:setPosition(self._cx + spread, navY)
+        self._pageInd:setPosition(self._cx, navY)
+        self._titleLabel:setPosition(self._cx, self._H - math.floor(30 * self._sc))
+        self._toggleNode:removeAllChildren()
+        self:buildWfParserPage()
+        return
+    end
+
     -- ── Pages 2–9: data inspector ─────────────────────────────────────────────
+    self._wfParserNode:setVisible(false)
     self._watchNode:setVisible(false)
     self._titleLabel:setVisible(true)
     self._contentLabel:setVisible(true)
