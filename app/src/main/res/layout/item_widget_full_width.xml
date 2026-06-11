@@ -11,10 +11,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardCornerRadius="16dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@android:color/transparent">
 
-        <!-- Widget host fills the card -->
+        <!-- Widget host fills the card; the card only provides rounded-corner clipping
+             so the widget's own pixels are rounded with no surface colour behind it. -->
         <FrameLayout
             android:id="@+id/widgetContainer"
             android:layout_width="match_parent"
@@ -67,8 +68,10 @@
 
             <TextView
                 android:id="@+id/tvHeight"
-                android:layout_width="24dp"
+                android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:minWidth="24dp"
+                android:paddingHorizontal="4dp"
                 android:gravity="center"
                 android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textColor="@android:color/white" />

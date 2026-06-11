@@ -7,6 +7,7 @@
     <!-- ── Widget drawer ─────────────────────────────────────────────────────── -->
     <string name="widget_edit">Edit</string>
     <string name="widget_done">Done</string>
+    <string name="widget_height_auto">Auto</string>
     <string name="widget_add_card">Add card</string>
     <string name="widget_add_full_width">Full-width widget</string>
     <string name="widget_add_three_cell">3-slot row</string>

@@ -10,7 +10,8 @@ sealed class WidgetCardConfig {
     data class FullWidth(
         override val id: String = UUID.randomUUID().toString(),
         val appWidgetId: Int,
-        val heightUnits: Int = 2
+        // 0 = Auto (widget controls its own height); 1..4 = fixed fraction of card width.
+        val heightUnits: Int = 0
     ) : WidgetCardConfig()
 
     data class SingleCellRow(
@@ -55,7 +56,7 @@ sealed class WidgetCardConfig {
             "full_width" -> FullWidth(
                 id = obj.getString("id"),
                 appWidgetId = obj.getInt("appWidgetId"),
-                heightUnits = obj.optInt("heightUnits", 2).coerceIn(1, 4)
+                heightUnits = obj.optInt("heightUnits", 0).coerceIn(0, 4)
             )
             "single_cell" -> {
                 val arr = obj.getJSONArray("slots")

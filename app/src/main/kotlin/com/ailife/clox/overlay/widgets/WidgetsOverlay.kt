@@ -133,7 +133,7 @@ class WidgetsOverlay @JvmOverloads constructor(
         val slot = pendingSlot
         if (slot == null) {
             // Full-width card
-            val config = WidgetCardConfig.FullWidth(appWidgetId = widgetId, heightUnits = 2)
+            val config = WidgetCardConfig.FullWidth(appWidgetId = widgetId)  // defaults to Auto height
             adapter.addCard(config)
         } else {
             // Single-cell slot

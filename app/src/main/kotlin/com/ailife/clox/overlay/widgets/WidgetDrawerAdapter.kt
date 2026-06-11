@@ -231,19 +231,28 @@ class WidgetDrawerAdapter(
         private val tvHeight: TextView = view.findViewById(R.id.tvHeight)
 
         fun bind(config: WidgetCardConfig.FullWidth) {
+            // heightUnits 0 = Auto: the card wraps the widget's own measured height.
+            // 1..4 = fixed fraction of card width.
+            val auto = config.heightUnits <= 0
             // Store units as tag so a queued post() callback picks up the latest bound value
             widgetCard.tag = config.heightUnits
             widgetCard.post {
                 val units = widgetCard.tag as? Int ?: return@post
-                val cardWidth = widgetCard.width
-                if (cardWidth > 0) {
-                    val lp = widgetCard.layoutParams
-                    lp.height = cardWidth * units / 4
+                val lp = widgetCard.layoutParams
+                if (units <= 0) {
+                    lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
                     widgetCard.layoutParams = lp
+                } else {
+                    val cardWidth = widgetCard.width
+                    if (cardWidth > 0) {
+                        lp.height = cardWidth * units / 4
+                        widgetCard.layoutParams = lp
+                    }
                 }
             }
 
-            // Attach AppWidgetHostView
+            // Attach AppWidgetHostView. In auto mode the host wraps its content so the
+            // widget reports its natural height; in fixed mode it fills the sized card.
             val awm = AppWidgetManager.getInstance(itemView.context)
             val info = awm.getAppWidgetInfo(config.appWidgetId)
             if (info != null) {
@@ -252,7 +261,8 @@ class WidgetDrawerAdapter(
                 widgetContainer.removeAllViews()
                 widgetContainer.addView(hostView, ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+                    if (auto) ViewGroup.LayoutParams.WRAP_CONTENT
+                    else ViewGroup.LayoutParams.MATCH_PARENT
                 ))
             } else {
                 widgetContainer.removeAllViews()
@@ -270,10 +280,14 @@ class WidgetDrawerAdapter(
             heightControls.visibility = if (edit) View.VISIBLE else View.GONE
 
             if (edit) {
-                tvHeight.text = "${config.heightUnits}"
+                tvHeight.text = if (config.heightUnits <= 0)
+                    itemView.context.getString(R.string.widget_height_auto)
+                else
+                    "${config.heightUnits}"
                 btnDelete.setOnClickListener { onDeleteCard?.invoke(config.id) }
                 btnHeightDown.setOnClickListener {
-                    if (config.heightUnits > 1) onHeightChanged?.invoke(config.id, config.heightUnits - 1)
+                    // 0 = Auto is the lowest setting
+                    if (config.heightUnits > 0) onHeightChanged?.invoke(config.id, config.heightUnits - 1)
                 }
                 btnHeightUp.setOnClickListener {
                     if (config.heightUnits < 4) onHeightChanged?.invoke(config.id, config.heightUnits + 1)
