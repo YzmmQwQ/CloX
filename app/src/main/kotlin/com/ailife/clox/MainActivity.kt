@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             findViewById(R.id.overlayScrim),
             findViewById(R.id.blurLayer)
         ).also { ctrl ->
-            ctrl.onDismissed = { rebuildAppListLayer(); updateBackEnabled() }
+            ctrl.onDismissed = { updateBackEnabled() }
             ctrl.onShown = { updateBackEnabled() }
         }
 
@@ -901,13 +901,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                         when (direction) {
                             SwipeDirection.DOWN  -> { /* committed in onSwipeEnd */ }
                             SwipeDirection.RIGHT -> overlayController.startDrag(direction, screenW, screenH)
-                            SwipeDirection.LEFT  -> {
-                                val v = appListFragment?.view
-                                if (v != null) {
-                                    v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-                                    v.buildLayer()
-                                }
-                            }
+                            SwipeDirection.LEFT  -> { /* app list follows finger in onSwipeUpdate */ }
                             SwipeDirection.UP -> { /* disabled */ }
                         }
                 }
@@ -917,13 +911,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                         when (direction) {
                             SwipeDirection.DOWN, SwipeDirection.UP, SwipeDirection.RIGHT ->
                                 overlayController.startDrag(direction, screenW, screenH)
-                            SwipeDirection.LEFT -> {
-                                val v = appListFragment?.view
-                                if (v != null) {
-                                    v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-                                    v.buildLayer()
-                                }
-                            }
+                            SwipeDirection.LEFT -> { /* app list follows finger in onSwipeUpdate */ }
                         }
                     overlayController.hasActiveOverlay() && !overlayController.isDragging ->
                         overlayController.startCollapse(direction)
@@ -963,12 +951,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListOpen && direction == SwipeDirection.RIGHT -> {
                 val v = appListFragment?.view ?: return
                 v.translationX = dx.coerceAtLeast(0f)
-                v.invalidate()
+                refreshAppListTransparentRegion()
             }
             !appListOpen && direction == SwipeDirection.LEFT -> {
                 val v = appListFragment?.view ?: return
                 v.translationX = (screenW + dx).coerceIn(0f, screenW)
-                v.invalidate()
+                refreshAppListTransparentRegion()
             }
         }
     }
@@ -1021,11 +1009,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         when {
             appListOpen && direction == SwipeDirection.RIGHT ->
-                if (dx > screenW * 0.35f || vx > 700f) closeAppList()
+                if (dx > screenW * 0.35f || vx > 700f) closeAppList(vx)
                 else springAppList(0f)
 
             !appListOpen && direction == SwipeDirection.LEFT ->
-                if (-dx > screenW * 0.35f || -vx > 700f) openAppList()
+                if (-dx > screenW * 0.35f || -vx > 700f) openAppList(vx)
                 else springAppList(screenW)
 
             currentX > 0f && currentX < screenW ->
@@ -1035,52 +1023,46 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // ── App list ─────────────────────────────────────────────────────────────
 
-    private fun rebuildAppListLayer() {
-        val v = appListFragment?.view ?: return
-        v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-        v.buildLayer()
-    }
-
-    private fun openAppList() {
+    // velocity (px/s) is the finger's release velocity so the spring continues the fling.
+    // Don't reset translationX here — the spring starts from wherever the drag left the
+    // view, so the open continues smoothly from the finger instead of snapping off-screen.
+    private fun openAppList(velocity: Float = 0f) {
         appListOpen = true; gestureRoot.appListOpen = true
-        val v = appListFragment?.view
-        if (v != null) {
-            v.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
-            v.translationX = screenW
-            v.buildLayer()
-        }
-        springAppList(0f)
+        springAppList(0f, velocity)
         updateBackEnabled()
     }
 
-    private fun closeAppList() {
+    private fun closeAppList(velocity: Float = 0f) {
         appListOpen = false; gestureRoot.appListOpen = false
-        springAppList(screenW)
+        springAppList(screenW, velocity)
         updateBackEnabled()
     }
 
-    private fun springAppList(target: Float) {
+    private fun springAppList(target: Float, velocity: Float = 0f) {
         val v = appListFragment?.view ?: return
         appListSpring?.cancel()
         appListSpring = SpringAnimation(v, DynamicAnimation.TRANSLATION_X, target).apply {
             spring.stiffness = SpringForce.STIFFNESS_MEDIUM
             spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
-            if (target == 0f) {
-                addEndListener { _, _, _, _ ->
-                    v.post {
-                        v.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-                        v.buildLayer()
-                        if (v is android.view.ViewGroup) {
-                            for (i in 0 until v.childCount) {
-                                v.getChildAt(i).invalidate()
-                                v.getChildAt(i).requestLayout()
-                            }
-                        }
-                    }
-                }
-            }
+            if (velocity != 0f) setStartVelocity(velocity)
+            // Recompute the watchface's transparent region each frame so the sliding
+            // app list occludes it (see refreshAppListTransparentRegion).
+            addUpdateListener { _, _, _ -> refreshAppListTransparentRegion() }
         }
         appListSpring?.start()
+    }
+
+    // The watchface is an Axmol GLSurfaceView (default Z-order): it punches a transparent
+    // region through the window and SurfaceFlinger shows the GL layer through it
+    // regardless of the opaque pixels the app list draws on top. That region is only
+    // recomputed on a UI-thread layout/draw pass, but a translationX spring animates on
+    // the RenderThread and never triggers one — so the region goes stale (computed while
+    // the app list was off-screen) and the watchface keeps "showing through" the sliding
+    // app list. Forcing requestTransparentRegion recomputes it against the app list's
+    // live position so it correctly occludes the watchface during and after the slide.
+    private fun refreshAppListTransparentRegion() {
+        val v = appListFragment?.view ?: return
+        v.parent?.requestTransparentRegion(v)
     }
 
     // ── Back press ───────────────────────────────────────────────────────────
@@ -1102,8 +1084,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 when {
                     overlayController.hasActiveOverlay() ->
                         overlayController.setPredictiveProgress(p)
-                    appListOpen ->
+                    appListOpen -> {
                         appListFragment?.view?.translationX = (p * screenW).coerceIn(0f, screenW)
+                        refreshAppListTransparentRegion()
+                    }
                 }
             }
 

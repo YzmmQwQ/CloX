@@ -83,9 +83,6 @@ class AppListFragment : Fragment() {
         swapBackend()
         observeApps()
         observeNotifications()
-        root.post {
-            root.setLayerType(android.view.View.LAYER_TYPE_NONE, null)
-        }
     }
 
     override fun onDestroyView() {
