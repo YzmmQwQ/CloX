@@ -8,6 +8,8 @@ import android.hardware.camera2.CameraManager
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
+import android.provider.AlarmClock
+import android.provider.CalendarContract
 import android.provider.Settings
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -107,6 +109,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
 
         setupBrightness()
         setupBottomBar()
+        setupHeaderClicks()
         applyDynamicSizes()
 
         // Pad the inner scroll content for the nav bar so the bottom action bar is never hidden
@@ -257,6 +260,45 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val bgRes = if (solid) R.drawable.qs_btn_bg_solid else R.drawable.qs_btn_bg
         listOf(btnLauncherSettings, btnRecents, btnFlashlight, btnPower, btnSettings)
             .forEach { it.setBackgroundResource(bgRes) }
+    }
+
+    // Header taps: time → alarm app, date → calendar app, battery → battery settings
+    private fun setupHeaderClicks() {
+        qsTime.setOnClickListener {
+            try {
+                context.startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {}
+        }
+        qsDate.setOnClickListener {
+            try {
+                val uri = CalendarContract.CONTENT_URI.buildUpon()
+                    .appendPath("time")
+                    .appendPath(System.currentTimeMillis().toString())
+                    .build()
+                context.startActivity(Intent(Intent.ACTION_VIEW, uri)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_APP_CALENDAR)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (_: Exception) {}
+            }
+        }
+        val batteryClick = View.OnClickListener {
+            try {
+                context.startActivity(Intent(Intent.ACTION_POWER_USAGE_SUMMARY)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {
+                try {
+                    context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (_: Exception) {}
+            }
+        }
+        qsBatteryPct.setOnClickListener(batteryClick)
+        qsBatteryIcon.setOnClickListener(batteryClick)
     }
 
     private fun setupBottomBar() {
