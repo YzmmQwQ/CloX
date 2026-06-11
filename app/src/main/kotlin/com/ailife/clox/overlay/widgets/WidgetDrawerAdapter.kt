@@ -22,6 +22,12 @@ import com.ailife.clox.overlay.widgets.model.CellSlotConfig
 import com.ailife.clox.overlay.widgets.model.WidgetCardConfig
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class WidgetDrawerAdapter(
     private val hostManager: WidgetHostManager
@@ -29,6 +35,13 @@ class WidgetDrawerAdapter(
 
     private val cards = mutableListOf<WidgetCardConfig>()
     private var currentItems: List<Any> = emptyList()
+
+    // Background icon loading: slot icons (activity/pinned shortcut) are resolved off
+    // the main thread so the first drawer open doesn't stall on blocking PackageManager /
+    // LauncherApps IPC during the RecyclerView layout pass. A placeholder shows immediately
+    // and the real drawable is posted to the ImageView once loaded.
+    private val iconScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+    private val iconCache = HashMap<String, Drawable>()
 
     var editMode = false
         private set
@@ -123,6 +136,32 @@ class WidgetDrawerAdapter(
             addAll(cards)
             if (editMode) add(ADD_CARD)
             add(EDIT_PILL)
+        }
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        iconScope.coroutineContext.cancelChildren()
+    }
+
+    /**
+     * Resolve [target]'s icon off the main thread. Shows [placeholder] immediately, then posts
+     * the loaded drawable. Cache hits are applied synchronously. A per-key tag on the ImageView
+     * guards against RecyclerView recycling — a stale async result is dropped if the view has
+     * since been rebound to different content.
+     */
+    private fun loadIconAsync(target: ImageView, key: String, placeholder: Int, loader: () -> Drawable?) {
+        target.tag = key
+        val cached = iconCache[key]
+        if (cached != null) {
+            target.setImageDrawable(cached)
+            return
+        }
+        target.setImageResource(placeholder)
+        iconScope.launch {
+            val drawable = withContext(Dispatchers.IO) { loader() } ?: return@launch
+            iconCache[key] = drawable
+            if (target.tag == key) target.setImageDrawable(drawable)
         }
     }
 
@@ -343,14 +382,17 @@ class WidgetDrawerAdapter(
                     val icon = view.findViewById<ImageView>(R.id.slotIcon)
                     val label = view.findViewById<TextView>(R.id.slotLabel)
                     label.text = slot.label
-                    try {
-                        val pm = ctx.packageManager
-                        val ai = pm.getActivityInfo(
-                            android.content.ComponentName(slot.packageName, slot.activityName), 0
-                        )
-                        icon.setImageDrawable(ai.loadIcon(pm))
-                    } catch (_: PackageManager.NameNotFoundException) {
-                        icon.setImageResource(R.drawable.ic_open_in_new)
+                    loadIconAsync(icon, "activity:${slot.packageName}/${slot.activityName}",
+                        R.drawable.ic_open_in_new) {
+                        try {
+                            val pm = ctx.packageManager
+                            val ai = pm.getActivityInfo(
+                                android.content.ComponentName(slot.packageName, slot.activityName), 0
+                            )
+                            ai.loadIcon(pm)
+                        } catch (_: PackageManager.NameNotFoundException) {
+                            null
+                        }
                     }
                     view.setOnClickListener {
                         try {
@@ -369,12 +411,13 @@ class WidgetDrawerAdapter(
                     val icon  = view.findViewById<ImageView>(R.id.slotIcon)
                     val label = view.findViewById<TextView>(R.id.slotLabel)
                     label.text = slot.label
-                    // Try shortcut icon, fall back to app icon
-                    icon.setImageDrawable(
+                    // Try shortcut icon, fall back to app icon — resolved off the main thread
+                    loadIconAsync(icon, "shortcut:${slot.packageName}/${slot.shortcutId}",
+                        R.drawable.ic_open_in_new) {
                         loadShortcutIcon(ctx, slot.packageName, slot.shortcutId)
                             ?: try { ctx.packageManager.getApplicationIcon(slot.packageName) }
                                catch (_: Exception) { null }
-                    )
+                    }
                     view.setOnClickListener {
                         try {
                             ctx.getSystemService(LauncherApps::class.java)

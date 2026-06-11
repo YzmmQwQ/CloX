@@ -56,6 +56,34 @@ class WidgetsOverlay @JvmOverloads constructor(
         super.onAttachedToWindow()
         widgetHostManager.startListening()
         loadCards()
+        prewarmWidgets()
+    }
+
+    /**
+     * Eagerly create the AppWidgetHostViews for every configured widget while the drawer is
+     * still hidden. createView() inflates the widget's RemoteViews on the main thread and is
+     * the dominant cost of the first slide; doing it here (spread one-per-frame so no single
+     * frame janks) means getOrCreateView() is a cache hit by the time the user opens the drawer.
+     */
+    private fun prewarmWidgets() {
+        val awm = android.appwidget.AppWidgetManager.getInstance(context)
+        val ids = buildList {
+            adapter.getCards().forEach { card ->
+                when (card) {
+                    is WidgetCardConfig.FullWidth -> add(card.appWidgetId)
+                    is WidgetCardConfig.SingleCellRow -> card.slots.forEach { slot ->
+                        if (slot is CellSlotConfig.AppWidget) add(slot.appWidgetId)
+                    }
+                    else -> {}
+                }
+            }
+        }
+        ids.forEach { id ->
+            post {
+                val info = awm.getAppWidgetInfo(id) ?: return@post
+                widgetHostManager.getOrCreateView(context, id, info)
+            }
+        }
     }
 
     override fun onDetachedFromWindow() {
