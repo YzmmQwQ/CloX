@@ -59,11 +59,19 @@ class WidgetsOverlay @JvmOverloads constructor(
         prewarmWidgets()
     }
 
+    private var warmedUp = false
+
     /**
-     * Eagerly create the AppWidgetHostViews for every configured widget while the drawer is
-     * still hidden. createView() inflates the widget's RemoteViews on the main thread and is
-     * the dominant cost of the first slide; doing it here (spread one-per-frame so no single
-     * frame janks) means getOrCreateView() is a cache hit by the time the user opens the drawer.
+     * Pre-build the drawer's contents while it is still hidden so the first slide doesn't pay
+     * for it. createView() inflates each widget's RemoteViews and the RecyclerView's first
+     * layout inflates every item ViewHolder + measures the widgets — all of which otherwise
+     * happen synchronously in the frame the panel becomes visible.
+     *
+     * Step 1 (spread one-per-frame): create the AppWidgetHostViews so getOrCreateView() is a
+     * cache hit later.
+     * Step 2 (once, after a short settle delay): force-measure/layout the overlay at full
+     * screen size so the RecyclerView inflates and binds its ViewHolders and measures the host
+     * views into its recycler pool. The real layout pass on slide then reuses these views.
      */
     private fun prewarmWidgets() {
         val awm = android.appwidget.AppWidgetManager.getInstance(context)
@@ -84,6 +92,23 @@ class WidgetsOverlay @JvmOverloads constructor(
                 widgetHostManager.getOrCreateView(context, id, info)
             }
         }
+        // Defer the layout warm so it lands after the launcher's own startup work settles.
+        postDelayed({ warmUpLayout() }, 400)
+    }
+
+    /** Force one measure+layout pass while GONE so the RecyclerView pre-inflates its items. */
+    private fun warmUpLayout() {
+        if (warmedUp || visibility == VISIBLE || width > 0) return
+        val dm = resources.displayMetrics
+        val w = dm.widthPixels
+        val h = dm.heightPixels
+        if (w <= 0 || h <= 0) return
+        measure(
+            MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
+        )
+        layout(0, 0, w, h)
+        warmedUp = true
     }
 
     override fun onDetachedFromWindow() {
