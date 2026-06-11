@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <set xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Elevate the entering fragment above the (still-present) exiting one for the
+         duration of the slide; otherwise it draws behind and only peeks through the
+         strip the exiting fragment vacates. Eases back to 0 so nothing is retained. -->
+    <objectAnimator
+        android:duration="300"
+        android:propertyName="translationZ"
+        android:valueFrom="8dp"
+        android:valueTo="0dp" />
     <objectAnimator
         android:duration="300"
         android:interpolator="@android:interpolator/fast_out_slow_in"

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Seeked frame-by-frame during the predictive back gesture drag. -->
 <set xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Keep the leaving (top-of-stack) fragment elevated above the re-entering one so it
+         slides out on top instead of being drawn behind it. -->
+    <objectAnimator
+        android:duration="300"
+        android:propertyName="translationZ"
+        android:valueFrom="8dp"
+        android:valueTo="8dp" />
     <objectAnimator
         android:duration="300"
         android:interpolator="@android:interpolator/fast_out_slow_in"
