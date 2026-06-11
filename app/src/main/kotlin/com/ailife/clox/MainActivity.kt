@@ -101,8 +101,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // RTOS mode — all logic in RtosActivityDelegate
     private lateinit var rtosDelegate: RtosActivityDelegate
 
-    private val screenW get() = resources.displayMetrics.widthPixels.toFloat()
-    private val screenH get() = resources.displayMetrics.heightPixels.toFloat()
+    // Real display bounds INCLUDING the system bar areas. resources.displayMetrics
+    // subtracts the navigation bar even when it is hidden, which would make launch
+    // animations stop short of the bar's region. We want the true full-screen size.
+    private val screenW get() = realScreenSize().x.toFloat()
+    private val screenH get() = realScreenSize().y.toFloat()
+
+    private fun realScreenSize(): android.graphics.Point {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val b = windowManager.currentWindowMetrics.bounds
+            return android.graphics.Point(b.width(), b.height())
+        }
+        val dm = android.util.DisplayMetrics()
+        @Suppress("DEPRECATION")
+        windowManager.defaultDisplay.getRealMetrics(dm)
+        return android.graphics.Point(dm.widthPixels, dm.heightPixels)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -397,6 +411,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         contract.sendEndPosition(target)
     }
 
+    /**
+     * item.icon is the downsampled (96dp) list icon — it looks blocky when scaled up to the
+     * hero size. Resolve a fresh full-resolution icon for launch/return animations.
+     */
+    private fun resolveHeroIcon(item: AppItem): android.graphics.drawable.Drawable = try {
+        com.ailife.clox.icon.IconResolver.resolve(this, item.packageName, item.activityName)
+    } catch (_: Exception) {
+        item.icon
+    }
+
     private fun playReturnAnimation(item: AppItem, iconBounds: Rect) {
         val type = com.ailife.clox.applist.AppListPrefs.closeAnimType(this)
         if (type == com.ailife.clox.applist.AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND) {
@@ -429,7 +453,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.addView(scrim, FrameLayout.LayoutParams(sw, sh))
 
         val iv = ImageView(this).apply {
-            setImageDrawable(item.icon)
+            setImageDrawable(resolveHeroIcon(item))
+            (drawable as? android.graphics.drawable.BitmapDrawable)?.isFilterBitmap = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             pivotX = heroSize / 2f; pivotY = heroSize / 2f
             isClickable = false; isFocusable = false
@@ -509,7 +534,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val startCx = sw / 2f; val startCy = sh / 2f
 
         val iv = ImageView(this).apply {
-            setImageDrawable(item.icon)
+            setImageDrawable(resolveHeroIcon(item))
+            (drawable as? android.graphics.drawable.BitmapDrawable)?.isFilterBitmap = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             pivotX = iconW / 2f; pivotY = iconH / 2f
             scaleX = heroScale; scaleY = heroScale
@@ -566,14 +592,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun playLaunchAnimation(item: AppItem, iconBounds: Rect, onAnimEnd: () -> Unit) {
         val type = com.ailife.clox.applist.AppListPrefs.openAnimType(this)
         val speed = com.ailife.clox.applist.AppListPrefs.animSpeed(this)
+        val heroIcon = resolveHeroIcon(item)
         if (type == com.ailife.clox.applist.AppListPrefs.OPEN_ANIM_WINDOW_EXPAND) {
-            playWindowExpandAnimation(item, iconBounds, onAnimEnd, speed)
+            playWindowExpandAnimation(item, heroIcon, iconBounds, onAnimEnd, speed)
         } else {
-            playIconZoomAnimation(item, iconBounds, onAnimEnd, speed)
+            playIconZoomAnimation(item, heroIcon, iconBounds, onAnimEnd, speed)
         }
     }
 
-    private fun playIconZoomAnimation(item: AppItem, iconBounds: Rect, onAnimEnd: () -> Unit, speed: Float) {
+    private fun playIconZoomAnimation(item: AppItem, heroIcon: android.graphics.drawable.Drawable, iconBounds: Rect, onAnimEnd: () -> Unit, speed: Float) {
         val sw = screenW.toInt(); val sh = screenH.toInt()
         val rootLoc = IntArray(2)
         gestureRoot.getLocationOnScreen(rootLoc)
@@ -590,7 +617,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.addView(scrim, FrameLayout.LayoutParams(sw, sh))
 
         val iv = ImageView(this).apply {
-            setImageDrawable(item.icon)
+            setImageDrawable(heroIcon)
+            (drawable as? android.graphics.drawable.BitmapDrawable)?.isFilterBitmap = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             pivotX = iconW / 2f; pivotY = iconH / 2f
             isClickable = false; isFocusable = false
@@ -642,7 +670,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
     }
 
-    private fun playWindowExpandAnimation(item: AppItem, iconBounds: Rect, onAnimEnd: () -> Unit, speed: Float) {
+    private fun playWindowExpandAnimation(item: AppItem, heroIcon: android.graphics.drawable.Drawable, iconBounds: Rect, onAnimEnd: () -> Unit, speed: Float) {
         val sw = screenW; val sh = screenH
         val rootLoc = IntArray(2)
         gestureRoot.getLocationOnScreen(rootLoc)
@@ -667,7 +695,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         // Icon zooms and translates (same as icon_zoom animation)
         val iv = ImageView(this).apply {
-            setImageDrawable(item.icon)
+            setImageDrawable(heroIcon)
+            (drawable as? android.graphics.drawable.BitmapDrawable)?.isFilterBitmap = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             pivotX = iconW / 2f; pivotY = iconH / 2f
             isClickable = false; isFocusable = false
@@ -802,7 +831,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val startOffsetY = -ny * dist * 0.35f
 
         val iv = ImageView(this).apply {
-            setImageDrawable(item.icon)
+            setImageDrawable(resolveHeroIcon(item))
+            (drawable as? android.graphics.drawable.BitmapDrawable)?.isFilterBitmap = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             translationX = startOffsetX
             translationY = startOffsetY
