@@ -237,9 +237,8 @@ class AppListSettingsFragment : BaseSettingsFragment() {
             val ok = runCatching {
                 val bmp = BitmapFactory.decodeFile(path) ?: return@runCatching false
                 val wm = android.app.WallpaperManager.getInstance(ctx)
-                val flags = android.app.WallpaperManager.FLAG_SYSTEM or
-                    android.app.WallpaperManager.FLAG_LOCK
-                wm.setBitmap(bmp, null, true, flags)
+                // Home/desktop wallpaper only — do NOT touch the lock screen (FLAG_SYSTEM, not FLAG_LOCK).
+                wm.setBitmap(bmp, null, true, android.app.WallpaperManager.FLAG_SYSTEM)
                 true
             }.getOrElse {
                 android.util.Log.e("CloX/BgImage", "Failed to set device wallpaper: $it")
