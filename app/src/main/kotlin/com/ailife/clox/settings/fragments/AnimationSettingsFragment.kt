@@ -108,6 +108,61 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             }
         }
 
+        // ── Gesture return reveal ────────────────────────────────────────────
+        val switchGestureReturn = view.findViewById<MaterialSwitch>(R.id.switchGestureReturn)
+        val rowGestureReturnType = view.findViewById<View>(R.id.rowGestureReturnType)
+        val tvGestureReturnType = view.findViewById<TextView>(R.id.tvGestureReturnType)
+        val groupGestureReturnSpeed = view.findViewById<View>(R.id.groupGestureReturnSpeed)
+        val tvGestureReturnSpeed = view.findViewById<TextView>(R.id.tvGestureReturnSpeed)
+        val sliderGestureReturnSpeed = view.findViewById<Slider>(R.id.sliderGestureReturnSpeed)
+        val tvGestureReturnDelay = view.findViewById<TextView>(R.id.tvGestureReturnDelay)
+        val sliderGestureReturnDelay = view.findViewById<Slider>(R.id.sliderGestureReturnDelay)
+        val gestureReturnEntries = resources.getStringArray(R.array.gesture_return_anim_entries)
+        val gestureReturnValues  = resources.getStringArray(R.array.gesture_return_anim_values)
+
+        val gestureReturnOn = appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_RETURN_ENABLED, false)
+        switchGestureReturn.isChecked = gestureReturnOn
+        rowGestureReturnType.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
+        groupGestureReturnSpeed.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
+
+        switchGestureReturn.setOnCheckedChangeListener { _, checked ->
+            appListPrefs.edit().putBoolean(AppListPrefs.KEY_GESTURE_RETURN_ENABLED, checked).apply()
+            rowGestureReturnType.visibility = if (checked) View.VISIBLE else View.GONE
+            groupGestureReturnSpeed.visibility = if (checked) View.VISIBLE else View.GONE
+        }
+
+        val grSpeedVal = appListPrefs.getFloat(AppListPrefs.KEY_GESTURE_RETURN_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
+        sliderGestureReturnSpeed.value = grSpeedVal
+        tvGestureReturnSpeed.text = String.format("%.1f×", grSpeedVal)
+        sliderGestureReturnSpeed.addOnChangeListener { _, value, _ ->
+            tvGestureReturnSpeed.text = String.format("%.1f×", value)
+            appListPrefs.edit().putFloat(AppListPrefs.KEY_GESTURE_RETURN_SPEED, value).apply()
+        }
+
+        val grDelayVal = appListPrefs.getInt(AppListPrefs.KEY_GESTURE_RETURN_DELAY, 0).coerceIn(0, 500).toFloat()
+        sliderGestureReturnDelay.value = grDelayVal
+        tvGestureReturnDelay.text = "${grDelayVal.toInt()} ms"
+        sliderGestureReturnDelay.addOnChangeListener { _, value, _ ->
+            tvGestureReturnDelay.text = "${value.toInt()} ms"
+            appListPrefs.edit().putInt(AppListPrefs.KEY_GESTURE_RETURN_DELAY, value.toInt()).apply()
+        }
+
+        fun refreshGestureReturnType() {
+            val v = appListPrefs.getString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, AppListPrefs.GESTURE_RETURN_FADE)
+                ?: AppListPrefs.GESTURE_RETURN_FADE
+            tvGestureReturnType.text = labelFor(gestureReturnEntries, gestureReturnValues, v)
+        }
+        refreshGestureReturnType()
+
+        rowGestureReturnType.setOnClickListener {
+            val current = appListPrefs.getString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, AppListPrefs.GESTURE_RETURN_FADE)
+                ?: AppListPrefs.GESTURE_RETURN_FADE
+            showListPicker(getString(R.string.anim_setting_gesture_return_type_title), gestureReturnEntries, gestureReturnValues, current) { v, _ ->
+                appListPrefs.edit().putString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, v).apply()
+                refreshGestureReturnType()
+            }
+        }
+
         // ── Open animation speed slider ──────────────────────────────────────
         val speedVal = appListPrefs.getFloat(AppListPrefs.KEY_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
         sliderAnimSpeed.value = speedVal

@@ -372,6 +372,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 }
                 pendingGestureFollowOn -> {
                     pendingGestureFollowOn = false
+                    // Optional: reveal the open app list over its background image on gesture return.
+                    if (appListOpen && com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this))
+                        gestureRoot.post { playGestureReturnReveal(bounds) }
                     if (returnEnabled) gestureRoot.post { playGestureFollowOnAnimation(item, bounds) }
                     else lastLaunchIconView = null
                 }
@@ -861,6 +864,66 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         springX.start(); springY.start()
     }
 
+    // Reveal the open app list (over its current background image) on gesture return.
+    // A veil painted with the app list's background covers the screen, then either fades
+    // out or opens a growing circular hole — revealing the identical real background plus
+    // the app icons underneath, so the icons appear to fade / circle in over a static background.
+    private fun playGestureReturnReveal(iconBounds: Rect) {
+        val listView = appListFragment?.view ?: return
+        val bg = listView.background?.constantState?.newDrawable()?.mutate()
+            ?: android.graphics.drawable.ColorDrawable(
+                com.google.android.material.color.MaterialColors.getColor(
+                    gestureRoot, com.google.android.material.R.attr.colorSurface,
+                    android.graphics.Color.BLACK
+                )
+            )
+        val speed = com.ailife.clox.applist.AppListPrefs.gestureReturnSpeed(this)
+        val delay = com.ailife.clox.applist.AppListPrefs.gestureReturnDelay(this).toLong()
+        val circle = com.ailife.clox.applist.AppListPrefs.gestureReturnAnim(this) ==
+            com.ailife.clox.applist.AppListPrefs.GESTURE_RETURN_CIRCLE
+
+        val veil = GestureRevealView(this).apply { bgDrawable = bg }
+        gestureRoot.addView(veil, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+
+        // Wait for layout so width/height are known, then hold for the start delay before animating.
+        veil.post {
+            if (isFinishing || isDestroyed) { gestureRoot.removeView(veil); return@post }
+            // Circle opens from the returning app's icon centre (in veil-local coords).
+            val rootLoc = IntArray(2)
+            veil.getLocationOnScreen(rootLoc)
+            val cx = (iconBounds.centerX() - rootLoc[0]).toFloat().coerceIn(0f, veil.width.toFloat())
+            val cy = (iconBounds.centerY() - rootLoc[1]).toFloat().coerceIn(0f, veil.height.toFloat())
+            veil.holeCx = cx
+            veil.holeCy = cy
+            // Radius must reach the farthest corner so the reveal fully covers the screen.
+            val maxRadius = maxOf(
+                Math.hypot(cx.toDouble(), cy.toDouble()),
+                Math.hypot((veil.width - cx).toDouble(), cy.toDouble()),
+                Math.hypot(cx.toDouble(), (veil.height - cy).toDouble()),
+                Math.hypot((veil.width - cx).toDouble(), (veil.height - cy).toDouble())
+            ).toFloat()
+            veil.postDelayed({
+                if (isFinishing || isDestroyed) { gestureRoot.removeView(veil); return@postDelayed }
+                android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+                    duration = (350L / speed).toLong()
+                    interpolator = DecelerateInterpolator(1.5f)
+                    if (circle) {
+                        addUpdateListener { va -> veil.setHoleRadius((va.animatedValue as Float) * maxRadius) }
+                    } else {
+                        addUpdateListener { va -> veil.alpha = 1f - (va.animatedValue as Float) }
+                    }
+                    addListener(object : android.animation.AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(animation: android.animation.Animator) {
+                            gestureRoot.removeView(veil)
+                        }
+                    })
+                    start()
+                }
+            }, delay)
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -1254,6 +1317,36 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             if (bounds.isEmpty) return
             paint.color = cardColor
             canvas.drawRoundRect(bounds, radius, radius, paint)
+        }
+    }
+
+    /**
+     * Full-screen veil painted with the app list's background image. For "circle open" it
+     * punches a growing transparent circular hole (PorterDuff CLEAR on an offscreen layer)
+     * so the real app list underneath is revealed from the centre outward. For "fade in"
+     * the hole is unused and the view's alpha is animated instead.
+     */
+    private class GestureRevealView(ctx: android.content.Context) : android.view.View(ctx) {
+        var bgDrawable: android.graphics.drawable.Drawable? = null
+        var holeCx = 0f
+        var holeCy = 0f
+        private var holeRadius = 0f
+
+        private val holePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
+        }
+
+        fun setHoleRadius(r: Float) {
+            holeRadius = r
+            invalidate()
+        }
+
+        override fun onDraw(canvas: android.graphics.Canvas) {
+            val w = width.toFloat(); val h = height.toFloat()
+            val save = canvas.saveLayer(0f, 0f, w, h, null)
+            bgDrawable?.apply { setBounds(0, 0, width, height); draw(canvas) }
+            if (holeRadius > 0f) canvas.drawCircle(holeCx, holeCy, holeRadius, holePaint)
+            canvas.restoreToCount(save)
         }
     }
 

@@ -235,6 +235,30 @@ object AppListPrefs {
     fun closeAnimDelay(ctx: Context) =
         get(ctx).getInt(KEY_CLOSE_ANIM_DELAY, 50).coerceIn(0, 500)
 
+    // ── Gesture return reveal ────────────────────────────────────────────────
+    // When returning to the open app list via the system back gesture, reveal
+    // the app list over its current background image with an animation.
+
+    const val KEY_GESTURE_RETURN_ENABLED = "gesture_return_enabled"
+    const val KEY_GESTURE_RETURN_ANIM    = "gesture_return_anim"
+    const val GESTURE_RETURN_FADE        = "fade"     // app list fades in
+    const val GESTURE_RETURN_CIRCLE      = "circle"   // circular reveal from center
+
+    fun gestureReturnEnabled(ctx: Context) =
+        get(ctx).getBoolean(KEY_GESTURE_RETURN_ENABLED, false)
+
+    fun gestureReturnAnim(ctx: Context) =
+        get(ctx).getString(KEY_GESTURE_RETURN_ANIM, GESTURE_RETURN_FADE) ?: GESTURE_RETURN_FADE
+
+    const val KEY_GESTURE_RETURN_SPEED = "gesture_return_speed"   // Float, 0.5..2.0
+    const val KEY_GESTURE_RETURN_DELAY = "gesture_return_delay"   // Int ms, 0..500
+
+    fun gestureReturnSpeed(ctx: Context) =
+        get(ctx).getFloat(KEY_GESTURE_RETURN_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
+
+    fun gestureReturnDelay(ctx: Context) =
+        get(ctx).getInt(KEY_GESTURE_RETURN_DELAY, 0).coerceIn(0, 500)
+
     // ── Notification badges ──────────────────────────────────────────────────
 
     const val KEY_NOTIF_BADGE       = "notif_badge"

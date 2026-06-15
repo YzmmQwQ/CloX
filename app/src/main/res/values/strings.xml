@@ -809,6 +809,20 @@
         <item>icon_zoom</item>
         <item>window_expand</item>
     </string-array>
+    <string name="anim_setting_gesture_return_category">Gesture return</string>
+    <string name="anim_setting_gesture_return_title">Animate app list on return</string>
+    <string name="anim_setting_gesture_return_summary">When you swipe back from an app to the open app list, reveal it over the current background with an animation</string>
+    <string name="anim_setting_gesture_return_type_title">Reveal style</string>
+    <string name="anim_setting_gesture_return_speed_title">Reveal speed</string>
+    <string name="anim_setting_gesture_return_delay_title">Start delay</string>
+    <string-array name="gesture_return_anim_entries">
+        <item>Fade in</item>
+        <item>Circle open</item>
+    </string-array>
+    <string-array name="gesture_return_anim_values">
+        <item>fade</item>
+        <item>circle</item>
+    </string-array>
 
     <!-- ── Common dialog buttons ────────────────────────────────────────── -->
     <string name="btn_open_settings">Open Settings</string>
