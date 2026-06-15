@@ -25,6 +25,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
     private lateinit var tvWallpaperDim: TextView
     private lateinit var sliderWallpaperDim: Slider
     private lateinit var btnBgImageClear: MaterialButton
+    private lateinit var btnBgSetWallpaper: MaterialButton
     private lateinit var tvSortCustomHint: TextView
     private lateinit var tvAppListStyle: TextView
     private lateinit var tvAppListSort: TextView
@@ -68,6 +69,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         tvWallpaperDim   = view.findViewById(R.id.tvWallpaperDim)
         sliderWallpaperDim = view.findViewById(R.id.sliderWallpaperDim)
         btnBgImageClear  = view.findViewById(R.id.btnBgImageClear)
+        btnBgSetWallpaper = view.findViewById(R.id.btnBgSetWallpaper)
         tvSortCustomHint = view.findViewById(R.id.tvSortCustomHint)
         tvAppListStyle   = view.findViewById(R.id.tvAppListStyle)
         tvAppListSort    = view.findViewById(R.id.tvAppListSort)
@@ -160,6 +162,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
             AppListPrefs.saveBgImagePath(requireContext(), null)
             updateBgState()
         }
+        btnBgSetWallpaper.setOnClickListener { setDeviceWallpaperToMatch() }
         val dimVal = appListPrefs.getInt("wallpaper_dim", 0).toFloat()
         sliderWallpaperDim.value = dimVal.coerceIn(0f, 90f)
         tvWallpaperDim.text = "${dimVal.toInt()}"
@@ -218,7 +221,40 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         val hasImage = AppListPrefs.bgImagePath(requireContext()) != null
         tvBgImageStatus.text = if (hasImage) getString(R.string.app_list_bg_set) else getString(R.string.app_list_bg_not_set)
         btnBgImageClear.visibility = if (hasImage) View.VISIBLE else View.GONE
+        btnBgSetWallpaper.visibility = if (hasImage) View.VISIBLE else View.GONE
         rowWallpaperDim.visibility  = if (hasImage) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * Sets the device (home-screen) wallpaper to the same image used for the app list
+     * background. This hides the brief wallpaper flash that the system shows during the
+     * back gesture when returning to the launcher.
+     */
+    private fun setDeviceWallpaperToMatch() {
+        val ctx = requireContext()
+        val path = AppListPrefs.bgImagePath(ctx) ?: return
+        Thread {
+            val ok = runCatching {
+                val bmp = BitmapFactory.decodeFile(path) ?: return@runCatching false
+                val wm = android.app.WallpaperManager.getInstance(ctx)
+                val flags = android.app.WallpaperManager.FLAG_SYSTEM or
+                    android.app.WallpaperManager.FLAG_LOCK
+                wm.setBitmap(bmp, null, true, flags)
+                true
+            }.getOrElse {
+                android.util.Log.e("CloX/BgImage", "Failed to set device wallpaper: $it")
+                false
+            }
+            view?.post {
+                if (!isAdded) return@post
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    if (ok) R.string.applist_setting_set_wallpaper_done
+                    else R.string.applist_setting_set_wallpaper_failed,
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }.start()
     }
 
     private fun updateStyleCardVisibility(view: View, style: String) {

@@ -193,6 +193,16 @@
                         android:valueFrom="0" android:valueTo="90" android:stepSize="1" />
                 </LinearLayout>
 
+                <!-- Set device wallpaper to match (visible when image set).
+                     Hides the brief wallpaper flash during the back gesture. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBgSetWallpaper"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/applist_setting_set_wallpaper_btn"
+                    android:visibility="gone" />
+
                 <!-- Clear button (visible when image set) -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnBgImageClear"
