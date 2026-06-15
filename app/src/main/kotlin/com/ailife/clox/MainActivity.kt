@@ -2,6 +2,7 @@ package com.ailife.clox
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.util.Log
 import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Build
@@ -87,6 +88,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var appListSpring: SpringAnimation? = null
     private var pendingGestureFollowOn = false
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
+    private var lastClosingPkg: String? = null   // package of the app currently returning to us
 
     // ── Launch animation interruptible state ─────────────────────────────────
     private var activeLaunchAnim: android.animation.ValueAnimator? = null
@@ -139,6 +141,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 lastLaunchedItem = item
                 lastLaunchBounds = bounds
                 lastLaunchIconView = java.lang.ref.WeakReference(iconView)
+                lastClosingPkg = item.packageName
+                Log.d("CloX/Return", "onAppLaunched pkg=${item.packageName} bounds=$bounds")
                 if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
                     playLaunchAnimation(item, bounds, launch)
                 } else {
@@ -160,6 +164,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 lastLaunchedItem = item
                 lastLaunchBounds = bounds
                 lastLaunchIconView = java.lang.ref.WeakReference(iconView)
+                lastClosingPkg = item.packageName
+                Log.d("CloX/Return", "onAppLaunched pkg=${item.packageName} bounds=$bounds")
                 if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
                     playLaunchAnimation(item, bounds, launch)
                 } else {
@@ -271,7 +277,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // and the system animates the closing app window to it. Must be processed before
         // removing the EXTRA_GESTURE_CONTRACT from the intent (fromIntent does that).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            GestureNavContract.fromIntent(intent)?.let { handleGestureContract(it) }
+            val hadContractExtra = intent.hasExtra(GestureNavContract.EXTRA_GESTURE_CONTRACT)
+            val contract = GestureNavContract.fromIntent(intent)
+            Log.d("CloX/Return", "onNewIntent action=${intent.action} cats=${intent.categories} " +
+                "hasContractExtra=$hadContractExtra contract=${contract != null}")
+            contract?.let { handleGestureContract(it) }
+        } else {
+            Log.d("CloX/Return", "onNewIntent action=${intent.action} cats=${intent.categories} (pre-R)")
         }
 
         // Only handle HOME button presses for our own dismiss logic
@@ -361,28 +373,52 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
         appLaunchedFromList = false
 
+        // Back / hardware-Home returns send no gesture-nav contract. When enabled, detect the
+        // app we're actually returning from via usage stats and animate ITS icon. Gated on
+        // having a pending return (we launched from the list) so we never animate spuriously.
+        if (!pendingGestureFollowOn && lastLaunchedItem != null &&
+            com.ailife.clox.applist.AppListPrefs.detectClosingApp(this)) {
+            val pkg = com.ailife.clox.util.ClosingAppDetector.lastForegroundPackage(this)
+            Log.d("CloX/Return", "onResume usage-detect pkg=$pkg")
+            if (pkg != null && pkg != packageName) resolveAndApplyClosingApp(pkg)
+        }
+
         val item = lastLaunchedItem; val bounds = lastLaunchBounds
+        Log.d("CloX/Return", "onResume item=${item?.packageName} bounds=$bounds " +
+            "pendingGesture=$pendingGestureFollowOn appListOpen=$appListOpen " +
+            "detect=${com.ailife.clox.applist.AppListPrefs.detectClosingApp(this)} " +
+            "gestureReturn=${com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this)}")
         if (item != null && bounds != null) {
             lastLaunchedItem = null; lastLaunchBounds = null
             suppressSystemTransition()
             val returnEnabled = com.ailife.clox.applist.AppListPrefs.returnAnimEnabled(this)
+            // Reveal the open app list over its background image (fade / circle from the icon).
+            // "Only on gesture" restricts it to the swipe-home gesture (contract) return.
+            val onlyOnGesture = com.ailife.clox.applist.AppListPrefs.gestureReturnOnlyGesture(this)
+            val playReveal = appListOpen &&
+                com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this) &&
+                (!onlyOnGesture || pendingGestureFollowOn)
             when {
                 Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q -> {
+                    Log.d("CloX/Return", "branch=pre-Q playReveal=$playReveal returnEnabled=$returnEnabled bounds=$bounds")
+                    if (playReveal) gestureRoot.post { playGestureReturnReveal(bounds) }
                     if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds) }
                 }
                 pendingGestureFollowOn -> {
                     pendingGestureFollowOn = false
-                    // Optional: reveal the open app list over its background image on gesture return.
-                    if (appListOpen && com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this))
-                        gestureRoot.post { playGestureReturnReveal(bounds) }
+                    Log.d("CloX/Return", "branch=gestureFollowOn playReveal=$playReveal returnEnabled=$returnEnabled bounds=$bounds")
+                    if (playReveal) gestureRoot.post { playGestureReturnReveal(bounds) }
                     if (returnEnabled) gestureRoot.post { playGestureFollowOnAnimation(item, bounds) }
                     else lastLaunchIconView = null
                 }
                 else -> {
+                    Log.d("CloX/Return", "branch=else(11+,no-contract) playReveal=$playReveal returnEnabled=$returnEnabled bounds=$bounds")
+                    if (playReveal) gestureRoot.post { playGestureReturnReveal(bounds) }
                     if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds) }
                 }
             }
         } else {
+            Log.d("CloX/Return", "onResume no pending return (item/bounds null) — no animation")
             pendingGestureFollowOn = false
             lastLaunchIconView = null
         }
@@ -400,18 +436,63 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
     private fun handleGestureContract(contract: GestureNavContract) {
-        val item = lastLaunchedItem; val bounds = lastLaunchBounds
-        val hasIcon = bounds != null && item != null &&
-            item.packageName == contract.componentName.packageName
-        val target = if (hasIcon) {
+        val pkg = contract.componentName.packageName
+        if (resolveAndApplyClosingApp(pkg)) {
             pendingGestureFollowOn = true
-            RectF(bounds!!)
+            Log.d("CloX/Return", "contract pkg=$pkg target=$lastLaunchBounds")
+            contract.sendEndPosition(RectF(lastLaunchBounds!!))
         } else {
-            // Fallback: collapse to screen center so the animation doesn't fly off-screen
+            // Unknown app (no launchable component) — collapse to centre, no custom anim.
+            lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
+            pendingGestureFollowOn = false
+            Log.d("CloX/Return", "contract pkg=$pkg unresolved -> centre")
             val cx = screenW / 2f; val cy = screenH / 2f
-            RectF(cx, cy, cx, cy)
+            contract.sendEndPosition(RectF(cx, cy, cx, cy))
         }
-        contract.sendEndPosition(target)
+    }
+
+    /**
+     * Points lastLaunched{Item,Bounds,IconView} at the app [pkg] that is actually closing back
+     * to the launcher (may differ from the app we launched — chained starts, app switching).
+     * Prefers the live on-screen icon in the open app list; falls back to the launch icon when
+     * it's the same app, else to screen centre. Returns false only if [pkg] has no launchable
+     * component and isn't in our list (caller then collapses to centre with no animation).
+     */
+    private fun resolveAndApplyClosingApp(pkg: String): Boolean {
+        val launchedItem = lastLaunchedItem
+        val launchedBounds = lastLaunchBounds
+        val wasLaunchedApp = launchedItem != null && launchedItem.packageName == pkg
+
+        val hit = if (appListOpen) appListFragment?.returnIconHit(pkg) else null
+
+        val closingItem = hit?.item
+            ?: launchedItem?.takeIf { wasLaunchedApp }
+            ?: buildClosingAppItem(pkg)
+            ?: return false
+
+        val liveBounds = hit?.bounds ?: launchedBounds?.takeIf { wasLaunchedApp }
+        val liveIconView = hit?.iconView ?: (if (wasLaunchedApp) lastLaunchIconView?.get() else null)
+        val cx = (screenW / 2f).toInt(); val cy = (screenH / 2f).toInt()
+
+        lastLaunchedItem = closingItem
+        lastLaunchBounds = liveBounds ?: Rect(cx, cy, cx, cy)
+        lastLaunchIconView = liveIconView?.let { java.lang.ref.WeakReference(it) }
+        lastClosingPkg = pkg
+        Log.d("CloX/Return", "resolve pkg=$pkg wasLaunched=$wasLaunchedApp hitItem=${hit?.item != null} " +
+            "hitBounds=${hit?.bounds} appListOpen=$appListOpen -> bounds=$lastLaunchBounds")
+        return true
+    }
+
+    /** Builds a minimal AppItem for an app that is closing but isn't in the launcher list. */
+    private fun buildClosingAppItem(pkg: String): AppItem? {
+        // Resolve the icon via the launcher activity (matches how the app list renders it).
+        val activity = packageManager.getLaunchIntentForPackage(pkg)?.component?.className ?: return null
+        return try {
+            val icon = com.ailife.clox.icon.IconResolver.resolve(this, pkg, activity)
+            AppItem(packageName = pkg, activityName = activity, label = pkg, icon = icon)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**
@@ -869,6 +950,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // out or opens a growing circular hole — revealing the identical real background plus
     // the app icons underneath, so the icons appear to fade / circle in over a static background.
     private fun playGestureReturnReveal(iconBounds: Rect) {
+        Log.d("CloX/Return", "playGestureReturnReveal iconBounds=$iconBounds center=(${iconBounds.centerX()},${iconBounds.centerY()})")
         val listView = appListFragment?.view ?: return
         val bg = listView.background?.constantState?.newDrawable()?.mutate()
             ?: android.graphics.drawable.ColorDrawable(
@@ -889,13 +971,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Wait for layout so width/height are known, then hold for the start delay before animating.
         veil.post {
             if (isFinishing || isDestroyed) { gestureRoot.removeView(veil); return@post }
+            // Re-resolve the closing app's icon position NOW (after the launcher is laid out and
+            // visible). At contract time the RecyclerView rows were detached/occluded, so the
+            // bounds were unknown; the list is on-screen by the time this post runs.
+            val freshBounds = lastClosingPkg
+                ?.let { if (appListOpen) appListFragment?.returnIconHit(it) else null }
+                ?.bounds
+            val originBounds = freshBounds ?: iconBounds
+            Log.d("CloX/Return", "reveal origin: fresh=$freshBounds fallback=$iconBounds -> $originBounds")
             // Circle opens from the returning app's icon centre (in veil-local coords).
             val rootLoc = IntArray(2)
             veil.getLocationOnScreen(rootLoc)
-            val cx = (iconBounds.centerX() - rootLoc[0]).toFloat().coerceIn(0f, veil.width.toFloat())
-            val cy = (iconBounds.centerY() - rootLoc[1]).toFloat().coerceIn(0f, veil.height.toFloat())
+            val cx = (originBounds.centerX() - rootLoc[0]).toFloat().coerceIn(0f, veil.width.toFloat())
+            val cy = (originBounds.centerY() - rootLoc[1]).toFloat().coerceIn(0f, veil.height.toFloat())
             veil.holeCx = cx
             veil.holeCy = cy
+            Log.d("CloX/Return", "reveal veil=${veil.width}x${veil.height} rootLoc=(${rootLoc[0]},${rootLoc[1]}) hole=($cx,$cy) circle=$circle")
             // Radius must reach the farthest corner so the reveal fully covers the screen.
             val maxRadius = maxOf(
                 Math.hypot(cx.toDouble(), cy.toDouble()),

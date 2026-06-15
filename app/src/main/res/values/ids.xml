@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tag key: stores an app-list item view's package name so the launcher can
+         locate the icon of the app that is currently closing (return animation). -->
+    <item name="app_item_package" type="id" />
+</resources>

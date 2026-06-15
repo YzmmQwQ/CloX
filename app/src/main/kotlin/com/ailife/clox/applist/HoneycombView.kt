@@ -141,12 +141,17 @@ class HoneycombView @JvmOverloads constructor(
             contentMaxY = contentMaxY.coerceAtLeast(y + iconPx)
 
             val iv = ImageView(context).apply {
+                id = com.ailife.clox.R.id.appIcon
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setImageDrawable(CircularIconCache.obtain(item.icon, iconPx, "${item.packageName}/${item.activityName}"))
                 isLongClickable = false
             }
             val badge = NotificationBadge.makeView(context)
-            val cell = FrameLayout(context).apply { isLongClickable = false }
+            val cell = FrameLayout(context).apply {
+                isLongClickable = false
+                // Tag with package so the launcher can locate this app's icon for the return animation.
+                setTag(com.ailife.clox.R.id.app_item_package, item.packageName)
+            }
             cell.addView(iv, FrameLayout.LayoutParams(iconPx, iconPx))
             cell.addView(badge, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,

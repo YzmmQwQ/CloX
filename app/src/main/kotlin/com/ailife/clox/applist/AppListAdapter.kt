@@ -195,7 +195,11 @@ class AppListAdapter(
         VH(LayoutInflater.from(parent.context).inflate(itemLayoutRes, parent, false))
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        binder(holder.itemView, mutableItems[position])
+        val item = mutableItems[position]
+        // Tag the row with its package so the launcher can locate the closing app's icon
+        // for the return animation (see MainActivity.handleGestureContract).
+        holder.itemView.setTag(com.ailife.clox.R.id.app_item_package, item.packageName)
+        binder(holder.itemView, item)
         holder.itemView.visibility = if (position == dragHiddenPosition) View.INVISIBLE else View.VISIBLE
         if (hasDragHandle && dragHandleId != 0) {
             holder.itemView.findViewById<View>(dragHandleId)?.visibility =

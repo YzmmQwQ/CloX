@@ -250,6 +250,13 @@ object AppListPrefs {
     fun gestureReturnAnim(ctx: Context) =
         get(ctx).getString(KEY_GESTURE_RETURN_ANIM, GESTURE_RETURN_FADE) ?: GESTURE_RETURN_FADE
 
+    // When true, the reveal plays only on the system swipe-home gesture (which carries a
+    // GestureNavContract); when false it also plays on Back / hardware-Home-key returns.
+    const val KEY_GESTURE_RETURN_ONLY_GESTURE = "gesture_return_only_gesture"
+
+    fun gestureReturnOnlyGesture(ctx: Context) =
+        get(ctx).getBoolean(KEY_GESTURE_RETURN_ONLY_GESTURE, true)
+
     const val KEY_GESTURE_RETURN_SPEED = "gesture_return_speed"   // Float, 0.5..2.0
     const val KEY_GESTURE_RETURN_DELAY = "gesture_return_delay"   // Int ms, 0..500
 
@@ -258,6 +265,17 @@ object AppListPrefs {
 
     fun gestureReturnDelay(ctx: Context) =
         get(ctx).getInt(KEY_GESTURE_RETURN_DELAY, 0).coerceIn(0, 500)
+
+    // Detect the app actually closing back to the launcher (via usage stats) so the return
+    // animation uses its icon — covers back/home-key returns and chained app starts.
+    // Requires the PACKAGE_USAGE_STATS special-access permission (granted from Settings).
+    const val KEY_DETECT_CLOSING_APP = "detect_closing_app"
+
+    fun detectClosingApp(ctx: Context) =
+        get(ctx).getBoolean(KEY_DETECT_CLOSING_APP, false)
+
+    fun setDetectClosingApp(ctx: Context, value: Boolean) =
+        get(ctx).edit().putBoolean(KEY_DETECT_CLOSING_APP, value).apply()
 
     // ── Notification badges ──────────────────────────────────────────────────
 

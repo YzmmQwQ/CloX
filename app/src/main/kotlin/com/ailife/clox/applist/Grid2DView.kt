@@ -161,8 +161,11 @@ class Grid2DView @JvmOverloads constructor(
                 intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
             ).getDrawable(0)
             clipChildren = false; clipToPadding = false
+            // Tag with package so the launcher can locate this app's icon for the return animation.
+            setTag(com.ailife.clox.R.id.app_item_package, item.packageName)
         }
         cell.addView(ImageView(context).apply {
+            id = com.ailife.clox.R.id.appIcon
             scaleType = ImageView.ScaleType.FIT_CENTER
             setImageDrawable(ScaledIconCache.obtain(item.icon, iconPx, "${item.packageName}/${item.activityName}"))
         }, FrameLayout.LayoutParams(iconPx, iconPx))

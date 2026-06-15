@@ -15,6 +15,10 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
     private val appListPrefs by lazy { namedPrefs(AppListPrefs.PREFS_NAME) }
 
+    private lateinit var switchDetectClosing: MaterialSwitch
+    private var pendingEnableDetect = false
+    private var suppressDetectListener = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -112,6 +116,8 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         val switchGestureReturn = view.findViewById<MaterialSwitch>(R.id.switchGestureReturn)
         val rowGestureReturnType = view.findViewById<View>(R.id.rowGestureReturnType)
         val tvGestureReturnType = view.findViewById<TextView>(R.id.tvGestureReturnType)
+        val rowGestureReturnOnly = view.findViewById<View>(R.id.rowGestureReturnOnly)
+        val switchGestureReturnOnly = view.findViewById<MaterialSwitch>(R.id.switchGestureReturnOnly)
         val groupGestureReturnSpeed = view.findViewById<View>(R.id.groupGestureReturnSpeed)
         val tvGestureReturnSpeed = view.findViewById<TextView>(R.id.tvGestureReturnSpeed)
         val sliderGestureReturnSpeed = view.findViewById<Slider>(R.id.sliderGestureReturnSpeed)
@@ -123,12 +129,20 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         val gestureReturnOn = appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_RETURN_ENABLED, false)
         switchGestureReturn.isChecked = gestureReturnOn
         rowGestureReturnType.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
+        rowGestureReturnOnly.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
         groupGestureReturnSpeed.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
 
         switchGestureReturn.setOnCheckedChangeListener { _, checked ->
             appListPrefs.edit().putBoolean(AppListPrefs.KEY_GESTURE_RETURN_ENABLED, checked).apply()
             rowGestureReturnType.visibility = if (checked) View.VISIBLE else View.GONE
+            rowGestureReturnOnly.visibility = if (checked) View.VISIBLE else View.GONE
             groupGestureReturnSpeed.visibility = if (checked) View.VISIBLE else View.GONE
+        }
+
+        switchGestureReturnOnly.isChecked =
+            appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_RETURN_ONLY_GESTURE, true)
+        switchGestureReturnOnly.setOnCheckedChangeListener { _, checked ->
+            appListPrefs.edit().putBoolean(AppListPrefs.KEY_GESTURE_RETURN_ONLY_GESTURE, checked).apply()
         }
 
         val grSpeedVal = appListPrefs.getFloat(AppListPrefs.KEY_GESTURE_RETURN_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
@@ -145,6 +159,28 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         sliderGestureReturnDelay.addOnChangeListener { _, value, _ ->
             tvGestureReturnDelay.text = "${value.toInt()} ms"
             appListPrefs.edit().putInt(AppListPrefs.KEY_GESTURE_RETURN_DELAY, value.toInt()).apply()
+        }
+
+        // ── Detect closing app (needs usage-access permission) ───────────────
+        switchDetectClosing = view.findViewById(R.id.switchDetectClosing)
+        syncDetectClosingSwitch()
+        switchDetectClosing.setOnCheckedChangeListener { _, checked ->
+            if (suppressDetectListener) return@setOnCheckedChangeListener
+            val ctx = requireContext()
+            if (checked) {
+                if (com.ailife.clox.util.ClosingAppDetector.hasUsagePermission(ctx)) {
+                    AppListPrefs.setDetectClosingApp(ctx, true)
+                } else {
+                    // Need permission first — revert the switch, remember intent, and prompt.
+                    pendingEnableDetect = true
+                    suppressDetectListener = true
+                    switchDetectClosing.isChecked = false
+                    suppressDetectListener = false
+                    promptUsageAccess()
+                }
+            } else {
+                AppListPrefs.setDetectClosingApp(ctx, false)
+            }
         }
 
         fun refreshGestureReturnType() {
@@ -193,5 +229,41 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             tvCloseAnimDelay.text = "${value.toInt()} ms"
             appListPrefs.edit().putInt(AppListPrefs.KEY_CLOSE_ANIM_DELAY, value.toInt()).apply()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Returning from the system "Usage access" screen — apply a pending enable and
+        // reconcile the switch with the actual permission state.
+        if (::switchDetectClosing.isInitialized) {
+            val ctx = requireContext()
+            if (pendingEnableDetect && com.ailife.clox.util.ClosingAppDetector.hasUsagePermission(ctx)) {
+                pendingEnableDetect = false
+                AppListPrefs.setDetectClosingApp(ctx, true)
+            }
+            syncDetectClosingSwitch()
+        }
+    }
+
+    /** Reflects pref + permission in the switch; clears the pref if permission was revoked. */
+    private fun syncDetectClosingSwitch() {
+        val ctx = requireContext()
+        val granted = com.ailife.clox.util.ClosingAppDetector.hasUsagePermission(ctx)
+        if (!granted && AppListPrefs.detectClosingApp(ctx)) AppListPrefs.setDetectClosingApp(ctx, false)
+        val on = AppListPrefs.detectClosingApp(ctx) && granted
+        suppressDetectListener = true
+        switchDetectClosing.isChecked = on
+        suppressDetectListener = false
+    }
+
+    private fun promptUsageAccess() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.anim_setting_detect_closing_perm_title)
+            .setMessage(R.string.anim_setting_detect_closing_perm_msg)
+            .setPositiveButton(R.string.anim_setting_detect_closing_grant) { _, _ ->
+                com.ailife.clox.util.ClosingAppDetector.openUsageAccessSettings(requireContext())
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> pendingEnableDetect = false }
+            .show()
     }
 }

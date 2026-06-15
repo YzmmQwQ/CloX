@@ -818,6 +818,13 @@
     <string name="anim_setting_gesture_return_type_title">Reveal style</string>
     <string name="anim_setting_gesture_return_speed_title">Reveal speed</string>
     <string name="anim_setting_gesture_return_delay_title">Start delay</string>
+    <string name="anim_setting_detect_closing_title">Detect closing app</string>
+    <string name="anim_setting_detect_closing_summary">Animate the icon of the app you actually return from — Back/Home key and chained app starts. Needs usage access.</string>
+    <string name="anim_setting_detect_closing_perm_title">Usage access needed</string>
+    <string name="anim_setting_detect_closing_perm_msg">To detect which app you are returning from, CloX needs the \"Usage access\" permission. Grant it on the next screen, then return here.</string>
+    <string name="anim_setting_detect_closing_grant">Open settings</string>
+    <string name="anim_setting_gesture_return_only_title">Only on swipe-home gesture</string>
+    <string name="anim_setting_gesture_return_only_summary">Off: also play on Back and hardware-Home returns</string>
     <string-array name="gesture_return_anim_entries">
         <item>Fade in</item>
         <item>Circle open</item>

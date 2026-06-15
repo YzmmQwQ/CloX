@@ -126,6 +126,43 @@ class AppListFragment : Fragment() {
         }.start()
     }
 
+    // ── Return-animation icon lookup ─────────────────────────────────────────
+
+    /** A located icon for the app that is currently closing back to the launcher. */
+    class ReturnIconHit(val item: AppItem, val iconView: View?, val bounds: Rect?)
+
+    /**
+     * Finds the app-list entry for [pkg] so the launcher can animate the *actual*
+     * closing app's icon (which may differ from the last app we launched). Returns the
+     * matching [AppItem] when it exists in the list, plus the on-screen icon view and
+     * bounds when that row is currently visible (null bounds → row not on screen).
+     */
+    fun returnIconHit(pkg: String): ReturnIconHit? {
+        val item = lastBoundItems?.firstOrNull { it.packageName == pkg } ?: return null
+        val row = if (::root.isInitialized) findVisibleRow(root, pkg) else null
+        val iconView = row?.findViewById<View>(R.id.appIcon) ?: row
+        // Use getLocationOnScreen (layout position) rather than getGlobalVisibleRect — the latter
+        // returns false while the launcher window is still occluded by the closing app.
+        val bounds = iconView?.takeIf { it.isAttachedToWindow && it.width > 0 && it.height > 0 }?.let {
+            val loc = IntArray(2)
+            it.getLocationOnScreen(loc)
+            Rect(loc[0], loc[1], loc[0] + it.width, loc[1] + it.height)
+        }
+        Log.d("CloX/Return", "returnIconHit pkg=$pkg rowFound=${row != null} bounds=$bounds")
+        return ReturnIconHit(item, iconView.takeIf { bounds != null }, bounds)
+    }
+
+    private fun findVisibleRow(v: View, pkg: String): View? {
+        if (v.visibility != View.VISIBLE) return null
+        if (v.getTag(R.id.app_item_package) == pkg) return v
+        if (v is ViewGroup) {
+            for (i in 0 until v.childCount) {
+                findVisibleRow(v.getChildAt(i), pkg)?.let { return it }
+            }
+        }
+        return null
+    }
+
     private fun applySurfaceBackground() {
         val ta = requireContext().obtainStyledAttributes(
             intArrayOf(com.google.android.material.R.attr.colorSurface)
