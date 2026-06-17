@@ -83,6 +83,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var appListFragment: AppListFragment? = null
     private var appListOpen = false
     private var appLaunchedFromList = false
+    // True when the launcher was fully hidden (onStop) since its last onResume — i.e. another app
+    // actually covered it. Distinguishes a return-from-app HOME delivery (was stopped) from a
+    // genuine in-launcher HOME press (never stopped). Based on onStop, not onPause, because some
+    // ROMs do a quick onPause/onResume on an in-launcher HOME press without ever stopping us.
+    private var wasStoppedSinceResume = false
     private var lastLaunchedItem: AppItem? = null
     private var lastLaunchBounds: Rect? = null
     private var appListSpring: SpringAnimation? = null
@@ -297,7 +302,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return
         }
 
-        if (appLaunchedFromList) {
+        // If the launcher was NOT in the foreground when this HOME arrived, then an app was
+        // actually on top and this is a return-to-launcher — not an in-launcher Home press.
+        // Consume it (don't dismiss layers / screen off), regardless of how the app was started
+        // (app list, recents, notification, chained start). onResume will flip isInForeground.
+        Log.d("CloX/Return", "HOME press wasStopped=$wasStoppedSinceResume appListOpen=$appListOpen " +
+            "appLaunchedFromList=$appLaunchedFromList hasOverlay=${overlayController.hasActiveOverlay()}")
+        if (wasStoppedSinceResume || appLaunchedFromList) {
             appLaunchedFromList = false
             return
         }
@@ -352,6 +363,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onResume() {
         super.onResume()
+        // Capture BEFORE resetting: did an app actually cover us since the last resume? Used to
+        // drive usage-stats closing-app detection on Back/Home returns even when we have no
+        // remembered launched item.
+        val cameFromBackground = wasStoppedSinceResume
+        Log.d("CloX/Return", "onResume (reset wasStopped=false, cameFromBackground=$cameFromBackground)")
+        wasStoppedSinceResume = false
         CocosManager.onResume()
         aodManager.onResume()
         if (overlayController.isNotificationActive()) notifications.onPanelOpened()
@@ -374,12 +391,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         appLaunchedFromList = false
 
         // Back / hardware-Home returns send no gesture-nav contract. When enabled, detect the
-        // app we're actually returning from via usage stats and animate ITS icon. Gated on
-        // having a pending return (we launched from the list) so we never animate spuriously.
-        if (!pendingGestureFollowOn && lastLaunchedItem != null &&
+        // app we're actually returning from via usage stats and animate ITS icon — even when we
+        // have no remembered launched item (Back from a recents/notification app, or after the
+        // item was consumed). Gated on actually having returned from a foreground app
+        // (cameFromBackground) so a plain screen-wake never animates spuriously.
+        if (!pendingGestureFollowOn && (lastLaunchedItem != null || cameFromBackground) &&
             com.ailife.clox.applist.AppListPrefs.detectClosingApp(this)) {
             val pkg = com.ailife.clox.util.ClosingAppDetector.lastForegroundPackage(this)
-            Log.d("CloX/Return", "onResume usage-detect pkg=$pkg")
+            Log.d("CloX/Return", "onResume usage-detect pkg=$pkg cameFromBackground=$cameFromBackground item=${lastLaunchedItem?.packageName}")
             if (pkg != null && pkg != packageName) resolveAndApplyClosingApp(pkg)
         }
 
@@ -1039,6 +1058,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         CocosManager.onPause()
         aodManager.onPause()
         suppressSystemTransition()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Mark "an app covered us" ONLY if the screen was still on AND it wasn't the keyguard
+        // covering us. A stop from the screen turning off, or from the lockscreen appearing on a
+        // screen on/off cycle, must not count — otherwise waking the screen would be treated as a
+        // return from the last app and replay its close animation (and mis-handle the next HOME).
+        val screenOn = (getSystemService(POWER_SERVICE) as android.os.PowerManager).isInteractive
+        val keyguardLocked = (getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager).isKeyguardLocked
+        wasStoppedSinceResume = screenOn && !keyguardLocked
+        Log.d("CloX/Return", "onStop screenOn=$screenOn keyguardLocked=$keyguardLocked -> wasStopped=$wasStoppedSinceResume")
     }
 
     override fun onDestroy() {

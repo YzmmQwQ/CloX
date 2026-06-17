@@ -59,24 +59,42 @@ object ClosingAppDetector {
      * or null if usage access is missing / nothing qualifies. Uses max `lastTimeUsed`, which
      * is robust to how long the user spent inside the app.
      */
-    fun lastForegroundPackage(ctx: Context, windowMs: Long = 2 * 60 * 60 * 1000L): String? {
+    fun lastForegroundPackage(ctx: Context, windowMs: Long = 12_000L, maxAgeMs: Long = 2_000L): String? {
         if (!hasUsagePermission(ctx)) return null
         return try {
             val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val end = System.currentTimeMillis()
-            val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, end - windowMs, end)
-                ?: return null
+            // Use real-time foreground/background EVENTS over a short window, not aggregated
+            // lastTimeUsed. The short window makes this recency-bounded: returning from an app
+            // produces a fresh transition event for it, while a plain screen-wake (no app on top
+            // recently) produces no qualifying event → null → no stale/spurious animation.
+            val events = usm.queryEvents(end - windowMs, end)
             val self = ctx.packageName
-            var best: String? = null
+            val e = android.app.usage.UsageEvents.Event()
+            var bestPkg: String? = null
             var bestTime = 0L
-            for (s in stats) {
-                if (s.packageName == self) continue
-                if (s.lastTimeUsed > bestTime) {
-                    bestTime = s.lastTimeUsed
-                    best = s.packageName
+            while (events.getNextEvent(e)) {
+                @Suppress("DEPRECATION")
+                val isTransition = e.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND ||
+                    e.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND
+                if (!isTransition) continue
+                val pkg = e.packageName ?: continue
+                if (pkg == self) continue
+                if (e.timeStamp >= bestTime) {
+                    bestTime = e.timeStamp
+                    bestPkg = pkg
                 }
             }
-            best
+            val age = if (bestPkg != null) end - bestTime else -1
+            // A genuine return-from-app has a brand-new transition event (tens of ms). A stale
+            // one (seconds old) means the last app left a while ago and this resume is really a
+            // screen/keyguard cycle — don't animate.
+            if (bestPkg != null && age > maxAgeMs) {
+                Log.d(TAG, "lastForegroundPackage -> $bestPkg but age=${age}ms > ${maxAgeMs}ms, ignoring")
+                return null
+            }
+            Log.d(TAG, "lastForegroundPackage -> $bestPkg (age=${age}ms)")
+            bestPkg
         } catch (e: Exception) {
             Log.w(TAG, "lastForegroundPackage query failed", e)
             null
