@@ -143,10 +143,16 @@ class AppListFragment : Fragment() {
         val iconView = row?.findViewById<View>(R.id.appIcon) ?: row
         // Use getLocationOnScreen (layout position) rather than getGlobalVisibleRect — the latter
         // returns false while the launcher window is still occluded by the closing app.
-        val bounds = iconView?.takeIf { it.isAttachedToWindow && it.width > 0 && it.height > 0 }?.let {
+        // getLocationOnScreen returns the scaled top-left, but width/height are the unscaled
+        // layout size, so multiply by the cumulative scale up the hierarchy (the 3D effect scales
+        // rows/cells) to get the icon's true on-screen rect — and thus its real visual centre.
+        val bounds = iconView?.takeIf { it.isAttachedToWindow && it.width > 0 && it.height > 0 }?.let { v ->
+            var sx = 1f; var sy = 1f
+            var p: View? = v
+            while (p != null) { sx *= p.scaleX; sy *= p.scaleY; p = p.parent as? View }
             val loc = IntArray(2)
-            it.getLocationOnScreen(loc)
-            Rect(loc[0], loc[1], loc[0] + it.width, loc[1] + it.height)
+            v.getLocationOnScreen(loc)
+            Rect(loc[0], loc[1], loc[0] + (v.width * sx).toInt(), loc[1] + (v.height * sy).toInt())
         }
         Log.d("CloX/Return", "returnIconHit pkg=$pkg rowFound=${row != null} bounds=$bounds")
         return ReturnIconHit(item, iconView.takeIf { bounds != null }, bounds)
