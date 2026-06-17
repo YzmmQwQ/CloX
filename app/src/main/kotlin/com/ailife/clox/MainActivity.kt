@@ -937,9 +937,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             spring.dampingRatio = SpringForce.DAMPING_RATIO_NO_BOUNCY
         }
         springX.addEndListener { _, _, _, _ ->
+            // Cross-fade: reveal the real icon underneath FIRST (the hero is now settled over it),
+            // then fade the hero out on top. Restoring it only after the fade caused a brief dip
+            // then a pop — the flash.
+            realIcon?.visibility = View.VISIBLE
             iv.animate().alpha(0f).setDuration((120L / speed).toLong()).withEndAction {
                 gestureRoot.removeView(iv)
-                realIcon?.visibility = View.VISIBLE
             }.start()
         }
         springX.start(); springY.start()
