@@ -235,7 +235,16 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         val path = AppListPrefs.bgImagePath(ctx) ?: return
         Thread {
             val ok = runCatching {
-                val bmp = BitmapFactory.decodeFile(path) ?: return@runCatching false
+                val src = BitmapFactory.decodeFile(path) ?: return@runCatching false
+                // Bake in the same "Darken background" dim the app list applies, so the device
+                // wallpaper matches exactly (the app list overlays a black scrim at this alpha).
+                val dim = AppListPrefs.wallpaperDim(ctx)
+                val dimAlpha = (dim / 100f * 255).toInt().coerceIn(0, 255)
+                val bmp = if (dimAlpha > 0) {
+                    val out = src.copy(Bitmap.Config.ARGB_8888, true)
+                    android.graphics.Canvas(out).drawColor(android.graphics.Color.argb(dimAlpha, 0, 0, 0))
+                    out
+                } else src
                 val wm = android.app.WallpaperManager.getInstance(ctx)
                 // Home/desktop wallpaper only — do NOT touch the lock screen (FLAG_SYSTEM, not FLAG_LOCK).
                 wm.setBitmap(bmp, null, true, android.app.WallpaperManager.FLAG_SYSTEM)
