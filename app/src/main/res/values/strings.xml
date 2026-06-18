@@ -377,6 +377,8 @@
     <string name="pref_long_press_title">Long-press action</string>
     <string name="pref_home_press_screen_off_title">Home button turns off screen</string>
     <string name="pref_home_press_screen_off_summary">When already on the watchface, pressing Home turns the screen off (requires Accessibility permission)</string>
+    <string name="pref_reset_watchface_on_screen_title">Reset to watchface on screen on</string>
+    <string name="pref_reset_watchface_on_screen_summary">When the screen turns off, collapse the app list and panels so the watchface shows next time the screen turns on</string>
 
     <!-- Button mapping -->
     <string name="pref_btn_map_category">Hardware Button Mapping</string>

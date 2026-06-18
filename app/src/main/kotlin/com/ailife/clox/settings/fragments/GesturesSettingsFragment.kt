@@ -62,6 +62,13 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             prefs.edit().putBoolean("home_press_screen_off", checked).apply()
         }
 
+        // Reset to watchface when the screen turns on
+        val switchResetWatchface = view.findViewById<MaterialSwitch>(R.id.switchResetWatchface)
+        switchResetWatchface.isChecked = prefs.getBoolean("reset_watchface_on_screen_on", false)
+        switchResetWatchface.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean("reset_watchface_on_screen_on", checked).apply()
+        }
+
         // Button mapping
         val tvRecord = view.findViewById<TextView>(R.id.tvBtnRecord)
         val tvSingle = view.findViewById<TextView>(R.id.tvBtnSingle)

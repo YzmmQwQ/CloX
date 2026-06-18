@@ -95,6 +95,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private var lastClosingPkg: String? = null   // package of the app currently returning to us
 
+    // When enabled, collapse the launcher back to the bare watchface as the screen turns off, so
+    // it's already showing the watchface the next time the screen comes on.
+    private val screenOffReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF &&
+                PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
+                    .getBoolean("reset_watchface_on_screen_on", false)) {
+                resetToWatchface()
+            }
+        }
+    }
+
     // ── Launch animation interruptible state ─────────────────────────────────
     private var activeLaunchAnim: android.animation.ValueAnimator? = null
     private var activeLaunchT: Float = 0f
@@ -268,6 +280,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 }
             }
         }
+
+        registerReceiver(screenOffReceiver, android.content.IntentFilter(Intent.ACTION_SCREEN_OFF))
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -1078,6 +1092,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         stateManager.detach()
         aodManager.stop()
         GestureLockManager.onLockChanged = null
+        runCatching { unregisterReceiver(screenOffReceiver) }
+    }
+
+    /** Collapse all launcher layers (app list, overlays, context menu) back to the watchface. */
+    private fun resetToWatchface() {
+        if (RtosManager.isActive) return
+        AppContextMenu.dismissCurrent()
+        if (overlayController.hasActiveOverlay()) overlayController.dismissActive()
+        if (appListOpen) {
+            appListOpen = false; gestureRoot.appListOpen = false
+            appListSpring?.cancel()
+            appListFragment?.view?.translationX = screenW
+            refreshAppListTransparentRegion()
+            updateBackEnabled()
+        }
+        Log.d("CloX/Return", "resetToWatchface (screen off)")
     }
 
     // ── Gesture setup ────────────────────────────────────────────────────────
