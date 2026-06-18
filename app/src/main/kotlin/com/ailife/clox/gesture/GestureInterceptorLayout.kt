@@ -169,6 +169,13 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private fun scheduleLongPressGesture() {
         cancelLongPressGesture()
         if (longPressListener == null || rtosActive) return
+        // Only arm the watchface long-press when the touch STARTS on the bare watchface. If it
+        // starts over the app list or an overlay, don't schedule it — otherwise closing that via
+        // the system home gesture (which consumes the move events, so no drag is detected to
+        // cancel the timer) lets the pending long-press fire on the now-visible watchface.
+        if (appListOpen) return
+        if (qsOverlayActive?.invoke() == true || notificationOverlayActive?.invoke() == true ||
+            widgetOverlayActive?.invoke() == true) return
         val r = Runnable {
             if (suppressLongPress) return@Runnable   // RTOS Mode 2: no haptic or action
             val overlayOpen = qsOverlayActive?.invoke() == true ||
