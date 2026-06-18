@@ -51,6 +51,7 @@ class HoneycombView @JvmOverloads constructor(
     private var velTracker: VelocityTracker? = null
     private var lastX = 0f; private var lastY = 0f
     private var scrollX_ = 0f; private var scrollY_ = 0f
+    private var hasBuiltOnce = false   // center only on first build; preserve scroll on rebuilds
     private var maxScrollX = 0f; private var maxScrollY = 0f
     private var isPanning = false
     private var pendingItems: List<AppItem> = emptyList()
@@ -171,9 +172,17 @@ class HoneycombView @JvmOverloads constructor(
         }
         workingItems.addAll(items)
 
+        val prevX = scrollX_; val prevY = scrollY_
         maxScrollX = (contentMaxX - width).toFloat().coerceAtLeast(0f)
         maxScrollY = (contentMaxY - height).toFloat().coerceAtLeast(0f)
-        scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
+        // Center on the first build; on later rebuilds (app installed/updated → list reloaded)
+        // keep the user's scroll position instead of jumping back to center.
+        if (hasBuiltOnce) {
+            scrollX_ = prevX.coerceIn(0f, maxScrollX); scrollY_ = prevY.coerceIn(0f, maxScrollY)
+        } else {
+            scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
+            hasBuiltOnce = true
+        }
         overScrollX_ = 0f; overScrollY_ = 0f; overScrollAnim?.cancel(); overScrollAnim = null
         applyScroll()
         if (enable3d) post { apply3d() }
