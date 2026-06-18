@@ -49,6 +49,13 @@ class NotificationOverlay @JvmOverloads constructor(
     private val concatAdapter: ConcatAdapter
 
     private var fragmentManager: FragmentManager? = null
+    private var lastMaxPostTime = 0L   // newest postTime seen, to detect new notifications
+
+    /** Jump the notification list/pager back to the top. */
+    private fun scrollNotifToTop() {
+        notifList.post { notifList.scrollToPosition(0) }
+        notifPager.post { notifPager.setCurrentItem(0, false) }
+    }
     // lateinit — assigned in init{} after adapters exist; field keeps the strong reference
     // so SharedPreferences (which uses WeakReference) doesn't GC the listener.
     private lateinit var prefsListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener
@@ -124,6 +131,8 @@ class NotificationOverlay @JvmOverloads constructor(
         checkAndShow()
         tryFixService()
         bindMedia()
+        // Always open at the top.
+        scrollNotifToTop()
     }
 
     /** RTOS Mode 2: show panel with only "No notifications" text, hide everything else. */
@@ -209,7 +218,13 @@ class NotificationOverlay @JvmOverloads constructor(
                     groupNotifications(notifs)
                 } else notifs
 
-                listAdapter.submitList(grouped)
+                // Detect newly-arrived / updated notifications (a newer postTime than we've seen)
+                // so we can jump back to the top to surface them.
+                val maxPost = grouped.maxOfOrNull { it.postTime } ?: 0L
+                val isNewActivity = maxPost > lastMaxPostTime
+                lastMaxPostTime = maxPost
+
+                listAdapter.submitList(grouped) { if (isNewActivity) scrollNotifToTop() }
                 pageAdapter.submitNotifList(grouped)
 
                 // "No notifications" shows only when notification list is empty (player doesn't count)
