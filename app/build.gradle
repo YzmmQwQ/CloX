@@ -73,6 +73,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Sign release with the debug key so it installs over the existing debug build
+            // (same signature) — for local performance testing only.
+            signingConfig signingConfigs.debug
         }
         debug {
             debuggable true
