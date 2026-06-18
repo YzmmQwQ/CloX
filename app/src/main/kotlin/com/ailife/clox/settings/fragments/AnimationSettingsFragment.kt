@@ -52,7 +52,7 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
         // ── Open animation switch ────────────────────────────────────────────
         fun isOpenAnimOn() =
-            appListPrefs.getString(AppListPrefs.KEY_LAUNCH_ANIM, AppListPrefs.LAUNCH_ANIM_SYSTEM) ==
+            appListPrefs.getString(AppListPrefs.KEY_LAUNCH_ANIM, AppListPrefs.LAUNCH_ANIM_CUSTOM) ==
                 AppListPrefs.LAUNCH_ANIM_CUSTOM
 
         switchOpenAnim.isChecked = isOpenAnimOn()
@@ -66,15 +66,15 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
         // ── Open animation style picker ──────────────────────────────────────
         fun refreshOpenType() {
-            val v = appListPrefs.getString(AppListPrefs.KEY_OPEN_ANIM_TYPE, AppListPrefs.OPEN_ANIM_ICON_ZOOM)
-                ?: AppListPrefs.OPEN_ANIM_ICON_ZOOM
+            val v = appListPrefs.getString(AppListPrefs.KEY_OPEN_ANIM_TYPE, AppListPrefs.OPEN_ANIM_WINDOW_EXPAND)
+                ?: AppListPrefs.OPEN_ANIM_WINDOW_EXPAND
             tvOpenAnimType.text = labelFor(openTypeEntries, openTypeValues, v)
         }
         refreshOpenType()
 
         rowOpenAnimType.setOnClickListener {
-            val current = appListPrefs.getString(AppListPrefs.KEY_OPEN_ANIM_TYPE, AppListPrefs.OPEN_ANIM_ICON_ZOOM)
-                ?: AppListPrefs.OPEN_ANIM_ICON_ZOOM
+            val current = appListPrefs.getString(AppListPrefs.KEY_OPEN_ANIM_TYPE, AppListPrefs.OPEN_ANIM_WINDOW_EXPAND)
+                ?: AppListPrefs.OPEN_ANIM_WINDOW_EXPAND
             showListPicker(getString(R.string.anim_setting_open_type_title), openTypeEntries, openTypeValues, current) { v, _ ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_OPEN_ANIM_TYPE, v).apply()
                 refreshOpenType()
@@ -97,15 +97,15 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         }
 
         fun refreshCloseType() {
-            val v = appListPrefs.getString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, AppListPrefs.CLOSE_ANIM_ICON_ZOOM)
-                ?: AppListPrefs.CLOSE_ANIM_ICON_ZOOM
+            val v = appListPrefs.getString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND)
+                ?: AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND
             tvCloseAnimType.text = labelFor(closeTypeEntries, closeTypeValues, v)
         }
         refreshCloseType()
 
         rowCloseAnimType.setOnClickListener {
-            val current = appListPrefs.getString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, AppListPrefs.CLOSE_ANIM_ICON_ZOOM)
-                ?: AppListPrefs.CLOSE_ANIM_ICON_ZOOM
+            val current = appListPrefs.getString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND)
+                ?: AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND
             showListPicker(getString(R.string.anim_setting_close_type_title), closeTypeEntries, closeTypeValues, current) { v, _ ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, v).apply()
                 refreshCloseType()
@@ -126,7 +126,7 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         val gestureReturnEntries = resources.getStringArray(R.array.gesture_return_anim_entries)
         val gestureReturnValues  = resources.getStringArray(R.array.gesture_return_anim_values)
 
-        val gestureReturnOn = appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_RETURN_ENABLED, false)
+        val gestureReturnOn = appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_RETURN_ENABLED, true)
         switchGestureReturn.isChecked = gestureReturnOn
         rowGestureReturnType.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
         rowGestureReturnOnly.visibility = if (gestureReturnOn) View.VISIBLE else View.GONE
@@ -153,7 +153,7 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             appListPrefs.edit().putFloat(AppListPrefs.KEY_GESTURE_RETURN_SPEED, value).apply()
         }
 
-        val grDelayVal = appListPrefs.getInt(AppListPrefs.KEY_GESTURE_RETURN_DELAY, 0).coerceIn(0, 500).toFloat()
+        val grDelayVal = appListPrefs.getInt(AppListPrefs.KEY_GESTURE_RETURN_DELAY, 200).coerceIn(0, 500).toFloat()
         sliderGestureReturnDelay.value = grDelayVal
         tvGestureReturnDelay.text = "${grDelayVal.toInt()} ms"
         sliderGestureReturnDelay.addOnChangeListener { _, value, _ ->
@@ -184,15 +184,15 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         }
 
         fun refreshGestureReturnType() {
-            val v = appListPrefs.getString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, AppListPrefs.GESTURE_RETURN_FADE)
-                ?: AppListPrefs.GESTURE_RETURN_FADE
+            val v = appListPrefs.getString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, AppListPrefs.GESTURE_RETURN_CIRCLE)
+                ?: AppListPrefs.GESTURE_RETURN_CIRCLE
             tvGestureReturnType.text = labelFor(gestureReturnEntries, gestureReturnValues, v)
         }
         refreshGestureReturnType()
 
         rowGestureReturnType.setOnClickListener {
-            val current = appListPrefs.getString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, AppListPrefs.GESTURE_RETURN_FADE)
-                ?: AppListPrefs.GESTURE_RETURN_FADE
+            val current = appListPrefs.getString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, AppListPrefs.GESTURE_RETURN_CIRCLE)
+                ?: AppListPrefs.GESTURE_RETURN_CIRCLE
             showListPicker(getString(R.string.anim_setting_gesture_return_type_title), gestureReturnEntries, gestureReturnValues, current) { v, _ ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_GESTURE_RETURN_ANIM, v).apply()
                 refreshGestureReturnType()

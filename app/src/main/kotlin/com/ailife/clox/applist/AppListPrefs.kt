@@ -215,10 +215,10 @@ object AppListPrefs {
     const val KEY_CLOSE_ANIM_DELAY      = "close_anim_delay"  // Int ms, 0..500
 
     fun useCustomLaunchAnim(ctx: Context) =
-        get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_SYSTEM) == LAUNCH_ANIM_CUSTOM
+        get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_CUSTOM) == LAUNCH_ANIM_CUSTOM
 
     fun openAnimType(ctx: Context) =
-        get(ctx).getString(KEY_OPEN_ANIM_TYPE, OPEN_ANIM_ICON_ZOOM) ?: OPEN_ANIM_ICON_ZOOM
+        get(ctx).getString(KEY_OPEN_ANIM_TYPE, OPEN_ANIM_WINDOW_EXPAND) ?: OPEN_ANIM_WINDOW_EXPAND
 
     fun returnAnimEnabled(ctx: Context) =
         get(ctx).getBoolean(KEY_RETURN_ANIM_ENABLED, true)
@@ -227,7 +227,7 @@ object AppListPrefs {
         get(ctx).getFloat(KEY_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
 
     fun closeAnimType(ctx: Context) =
-        get(ctx).getString(KEY_CLOSE_ANIM_TYPE, CLOSE_ANIM_ICON_ZOOM) ?: CLOSE_ANIM_ICON_ZOOM
+        get(ctx).getString(KEY_CLOSE_ANIM_TYPE, CLOSE_ANIM_WINDOW_EXPAND) ?: CLOSE_ANIM_WINDOW_EXPAND
 
     fun closeAnimSpeed(ctx: Context) =
         get(ctx).getFloat(KEY_CLOSE_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
@@ -245,10 +245,10 @@ object AppListPrefs {
     const val GESTURE_RETURN_CIRCLE      = "circle"   // circular reveal from center
 
     fun gestureReturnEnabled(ctx: Context) =
-        get(ctx).getBoolean(KEY_GESTURE_RETURN_ENABLED, false)
+        get(ctx).getBoolean(KEY_GESTURE_RETURN_ENABLED, true)
 
     fun gestureReturnAnim(ctx: Context) =
-        get(ctx).getString(KEY_GESTURE_RETURN_ANIM, GESTURE_RETURN_FADE) ?: GESTURE_RETURN_FADE
+        get(ctx).getString(KEY_GESTURE_RETURN_ANIM, GESTURE_RETURN_CIRCLE) ?: GESTURE_RETURN_CIRCLE
 
     // When true, the reveal plays only on the system swipe-home gesture (which carries a
     // GestureNavContract); when false it also plays on Back / hardware-Home-key returns.
@@ -264,7 +264,7 @@ object AppListPrefs {
         get(ctx).getFloat(KEY_GESTURE_RETURN_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
 
     fun gestureReturnDelay(ctx: Context) =
-        get(ctx).getInt(KEY_GESTURE_RETURN_DELAY, 0).coerceIn(0, 500)
+        get(ctx).getInt(KEY_GESTURE_RETURN_DELAY, 200).coerceIn(0, 500)
 
     // Detect the app actually closing back to the launcher (via usage stats) so the return
     // animation uses its icon — covers back/home-key returns and chained app starts.

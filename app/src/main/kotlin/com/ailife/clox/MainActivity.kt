@@ -1034,7 +1034,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             veil.postDelayed({
                 if (isFinishing || isDestroyed) { gestureRoot.removeView(veil); return@postDelayed }
                 android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-                    duration = (350L / speed).toLong()
+                    // Slower baseline than the open/close animations; speed slider still defaults to 1x.
+                    duration = (600L / speed).toLong()
                     interpolator = DecelerateInterpolator(1.5f)
                     if (circle) {
                         addUpdateListener { va -> veil.setHoleRadius((va.animatedValue as Float) * maxRadius) }
