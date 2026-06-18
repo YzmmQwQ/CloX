@@ -45,6 +45,15 @@ class OverlayController(
 
         screenW = sw; screenH = sh
 
+        // Claim the overlay and mark dragging BEFORE anything else: this makes the applyBlur
+        // onDone guard skip (we're dragging, not committed), and — together with the
+        // `activeOverlay !== overlay` guards on exit withEndActions — neutralises any stale
+        // exit animation from a just-dismissed overlay that is being re-opened quickly.
+        activeOverlay = overlay
+        activeDirection = direction
+        isDragging = true
+        overlay.animate().cancel()
+
         // Capture watchface into static layer; updateDrag drives progressive blur radius.
         // onDone fires after PixelCopy completes — if a fast swipe already committed the
         // drag before the bitmap was ready, apply full blur now.
@@ -66,10 +75,6 @@ class OverlayController(
         overlay.visibility = View.VISIBLE
         scrimView.alpha = 0f
         scrimView.visibility = View.VISIBLE
-
-        activeOverlay = overlay
-        activeDirection = direction
-        isDragging = true
     }
 
     fun updateDrag(direction: SwipeDirection, dx: Float, dy: Float) {
@@ -101,6 +106,7 @@ class OverlayController(
     fun commitDrag() {
         val overlay = activeOverlay ?: return
         val direction = activeDirection
+        android.util.Log.d("CloX/Blur", "commitDrag (overlay open)")
         isDragging = false
         // Start animations immediately — no heavy work before this
         overlay.animate().translationX(0f).translationY(0f).setDuration(200)
@@ -120,6 +126,7 @@ class OverlayController(
     fun cancelDrag() {
         val overlay = activeOverlay ?: return
         val direction = activeDirection ?: return
+        android.util.Log.d("CloX/Blur", "cancelDrag (close)")
         isDragging = false
         activeOverlay = null
         activeDirection = null
@@ -127,7 +134,7 @@ class OverlayController(
         val (endX, endY) = exitTranslation(direction)
         overlay.animate().translationX(endX).translationY(endY).setDuration(180)
             .setInterpolator(DecelerateInterpolator())
-            .withEndAction { hideNow(overlay) }.start()
+            .withEndAction { if (activeOverlay !== overlay) hideNow(overlay) }.start()
         BlurEngine.clearBlur(window, blurLayer)
         scrimView.animate().alpha(0f).setDuration(180)
             .withEndAction { scrimView.visibility = View.GONE }.start()
@@ -139,6 +146,7 @@ class OverlayController(
         val overlay = activeOverlay ?: return false
         if (isDragging || isCollapsing) return false
         if (!isDismissDirection(direction)) return false
+        android.util.Log.d("CloX/Blur", "startCollapse")
         isCollapsing = true
         return true
     }
@@ -172,6 +180,7 @@ class OverlayController(
     fun commitCollapse() {
         val overlay = activeOverlay ?: return
         val direction = activeDirection ?: return
+        android.util.Log.d("CloX/Blur", "commitCollapse (close)")
         isCollapsing = false
         activeOverlay = null
         activeDirection = null
@@ -182,12 +191,15 @@ class OverlayController(
         overlay.animate().translationX(endX).translationY(endY).setDuration(180)
             .setInterpolator(DecelerateInterpolator())
             .withEndAction {
-                overlay.visibility = View.GONE
-                if (direction == SwipeDirection.DOWN) {
-                    (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                // Skip if this overlay was re-opened during the exit animation.
+                if (activeOverlay !== overlay) {
+                    overlay.visibility = View.GONE
+                    if (direction == SwipeDirection.DOWN) {
+                        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                    }
+                    if (overlay === widgets) widgets.onPanelClosed()
+                    onDismissed?.invoke()
                 }
-                if (overlay === widgets) widgets.onPanelClosed()
-                onDismissed?.invoke()
             }.start()
         BlurEngine.clearBlur(window, blurLayer)
         scrimView.animate().alpha(0f).setDuration(180)
@@ -195,6 +207,7 @@ class OverlayController(
     }
 
     fun cancelCollapse() {
+        android.util.Log.d("CloX/Blur", "cancelCollapse (overlay stays open, restore blur)")
         isCollapsing = false
         val overlay = activeOverlay ?: return
         overlay.animate().translationX(0f).translationY(0f).setDuration(180)
@@ -228,6 +241,7 @@ class OverlayController(
     fun dismissActive() {
         val overlay = activeOverlay ?: return
         val direction = activeDirection
+        android.util.Log.d("CloX/Blur", "dismissActive (close)")
         overlay.animate().cancel()
         isDragging = false
         isCollapsing = false
@@ -239,18 +253,22 @@ class OverlayController(
             overlay.animate().translationX(endX).translationY(endY).setDuration(200)
                 .setInterpolator(DecelerateInterpolator())
                 .withEndAction {
-                    overlay.visibility = View.GONE
-                    (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-                    if (overlay === widgets) widgets.onPanelClosed()
-                    onDismissed?.invoke()
+                    if (activeOverlay !== overlay) {
+                        overlay.visibility = View.GONE
+                        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                        if (overlay === widgets) widgets.onPanelClosed()
+                        onDismissed?.invoke()
+                    }
                 }.start()
         } else {
             overlay.animate().alpha(0f).setDuration(150)
                 .withEndAction {
-                    overlay.visibility = View.GONE; overlay.alpha = 1f
-                    (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-                    if (overlay === widgets) widgets.onPanelClosed()
-                    onDismissed?.invoke()
+                    if (activeOverlay !== overlay) {
+                        overlay.visibility = View.GONE; overlay.alpha = 1f
+                        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
+                        if (overlay === widgets) widgets.onPanelClosed()
+                        onDismissed?.invoke()
+                    }
                 }.start()
         }
 

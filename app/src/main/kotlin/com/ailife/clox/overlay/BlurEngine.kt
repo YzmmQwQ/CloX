@@ -89,7 +89,9 @@ object BlurEngine {
         when (val mode = getMode(context)) {
             Mode.DISABLED -> return
             Mode.REALTIME -> {
-                CocosManager.nativeSetBlurRadius(getRadius(context) * progress)
+                val r = getRadius(context) * progress
+                Log.d("CloX/Blur", "updateProgress REALTIME progress=$progress radius=$r")
+                CocosManager.nativeSetBlurRadius(r)
             }
             Mode.BLURVIEW -> {
                 if (bgImageView.drawable == null) return
@@ -119,6 +121,7 @@ object BlurEngine {
     }
 
     fun clearBlur(window: Window, bgImageView: ImageView) {
+        Log.d("CloX/Blur", "clearBlur (radius->0, captureSeq ${captureSeq}->${captureSeq + 1})")
         captureSeq++   // invalidate any in-flight PixelCopy
         CocosManager.nativeSetBlurRadius(0f)   // safe to call regardless of mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
