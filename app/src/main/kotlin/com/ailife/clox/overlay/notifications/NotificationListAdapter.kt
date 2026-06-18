@@ -40,6 +40,11 @@ class NotificationListAdapter(
 
     private val expanded = mutableSetOf<String>()
     private val iconCache = LruCache<String, Drawable>(64)
+    // Cache PackageManager app labels (a binder IPC) and extracted large-icon bitmaps (a
+    // decode+render) so re-binding a card — e.g. when the panel opens after a background
+    // notification change — doesn't repeat that work on the main thread.
+    private val labelCache = LruCache<String, CharSequence>(64)
+    private val largeIconCache = LruCache<String, Bitmap>(24)
 
     inner class VH(val card: MaterialCardView) : RecyclerView.ViewHolder(card) {
         val iconSlot: ViewGroup      = card.findViewById(R.id.iconSlot)
@@ -87,16 +92,14 @@ class NotificationListAdapter(
         holder.body.textSize  = sp - 1f
 
         // App name + time
-        holder.appName.text = try {
-            pm.getApplicationLabel(pm.getApplicationInfo(sbn.packageName, 0))
-        } catch (e: Exception) { sbn.packageName }
+        holder.appName.text = getCachedAppLabel(pm, sbn.packageName)
         holder.time.text = DateUtils.getRelativeTimeSpanString(
             sbn.postTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS,
             DateUtils.FORMAT_ABBREV_RELATIVE
         )
 
-        // Large icon handling
-        val largeBitmap = extractLargeIcon(notif, ctx)
+        // Large icon handling (cached per notification revision)
+        val largeBitmap = getCachedLargeIcon(sbn, ctx)
         val cachedAppIcon = getCachedAppIcon(pm, sbn.packageName)
         if (largeBitmap != null) {
             holder.largeIcon.setImageBitmap(largeBitmap)
@@ -265,6 +268,20 @@ class NotificationListAdapter(
         return try {
             pm.getApplicationIcon(packageName).also { iconCache.put(packageName, it) }
         } catch (_: Exception) { null }
+    }
+
+    private fun getCachedAppLabel(pm: PackageManager, packageName: String): CharSequence {
+        labelCache[packageName]?.let { return it }
+        return try {
+            pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).also { labelCache.put(packageName, it) }
+        } catch (_: Exception) { packageName }
+    }
+
+    /** Large icon cached by notification key + postTime, so an unchanged card reuses the bitmap. */
+    private fun getCachedLargeIcon(sbn: StatusBarNotification, ctx: android.content.Context): Bitmap? {
+        val cacheKey = "${sbn.key}@${sbn.postTime}"
+        largeIconCache[cacheKey]?.let { return it }
+        return extractLargeIcon(sbn.notification, ctx)?.also { largeIconCache.put(cacheKey, it) }
     }
 
     private fun showContextMenu(holder: VH, sbn: StatusBarNotification) {
