@@ -229,6 +229,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         setupBackPressHandler()
 
         gestureHandler = GestureHandler(this, window)
+        gestureHandler.onCollapseToWatchface = { resetToWatchface() }
         buttonMappingHandler = ButtonMappingHandler(this, gestureHandler)
         gestureLockIcon = findViewById(R.id.gestureLockIcon)
         setupGestures()

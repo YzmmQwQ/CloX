@@ -21,6 +21,9 @@ import kotlinx.coroutines.MainScope
 
 class GestureHandler(private val ctx: Context, private val window: Window) {
 
+    /** Set by MainActivity: collapse the app list / overlays back to the bare watchface. */
+    var onCollapseToWatchface: (() -> Unit)? = null
+
     fun onLongPress() {
         vibrate()
         val action = PreferenceManager.getDefaultSharedPreferences(ctx)
@@ -38,7 +41,11 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         when (action) {
             "screen_off"         -> turnScreenOff()
             "watchface_selector" -> openWatchfaceSelector()
-            "random_watchface"   -> WatchfaceAutoChanger.pickRandom(ctx, MainScope())
+            "random_watchface"   -> {
+                // Collapse any open overlay/app list first so the new watchface is actually visible.
+                onCollapseToWatchface?.invoke()
+                WatchfaceAutoChanger.pickRandom(ctx, MainScope())
+            }
             "open_settings"      -> openSettings()
             "lock_gesture"       -> GestureLockManager.toggleManual()
             "start_rtos"         -> enterRtosMode()
