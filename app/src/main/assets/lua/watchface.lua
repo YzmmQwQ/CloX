@@ -1,6 +1,8 @@
 -- CloX Watchface — classic watch face on page 1, debug data pages 2–9.
 -- All sizes auto-scale to screen width (reference: 480 px).
 
+local pagesenabled = false
+
 require "bridge"
 require "watchface_bridge"
 
@@ -322,13 +324,18 @@ function WatchfaceScene:onEnter()
 
     local tf = self._touchFeedback
     local touchBtn = ccui.Button:create()
-    touchBtn:setTitleText("Touch Test")
+    touchBtn:setTitleText("Toggle Pages")
     touchBtn:setTitleFontSize(math.floor(18 * sc))
     touchBtn:setTitleColor(cc.c3b(255, 255, 255))
     touchBtn:setPosition(cx, cy - math.floor(200 * sc))
     touchBtn:addTouchEventListener(function(_, eventType)
         if eventType == ccui.TouchEventType.ended then
-            tf:setString("Touch works!")
+            pagesenabled = not pagesenabled
+            tf:setString("Current: "..tostring(pagesenabled))
+            
+            -- FORCE RE-RENDER RIGHT AWAY TO SHOW/HIDE THE NAVIGATION BUTTONS
+            self:renderPage() 
+            
             tf:stopAllActions()
             tf:runAction(cc.Sequence:create(
                 cc.DelayTime:create(1.5),
@@ -358,6 +365,7 @@ function WatchfaceScene:onEnter()
         if ev == ccui.TouchEventType.ended then self:changePage(-1) end
     end)
     self:addChild(self._prevBtn, 3)
+    self._prevBtn:setVisible(false)
 
     self._nextBtn = ccui.Button:create()
     self._nextBtn:setTitleText("Next >")
@@ -366,10 +374,12 @@ function WatchfaceScene:onEnter()
         if ev == ccui.TouchEventType.ended then self:changePage(1) end
     end)
     self:addChild(self._nextBtn, 3)
+    self._nextBtn:setVisible(false)
 
     self._pageInd = cc.Label:createWithSystemFont("", "sans-serif", self._FONT_TITLE)
     self._pageInd:setTextColor(cc.c4b(120, 120, 120, 255))
     self:addChild(self._pageInd, 2)
+    self._pageInd:setVisible(false)
 
     self._toggleNode = cc.Node:create()
     self:addChild(self._toggleNode, 3)
@@ -583,6 +593,7 @@ function WatchfaceScene:renderPage()
     local cx = self._cx
     local cy = self._cy
     local W  = self._W
+    local H  = self._H
 
     local FONT_TITLE = self._FONT_TITLE
     local FONT_BTN   = self._FONT_BTN
@@ -590,31 +601,35 @@ function WatchfaceScene:renderPage()
     local LINE_H     = self._LINE_H
     local sc         = self._sc
 
+    -- Shared Positioning Metrics
+    local navY   = math.floor(40 * sc)
+    local spread = math.min(cx * 0.55, math.floor(200 * sc))
+
+    -- ── Visibility Reset Strategy ─────────────────────────────────────────────
+    -- Pre-set default visibility based on 'pagesenabled' state
+    self._prevBtn:setVisible(pagesenabled)
+    self._nextBtn:setVisible(pagesenabled)
+    self._pageInd:setVisible(pagesenabled)
+
     -- ── Page 1: classic watchface ─────────────────────────────────────────────
     if p == 1 then
         self._wfParserNode:setVisible(false)
         self._watchNode:setVisible(true)
         self._titleLabel:setVisible(false)
         self._contentLabel:setVisible(false)
-        self._prevBtn:setVisible(false)
-        self._nextBtn:setVisible(false)
-        self._pageInd:setVisible(false)
         self._toggleNode:removeAllChildren()
 
         local t = os.date("*t")
         self._clockLabel:setString(string.format("%02d:%02d:%02d", t.hour, t.min, t.sec))
         self._dateLabel:setString(os.date("%a, %d %b %Y"))
 
-        -- Nav: small page indicator and arrows at bottom
-        local navY  = math.floor(40 * sc)
-        local spread = math.min(cx * 0.55, math.floor(200 * sc))
-        self._prevBtn:setVisible(true)
-        self._nextBtn:setVisible(true)
-        self._pageInd:setVisible(true)
-        self._prevBtn:setPosition(cx - spread, navY)
-        self._nextBtn:setPosition(cx + spread, navY)
-        self._pageInd:setString("1/"..NUM_PAGES)
-        self._pageInd:setPosition(cx, navY)
+        -- Nav layout if enabled
+        if pagesenabled then
+            self._prevBtn:setPosition(cx - spread, navY)
+            self._nextBtn:setPosition(cx + spread, navY)
+            self._pageInd:setString("1/"..NUM_PAGES)
+            self._pageInd:setPosition(cx, navY)
+        end
         return
     end
 
@@ -624,17 +639,17 @@ function WatchfaceScene:renderPage()
         self._wfParserNode:setVisible(true)
         self._titleLabel:setVisible(true)
         self._contentLabel:setVisible(false)
-        self._prevBtn:setVisible(true)
-        self._nextBtn:setVisible(true)
-        self._pageInd:setVisible(true)
+        
         self._titleLabel:setString(string.format("[10/%d]  WFParser", NUM_PAGES))
-        self._pageInd:setString("10/"..NUM_PAGES)
-        local navY   = math.floor(40 * self._sc)
-        local spread = math.min(self._cx * 0.55, math.floor(200 * self._sc))
-        self._prevBtn:setPosition(self._cx - spread, navY)
-        self._nextBtn:setPosition(self._cx + spread, navY)
-        self._pageInd:setPosition(self._cx, navY)
-        self._titleLabel:setPosition(self._cx, self._H - math.floor(30 * self._sc))
+        self._titleLabel:setPosition(cx, H - math.floor(30 * sc))
+        
+        if pagesenabled then
+            self._pageInd:setString("10/"..NUM_PAGES)
+            self._prevBtn:setPosition(cx - spread, navY)
+            self._nextBtn:setPosition(cx + spread, navY)
+            self._pageInd:setPosition(cx, navY)
+        end
+        
         self._toggleNode:removeAllChildren()
         self:buildWfParserPage()
         return
@@ -644,10 +659,6 @@ function WatchfaceScene:renderPage()
     self._wfParserNode:setVisible(false)
     self._watchNode:setVisible(false)
     self._titleLabel:setVisible(true)
-    self._contentLabel:setVisible(true)
-    self._prevBtn:setVisible(true)
-    self._nextBtn:setVisible(true)
-    self._pageInd:setVisible(true)
 
     local isPerf = (p == 9)
     self._contentLabel:setVisible(not isPerf)
@@ -667,6 +678,7 @@ function WatchfaceScene:renderPage()
     local NAV_ROW    = FONT_BTN   * 1.4
     local TOG_ROW    = FONT_TOG   * 1.4
 
+    -- Calculate adaptive layout anchoring upwards from bottom or downwards from top
     local totalH = TITLE_ROW + GAP + labelH + GAP + NAV_ROW
     if hasToggles then totalH = totalH + GAP + TOG_ROW end
 
@@ -678,8 +690,8 @@ function WatchfaceScene:renderPage()
     self._contentLabel:setPosition(cx, cursor - labelH / 2)
     cursor = cursor - labelH - GAP
 
-    local navCY  = cursor - NAV_ROW / 2
-    local spread = math.min(cx * 0.55, math.floor(200 * sc))
+    -- Position Navigation elements dynamically or strictly to layout rules
+    local navCY  = pagesenabled and (cursor - NAV_ROW / 2) or navY
     self._prevBtn:setPosition(cx - spread, navCY)
     self._nextBtn:setPosition(cx + spread, navCY)
     self._pageInd:setPosition(cx, navCY)
@@ -698,6 +710,7 @@ function WatchfaceScene:renderPage()
             btn:setTitleFontSize(FONT_TOG)
             btn:setTitleColor(st and cc.c3b(60,220,60) or cc.c3b(160,160,160))
             btn:setPosition(spacing * i, togCY)
+            
             local mySpec, myBtn = spec, btn
             btn:addTouchEventListener(function(_, ev)
                 if ev == ccui.TouchEventType.ended then
