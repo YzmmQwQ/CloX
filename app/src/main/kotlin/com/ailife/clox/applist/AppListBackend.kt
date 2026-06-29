@@ -13,6 +13,8 @@ interface AppListBackend {
     /** Called when user finishes a drag-reorder with the newly ordered visible items. */
     var onOrderChanged: ((List<AppItem>) -> Unit)?
     fun setDragEnabled(enabled: Boolean) {}
+    /** Host signals whether the app list is the currently-open page (vs. watchface/behind an app). */
+    fun setActive(active: Boolean) {}
     fun onPrefsChanged(context: Context) {}
     fun refreshBadges(counts: Map<String, Int>) {}
 }

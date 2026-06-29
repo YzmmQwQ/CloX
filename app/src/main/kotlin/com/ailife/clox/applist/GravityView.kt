@@ -188,7 +188,7 @@ class GravityView @JvmOverloads constructor(
             i++
         }
         refreshBadges(lastBadgeCounts)
-        ensureRunning()
+        updateRunState()
     }
 
     private fun positionCell(b: Body) {
@@ -386,16 +386,47 @@ class GravityView @JvmOverloads constructor(
 
     // ── Sensor ───────────────────────────────────────────────────────────────────
 
+    // The app list shares the launcher window with the watchface and is only slid off-screen
+    // (still attached + window-visible) when closed, so window visibility alone can't tell us when
+    // the drawer is actually shown. The host drives [active] via the backend so the simulation only
+    // runs while the app list is the open page — never on the watchface or behind an open app.
+    private var active = false
+    private var windowVisible = false
+
+    fun setActive(value: Boolean) {
+        if (active == value) return
+        active = value
+        updateRunState()
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        registerSensor()
-        if (bodies.isNotEmpty()) ensureRunning()
+        windowVisible = windowVisibility == VISIBLE
+        updateRunState()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        unregisterSensor()
-        running = false
+        windowVisible = false
+        updateRunState()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        windowVisible = visibility == VISIBLE
+        updateRunState()
+    }
+
+    /** Run the frame loop + accelerometer only when on-screen AND the drawer is actually open. */
+    private fun updateRunState() {
+        if (active && windowVisible && isAttachedToWindow) {
+            registerSensor()
+            lastFrameNanos = 0L   // avoid a huge dt spike across the paused gap
+            if (bodies.isNotEmpty()) ensureRunning()
+        } else {
+            running = false
+            unregisterSensor()
+        }
     }
 
     private fun registerSensor() {

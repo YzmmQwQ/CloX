@@ -49,6 +49,15 @@ class AppListFragment : Fragment() {
 
     private val viewModel: AppListViewModel by viewModels()
     private var backend: AppListBackend? = null
+    // Whether the drawer is the open page (set by the host). Some backends (Gravity) pause work
+    // when not active. Re-applied to each freshly-built backend in swapBackend().
+    private var appListActive = false
+
+    /** Called by the host when the app list opens/closes so backends can pause/resume. */
+    fun setActive(active: Boolean) {
+        appListActive = active
+        backend?.setActive(active)
+    }
     private lateinit var root: FrameLayout
     private var lastBoundItems: List<AppItem>? = null
 
@@ -242,6 +251,7 @@ class AppListFragment : Fragment() {
 
         val contentView = newBackend.createContentView(ctx)
         newBackend.setDragEnabled(sort == AppListPrefs.SORT_CUSTOM)
+        newBackend.setActive(appListActive)
         root.removeAllViews()
         root.addView(contentView, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,

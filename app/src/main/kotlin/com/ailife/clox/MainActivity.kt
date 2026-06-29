@@ -199,6 +199,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         gestureRoot.post {
             appListFragment?.view?.translationX = if (appListOpen) 0f else screenW
+            appListFragment?.setActive(appListOpen)
             gestureRoot.appListOpen = appListOpen
         }
 
@@ -1104,6 +1105,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (overlayController.hasActiveOverlay()) overlayController.dismissActive()
         if (appListOpen) {
             appListOpen = false; gestureRoot.appListOpen = false
+            appListFragment?.setActive(false)
             appListSpring?.cancel()
             appListFragment?.view?.translationX = screenW
             refreshAppListTransparentRegion()
@@ -1278,12 +1280,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // view, so the open continues smoothly from the finger instead of snapping off-screen.
     private fun openAppList(velocity: Float = 0f) {
         appListOpen = true; gestureRoot.appListOpen = true
+        appListFragment?.setActive(true)
         springAppList(0f, velocity)
         updateBackEnabled()
     }
 
     private fun closeAppList(velocity: Float = 0f) {
         appListOpen = false; gestureRoot.appListOpen = false
+        appListFragment?.setActive(false)
         springAppList(screenW, velocity)
         updateBackEnabled()
     }

@@ -34,5 +34,6 @@ class GravityBackend(private val ctx: Context) : AppListBackend {
     override fun bindItems(items: List<AppItem>) = gravityView?.bindItems(items) ?: Unit
     // Reordering is not possible in physics mode; drag flag intentionally ignored.
     override fun setDragEnabled(enabled: Boolean) {}
+    override fun setActive(active: Boolean) { gravityView?.setActive(active) }
     override fun refreshBadges(counts: Map<String, Int>) { gravityView?.refreshBadges(counts) }
 }
