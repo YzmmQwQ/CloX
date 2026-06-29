@@ -78,6 +78,9 @@ object AppContextMenu {
         val scrollView = ScrollView(context).apply {
             background = bg
             elevation = density * 8f
+            // Clip scrolling content to the rounded-corner background so items
+            // don't render outside the visual background when the list scrolls.
+            clipToOutline = true
         }
         scrollView.addView(container, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
