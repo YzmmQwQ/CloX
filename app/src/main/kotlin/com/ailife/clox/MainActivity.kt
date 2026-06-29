@@ -113,6 +113,34 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var lastLaunchReverseAt = 0L   // uptimeMillis of the last launch-anim reverse
     private var launchAnimUpdateFn: ((Float) -> Unit)? = null
     private var launchAnimCleanupFn: (() -> Unit)? = null
+
+    // Real-time blur of the app list behind the expanding/collapsing app window. Created at the
+    // bottom of the animation's overlay stack so the window/card draws sharp on top of it.
+    private fun addAppWindowBlur(): eightbitlab.com.blurview.BlurView? {
+        if (!com.ailife.clox.applist.AppListPrefs.launchBlur(this)) return null
+        val bv = eightbitlab.com.blurview.BlurView(this)
+        gestureRoot.addView(bv, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        val algorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            eightbitlab.com.blurview.RenderEffectBlur()
+        else
+            @Suppress("DEPRECATION") eightbitlab.com.blurview.RenderScriptBlur(this)
+        bv.setupWith(gestureRoot, algorithm).setBlurAutoUpdate(true)
+        bv.setBlurEnabled(false)
+        return bv
+    }
+
+    // radius in px (0 = no blur). Caps at the user's overlay blur radius for consistency.
+    private fun setAppWindowBlur(bv: eightbitlab.com.blurview.BlurView?, fraction: Float) {
+        bv ?: return
+        val r = (com.ailife.clox.overlay.BlurEngine.getRadius(this) * fraction.coerceIn(0f, 1f))
+        if (r < 1f) {
+            bv.setBlurEnabled(false)
+        } else {
+            bv.setBlurEnabled(true)
+            bv.setBlurRadius(r)
+        }
+    }
     private lateinit var gestureHandler: GestureHandler
     private lateinit var buttonMappingHandler: ButtonMappingHandler
     private lateinit var aodManager: AodManager
@@ -590,6 +618,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val heroSize = (minOf(sw, sh) * 0.40f).toInt().coerceAtLeast(1)
         val startCx = sw / 2f; val startCy = sh / 2f
 
+        val blur = addAppWindowBlur()
+
         // Add views immediately at t=0 state so they're visible as soon as system transition ends
         val scrim = android.view.View(this).apply {
             setBackgroundColor(android.graphics.Color.BLACK)
@@ -622,6 +652,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.postDelayed({
             if (isFinishing || isDestroyed) {
                 gestureRoot.removeView(iv); gestureRoot.removeView(scrim)
+                blur?.let { gestureRoot.removeView(it) }
                 realIcon?.visibility = View.VISIBLE
                 onDone?.invoke()
                 return@postDelayed
@@ -636,11 +667,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     iv.translationX = tx * t
                     iv.translationY = ty * t
                     scrim.alpha = 1f - t
+                    setAppWindowBlur(blur, 1f - t)   // de-blur as the window shrinks back to the icon
                 }
                 addListener(object : android.animation.AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
                         gestureRoot.removeView(iv)
                         gestureRoot.removeView(scrim)
+                        blur?.let { gestureRoot.removeView(it) }
                         realIcon?.visibility = View.VISIBLE
                         onDone?.invoke()
                     }
@@ -670,6 +703,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             android.graphics.Color.BLACK
         )
         val cornerRadiusPx = 56f * resources.displayMetrics.density
+
+        // Blur of the app list, beneath the collapsing card so the window stays sharp on top.
+        val blur = addAppWindowBlur()
 
         // Add views immediately at t=0 state so they're visible as soon as system transition ends
         val cardView = WindowCardView(this).apply { cardColor = surfaceColor }
@@ -704,6 +740,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.postDelayed({
             if (isFinishing || isDestroyed) {
                 gestureRoot.removeView(iv); gestureRoot.removeView(cardView)
+                blur?.let { gestureRoot.removeView(it) }
                 realIcon?.visibility = View.VISIBLE
                 onDone?.invoke()
                 return@postDelayed
@@ -724,11 +761,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     iv.scaleY = heroScale - (heroScale - 1f) * t
                     iv.translationX = endTx * t
                     iv.translationY = endTy * t
+                    setAppWindowBlur(blur, 1f - t)   // de-blur as the window shrinks back to the icon
                 }
                 addListener(object : android.animation.AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: android.animation.Animator) {
                         gestureRoot.removeView(iv)
                         gestureRoot.removeView(cardView)
+                        blur?.let { gestureRoot.removeView(it) }
                         realIcon?.visibility = View.VISIBLE
                         onDone?.invoke()
                     }
@@ -759,6 +798,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val iconW    = iconBounds.width().coerceAtLeast(1)
         val iconH    = iconBounds.height().coerceAtLeast(1)
 
+        val blur = addAppWindowBlur()
+
         val scrim = android.view.View(this).apply {
             setBackgroundColor(android.graphics.Color.BLACK)
             alpha = 0f
@@ -787,9 +828,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             iv.translationX = targetTx * t
             iv.translationY = targetTy * t
             scrim.alpha = t
+            setAppWindowBlur(blur, t)
         }
         launchAnimUpdateFn = updateFn
-        launchAnimCleanupFn = { gestureRoot.removeView(iv); gestureRoot.removeView(scrim) }
+        launchAnimCleanupFn = {
+            gestureRoot.removeView(iv); gestureRoot.removeView(scrim)
+            blur?.let { gestureRoot.removeView(it) }
+        }
 
         android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
             duration = (400L / speed).toLong()
@@ -807,6 +852,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     gestureRoot.postDelayed({
                         gestureRoot.removeView(iv)
                         gestureRoot.removeView(scrim)
+                        blur?.let { gestureRoot.removeView(it) }
                     }, 500)
                 }
                 override fun onAnimationCancel(animation: android.animation.Animator) {
@@ -837,6 +883,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             android.graphics.Color.BLACK
         )
         val cornerRadiusPx = 56f * resources.displayMetrics.density
+
+        // Blur of the app list, drawn beneath the card so the window stays sharp on top.
+        val blur = addAppWindowBlur()
 
         // Card expands from icon center to screen edges — drawn behind the icon
         val cardView = WindowCardView(this).apply { cardColor = surfaceColor }
@@ -886,12 +935,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             iv.scaleY = 1f + (targetScale - 1f) * t
             iv.translationX = targetTx * t
             iv.translationY = targetTy * t
+            setAppWindowBlur(blur, t)   // blur ramps up as the window expands
         }
         launchAnimUpdateFn = updateFn
         launchAnimCleanupFn = {
             gestureRoot.removeView(cardView)
             gestureRoot.removeView(iv)
             gestureRoot.removeView(interceptor)
+            blur?.let { gestureRoot.removeView(it) }
         }
 
         android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
@@ -911,6 +962,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     gestureRoot.postDelayed({
                         gestureRoot.removeView(cardView)
                         gestureRoot.removeView(iv)
+                        blur?.let { gestureRoot.removeView(it) }
                     }, 500)
                 }
                 override fun onAnimationCancel(animation: android.animation.Animator) {

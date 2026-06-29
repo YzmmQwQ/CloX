@@ -247,6 +247,13 @@ object AppListPrefs {
     fun closeAnimDelay(ctx: Context) =
         get(ctx).getInt(KEY_CLOSE_ANIM_DELAY, 50).coerceIn(0, 500)
 
+    // Blur the app list behind the expanding app window during the open animation (and de-blur
+    // it during the back-button close), intensity ramping with the window size.
+    const val KEY_LAUNCH_BLUR = "launch_blur"
+
+    fun launchBlur(ctx: Context) =
+        get(ctx).getBoolean(KEY_LAUNCH_BLUR, false)
+
     // ── Gesture return reveal ────────────────────────────────────────────────
     // When returning to the open app list via the system back gesture, reveal
     // the app list over its current background image with an animation.

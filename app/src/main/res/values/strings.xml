@@ -830,6 +830,8 @@
         <item>window_expand</item>
     </string-array>
     <string name="anim_setting_close_category">Close animation</string>
+    <string name="anim_setting_launch_blur_title">Blur app list</string>
+    <string name="anim_setting_launch_blur_summary">Blur the app list behind the opening app window, intensifying as it expands (and de-blurring on back-button close).</string>
     <string name="anim_setting_close_type_title">Animation style</string>
     <string name="anim_setting_resume_close_title">Close animation without app list</string>
     <string name="anim_setting_resume_close_summary">Always play the close animation when returning to the watchface, even when the app list isn\'t open — it animates toward the centre of the screen. Off lands on the watchface with no animation.</string>

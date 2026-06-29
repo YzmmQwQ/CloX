@@ -81,6 +81,13 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             }
         }
 
+        // ── Blur app list behind the window ──────────────────────────────────
+        val switchLaunchBlur = view.findViewById<MaterialSwitch>(R.id.switchLaunchBlur)
+        switchLaunchBlur.isChecked = appListPrefs.getBoolean(AppListPrefs.KEY_LAUNCH_BLUR, false)
+        switchLaunchBlur.setOnCheckedChangeListener { _, checked ->
+            appListPrefs.edit().putBoolean(AppListPrefs.KEY_LAUNCH_BLUR, checked).apply()
+        }
+
         // ── Return animation switch + close style picker ─────────────────────
         tvReturnSummary.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             getString(R.string.anim_setting_return_summary_11plus)
