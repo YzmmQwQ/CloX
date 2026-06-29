@@ -72,8 +72,14 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
     }
 
     fun refresh() {
-        tvCity.text = WeatherPrefs.city(context).ifBlank { context.getString(R.string.widget_weather_no_data) }
         val json = WeatherRepository.getLatestJson()
+        tvCity.text = when {
+            !WeatherPrefs.enabled(context) -> context.getString(R.string.widget_weather_disabled)
+            json == null -> context.getString(R.string.widget_weather_no_data)
+            else -> WeatherPrefs.city(context).ifBlank {
+                context.getString(R.string.widget_weather_location_not_set)
+            }
+        }
         if (json != null) {
             bindWeather(json)
         } else {

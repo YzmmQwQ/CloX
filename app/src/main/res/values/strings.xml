@@ -21,6 +21,8 @@
     <string name="widget_add_clock">Clock</string>
     <string name="widget_add_weather">Weather</string>
     <string name="widget_weather_no_data">No weather data</string>
+    <string name="widget_weather_disabled">Weather is disabled in settings</string>
+    <string name="widget_weather_location_not_set">Location name not set</string>
     <string name="widget_weather_today">Today</string>
     <string name="weather_updated_just_now">just now</string>
     <string name="weather_updated_minutes_ago">%dm ago</string>
