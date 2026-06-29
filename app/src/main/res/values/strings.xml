@@ -74,6 +74,13 @@
     <string name="pref_pages_cols_title">Icons per row</string>
     <string name="pref_pages_rows_title">Rows per page</string>
 
+    <!-- Gravity sub-settings -->
+    <string name="pref_gravity_accel_title">Follow accelerometer</string>
+    <string name="pref_gravity_accel_summary">Tilt the watch to move the icons</string>
+    <string name="pref_gravity_strength_title">Gravity strength</string>
+    <string name="pref_gravity_bounce_title">Bounciness</string>
+    <string name="pref_gravity_friction_title">Friction</string>
+
     <!-- Context menu -->
     <string name="pref_notif_badge_category">Notification badges</string>
     <string name="pref_notif_badge_title">Show notification badges</string>
@@ -113,6 +120,7 @@
         <item>Honeycomb</item>
         <item>Grid 2D</item>
         <item>Pages</item>
+        <item>Gravity</item>
     </string-array>
     <string-array name="app_list_style_values">
         <item>list</item>
@@ -121,6 +129,7 @@
         <item>honeycomb</item>
         <item>grid2d</item>
         <item>pages</item>
+        <item>gravity</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">
@@ -782,6 +791,7 @@
     <string name="applist_setting_honeycomb_options_category">Honeycomb options</string>
     <string name="applist_setting_grid2d_options_category">Grid 2D options</string>
     <string name="applist_setting_pages_options_category">Pages options</string>
+    <string name="applist_setting_gravity_options_category">Gravity options</string>
     <string name="pref_overscroll_title">Overscroll strength</string>
 
     <!-- ── Animation settings fragment ──────────────────────────────────── -->

@@ -17,6 +17,7 @@ object AppListPrefs {
     const val STYLE_HONEYCOMB  = "honeycomb"
     const val STYLE_GRID2D     = "grid2d"
     const val STYLE_PAGES      = "pages"
+    const val STYLE_GRAVITY    = "gravity"
 
     // ── Sort ─────────────────────────────────────────────────────────────────
     const val KEY_SORT      = "sort"
@@ -67,6 +68,12 @@ object AppListPrefs {
     // ── Pages sub-settings ───────────────────────────────────────────────────
     const val KEY_PAGES_COLS = "pages_cols"
     const val KEY_PAGES_ROWS = "pages_rows"
+
+    // ── Gravity (physics) sub-settings ───────────────────────────────────────
+    const val KEY_GRAVITY_ACCEL    = "gravity_accel"      // bool: follow accelerometer
+    const val KEY_GRAVITY_STRENGTH = "gravity_strength"   // 0-20, default 10
+    const val KEY_GRAVITY_BOUNCE   = "gravity_bounce"     // 0-10, default 5 (restitution)
+    const val KEY_GRAVITY_FRICTION = "gravity_friction"   // 0-10, default 3 (damping)
 
     // ── Overscroll ───────────────────────────────────────────────────────────
     const val KEY_OVERSCROLL = "overscroll"         // 0-10, default 5
@@ -126,6 +133,11 @@ object AppListPrefs {
     fun pagesRows(ctx: Context) = get(ctx).getInt(KEY_PAGES_ROWS, 5)
 
     fun overscroll(ctx: Context) = get(ctx).getInt(KEY_OVERSCROLL, 5)
+
+    fun gravityAccel(ctx: Context)    = get(ctx).getBoolean(KEY_GRAVITY_ACCEL, true)
+    fun gravityStrength(ctx: Context) = get(ctx).getInt(KEY_GRAVITY_STRENGTH, 10)
+    fun gravityBounce(ctx: Context)   = get(ctx).getInt(KEY_GRAVITY_BOUNCE, 5)
+    fun gravityFriction(ctx: Context) = get(ctx).getInt(KEY_GRAVITY_FRICTION, 3)
 
     // ── Custom order ─────────────────────────────────────────────────────────
 

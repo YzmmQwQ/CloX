@@ -205,6 +205,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         setupHoneycombStyleOptions(view, appListPrefs)
         setupGrid2dStyleOptions(view, appListPrefs)
         setupPagesStyleOptions(view, appListPrefs)
+        setupGravityStyleOptions(view, appListPrefs)
     }
 
     override fun onResume() {
@@ -272,6 +273,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         view.findViewById<View>(R.id.cardHoneycombOptions).visibility = if (style == AppListPrefs.STYLE_HONEYCOMB) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.cardGrid2dOptions).visibility    = if (style == AppListPrefs.STYLE_GRID2D)    View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.cardPagesOptions).visibility     = if (style == AppListPrefs.STYLE_PAGES)     View.VISIBLE else View.GONE
+        view.findViewById<View>(R.id.cardGravityOptions).visibility   = if (style == AppListPrefs.STYLE_GRAVITY)   View.VISIBLE else View.GONE
     }
 
     private fun setupListStyleOptions(v: View, p: android.content.SharedPreferences,
@@ -401,5 +403,29 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         val rowVal = p.getInt("pages_rows", 5).toFloat()
         sliderRows.value = rowVal.coerceIn(2f, 8f); tvRows.text = "${rowVal.toInt()}"
         sliderRows.addOnChangeListener { _, value, _ -> tvRows.text = "${value.toInt()}"; p.edit().putInt("pages_rows", value.toInt()).apply() }
+    }
+
+    private fun setupGravityStyleOptions(v: View, p: android.content.SharedPreferences) {
+        v.findViewById<MaterialSwitch>(R.id.switchGravityAccel).apply {
+            isChecked = p.getBoolean("gravity_accel", true)
+            setOnCheckedChangeListener { _, c -> p.edit().putBoolean("gravity_accel", c).apply() }
+        }
+        val sliderStrength = v.findViewById<Slider>(R.id.sliderGravityStrength)
+        val tvStrength     = v.findViewById<TextView>(R.id.tvGravityStrength)
+        val strengthVal = p.getInt("gravity_strength", 10).toFloat()
+        sliderStrength.value = strengthVal.coerceIn(0f, 20f); tvStrength.text = "${strengthVal.toInt()}"
+        sliderStrength.addOnChangeListener { _, value, _ -> tvStrength.text = "${value.toInt()}"; p.edit().putInt("gravity_strength", value.toInt()).apply() }
+
+        val sliderBounce = v.findViewById<Slider>(R.id.sliderGravityBounce)
+        val tvBounce     = v.findViewById<TextView>(R.id.tvGravityBounce)
+        val bounceVal = p.getInt("gravity_bounce", 5).toFloat()
+        sliderBounce.value = bounceVal.coerceIn(0f, 10f); tvBounce.text = "${bounceVal.toInt()}"
+        sliderBounce.addOnChangeListener { _, value, _ -> tvBounce.text = "${value.toInt()}"; p.edit().putInt("gravity_bounce", value.toInt()).apply() }
+
+        val sliderFriction = v.findViewById<Slider>(R.id.sliderGravityFriction)
+        val tvFriction     = v.findViewById<TextView>(R.id.tvGravityFriction)
+        val frictionVal = p.getInt("gravity_friction", 3).toFloat()
+        sliderFriction.value = frictionVal.coerceIn(0f, 10f); tvFriction.text = "${frictionVal.toInt()}"
+        sliderFriction.addOnChangeListener { _, value, _ -> tvFriction.text = "${value.toInt()}"; p.edit().putInt("gravity_friction", value.toInt()).apply() }
     }
 }

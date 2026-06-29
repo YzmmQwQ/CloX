@@ -28,6 +28,7 @@ import com.ailife.clox.applist.backends.Grid2DBackend
 import com.ailife.clox.rtos.RtosAppGuard
 import com.ailife.clox.applist.model.AppItem
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
+import com.ailife.clox.applist.backends.GravityBackend
 import com.ailife.clox.applist.backends.GridBackend
 import com.ailife.clox.applist.backends.HoneycombBackend
 import com.ailife.clox.applist.backends.ListBackend
@@ -272,6 +273,7 @@ class AppListFragment : Fragment() {
         AppListPrefs.STYLE_HONEYCOMB -> HoneycombBackend(ctx)
         AppListPrefs.STYLE_GRID2D    -> Grid2DBackend(ctx)
         AppListPrefs.STYLE_PAGES     -> PagesBackend(ctx)
+        AppListPrefs.STYLE_GRAVITY   -> GravityBackend(ctx)
         else                         -> ListBackend(ctx)
     }
 
@@ -323,6 +325,8 @@ class AppListFragment : Fragment() {
             AppListPrefs.KEY_HONEYCOMB_3D, AppListPrefs.KEY_HONEYCOMB_3D_MIN_SCALE, AppListPrefs.KEY_HONEYCOMB_ICON_SIZE, AppListPrefs.KEY_HONEYCOMB_3D_CURVE,
             AppListPrefs.KEY_GRID2D_COLS, AppListPrefs.KEY_GRID2D_NAMES, AppListPrefs.KEY_GRID2D_3D, AppListPrefs.KEY_GRID2D_3D_MIN_SCALE, AppListPrefs.KEY_GRID2D_ICON_SIZE, AppListPrefs.KEY_GRID2D_3D_CURVE,
             AppListPrefs.KEY_PAGES_COLS, AppListPrefs.KEY_PAGES_ROWS,
+            AppListPrefs.KEY_GRAVITY_ACCEL, AppListPrefs.KEY_GRAVITY_STRENGTH,
+            AppListPrefs.KEY_GRAVITY_BOUNCE, AppListPrefs.KEY_GRAVITY_FRICTION,
             AppListPrefs.KEY_OVERSCROLL,
         )
     }
