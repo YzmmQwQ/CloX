@@ -95,15 +95,28 @@ class HoneycombView @JvmOverloads constructor(
         clipChildren = false; clipToPadding = false; isMotionEventSplittingEnabled = false
     }
 
+    private var needsBuild = false
+
     fun bindItems(items: List<AppItem>) {
         pendingItems = items
-        if (width > 0 && height > 0) buildGrid(items)
-        else viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                viewTreeObserver.removeOnGlobalLayoutListener(this)
-                buildGrid(pendingItems)
-            }
-        })
+        // Build immediately if sized; otherwise flag it and let onLayout build once measured.
+        // (The old self-removing OnGlobalLayoutListener leaked after a backend rebuild — the
+        // re-fetched ViewTreeObserver was a different instance, so it never detached and re-ran
+        // buildGrid on every global layout, saturating the UI thread and making open/close janky
+        // until a process restart.)
+        if (width > 0 && height > 0) { needsBuild = false; buildGrid(items) }
+        else needsBuild = true
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        // buildGrid clears the flag before building and only positions children via margins (never
+        // changes this view's size), so the requestLayout it triggers re-enters with needsBuild
+        // already false — no rebuild loop.
+        if (needsBuild && width > 0 && height > 0 && pendingItems.isNotEmpty()) {
+            needsBuild = false
+            buildGrid(pendingItems)
+        }
     }
 
     private fun buildGrid(items: List<AppItem>) {

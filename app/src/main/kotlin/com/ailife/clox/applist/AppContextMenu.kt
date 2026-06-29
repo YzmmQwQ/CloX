@@ -20,6 +20,7 @@ import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ailife.clox.R
 import com.ailife.clox.applist.model.AppItem
 
@@ -39,8 +40,16 @@ object AppContextMenu {
 
         val entries = buildList {
             add(Entry(R.string.menu_hide_app, R.drawable.ic_block) {
-                quickHideApp(context, item)
-                onHideApp()
+                // Confirm first — this menu item is easy to mis-tap.
+                MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.hide_confirm_title)
+                    .setMessage(context.getString(R.string.hide_confirm_message, item.label))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.menu_hide_app) { _, _ ->
+                        quickHideApp(context, item)
+                        onHideApp()
+                    }
+                    .show()
             })
             add(Entry(R.string.menu_uninstall,   R.drawable.ic_delete)  { requestUninstall(context, item) })
             add(Entry(R.string.menu_app_info,    R.drawable.ic_info)    { openAppInfo(context, item) })

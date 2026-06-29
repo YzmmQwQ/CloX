@@ -51,20 +51,25 @@ class AppListFragment : Fragment() {
     private lateinit var root: FrameLayout
     private var lastBoundItems: List<AppItem>? = null
 
+    private val rebuildHandler = Handler(Looper.getMainLooper())
+    private val rebuildRunnable = Runnable { if (isAdded) swapBackend() }
+
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        Log.d("CloX/AppList", "prefChanged key=$key")
         when (key) {
-            AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT,
-            AppListPrefs.KEY_NOTIF_BADGE, AppListPrefs.KEY_NOTIF_BADGE_COUNT,
-            AppListPrefs.KEY_LIST_SEARCH,
-            AppListPrefs.KEY_LIST_3D, AppListPrefs.KEY_LIST_3D_MIN_SCALE, AppListPrefs.KEY_LIST_3D_CURVE,
-            AppListPrefs.KEY_GRID_COLS, AppListPrefs.KEY_GRID_NAMES,
-            AppListPrefs.KEY_WATERFALL_3D, AppListPrefs.KEY_WATERFALL_3D_MIN_SCALE, AppListPrefs.KEY_WATERFALL_3D_CURVE,
-            AppListPrefs.KEY_HONEYCOMB_3D, AppListPrefs.KEY_HONEYCOMB_3D_MIN_SCALE, AppListPrefs.KEY_HONEYCOMB_ICON_SIZE, AppListPrefs.KEY_HONEYCOMB_3D_CURVE,
-            AppListPrefs.KEY_GRID2D_NAMES, AppListPrefs.KEY_GRID2D_3D, AppListPrefs.KEY_GRID2D_3D_MIN_SCALE, AppListPrefs.KEY_GRID2D_ICON_SIZE, AppListPrefs.KEY_GRID2D_3D_CURVE,
-            AppListPrefs.KEY_PAGES_COLS, AppListPrefs.KEY_PAGES_ROWS,
-            AppListPrefs.KEY_OVERSCROLL -> swapBackend()
+            // Backend-config keys can change rapidly: the icon-size and min-scale settings are
+            // sliders whose onChange fires on every step, so reacting immediately would rebuild
+            // the whole app-list backend dozens of times per drag — allocating fresh view trees,
+            // scroll listeners and scaled-icon bitmaps each time. That churn degrades the
+            // watchface GL compositing (open/close jank) and persists until restart. Debounce so
+            // a drag produces a single rebuild after the user settles.
+            in BACKEND_KEYS -> {
+                rebuildHandler.removeCallbacks(rebuildRunnable)
+                rebuildHandler.postDelayed(rebuildRunnable, REBUILD_DEBOUNCE_MS)
+            }
             AppListPrefs.KEY_BG_IMAGE_PATH, AppListPrefs.KEY_WALLPAPER_DIM -> applyBackground()
             AppListPrefs.KEY_ICON_PACK -> viewModel.loadApps(force = true)
+            AppListPrefs.KEY_HIDDEN_COMPONENTS, AppListPrefs.KEY_HIDE_MODE -> viewModel.loadApps()
         }
     }
 
@@ -87,6 +92,7 @@ class AppListFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        rebuildHandler.removeCallbacks(rebuildRunnable)
         AppListPrefs.get(requireContext()).unregisterOnSharedPreferenceChangeListener(prefsListener)
     }
 
@@ -254,6 +260,9 @@ class AppListFragment : Fragment() {
         if (current.isNotEmpty()) {
             newBackend.bindItems(current)
             newBackend.refreshBadges(currentNotifCounts())
+            // Record what we just bound so observeApps doesn't redundantly re-bind the whole
+            // list (same reference) on its next emission.
+            lastBoundItems = current
         }
     }
 
@@ -298,4 +307,23 @@ class AppListFragment : Fragment() {
         CloXNotificationListenerService.currentNotifications
             .groupBy { it.packageName }
             .mapValues { it.value.size }
+
+    companion object {
+        /** Coalesce rapid slider-driven config changes into a single backend rebuild. */
+        private const val REBUILD_DEBOUNCE_MS = 300L
+
+        /** Pref keys that require the backend to be rebuilt when changed. */
+        private val BACKEND_KEYS = setOf(
+            AppListPrefs.KEY_STYLE, AppListPrefs.KEY_SORT,
+            AppListPrefs.KEY_NOTIF_BADGE, AppListPrefs.KEY_NOTIF_BADGE_COUNT,
+            AppListPrefs.KEY_LIST_SEARCH,
+            AppListPrefs.KEY_LIST_3D, AppListPrefs.KEY_LIST_3D_MIN_SCALE, AppListPrefs.KEY_LIST_3D_CURVE,
+            AppListPrefs.KEY_GRID_COLS, AppListPrefs.KEY_GRID_NAMES,
+            AppListPrefs.KEY_WATERFALL_3D, AppListPrefs.KEY_WATERFALL_3D_MIN_SCALE, AppListPrefs.KEY_WATERFALL_3D_CURVE,
+            AppListPrefs.KEY_HONEYCOMB_3D, AppListPrefs.KEY_HONEYCOMB_3D_MIN_SCALE, AppListPrefs.KEY_HONEYCOMB_ICON_SIZE, AppListPrefs.KEY_HONEYCOMB_3D_CURVE,
+            AppListPrefs.KEY_GRID2D_COLS, AppListPrefs.KEY_GRID2D_NAMES, AppListPrefs.KEY_GRID2D_3D, AppListPrefs.KEY_GRID2D_3D_MIN_SCALE, AppListPrefs.KEY_GRID2D_ICON_SIZE, AppListPrefs.KEY_GRID2D_3D_CURVE,
+            AppListPrefs.KEY_PAGES_COLS, AppListPrefs.KEY_PAGES_ROWS,
+            AppListPrefs.KEY_OVERSCROLL,
+        )
+    }
 }

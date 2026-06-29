@@ -131,10 +131,15 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
         val hideMode = AppListPrefs.hideMode(ctx)
         val customOrder = AppListPrefs.customOrder(ctx)
 
-        // Recalculate customOrder indices from the full order
+        // Recompute isHidden from the *current* hidden set (not the cached value captured at
+        // load time) so hiding/unhiding an app takes effect on a plain loadApps() without a
+        // full reload. Also recalculate customOrder indices from the full order.
         val items = all.map { item ->
             val key = "${item.packageName}/${item.activityName}"
-            item.copy(customOrder = customOrder.indexOf(key).let { if (it < 0) Int.MAX_VALUE else it })
+            item.copy(
+                isHidden = key in hiddenComponents,
+                customOrder = customOrder.indexOf(key).let { if (it < 0) Int.MAX_VALUE else it }
+            )
         }
 
         val resolved = when (hideMode) {

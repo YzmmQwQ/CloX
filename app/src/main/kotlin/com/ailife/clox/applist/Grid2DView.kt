@@ -97,15 +97,32 @@ class Grid2DView @JvmOverloads constructor(
         isMotionEventSplittingEnabled = false
     }
 
+    private var needsBuild = false
+
     fun bindItems(items: List<AppItem>) {
         pendingItems = items
-        if (width > 0 && height > 0) buildGrid(items)
-        else viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                viewTreeObserver.removeOnGlobalLayoutListener(this)
-                buildGrid(pendingItems)
-            }
-        })
+        // Build immediately if we already have dimensions; otherwise flag it and let onLayout
+        // build once the view is measured.
+        //
+        // (Previously this deferred via a self-removing OnGlobalLayoutListener, but re-fetching
+        // the ViewTreeObserver after a backend rebuild returned a different observer instance, so
+        // removeOnGlobalLayoutListener never detached it — every subsequent global layout then
+        // re-ran the full buildGrid (recreating every cell + badge), saturating the UI thread and
+        // making the app-list open/close janky until the process was restarted.)
+        if (width > 0 && height > 0) { needsBuild = false; buildGrid(items) }
+        else needsBuild = true
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        // Build the deferred grid as soon as dimensions are known. The needsBuild flag is cleared
+        // before building, and buildGrid only positions children via margins (never changes this
+        // view's own size), so the requestLayout it triggers re-enters onLayout with the flag
+        // already false — no rebuild loop.
+        if (needsBuild && width > 0 && height > 0 && pendingItems.isNotEmpty()) {
+            needsBuild = false
+            buildGrid(pendingItems)
+        }
     }
 
     private fun buildGrid(items: List<AppItem>) {
