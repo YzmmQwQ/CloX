@@ -23,6 +23,7 @@ import org.json.JSONArray
 class CloXNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        if (dismissIfSelfReferencingSystemNotification(sbn)) return
         if (shouldFilter(sbn)) return
         refreshList()
         handleNewNotificationEffects(sbn)
@@ -65,6 +66,36 @@ class CloXNotificationListenerService : NotificationListenerService() {
         return sbn.packageName in blockedApps ||
                 (blockPersistent && isPersistent(sbn)) ||
                 isContentless(sbn)
+    }
+
+    /**
+     * When a notification comes from the permission controller or system UI (e.g. the
+     * "running in background" / "drawing over other apps" prompts) and references our own
+     * app by name in its title or content, dismiss it immediately.
+     */
+    private fun dismissIfSelfReferencingSystemNotification(sbn: StatusBarNotification): Boolean {
+        val pkg = sbn.packageName
+        val isSystemSource = pkg == "com.google.android.permissioncontroller" ||
+                pkg == "com.android.permissioncontroller" ||
+                pkg == "com.android.systemui"
+        if (!isSystemSource) return false
+
+        val appName = applicationInfo.loadLabel(packageManager).toString()
+        if (appName.isBlank()) return false
+
+        val extras = sbn.notification.extras
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+        val text = (extras.getCharSequence(Notification.EXTRA_TEXT)
+            ?: extras.getCharSequence(Notification.EXTRA_BIG_TEXT))?.toString().orEmpty()
+
+        if (title.contains(appName, ignoreCase = true) || text.contains(appName, ignoreCase = true)) {
+            try {
+                cancelNotification(sbn.key)
+            } catch (e: Exception) {
+            }
+            return true
+        }
+        return false
     }
 
     private fun isPersistent(sbn: StatusBarNotification): Boolean {
