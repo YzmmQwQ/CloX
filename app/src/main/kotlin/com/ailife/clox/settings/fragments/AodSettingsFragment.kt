@@ -19,6 +19,7 @@ class AodSettingsFragment : BaseSettingsFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val switchEnabled   = view.findViewById<MaterialSwitch>(R.id.switchAodEnabled)
+        val switchWhenCharging = view.findViewById<MaterialSwitch>(R.id.switchAodWhenCharging)
         val cardDisplay     = view.findViewById<View>(R.id.cardAodDisplay)
         val cardBehavior    = view.findViewById<View>(R.id.cardAodBehavior)
         val sliderTimeout   = view.findViewById<Slider>(R.id.sliderAodTimeout)
@@ -48,6 +49,12 @@ class AodSettingsFragment : BaseSettingsFragment() {
         switchEnabled.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(AodPrefs.KEY_ENABLED, checked).apply()
             updateDependentVisibility(checked)
+        }
+
+        // Always when charging
+        switchWhenCharging.isChecked = prefs.getBoolean(AodPrefs.KEY_ALWAYS_WHEN_CHARGING, false)
+        switchWhenCharging.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(AodPrefs.KEY_ALWAYS_WHEN_CHARGING, checked).apply()
         }
 
         // Timeout slider

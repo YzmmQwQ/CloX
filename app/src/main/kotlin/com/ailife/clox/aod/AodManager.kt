@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.BatteryManager
 import android.os.PowerManager
 import android.util.Log
 import android.view.WindowManager
@@ -41,6 +42,7 @@ class AodManager(
     var aodActive = false
         private set
     private var dimmed = false
+    private var charging = false
 
     private var keepOnWakeLock: PowerManager.WakeLock? = null
 
@@ -53,8 +55,21 @@ class AodManager(
         }
     }
 
+    private val batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: Intent) {
+            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            val nowCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                    status == BatteryManager.BATTERY_STATUS_FULL
+            if (nowCharging != charging) {
+                charging = nowCharging
+                Log.d(TAG, "charging changed: $charging")
+                applyEnabledPref()
+            }
+        }
+    }
+
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == AodPrefs.KEY_ENABLED) applyEnabledPref()
+        if (key == AodPrefs.KEY_ENABLED || key == AodPrefs.KEY_ALWAYS_WHEN_CHARGING) applyEnabledPref()
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -62,7 +77,14 @@ class AodManager(
     fun start() {
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         activity.registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
-        Log.d(TAG, "start: aod_enabled=${prefs.getBoolean(AodPrefs.KEY_ENABLED, false)}")
+        // Sticky battery intent gives the current charging state immediately.
+        val batteryIntent = activity.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        batteryIntent?.let {
+            val status = it.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                    status == BatteryManager.BATTERY_STATUS_FULL
+        }
+        Log.d(TAG, "start: aod_enabled=${prefs.getBoolean(AodPrefs.KEY_ENABLED, false)} charging=$charging")
         applyEnabledPref()
     }
 
@@ -82,6 +104,7 @@ class AodManager(
     fun stop() {
         prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         try { activity.unregisterReceiver(screenReceiver) } catch (_: Exception) {}
+        try { activity.unregisterReceiver(batteryReceiver) } catch (_: Exception) {}
         handler.removeCallbacks(dimRunnable)
         handler.removeCallbacks(gestureRunnable)
         releaseKeepOnLock()
@@ -120,7 +143,16 @@ class AodManager(
     // ── Private ───────────────────────────────────────────────────────────────
 
     private fun applyEnabledPref() {
-        if (prefs.getBoolean(AodPrefs.KEY_ENABLED, false)) enableAod() else disableAod()
+        if (shouldAodBeActive()) enableAod() else disableAod()
+    }
+
+    /**
+     * AOD is active if the user enabled it, OR if it should always run while charging
+     * and the device is currently charging (regardless of the master enable setting).
+     */
+    private fun shouldAodBeActive(): Boolean {
+        if (charging && prefs.getBoolean(AodPrefs.KEY_ALWAYS_WHEN_CHARGING, false)) return true
+        return prefs.getBoolean(AodPrefs.KEY_ENABLED, false)
     }
 
     private fun enableAod() {

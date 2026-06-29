@@ -9,6 +9,7 @@ object AodPrefs {
     const val KEY_LOCK_GESTURE_DELAY       = "aod_lock_gesture_delay_seconds"
     const val KEY_SHALLOW_SLEEP            = "aod_shallow_sleep"
     const val KEY_POWER_BUTTON_EXIT        = "aod_power_button_exit"
+    const val KEY_ALWAYS_WHEN_CHARGING     = "aod_always_when_charging"
 
     // Written by AodManager (not user-facing) to notify Lua of AOD state
     const val KEY_LUA_AOD_ACTIVE           = "watchface_aod_enabled"

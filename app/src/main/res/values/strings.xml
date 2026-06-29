@@ -510,6 +510,8 @@
     <string name="pref_aod_summary">Keep screen on, show watchface</string>
     <string name="pref_aod_enabled_title">Enable AOD</string>
     <string name="pref_aod_enabled_summary">Keep the screen on and display the watchface</string>
+    <string name="pref_aod_when_charging_title">Always on while charging</string>
+    <string name="pref_aod_when_charging_summary">Keep AOD active whenever charging, even if AOD is off</string>
     <string name="pref_aod_category_display">Display</string>
     <string name="pref_aod_category_behavior">Behavior</string>
     <string name="pref_aod_timeout_title">Idle timeout</string>
