@@ -140,6 +140,30 @@ class AodManager(
         resetIdleTimer()
     }
 
+    /**
+     * Directly enter the AOD dimmed + gesture-locked state, without turning the
+     * screen off and re-waking. Used by the double-tap "screen off" gesture while
+     * AOD is active so we skip the accessibility lock → ACTION_SCREEN_OFF → wake →
+     * bring-to-foreground round-trip and go straight into AOD.
+     *
+     * Returns true if AOD handled the request; false if AOD is not active (caller
+     * should fall back to the normal screen-off path).
+     */
+    fun enterAodNow(): Boolean {
+        if (!aodActive) return false
+        Log.d(TAG, "enterAodNow: dimmed=$dimmed")
+        handler.removeCallbacks(dimRunnable)
+        handler.removeCallbacks(gestureRunnable)
+        if (!dimmed) {
+            dimmed = true
+            onCollapseOverlays()
+            dimScreen()
+            setLuaAodActive(true)
+        }
+        scheduleLockGesture(immediate = true)
+        return true
+    }
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private fun applyEnabledPref() {

@@ -245,6 +245,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
         )
         aodManager.start()
+        gestureHandler.onScreenOffWhileAod = { aodManager.enterAodNow() }
 
         rtosDelegate = RtosActivityDelegate(
             activity             = this,

@@ -24,6 +24,13 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
     /** Set by MainActivity: collapse the app list / overlays back to the bare watchface. */
     var onCollapseToWatchface: (() -> Unit)? = null
 
+    /**
+     * Set by MainActivity: if AOD is active, enter the dimmed AOD state directly and
+     * return true (skipping the accessibility lock + re-wake round-trip). Returns
+     * false when AOD is inactive so the screen-off action falls through normally.
+     */
+    var onScreenOffWhileAod: (() -> Boolean)? = null
+
     fun onLongPress() {
         vibrate()
         val action = PreferenceManager.getDefaultSharedPreferences(ctx)
@@ -54,6 +61,9 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
     }
 
     private fun turnScreenOff() {
+        // When AOD is active, go straight into the dimmed AOD state instead of
+        // locking the screen (which would turn the display off and force a re-wake).
+        if (onScreenOffWhileAod?.invoke() == true) return
         if (!CloXAccessibilityService.lockScreen()) {
             QsPermissionHelper.ensureAccessibilityEnabled(ctx)
         }
