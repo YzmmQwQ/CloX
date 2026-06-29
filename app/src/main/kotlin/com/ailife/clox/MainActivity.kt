@@ -453,23 +453,29 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             val playReveal = appListOpen &&
                 com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this) &&
                 (!onlyOnGesture || pendingGestureFollowOn)
+            // The reveal (fade / circle-in of the app list) must play AFTER the return animation
+            // (icon collapse, or the gesture recoil) has finished — not at the same time. The veil
+            // cover is added NOW (under the return-anim overlays) so the app list stays hidden the
+            // whole time; the reveal itself is chained on the return anim's completion. If the
+            // return anim is disabled, reveal immediately.
+            val veil = if (playReveal) showGestureReturnVeil() else null
+            val reveal: (() -> Unit)? = veil?.let { v -> { gestureRoot.post { playGestureReturnReveal(v, bounds) } } }
             when {
                 Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q -> {
                     Log.d("CloX/Return", "branch=pre-Q playReveal=$playReveal returnEnabled=$returnEnabled bounds=$bounds")
-                    if (playReveal) gestureRoot.post { playGestureReturnReveal(bounds) }
-                    if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds) }
+                    if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds, reveal) }
+                    else reveal?.invoke()
                 }
                 pendingGestureFollowOn -> {
                     pendingGestureFollowOn = false
                     Log.d("CloX/Return", "branch=gestureFollowOn playReveal=$playReveal returnEnabled=$returnEnabled bounds=$bounds")
-                    if (playReveal) gestureRoot.post { playGestureReturnReveal(bounds) }
-                    if (returnEnabled) gestureRoot.post { playGestureFollowOnAnimation(item, bounds) }
-                    else lastLaunchIconView = null
+                    if (returnEnabled) gestureRoot.post { playGestureFollowOnAnimation(item, bounds, veil, reveal) }
+                    else { lastLaunchIconView = null; reveal?.invoke() }
                 }
                 else -> {
                     Log.d("CloX/Return", "branch=else(11+,no-contract) playReveal=$playReveal returnEnabled=$returnEnabled bounds=$bounds")
-                    if (playReveal) gestureRoot.post { playGestureReturnReveal(bounds) }
-                    if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds) }
+                    if (returnEnabled) gestureRoot.post { playReturnAnimation(item, bounds, reveal) }
+                    else reveal?.invoke()
                 }
             }
         } else {
@@ -560,16 +566,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         item.icon
     }
 
-    private fun playReturnAnimation(item: AppItem, iconBounds: Rect) {
+    private fun playReturnAnimation(item: AppItem, iconBounds: Rect, onDone: (() -> Unit)? = null) {
         val type = com.ailife.clox.applist.AppListPrefs.closeAnimType(this)
         if (type == com.ailife.clox.applist.AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND) {
-            playReturnWindowExpandAnimation(item, iconBounds)
+            playReturnWindowExpandAnimation(item, iconBounds, onDone)
         } else {
-            playReturnIconZoomAnimation(item, iconBounds)
+            playReturnIconZoomAnimation(item, iconBounds, onDone)
         }
     }
 
-    private fun playReturnIconZoomAnimation(item: AppItem, iconBounds: Rect) {
+    private fun playReturnIconZoomAnimation(item: AppItem, iconBounds: Rect, onDone: (() -> Unit)? = null) {
         val sw = screenW.toInt(); val sh = screenH.toInt()
         val speed = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
         val delay = com.ailife.clox.applist.AppListPrefs.closeAnimDelay(this).toLong()
@@ -617,6 +623,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             if (isFinishing || isDestroyed) {
                 gestureRoot.removeView(iv); gestureRoot.removeView(scrim)
                 realIcon?.visibility = View.VISIBLE
+                onDone?.invoke()
                 return@postDelayed
             }
             android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
@@ -635,6 +642,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                         gestureRoot.removeView(iv)
                         gestureRoot.removeView(scrim)
                         realIcon?.visibility = View.VISIBLE
+                        onDone?.invoke()
                     }
                 })
                 start()
@@ -642,7 +650,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }, delay)
     }
 
-    private fun playReturnWindowExpandAnimation(item: AppItem, iconBounds: Rect) {
+    private fun playReturnWindowExpandAnimation(item: AppItem, iconBounds: Rect, onDone: (() -> Unit)? = null) {
         val sw = screenW; val sh = screenH
         val speed = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
         val delay = com.ailife.clox.applist.AppListPrefs.closeAnimDelay(this).toLong()
@@ -697,6 +705,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             if (isFinishing || isDestroyed) {
                 gestureRoot.removeView(iv); gestureRoot.removeView(cardView)
                 realIcon?.visibility = View.VISIBLE
+                onDone?.invoke()
                 return@postDelayed
             }
             android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
@@ -721,6 +730,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                         gestureRoot.removeView(iv)
                         gestureRoot.removeView(cardView)
                         realIcon?.visibility = View.VISIBLE
+                        onDone?.invoke()
                     }
                 })
                 start()
@@ -957,7 +967,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // Android 11+: after the system shrinks the app window into the icon, recoil the icon
     // away from screen center (where the gesture animation originated) then spring it back.
-    private fun playGestureFollowOnAnimation(item: AppItem, iconBounds: Rect) {
+    private fun playGestureFollowOnAnimation(item: AppItem, iconBounds: Rect, veil: GestureRevealView? = null, onDone: (() -> Unit)? = null) {
         val speed    = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
         val realIcon = lastLaunchIconView?.get()
         lastLaunchIconView = null
@@ -1007,35 +1017,63 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             // then fade the hero out on top. Restoring it only after the fade caused a brief dip
             // then a pop — the flash.
             realIcon?.visibility = View.VISIBLE
+            // Open the veil's hole over the icon NOW so the real icon shows through during the
+            // cross-fade; otherwise the hero fades onto bare veil background and the hole only
+            // pops open later — a flash at the target.
+            veil?.let { openVeilTargetHole(it, iconBounds) }
             iv.animate().alpha(0f).setDuration((120L / speed).toLong()).withEndAction {
                 gestureRoot.removeView(iv)
+                onDone?.invoke()
             }.start()
         }
         springX.start(); springY.start()
     }
 
-    // Reveal the open app list (over its current background image) on gesture return.
-    // A veil painted with the app list's background covers the screen, then either fades
-    // out or opens a growing circular hole — revealing the identical real background plus
-    // the app icons underneath, so the icons appear to fade / circle in over a static background.
-    private fun playGestureReturnReveal(iconBounds: Rect) {
-        Log.d("CloX/Return", "playGestureReturnReveal iconBounds=$iconBounds center=(${iconBounds.centerX()},${iconBounds.centerY()})")
-        val listView = appListFragment?.view ?: return
-        val bg = listView.background?.constantState?.newDrawable()?.mutate()
+    // Cover the open app list with a veil painted with its own background image, so the icons
+    // are hidden until the reveal plays. Added up front (before/at the start of the return
+    // animation) so the cover is continuously present — no flash of the bare app list between
+    // the return animation finishing and the reveal starting. Returns the veil for the reveal.
+    private fun showGestureReturnVeil(): GestureRevealView {
+        val listView = appListFragment?.view
+        val bg = listView?.background?.constantState?.newDrawable()?.mutate()
             ?: android.graphics.drawable.ColorDrawable(
                 com.google.android.material.color.MaterialColors.getColor(
                     gestureRoot, com.google.android.material.R.attr.colorSurface,
                     android.graphics.Color.BLACK
                 )
             )
+        val veil = GestureRevealView(this).apply { bgDrawable = bg }
+        gestureRoot.addView(veil, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        return veil
+    }
+
+    // Open an icon-sized hole in the veil over [iconBounds] so the real icon underneath shows
+    // through. Used by the gesture recoil so its hero→real-icon cross-fade reveals the real icon
+    // (not bare veil background — that caused a flash). Returns the icon radius. No-op-safe if
+    // the veil isn't laid out yet.
+    private fun openVeilTargetHole(veil: GestureRevealView, iconBounds: Rect): Float {
+        val rootLoc = IntArray(2)
+        veil.getLocationOnScreen(rootLoc)
+        veil.holeCx = (iconBounds.centerX() - rootLoc[0]).toFloat().coerceIn(0f, veil.width.toFloat())
+        veil.holeCy = (iconBounds.centerY() - rootLoc[1]).toFloat().coerceIn(0f, veil.height.toFloat())
+        val iconRadius = (Math.hypot(
+            iconBounds.width().toDouble(), iconBounds.height().toDouble()
+        ).toFloat() / 2f).coerceAtLeast(1f)
+        veil.setHoleRadius(iconRadius)
+        return iconRadius
+    }
+
+    // Reveal the open app list (over its current background image) on gesture return — called
+    // once the return animation has finished. The [veil] (already covering the screen) either
+    // fades out or opens a growing circular hole, revealing the identical real background plus
+    // the app icons underneath, so the icons appear to fade / circle in over a static background.
+    private fun playGestureReturnReveal(veil: GestureRevealView, iconBounds: Rect) {
+        Log.d("CloX/Return", "playGestureReturnReveal iconBounds=$iconBounds center=(${iconBounds.centerX()},${iconBounds.centerY()})")
         val speed = com.ailife.clox.applist.AppListPrefs.gestureReturnSpeed(this)
         val delay = com.ailife.clox.applist.AppListPrefs.gestureReturnDelay(this).toLong()
         val circle = com.ailife.clox.applist.AppListPrefs.gestureReturnAnim(this) ==
             com.ailife.clox.applist.AppListPrefs.GESTURE_RETURN_CIRCLE
-
-        val veil = GestureRevealView(this).apply { bgDrawable = bg }
-        gestureRoot.addView(veil, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
         // Wait for layout so width/height are known, then hold for the start delay before animating.
         veil.post {
@@ -1063,6 +1101,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 Math.hypot(cx.toDouble(), (veil.height - cy).toDouble()),
                 Math.hypot((veil.width - cx).toDouble(), (veil.height - cy).toDouble())
             ).toFloat()
+            // The returning ("target") app's icon was just delivered to its slot by the return
+            // animation — keep it uncovered so the reveal fades/circles in the REST of the list
+            // AROUND it. The veil holds a hole the size of the icon over it from the first frame.
+            val iconRadius = (Math.hypot(
+                originBounds.width().toDouble(), originBounds.height().toDouble()
+            ).toFloat() / 2f).coerceAtLeast(1f)
+            veil.setHoleRadius(iconRadius)
             veil.postDelayed({
                 if (isFinishing || isDestroyed) { gestureRoot.removeView(veil); return@postDelayed }
                 android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
@@ -1070,8 +1115,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     duration = (600L / speed).toLong()
                     interpolator = DecelerateInterpolator(1.5f)
                     if (circle) {
-                        addUpdateListener { va -> veil.setHoleRadius((va.animatedValue as Float) * maxRadius) }
+                        // Grow the hole from the icon's edge (not 0) so the target never gets covered.
+                        addUpdateListener { va ->
+                            val t = va.animatedValue as Float
+                            veil.setHoleRadius(iconRadius + (maxRadius - iconRadius) * t)
+                        }
                     } else {
+                        // Fade the veil out; the icon-sized hole keeps the target visible throughout.
                         addUpdateListener { va -> veil.alpha = 1f - (va.animatedValue as Float) }
                     }
                     addListener(object : android.animation.AnimatorListenerAdapter() {
