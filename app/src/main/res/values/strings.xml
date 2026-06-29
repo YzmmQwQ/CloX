@@ -818,6 +818,8 @@
     </string-array>
     <string name="anim_setting_close_category">Close animation</string>
     <string name="anim_setting_close_type_title">Animation style</string>
+    <string name="anim_setting_resume_close_title">Close animation without app list</string>
+    <string name="anim_setting_resume_close_summary">Always play the close animation when returning to the watchface, even when the app list isn\'t open — it animates toward the centre of the screen. Off lands on the watchface with no animation.</string>
     <string name="anim_setting_close_speed_category">Close speed</string>
     <string name="anim_setting_close_speed_title">Close animation speed</string>
     <string name="anim_setting_close_delay_title">Start delay</string>

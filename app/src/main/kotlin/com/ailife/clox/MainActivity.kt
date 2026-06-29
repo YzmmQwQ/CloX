@@ -388,7 +388,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         wasStoppedSinceResume = false
         CocosManager.onResume()
         aodManager.onResume()
-        if (overlayController.isNotificationActive()) notifications.onPanelOpened()
+        // A panel (notifications / QS / widgets) left open before the screen turned off should
+        // not linger on resume — drop it instantly so we land on the watchface.
+        if (overlayController.hasActiveOverlay()) overlayController.dismissActiveInstant()
 
         // Defer non-critical UI operations to after the first frame so the
         // watchface GL surface can render without competing for UI thread time.
@@ -427,7 +429,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (item != null && bounds != null) {
             lastLaunchedItem = null; lastLaunchBounds = null
             suppressSystemTransition()
-            val returnEnabled = com.ailife.clox.applist.AppListPrefs.returnAnimEnabled(this)
+            // The close animation plays into the app's icon slot when the list is open. When
+            // the list is NOT open there's no slot, so it plays toward screen centre — only
+            // do that when the user has opted in via the resume-close-anim pref; otherwise
+            // skip it so we land straight on the watchface.
+            val returnEnabled = com.ailife.clox.applist.AppListPrefs.returnAnimEnabled(this) &&
+                (appListOpen || com.ailife.clox.applist.AppListPrefs.resumeCloseAnim(this))
             // Reveal the open app list over its background image (fade / circle from the icon).
             // "Only on gesture" restricts it to the swipe-home gesture (contract) return.
             val onlyOnGesture = com.ailife.clox.applist.AppListPrefs.gestureReturnOnlyGesture(this)

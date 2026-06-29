@@ -112,6 +112,14 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             }
         }
 
+        // ── Resume close-to-watchface ────────────────────────────────────────
+        val switchResumeClose = view.findViewById<MaterialSwitch>(R.id.switchResumeClose)
+        switchResumeClose.isChecked =
+            appListPrefs.getBoolean(AppListPrefs.KEY_RESUME_CLOSE_ANIM, false)
+        switchResumeClose.setOnCheckedChangeListener { _, checked ->
+            appListPrefs.edit().putBoolean(AppListPrefs.KEY_RESUME_CLOSE_ANIM, checked).apply()
+        }
+
         // ── Gesture return reveal ────────────────────────────────────────────
         val switchGestureReturn = view.findViewById<MaterialSwitch>(R.id.switchGestureReturn)
         val rowGestureReturnType = view.findViewById<View>(R.id.rowGestureReturnType)

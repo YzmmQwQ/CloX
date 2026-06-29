@@ -122,6 +122,24 @@
                         android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
 
+                <!-- Resume close-to-watchface animation -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/anim_setting_resume_close_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:text="@string/anim_setting_resume_close_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchResumeClose"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

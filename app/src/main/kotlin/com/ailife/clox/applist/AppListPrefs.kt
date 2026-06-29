@@ -289,6 +289,15 @@ object AppListPrefs {
     fun setDetectClosingApp(ctx: Context, value: Boolean) =
         get(ctx).edit().putBoolean(KEY_DETECT_CLOSING_APP, value).apply()
 
+    // ── Resume close ─────────────────────────────────────────────────────────
+    // The app close/return animation normally plays only when the app list is open (it
+    // animates into the closing app's icon slot). When this is enabled, it also plays when
+    // the app list is NOT open — animating toward the centre of the screen instead.
+    const val KEY_RESUME_CLOSE_ANIM = "resume_close_anim"
+
+    fun resumeCloseAnim(ctx: Context) =
+        get(ctx).getBoolean(KEY_RESUME_CLOSE_ANIM, false)
+
     // ── Notification badges ──────────────────────────────────────────────────
 
     const val KEY_NOTIF_BADGE       = "notif_badge"

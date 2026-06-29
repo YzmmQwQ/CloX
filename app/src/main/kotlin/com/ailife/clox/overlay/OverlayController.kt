@@ -278,6 +278,28 @@ class OverlayController(
             .withEndAction { scrimView.visibility = View.GONE }.start()
     }
 
+    /**
+     * Immediately hide any active overlay with no animation. Used on resume so a panel left
+     * open before the screen turned off doesn't linger — we land straight on the watchface.
+     */
+    fun dismissActiveInstant() {
+        val overlay = activeOverlay ?: return
+        android.util.Log.d("CloX/Blur", "dismissActiveInstant (resume)")
+        overlay.animate().cancel()
+        scrimView.animate().cancel()
+        isDragging = false
+        isCollapsing = false
+        val wasQs = overlay === quickSettings
+        val wasWidgets = overlay === widgets
+        activeOverlay = null
+        activeDirection = null
+        hideNow(overlay)
+        overlay.alpha = 1f
+        if (wasQs) quickSettings.onPanelClosed()
+        if (wasWidgets) widgets.onPanelClosed()
+        onDismissed?.invoke()
+    }
+
     fun hasActiveOverlay(): Boolean = activeOverlay != null
 
     /** True only when the QS panel (with VP2) is the current active overlay. */
