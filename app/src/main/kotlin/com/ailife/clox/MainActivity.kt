@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Launch animation interruptible state ─────────────────────────────────
     private var activeLaunchAnim: android.animation.ValueAnimator? = null
     private var activeLaunchT: Float = 0f
+    private var lastLaunchReverseAt = 0L   // uptimeMillis of the last launch-anim reverse
     private var launchAnimUpdateFn: ((Float) -> Unit)? = null
     private var launchAnimCleanupFn: (() -> Unit)? = null
     private lateinit var gestureHandler: GestureHandler
@@ -318,6 +319,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             reverseLaunchAnimation()
             return
         }
+        // The window-expand interceptor reverses the launch anim the instant the HOME gesture's
+        // touch lands; the matching HOME intent then arrives a beat later. Swallow it so it
+        // doesn't propagate to closeAppList — the reverse already handled the gesture.
+        if (android.os.SystemClock.uptimeMillis() - lastLaunchReverseAt < 600L) return
 
         // If the launcher was NOT in the foreground when this HOME arrived, then an app was
         // actually on top and this is a return-to-launcher — not an in-launcher Home press.
@@ -913,10 +918,21 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val updateFn  = launchAnimUpdateFn    ?: return
         val cleanupFn = launchAnimCleanupFn   ?: return
         val startT    = activeLaunchT
+        lastLaunchReverseAt = android.os.SystemClock.uptimeMillis()
 
         activeLaunchAnim    = null
         launchAnimUpdateFn  = null
         launchAnimCleanupFn = null
+
+        // The app never actually launched (launch() only fires at the forward anim's end), so
+        // clear the return-tracking state. Otherwise the next onResume sees lastLaunchedItem
+        // set and plays the close/return animation — a full-screen scrim+icon that shrinks to
+        // the icon slot, the "jump to full screen and collapse" glitch.
+        lastLaunchedItem = null
+        lastLaunchBounds = null
+        lastLaunchIconView = null
+        lastClosingPkg = null
+        appLaunchedFromList = false
 
         anim.removeAllListeners()
         anim.removeAllUpdateListeners()
