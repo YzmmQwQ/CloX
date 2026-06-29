@@ -69,6 +69,23 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             prefs.edit().putBoolean("reset_watchface_on_screen_on", checked).apply()
         }
 
+        // Navigation bar visibility
+        val navBarEntries = resources.getStringArray(R.array.nav_bar_mode_entries)
+        val navBarValues  = resources.getStringArray(R.array.nav_bar_mode_values)
+        fun navBarLabel(v: String) = navBarEntries.getOrElse(navBarValues.indexOf(v)) { v }
+        val tvNavBar = view.findViewById<TextView>(R.id.tvNavBar)
+        fun refreshNavBar() {
+            tvNavBar.text = navBarLabel(prefs.getString("nav_bar_mode", "applist") ?: "applist")
+        }
+        refreshNavBar()
+        view.findViewById<View>(R.id.rowNavBar).setOnClickListener {
+            showListPicker(getString(R.string.pref_nav_bar_title), navBarEntries, navBarValues,
+                prefs.getString("nav_bar_mode", "applist") ?: "applist") { v, _ ->
+                prefs.edit().putString("nav_bar_mode", v).apply()
+                refreshNavBar()
+            }
+        }
+
         // Button mapping
         val tvRecord = view.findViewById<TextView>(R.id.tvBtnRecord)
         val tvSingle = view.findViewById<TextView>(R.id.tvBtnSingle)

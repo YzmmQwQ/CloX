@@ -356,16 +356,23 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (hasFocus) hideSystemBars()
     }
 
+    // Status bar is always hidden. The navigation bar follows the "nav_bar_mode" gesture
+    // setting: hidden / always shown / shown only while the app list is open. RTOS mode
+    // always hides it (full-screen lock). Call this whenever the app-list state changes.
     internal fun hideSystemBars() {
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
-    }
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.statusBars())
 
-    private fun showSystemBars() {
-        WindowInsetsControllerCompat(window, window.decorView)
-            .show(WindowInsetsCompat.Type.systemBars())
+        val mode = PreferenceManager.getDefaultSharedPreferences(this)
+            .getString("nav_bar_mode", "applist") ?: "applist"
+        val showNav = !RtosManager.isActive && when (mode) {
+            "show"    -> true
+            "applist" -> appListOpen
+            else      -> false   // "hidden"
+        }
+        if (showNav) controller.show(WindowInsetsCompat.Type.navigationBars())
+        else controller.hide(WindowInsetsCompat.Type.navigationBars())
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
@@ -1291,6 +1298,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         appListFragment?.setActive(true)
         springAppList(0f, velocity)
         updateBackEnabled()
+        hideSystemBars()   // nav bar may need to appear ("only in app list" mode)
     }
 
     private fun closeAppList(velocity: Float = 0f) {
@@ -1298,6 +1306,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         appListFragment?.setActive(false)
         springAppList(screenW, velocity)
         updateBackEnabled()
+        hideSystemBars()   // nav bar may need to hide again ("only in app list" mode)
     }
 
     private fun springAppList(target: Float, velocity: Float = 0f) {

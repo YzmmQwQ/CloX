@@ -488,6 +488,19 @@
         <item>start_rtos</item>
     </string-array>
 
+    <!-- Navigation bar visibility -->
+    <string name="pref_nav_bar_title">Navigation bar</string>
+    <string-array name="nav_bar_mode_entries">
+        <item>Hidden</item>
+        <item>Always shown</item>
+        <item>Only in app list</item>
+    </string-array>
+    <string-array name="nav_bar_mode_values">
+        <item>hidden</item>
+        <item>show</item>
+        <item>applist</item>
+    </string-array>
+
     <!-- Watch face auto-change -->
     <string name="pref_wf_category_auto">Auto Change</string>
     <string name="pref_wf_auto_screen_on_title">Change on screen on</string>
