@@ -475,6 +475,7 @@
         <item>Open watch face selector</item>
         <item>Random watch face</item>
         <item>Open settings</item>
+        <item>Watch face settings</item>
         <item>Toggle gesture lock</item>
         <item>Enter RTOS mode</item>
     </string-array>
@@ -484,6 +485,7 @@
         <item>watchface_selector</item>
         <item>random_watchface</item>
         <item>open_settings</item>
+        <item>watchface_config</item>
         <item>lock_gesture</item>
         <item>start_rtos</item>
     </string-array>

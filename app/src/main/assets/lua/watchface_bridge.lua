@@ -186,23 +186,35 @@ end
 -- ── Enable / disable optional async data sources ─────────────────────────────
 
 function WatchfaceBridge.setWeatherEnabled(enabled)
+    if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setWeatherEnabled", enabled = enabled }))
 end
 
 -- metric: "steps" | "heartRate" | "spo2"
 function WatchfaceBridge.setHealthEnabled(metric, enabled)
+    if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setHealthEnabled", metric = metric, enabled = enabled }))
 end
 
 -- sensor: "accelerometer" | "compass" | "barometer" | "gyroscope"
 function WatchfaceBridge.setSensorEnabled(sensor, enabled)
+    if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setSensorEnabled", sensor = sensor, enabled = enabled }))
 end
 
 -- ── Lua → Android: watchface shortcut ────────────────────────────────────────
 
 function WatchfaceBridge.tapAction(shortcut)
+    if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({ action = "tapAction", shortcut = shortcut }))
+end
+
+-- Ask Android to open the per-watchface configuration UI (scale/offset/FPS).
+-- Lets a watchface (or an in-face tap target) surface the same dialog a gesture
+-- would; Android handles it in WatchfaceBridgeManager (action "openConfig").
+function WatchfaceBridge.openConfig()
+    if not json then return end
+    Bridge.sendToAndroid("wf_action", json.encode({ action = "openConfig" }))
 end
 
 -- ── Android → Lua: watchface lifecycle commands ───────────────────────────────
