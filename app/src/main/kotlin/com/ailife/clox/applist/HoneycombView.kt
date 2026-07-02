@@ -64,6 +64,19 @@ class HoneycombView @JvmOverloads constructor(
     private val overDamp get() = overscrollStiffness * 0.06f
     private val maxOverScroll get() = dp(overscrollStiffness * 8).toFloat()
 
+    /**
+     * When enabled, the settled scroll range extends half a screen past the content on every side,
+     * so you can pan a corner icon toward centre and it stays there (springs to that point) instead
+     * of snapping straight back to the content edge — handy for reaching corners on a round screen.
+     */
+    var roundOverscroll = false
+    private val restPadX get() = if (roundOverscroll) width / 2f else 0f
+    private val restPadY get() = if (roundOverscroll) height / 2f else 0f
+    private val minScrollX get() = -restPadX
+    private val minScrollY get() = -restPadY
+    private val maxScrollXR get() = maxScrollX + restPadX
+    private val maxScrollYR get() = maxScrollY + restPadY
+
     // ── Drag state ────────────────────────────────────────────────────────────
     private val orderedViews = mutableListOf<View>()
     private val badgeViews   = mutableListOf<TextView>()
@@ -218,7 +231,7 @@ class HoneycombView @JvmOverloads constructor(
         // Center on the first build; on later rebuilds (app installed/updated → list reloaded)
         // keep the user's scroll position instead of jumping back to center.
         if (hasBuiltOnce) {
-            scrollX_ = prevX.coerceIn(0f, maxScrollX); scrollY_ = prevY.coerceIn(0f, maxScrollY)
+            scrollX_ = prevX.coerceIn(minScrollX, maxScrollXR); scrollY_ = prevY.coerceIn(minScrollY, maxScrollYR)
         } else {
             scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
             hasBuiltOnce = true
@@ -303,7 +316,7 @@ class HoneycombView @JvmOverloads constructor(
                 val dx = ev.x - lastX; val dy = ev.y - lastY
                 lastX = ev.x; lastY = ev.y
                 val rawX = scrollX_ - dx; val rawY = scrollY_ - dy
-                val clampedX = rawX.coerceIn(0f, maxScrollX); val clampedY = rawY.coerceIn(0f, maxScrollY)
+                val clampedX = rawX.coerceIn(minScrollX, maxScrollXR); val clampedY = rawY.coerceIn(minScrollY, maxScrollYR)
                 scrollX_ = clampedX; scrollY_ = clampedY
                 val exX = (rawX - clampedX) * overDamp; val exY = (rawY - clampedY) * overDamp
                 overScrollX_ = if (exX != 0f) (overScrollX_ + exX).coerceIn(-maxOverScroll, maxOverScroll) else overScrollX_ * 0.7f
@@ -318,11 +331,11 @@ class HoneycombView @JvmOverloads constructor(
                 val minFling = ViewConfiguration.get(context).scaledMinimumFlingVelocity.toFloat()
                 if (abs(vx) > minFling || abs(vy) > minFling) {
                     overScrollAnim?.cancel(); overScrollAnim = null
-                    val startX = (scrollX_ + overScrollX_).toInt().coerceIn(-overDist, maxScrollX.toInt() + overDist)
-                    val startY = (scrollY_ + overScrollY_).toInt().coerceIn(-overDist, maxScrollY.toInt() + overDist)
+                    val startX = (scrollX_ + overScrollX_).toInt().coerceIn(minScrollX.toInt() - overDist, maxScrollXR.toInt() + overDist)
+                    val startY = (scrollY_ + overScrollY_).toInt().coerceIn(minScrollY.toInt() - overDist, maxScrollYR.toInt() + overDist)
                     overScrollX_ = 0f; overScrollY_ = 0f
                     scroller.fling(startX, startY, vx.toInt(), vy.toInt(),
-                        0, maxScrollX.toInt(), 0, maxScrollY.toInt(), overDist, overDist)
+                        minScrollX.toInt(), maxScrollXR.toInt(), minScrollY.toInt(), maxScrollYR.toInt(), overDist, overDist)
                     post(flingRunnable)
                 } else {
                     springBackOverscroll()
@@ -336,7 +349,7 @@ class HoneycombView @JvmOverloads constructor(
         override fun run() {
             if (scroller.computeScrollOffset()) {
                 val rawX = scroller.currX.toFloat(); val rawY = scroller.currY.toFloat()
-                scrollX_ = rawX.coerceIn(0f, maxScrollX); scrollY_ = rawY.coerceIn(0f, maxScrollY)
+                scrollX_ = rawX.coerceIn(minScrollX, maxScrollXR); scrollY_ = rawY.coerceIn(minScrollY, maxScrollYR)
                 overScrollX_ = rawX - scrollX_; overScrollY_ = rawY - scrollY_
                 applyScroll(); if (enable3d) apply3d(); postOnAnimation(this)
             } else {

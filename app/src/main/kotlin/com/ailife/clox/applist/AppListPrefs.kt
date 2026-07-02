@@ -56,6 +56,7 @@ object AppListPrefs {
     const val KEY_HONEYCOMB_ICON_SIZE = "honeycomb_icon_size"   // dp, 0 = auto
     const val KEY_HONEYCOMB_3D_MIN_SCALE = "honeycomb_3d_min_scale"
     const val KEY_HONEYCOMB_3D_CURVE = "honeycomb_3d_curve"
+    const val KEY_HONEYCOMB_ROUND_OVERSCROLL = "honeycomb_round_overscroll"
 
     // ── Grid2D sub-settings ──────────────────────────────────────────────────
     const val KEY_GRID2D_COLS      = "grid2d_cols"
@@ -64,6 +65,7 @@ object AppListPrefs {
     const val KEY_GRID2D_ICON_SIZE = "grid2d_icon_size"          // dp, 0 = auto
     const val KEY_GRID2D_3D_MIN_SCALE = "grid2d_3d_min_scale"
     const val KEY_GRID2D_3D_CURVE = "grid2d_3d_curve"
+    const val KEY_GRID2D_ROUND_OVERSCROLL = "grid2d_round_overscroll"
 
     // ── Pages sub-settings ───────────────────────────────────────────────────
     const val KEY_PAGES_COLS = "pages_cols"
@@ -115,6 +117,7 @@ object AppListPrefs {
 
     fun honeycomb3d(ctx: Context)       = get(ctx).getBoolean(KEY_HONEYCOMB_3D, false)
     fun honeycombIconSize(ctx: Context) = get(ctx).getInt(KEY_HONEYCOMB_ICON_SIZE, 0)
+    fun honeycombRoundOverscroll(ctx: Context) = get(ctx).getBoolean(KEY_HONEYCOMB_ROUND_OVERSCROLL, false)
     fun honeycomb3dConfig(ctx: Context) = Effect3DConfig(
         curve = get(ctx).getString(KEY_HONEYCOMB_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
         minScalePercent = get(ctx).getInt(KEY_HONEYCOMB_3D_MIN_SCALE, 50)
@@ -124,6 +127,7 @@ object AppListPrefs {
     fun grid2dNames(ctx: Context)     = get(ctx).getBoolean(KEY_GRID2D_NAMES, false)
     fun grid2d3d(ctx: Context)        = get(ctx).getBoolean(KEY_GRID2D_3D, false)
     fun grid2dIconSize(ctx: Context)  = get(ctx).getInt(KEY_GRID2D_ICON_SIZE, 0)
+    fun grid2dRoundOverscroll(ctx: Context) = get(ctx).getBoolean(KEY_GRID2D_ROUND_OVERSCROLL, false)
     fun grid2d3dConfig(ctx: Context) = Effect3DConfig(
         curve = get(ctx).getString(KEY_GRID2D_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
         minScalePercent = get(ctx).getInt(KEY_GRID2D_3D_MIN_SCALE, 50)

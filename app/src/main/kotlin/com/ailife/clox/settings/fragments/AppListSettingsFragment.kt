@@ -365,6 +365,10 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         val iconVal = p.getInt("honeycomb_icon_size", 0).toFloat()
         sliderIcon.value = iconVal.coerceIn(0f, 120f); tvIcon.text = "${iconVal.toInt()}"
         sliderIcon.addOnChangeListener { _, value, _ -> tvIcon.text = "${value.toInt()}"; p.edit().putInt("honeycomb_icon_size", value.toInt()).apply() }
+        v.findViewById<MaterialSwitch>(R.id.switchHoneycombRoundOverscroll).apply {
+            isChecked = p.getBoolean("honeycomb_round_overscroll", false)
+            setOnCheckedChangeListener { _, c -> p.edit().putBoolean("honeycomb_round_overscroll", c).apply() }
+        }
     }
 
     private fun setupGrid2dStyleOptions(v: View, p: android.content.SharedPreferences) {
@@ -390,6 +394,10 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         val iconVal = p.getInt("grid2d_icon_size", 0).toFloat()
         sliderIcon.value = iconVal.coerceIn(0f, 120f); tvIcon.text = "${iconVal.toInt()}"
         sliderIcon.addOnChangeListener { _, value, _ -> tvIcon.text = "${value.toInt()}"; p.edit().putInt("grid2d_icon_size", value.toInt()).apply() }
+        v.findViewById<MaterialSwitch>(R.id.switchGrid2dRoundOverscroll).apply {
+            isChecked = p.getBoolean("grid2d_round_overscroll", false)
+            setOnCheckedChangeListener { _, c -> p.edit().putBoolean("grid2d_round_overscroll", c).apply() }
+        }
     }
 
     private fun setupPagesStyleOptions(v: View, p: android.content.SharedPreferences) {

@@ -20,6 +20,7 @@ class Grid2DBackend(private val ctx: Context) : AppListBackend {
         return Grid2DView(context).also { v ->
             grid2dView = v
             v.overscrollStiffness = AppListPrefs.overscroll(ctx)
+            v.roundOverscroll = AppListPrefs.grid2dRoundOverscroll(ctx)
             v.columns      = AppListPrefs.grid2dCols(ctx)
             v.showNames    = AppListPrefs.grid2dNames(ctx)
             v.enable3d      = AppListPrefs.grid2d3d(ctx)
