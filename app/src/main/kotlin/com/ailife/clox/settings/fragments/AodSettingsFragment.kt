@@ -1,12 +1,16 @@
 package com.ailife.clox.settings.fragments
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.ailife.clox.R
 import com.ailife.clox.aod.AodPrefs
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 
@@ -49,6 +53,9 @@ class AodSettingsFragment : BaseSettingsFragment() {
         switchEnabled.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(AodPrefs.KEY_ENABLED, checked).apply()
             updateDependentVisibility(checked)
+            // Re-awaken (on by default) needs to foreground the launcher from the background when the
+            // screen turns off in another app — impossible without the overlay permission.
+            if (checked && prefs.getBoolean(AodPrefs.KEY_REAWAKEN_ON_SCREEN_OFF, true)) ensureOverlayPermission()
         }
 
         // Always when charging
@@ -79,7 +86,11 @@ class AodSettingsFragment : BaseSettingsFragment() {
         switchReawaken.isChecked = prefs.getBoolean(AodPrefs.KEY_REAWAKEN_ON_SCREEN_OFF, true)
         switchReawaken.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(AodPrefs.KEY_REAWAKEN_ON_SCREEN_OFF, checked).apply()
+            if (checked) ensureOverlayPermission()
         }
+        // Nudge for the permission on entry if the feature is on but the grant is missing.
+        if (prefs.getBoolean(AodPrefs.KEY_ENABLED, false) &&
+            prefs.getBoolean(AodPrefs.KEY_REAWAKEN_ON_SCREEN_OFF, true)) ensureOverlayPermission()
 
         // Lock gesture + delay visibility
         val lockOn = prefs.getBoolean(AodPrefs.KEY_LOCK_GESTURE, true)
@@ -110,5 +121,33 @@ class AodSettingsFragment : BaseSettingsFragment() {
         switchPowerExit.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(AodPrefs.KEY_POWER_BUTTON_EXIT, checked).apply()
         }
+    }
+
+    /**
+     * AOD re-awaken needs to start MainActivity from the background when the screen turns off while a
+     * third-party app is foreground. Android blocks such background activity starts unless the app
+     * holds SYSTEM_ALERT_WINDOW ("Display over other apps"). Since targetSdk is high, this can't be
+     * granted silently — prompt the user to grant it via the system settings screen.
+     */
+    private fun ensureOverlayPermission() {
+        if (Settings.canDrawOverlays(requireContext())) return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.aod_overlay_perm_title)
+            .setMessage(R.string.aod_overlay_perm_message)
+            .setPositiveButton(R.string.aod_overlay_perm_grant) { _, _ ->
+                runCatching {
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${requireContext().packageName}")
+                        )
+                    )
+                }.onFailure {
+                    // Some devices reject the package-scoped Uri; fall back to the global list.
+                    runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)) }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 }

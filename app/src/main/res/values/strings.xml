@@ -70,6 +70,11 @@
     <string name="pref_grid2d_3d_title">3D depth effect</string>
     <string name="pref_grid2d_icon_size_title">Icon size (dp, 0 = auto)</string>
 
+    <!-- AOD overlay permission prompt -->
+    <string name="aod_overlay_perm_title">Allow display over other apps</string>
+    <string name="aod_overlay_perm_message">To wake into AOD when the screen turns off inside another app, CloX needs the “Display over other apps” permission. Without it, Android blocks the launcher from coming to the front.</string>
+    <string name="aod_overlay_perm_grant">Open settings</string>
+
     <!-- Round overscroll (shared by Grid2D / Honeycomb) -->
     <string name="pref_round_overscroll_title">Round overscroll</string>
     <string name="pref_round_overscroll_summary">Pan up to half a screen past the edge and stay there — reach corner icons on a round screen</string>

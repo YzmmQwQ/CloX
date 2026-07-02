@@ -44,6 +44,10 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- AOD: re-wake screen when it turns off while AOD is active -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- AOD: bring the launcher to front from the background when the screen turns off in another
+         app. Android blocks background activity starts unless the caller holds this permission, so
+         without "Display over other apps" granted the re-wake leaves the third-party app on top. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
 
     <application

@@ -328,11 +328,19 @@ class AodManager(
 
     private fun bringToForeground() {
         try {
-            val intent = Intent(context, activity.javaClass).apply {
-                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_NEW_TASK)
+            // When a third-party app is foreground, MainActivity lives in a separate (Home) task, and
+            // FLAG_ACTIVITY_REORDER_TO_FRONT on an explicit-component intent only reorders within a
+            // task — it won't raise the Home task above the foreground app, so the screen re-wakes but
+            // the launcher never comes to front. A HOME intent scoped to our own package reliably
+            // brings the launcher's task forward: MainActivity is our CATEGORY_HOME + singleTask
+            // activity, so the existing instance is reused (delivered via onNewIntent).
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                setPackage(context.packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             }
             context.startActivity(intent)
-            Log.d(TAG, "bringToForeground: sent")
+            Log.d(TAG, "bringToForeground: sent (home)")
         } catch (e: Exception) {
             Log.e(TAG, "bringToForeground failed", e)
         }
