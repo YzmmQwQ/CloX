@@ -1,14 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- ── Base theme: Monet-fallback brand-blue accent ──────────────────
+         Non-dynamic devices get the brand blue instead of Material 3's
+         default purple. On Monet-capable devices, DynamicColors overlays
+         the wallpaper palette on top of these values. Light-mode tones;
+         values-night/themes.xml supplies the dark-mode counterparts. -->
+    <style name="Base.Theme.CloX" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_500</item>
+        <item name="colorOnPrimary">@color/brand_on_accent_light</item>
+        <item name="colorPrimaryContainer">@color/brand_container_light</item>
+        <item name="colorOnPrimaryContainer">@color/brand_on_container_light</item>
+        <item name="colorPrimaryInverse">@color/brand_300</item>
+        <item name="colorSecondary">@color/brand_500</item>
+        <item name="colorOnSecondary">@color/brand_on_accent_light</item>
+        <item name="colorSecondaryContainer">@color/brand_container_light</item>
+        <item name="colorOnSecondaryContainer">@color/brand_on_container_light</item>
+        <item name="colorTertiary">@color/brand_500</item>
+        <item name="colorOnTertiary">@color/brand_on_accent_light</item>
+        <item name="colorTertiaryContainer">@color/brand_container_light</item>
+        <item name="colorOnTertiaryContainer">@color/brand_on_container_light</item>
+        <!-- Neutral surfaces (kills the default purple-tinted neutral palette) -->
+        <item name="android:colorBackground">@color/m3_background</item>
+        <item name="colorSurface">@color/m3_surface</item>
+        <item name="colorOnSurface">@color/m3_on_surface</item>
+        <item name="colorSurfaceVariant">@color/m3_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/m3_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/m3_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/m3_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/m3_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/m3_surface_container_highest</item>
+        <item name="colorSurfaceBright">@color/m3_surface_bright</item>
+        <item name="colorSurfaceDim">@color/m3_surface_dim</item>
+        <item name="colorSurfaceInverse">@color/m3_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_inverse_on_surface</item>
+        <item name="colorOutline">@color/m3_outline</item>
+        <item name="colorOutlineVariant">@color/m3_outline_variant</item>
+    </style>
+
     <!-- ── Launcher / watchface screen — black, no system bars ── -->
-    <style name="Theme.CloX" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.CloX" parent="Base.Theme.CloX">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
     <!-- For activities that finish immediately without showing any UI -->
-    <style name="Theme.CloX.Transparent" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.CloX.Transparent" parent="Base.Theme.CloX">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowNoTitle">true</item>
@@ -16,17 +54,17 @@
     </style>
 
     <!-- ── Settings and standard UI screens — NoActionBar, toolbar in layout ── -->
-    <style name="Theme.CloX.Settings" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.CloX.Settings" parent="Base.Theme.CloX">
         <item name="android:windowBackground">?attr/colorSurface</item>
     </style>
 
     <!-- Alias used by WatchfaceStore, Gallery, Remote, etc. -->
-    <style name="Theme.CloX.NoActionBar" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.CloX.NoActionBar" parent="Base.Theme.CloX">
         <item name="android:windowBackground">?attr/colorSurface</item>
     </style>
 
     <!-- ── Watchface selector — full black, edge-to-edge, hides bars ── -->
-    <style name="Theme.CloX.WatchfaceSelector" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.CloX.WatchfaceSelector" parent="Base.Theme.CloX">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

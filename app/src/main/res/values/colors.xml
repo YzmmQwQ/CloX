@@ -40,4 +40,34 @@
 
     <!-- ── Fallback colors (used when theme attributes are unavailable) ─── -->
     <color name="fallback_surface">#FF1C1B1F</color>
+
+    <!-- ── Brand accent (Monet fallback) ────────────────────────────────
+         Used only when dynamic (Monet) color isn't available; on capable
+         devices DynamicColors overlays the wallpaper palette on top.
+         Blue brand accent: 300 = #82ABD0 (lighter), 500 = #5A8BC5 (base). -->
+    <color name="brand_300">#82ABD0</color>
+    <color name="brand_500">#5A8BC5</color>
+    <color name="brand_on_accent_dark">#0A2033</color>
+    <color name="brand_on_accent_light">#FFFFFF</color>
+    <color name="brand_container_light">#D6E6F5</color>
+    <color name="brand_on_container_light">#0F2B44</color>
+
+    <!-- Neutral surfaces (light) — plain greys so Material 3's purple-tinted
+         default neutral palette doesn't tint backgrounds. -->
+    <color name="m3_background">#FCFCFD</color>
+    <color name="m3_surface">#FCFCFD</color>
+    <color name="m3_surface_variant">#E1E2E6</color>
+    <color name="m3_on_surface">#1A1C1E</color>
+    <color name="m3_on_surface_variant">#43474C</color>
+    <color name="m3_surface_container_lowest">#FFFFFF</color>
+    <color name="m3_surface_container_low">#F4F4F5</color>
+    <color name="m3_surface_container">#EEEEF0</color>
+    <color name="m3_surface_container_high">#E8E9EB</color>
+    <color name="m3_surface_container_highest">#E2E3E5</color>
+    <color name="m3_surface_bright">#FCFCFD</color>
+    <color name="m3_surface_dim">#DBDBDD</color>
+    <color name="m3_outline">#73777C</color>
+    <color name="m3_outline_variant">#C3C6CC</color>
+    <color name="m3_inverse_surface">#2F3133</color>
+    <color name="m3_inverse_on_surface">#F1F0F2</color>
 </resources>

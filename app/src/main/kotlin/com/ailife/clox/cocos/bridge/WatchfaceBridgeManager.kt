@@ -107,7 +107,9 @@ class WatchfaceBridgeManager(
                 sendToLua("location", LiveDataHelper.locationSettingsJson(ctx))
                 sendToLua("timezones", LiveDataHelper.timezonesJson(ctx))
             }
-            key in watchfaceSettingsKeys -> sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
+            key in watchfaceSettingsKeys ||
+                com.ailife.clox.watchface.WatchfaceConfigPrefs.isConfigKey(key) ->
+                sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
         }
     }
 
@@ -362,6 +364,9 @@ class WatchfaceBridgeManager(
                     json.optString("sensor"),
                     json.optBoolean("enabled")
                 ) { sensor, data -> sendToLua("sensor_$sensor", data) }
+                "openConfig" -> Handler(Looper.getMainLooper()).post {
+                    com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(ctx)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "handleWatchfaceAction error", e)
