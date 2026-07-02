@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="notif_badge">#F2B8B5</color>
+
+    <!-- Neutral surfaces (dark) — plain near-black greys so Material 3's
+         purple-tinted default neutral palette doesn't tint backgrounds. -->
+    <color name="m3_background">#131315</color>
+    <color name="m3_surface">#131315</color>
+    <color name="m3_surface_variant">#43474C</color>
+    <color name="m3_on_surface">#E3E2E5</color>
+    <color name="m3_on_surface_variant">#C3C6CC</color>
+    <color name="m3_surface_container_lowest">#0E0E10</color>
+    <color name="m3_surface_container_low">#1B1B1D</color>
+    <color name="m3_surface_container">#1F1F22</color>
+    <color name="m3_surface_container_high">#2A2A2C</color>
+    <color name="m3_surface_container_highest">#343437</color>
+    <color name="m3_surface_bright">#39393B</color>
+    <color name="m3_surface_dim">#131315</color>
+    <color name="m3_outline">#8D9198</color>
+    <color name="m3_outline_variant">#43474C</color>
+    <color name="m3_inverse_surface">#E3E2E5</color>
+    <color name="m3_inverse_on_surface">#2F3133</color>
 </resources>
