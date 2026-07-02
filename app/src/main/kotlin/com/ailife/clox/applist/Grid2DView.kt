@@ -101,6 +101,7 @@ class Grid2DView @JvmOverloads constructor(
 
     fun bindItems(items: List<AppItem>) {
         pendingItems = items
+        android.util.Log.d("CloX/Grid2DView", "bindItems n=${items.size} w=$width h=$height iconSizeDp=$iconSizeDp")
         // Build immediately if we already have dimensions; otherwise flag it and let onLayout
         // build once the view is measured.
         //
@@ -110,19 +111,43 @@ class Grid2DView @JvmOverloads constructor(
         // re-ran the full buildGrid (recreating every cell + badge), saturating the UI thread and
         // making the app-list open/close janky until the process was restarted.)
         if (width > 0 && height > 0) { needsBuild = false; buildGrid(items) }
-        else needsBuild = true
+        // Force a fresh measure/layout pass so onLayout/onSizeChanged is guaranteed to fire and
+        // consume the pending build once this view is sized — don't rely on the addView() that
+        // just happened having already scheduled one.
+        else { needsBuild = true; requestLayout() }
     }
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        super.onLayout(changed, l, t, r, b)
-        // Build the deferred grid as soon as dimensions are known. The needsBuild flag is cleared
-        // before building, and buildGrid only positions children via margins (never changes this
-        // view's own size), so the requestLayout it triggers re-enters onLayout with the flag
-        // already false — no rebuild loop.
+    private var buildScheduled = false
+
+    /** Build the deferred grid once dimensions are known. needsBuild is cleared before building. */
+    private fun maybeBuildDeferred() {
         if (needsBuild && width > 0 && height > 0 && pendingItems.isNotEmpty()) {
             needsBuild = false
             buildGrid(pendingItems)
         }
+    }
+
+    /**
+     * Schedule the deferred build to run AFTER the current layout pass, never inside it. buildGrid
+     * adds cells and calls requestLayout(); a requestLayout() issued while a layout traversal is in
+     * progress (i.e. from within onLayout/onSizeChanged) is swallowed, so the freshly-added cells
+     * never get measured and render at 0x0. post() defers the build to the next message loop, after
+     * the traversal completes, so addView()'s requestLayout() schedules a real measure pass.
+     */
+    private fun scheduleDeferredBuild() {
+        if (!needsBuild || buildScheduled) return
+        buildScheduled = true
+        post { buildScheduled = false; maybeBuildDeferred() }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        scheduleDeferredBuild()
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        scheduleDeferredBuild()
     }
 
     private fun buildGrid(items: List<AppItem>) {
@@ -130,6 +155,7 @@ class Grid2DView @JvmOverloads constructor(
         val cols = ceil(sqrt(items.size.toFloat())).toInt().coerceAtLeast(1)
         val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else (minOf(width, height) / 5).coerceAtLeast(1)
         val gap = (iconPx * GAP_RATIO + 0.5f).toInt()
+        android.util.Log.d("CloX/Grid2DView", "buildGrid n=${items.size} cols=$cols iconPx=$iconPx gap=$gap w=$width h=$height")
         if (iconPx <= 0) return
         cellIconPx = iconPx
 
@@ -175,7 +201,15 @@ class Grid2DView @JvmOverloads constructor(
         }
         overScrollX_ = 0f; overScrollY_ = 0f; overScrollAnim?.cancel(); overScrollAnim = null
         applyScroll()
+        android.util.Log.d("CloX/Grid2DView", "buildGrid done childCount=$childCount maxX=$maxX maxY=$maxY scroll=($scrollX_,$scrollY_) enable3d=$enable3d")
         if (enable3d) post { apply3d() }
+        post {
+            for (i in 0 until minOf(3, childCount)) {
+                val c = getChildAt(i)
+                android.util.Log.d("CloX/Grid2DView", "child[$i] pos=(${c.left},${c.top}) size=${c.width}x${c.height} measured=${c.measuredWidth}x${c.measuredHeight} scale=(${c.scaleX},${c.scaleY}) alpha=${c.alpha} vis=${c.visibility} trans=(${c.translationX},${c.translationY})")
+            }
+            android.util.Log.d("CloX/Grid2DView", "self size=${width}x${height} scale=($scaleX,$scaleY) alpha=$alpha vis=$visibility scrollXY=(${scrollX},${scrollY})")
+        }
         if (lastBadgeCounts.isNotEmpty()) refreshBadges(lastBadgeCounts)
         dragActive = false; draggingPos = -1; draggingViewRef = null; pendingDragIdx = -1
     }

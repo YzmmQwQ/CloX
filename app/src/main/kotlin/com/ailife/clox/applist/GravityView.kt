@@ -105,7 +105,10 @@ class GravityView @JvmOverloads constructor(
         allItems = items
         page = page.coerceIn(0, maxPage())
         android.util.Log.d("CloX/Gravity", "bindItems n=${items.size} w=$width h=$height")
-        if (width > 0 && height > 0) rebuildPage() else pendingItems = items
+        if (width > 0 && height > 0) rebuildPage()
+        // Force a fresh measure/layout pass so onLayout/onSizeChanged is guaranteed to fire and
+        // consume the pending items once this view is sized.
+        else { pendingItems = items; requestLayout() }
     }
 
     fun refreshBadges(counts: Map<String, Int>) {
@@ -122,14 +125,40 @@ class GravityView @JvmOverloads constructor(
 
     // ── Layout / page build ─────────────────────────────────────────────────────
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        super.onLayout(changed, l, t, r, b)
-        android.util.Log.d("CloX/Gravity", "onLayout changed=$changed w=$width h=$height pending=${pendingItems?.size} bodies=${bodies.size} all=${allItems.size}")
-        if (changed || (pendingItems != null && bodies.isEmpty())) {
+    private var buildScheduled = false
+
+    /** Consume pending items and (re)build the page once dimensions are known. */
+    private fun buildIfPending() {
+        if (width <= 0 || height <= 0) return
+        if (pendingItems != null && bodies.isEmpty()) {
             computeMetrics()
             pendingItems?.let { allItems = it; pendingItems = null }
             if (allItems.isNotEmpty()) rebuildPage()
         }
+    }
+
+    /**
+     * Schedule the pending build to run AFTER the current layout pass, never inside it. rebuildPage
+     * adds cells and (via addView) calls requestLayout(); a requestLayout() issued while a layout
+     * traversal is in progress (i.e. from within onLayout/onSizeChanged) is swallowed, so the cells
+     * never get measured and render at 0x0. post() defers to the next message loop, after the
+     * traversal completes, so the cells get a real measure pass.
+     */
+    private fun scheduleBuildIfPending() {
+        if (pendingItems == null || !bodies.isEmpty() || buildScheduled) return
+        buildScheduled = true
+        post { buildScheduled = false; buildIfPending() }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        scheduleBuildIfPending()
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        android.util.Log.d("CloX/Gravity", "onLayout changed=$changed w=$width h=$height pending=${pendingItems?.size} bodies=${bodies.size} all=${allItems.size}")
+        scheduleBuildIfPending()
     }
 
     /** Auto-pick icon size and how many icons comfortably fit per page. */

@@ -99,24 +99,50 @@ class HoneycombView @JvmOverloads constructor(
 
     fun bindItems(items: List<AppItem>) {
         pendingItems = items
+        android.util.Log.d("CloX/HoneycombView", "bindItems n=${items.size} w=$width h=$height iconSizeDp=$iconSizeDp")
         // Build immediately if sized; otherwise flag it and let onLayout build once measured.
         // (The old self-removing OnGlobalLayoutListener leaked after a backend rebuild — the
         // re-fetched ViewTreeObserver was a different instance, so it never detached and re-ran
         // buildGrid on every global layout, saturating the UI thread and making open/close janky
         // until a process restart.)
         if (width > 0 && height > 0) { needsBuild = false; buildGrid(items) }
-        else needsBuild = true
+        // Force a fresh measure/layout pass so onLayout/onSizeChanged is guaranteed to fire and
+        // consume the pending build once this view is sized — don't rely on the addView() that
+        // just happened having already scheduled one.
+        else { needsBuild = true; requestLayout() }
     }
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        super.onLayout(changed, l, t, r, b)
-        // buildGrid clears the flag before building and only positions children via margins (never
-        // changes this view's size), so the requestLayout it triggers re-enters with needsBuild
-        // already false — no rebuild loop.
+    private var buildScheduled = false
+
+    /** Build the deferred grid once dimensions are known. needsBuild is cleared before building. */
+    private fun maybeBuildDeferred() {
         if (needsBuild && width > 0 && height > 0 && pendingItems.isNotEmpty()) {
             needsBuild = false
             buildGrid(pendingItems)
         }
+    }
+
+    /**
+     * Schedule the deferred build to run AFTER the current layout pass, never inside it. buildGrid
+     * adds cells and calls requestLayout(); a requestLayout() issued while a layout traversal is in
+     * progress (i.e. from within onLayout/onSizeChanged) is swallowed, so the freshly-added cells
+     * never get measured and render at 0x0. post() defers the build to the next message loop, after
+     * the traversal completes, so addView()'s requestLayout() schedules a real measure pass.
+     */
+    private fun scheduleDeferredBuild() {
+        if (!needsBuild || buildScheduled) return
+        buildScheduled = true
+        post { buildScheduled = false; maybeBuildDeferred() }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        scheduleDeferredBuild()
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        scheduleDeferredBuild()
     }
 
     private fun buildGrid(items: List<AppItem>) {
@@ -125,6 +151,7 @@ class HoneycombView @JvmOverloads constructor(
         while (1 + 3 * R * (R + 1) < items.size) R++
 
         val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else (minOf(width, height) / 5).coerceAtLeast(1)
+        android.util.Log.d("CloX/HoneycombView", "buildGrid n=${items.size} R=$R iconPx=$iconPx w=$width h=$height")
         if (iconPx <= 0) return
         cellIconPx = iconPx
         val sqrt3 = 1.7320508f
