@@ -34,6 +34,9 @@ class AodManager(
     private val activity: Activity,
     private val window: android.view.Window,
     private val onCollapseOverlays: () -> Unit,
+    /** Invoked right before the launcher programmatically brings itself to the front, so the
+     *  activity can suppress its return animation for this self-initiated foreground. */
+    private val onWillForeground: () -> Unit = {},
 ) {
     private val context: Context = activity.applicationContext
     private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -339,6 +342,7 @@ class AodManager(
                 setPackage(context.packageName)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             }
+            onWillForeground()
             context.startActivity(intent)
             Log.d(TAG, "bringToForeground: sent (home)")
         } catch (e: Exception) {

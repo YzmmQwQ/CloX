@@ -94,6 +94,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var pendingGestureFollowOn = false
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private var lastClosingPkg: String? = null   // package of the app currently returning to us
+    // Set when the launcher brings ITSELF to the front (AOD re-wake), so the next onResume can skip
+    // the return animation when the "no animation on self-close" option is on. Consumed in onResume.
+    private var selfForegroundPending = false
 
     // When enabled, collapse the launcher back to the bare watchface as the screen turns off, so
     // it's already showing the watchface the next time the screen comes on.
@@ -269,9 +272,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             activity = this,
             window = window,
             onCollapseOverlays = {
-                overlayController.dismissActive()
-                if (appListOpen) closeAppList()
-            }
+                // This collapse is always launcher-initiated (the AOD engine dims/sleeps), so drop
+                // straight to the watchface with no slide/collapse animation.
+                resetToWatchface()
+            },
+            onWillForeground = { selfForegroundPending = true }
         )
         aodManager.start()
         gestureHandler.onScreenOffWhileAod = { aodManager.enterAodNow() }
@@ -424,7 +429,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // drive usage-stats closing-app detection on Back/Home returns even when we have no
         // remembered launched item.
         val cameFromBackground = wasStoppedSinceResume
-        Log.d("CloX/Return", "onResume (reset wasStopped=false, cameFromBackground=$cameFromBackground)")
+        // Did WE bring ourselves to the front (AOD re-wake) rather than the user gesturing back?
+        // If so, skip the return/reveal animation and land instantly — a self-initiated foreground
+        // should never replay the app's return animation.
+        val selfForeground = selfForegroundPending
+        selfForegroundPending = false
+        val skipSelfAnim = selfForeground
+        Log.d("CloX/Return", "onResume (reset wasStopped=false, cameFromBackground=$cameFromBackground selfForeground=$selfForeground skipSelfAnim=$skipSelfAnim)")
         wasStoppedSinceResume = false
         CocosManager.onResume()
         aodManager.onResume()
@@ -473,12 +484,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             // the list is NOT open there's no slot, so it plays toward screen centre — only
             // do that when the user has opted in via the resume-close-anim pref; otherwise
             // skip it so we land straight on the watchface.
-            val returnEnabled = com.ailife.clox.applist.AppListPrefs.returnAnimEnabled(this) &&
+            val returnEnabled = !skipSelfAnim &&
+                com.ailife.clox.applist.AppListPrefs.returnAnimEnabled(this) &&
                 (appListOpen || com.ailife.clox.applist.AppListPrefs.resumeCloseAnim(this))
             // Reveal the open app list over its background image (fade / circle from the icon).
             // "Only on gesture" restricts it to the swipe-home gesture (contract) return.
             val onlyOnGesture = com.ailife.clox.applist.AppListPrefs.gestureReturnOnlyGesture(this)
-            val playReveal = appListOpen &&
+            val playReveal = !skipSelfAnim && appListOpen &&
                 com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this) &&
                 (!onlyOnGesture || pendingGestureFollowOn)
             // The reveal (fade / circle-in of the app list) must play AFTER the return animation
