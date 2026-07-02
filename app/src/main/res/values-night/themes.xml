@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ── Dark-mode brand-blue accent (Monet fallback) ──────────────────
+         Mirrors Base.Theme.CloX in values/themes.xml. In dark mode the
+         lighter 300 tone reads as the accent, with dark "on" colors.
+         DynamicColors still overlays the wallpaper palette when available. -->
+    <style name="Base.Theme.CloX" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_300</item>
+        <item name="colorOnPrimary">@color/brand_on_accent_dark</item>
+        <item name="colorPrimaryContainer">@color/brand_500</item>
+        <item name="colorOnPrimaryContainer">@color/brand_container_light</item>
+        <item name="colorPrimaryInverse">@color/brand_500</item>
+        <item name="colorSecondary">@color/brand_300</item>
+        <item name="colorOnSecondary">@color/brand_on_accent_dark</item>
+        <item name="colorSecondaryContainer">@color/brand_500</item>
+        <item name="colorOnSecondaryContainer">@color/brand_container_light</item>
+        <item name="colorTertiary">@color/brand_300</item>
+        <item name="colorOnTertiary">@color/brand_on_accent_dark</item>
+        <item name="colorTertiaryContainer">@color/brand_500</item>
+        <item name="colorOnTertiaryContainer">@color/brand_container_light</item>
+        <!-- Neutral surfaces (kills the default purple-tinted neutral palette) -->
+        <item name="android:colorBackground">@color/m3_background</item>
+        <item name="colorSurface">@color/m3_surface</item>
+        <item name="colorOnSurface">@color/m3_on_surface</item>
+        <item name="colorSurfaceVariant">@color/m3_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/m3_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/m3_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/m3_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/m3_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/m3_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/m3_surface_container_highest</item>
+        <item name="colorSurfaceBright">@color/m3_surface_bright</item>
+        <item name="colorSurfaceDim">@color/m3_surface_dim</item>
+        <item name="colorSurfaceInverse">@color/m3_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/m3_inverse_on_surface</item>
+        <item name="colorOutline">@color/m3_outline</item>
+        <item name="colorOutlineVariant">@color/m3_outline_variant</item>
+    </style>
+
+</resources>

@@ -103,6 +103,14 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.CloX.WatchfaceSelector" />
 
+        <!-- Per-watchface configuration dialog (scale / offset / max FPS) -->
+        <activity
+            android:name=".watchface.config.WatchfaceConfigActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Launcher alias for watch face selector -->
         <activity-alias
             android:name=".WatchfaceSelectorLauncher"

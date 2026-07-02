@@ -119,14 +119,19 @@ object LiveDataHelper {
     fun watchfaceSettingsJson(ctx: Context): JSONObject {
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val path = prefs.getString("watchface_path", null)
+        // Scale/offset/FPS come from the per-watchface config namespace (keyed by
+        // path hash); the default face uses WatchfaceConfigPrefs.DEFAULT_PATH.
+        val cfgPath = com.ailife.clox.watchface.WatchfaceConfigPrefs.pathFor(path)
+        val cfg = com.ailife.clox.watchface.WatchfaceConfigPrefs
         return JSONObject().apply {
             if (path.isNullOrEmpty()) put("watchfacePath", false) else put("watchfacePath", path)
-            put("zoom",       prefs.getFloat("watchface_zoom", 1.0f).toDouble())
-            put("xOffset",    prefs.getInt("watchface_x_offset", 0))
-            put("yOffset",    prefs.getInt("watchface_y_offset", 0))
-            put("fullscreen", prefs.getInt("watchface_fullscreen", 0))
-            put("frameRate",  prefs.getInt("watchface_frame_rate", 60))
-            put("aodEnabled", prefs.getBoolean("watchface_aod_enabled", false))
+            put("zoom",            cfg.scale(ctx, cfgPath).toDouble())
+            put("xOffset",         cfg.xOffset(ctx, cfgPath))
+            put("yOffset",         cfg.yOffset(ctx, cfgPath))
+            put("fullscreen",      prefs.getInt("watchface_fullscreen", 0))
+            put("maxFps",          cfg.maxFps(ctx, cfgPath))
+            put("maxFpsUnlimited", cfg.unlimited(ctx, cfgPath))
+            put("aodEnabled",      prefs.getBoolean("watchface_aod_enabled", false))
         }
     }
 

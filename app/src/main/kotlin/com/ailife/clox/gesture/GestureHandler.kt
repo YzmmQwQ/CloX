@@ -54,6 +54,7 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
                 WatchfaceAutoChanger.pickRandom(ctx, MainScope())
             }
             "open_settings"      -> openSettings()
+            "watchface_config"   -> openWatchfaceConfig()
             "lock_gesture"       -> GestureLockManager.toggleManual()
             "start_rtos"         -> enterRtosMode()
             // "nothing" — no-op
@@ -81,6 +82,10 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         ctx.startActivity(Intent(ctx, SettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
+    }
+
+    private fun openWatchfaceConfig() {
+        com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(ctx)
     }
 
     private fun enterRtosMode() {
