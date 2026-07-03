@@ -277,3 +277,22 @@ to 0 renderable layers.
   remembered to avoid reload thrash.
 - Reacts to bridge: `settings` (path/scale/offset/FPS/AOD), `cmd_setActive/reload/
   reset`, plus per-category async pushes and the `openConfig` action.
+
+---
+
+## 12. Protected asset streams
+
+WatchMaker "protected" faces (`protection="y"`) obfuscate their definition and
+images. Asset-loading wrappers must decode these streams (see `wf_protect.lua`;
+matches the reference `wftools/…/WatchmakerExtractor.kt` — there is no crypto spec
+in `watchmaker-definition/`):
+
+- **Detection:** the package contains `watch.pxml` (a decode of which replaces the
+  stub `watch.xml`). `WFProtect.isProtected(base)` checks for it.
+- **XML (`watch.pxml`):** standard Base64 with two alphabet entries swapped —
+  `'D'↔'g'` (values 3↔32) and `'4'↔'L'` (11↔56) — then decoded. `WFProtect.readPxml`.
+- **Images (`.ppng` / `.pjpg`):** the real PNG / JPEG bytes XOR'd with the repeating
+  5-byte key `"SWHn-"` (`0x53 0x57 0x48 0x6E 0x2D`). `WFRender:imageFile` maps a
+  `.ppng`→`.png` / `.pjpg`→`.jpg` and calls `WFProtect.ensureDecoded`, which writes
+  the decoded file to the writable path (cached — no-op if it already exists). The
+  same repeating key covers both PNG and JPEG payloads.
