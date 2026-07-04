@@ -41,6 +41,14 @@ local Y_SIGN = -1
 local function num(v, d) return tonumber(v) or d or 0 end
 local function clamp(v, lo, hi) if v < lo then return lo elseif v > hi then return hi else return v end end
 
+-- WatchMaker's `text_size` is authored as a canvas-unit box height, not a native
+-- font point size. The reference renderers create labels at text_size * 1.28 (so
+-- the visible glyph height lands near 1.6 * text_size in the 512 canvas). Without
+-- this factor TTF text renders ~28% too small next to shapes authored in the same
+-- canvas. Clamp near the 512 canvas / max font-texture size like the reference.
+local TTF_FONT_SCALE = 1.28
+local function fontPx(size) return math.min(492, floor(size * TTF_FONT_SCALE)) end
+
 local FRAME, SECOND, MINUTE, HOUR, DAY, STATIC =
     WFCadence.FRAME, WFCadence.SECOND, WFCadence.MINUTE,
     WFCadence.HOUR, WFCadence.DAY, WFCadence.STATIC
@@ -139,6 +147,7 @@ function WFRender.new(stage)
     self.recs   = {}          -- every layer record
     self.dyn    = {}          -- subset needing per-frame updates
     self.taps   = {}          -- {visual, action, kind, rec}
+    self._tapListeners = {}   -- registered touch listeners, dropped on clear()
     self.dim    = false
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
     self.bgColor = "000000"
@@ -155,6 +164,13 @@ function WFRender:clear()
         end
     end
     self._asyncHandlers = {}
+    -- Drop tap listeners before the nodes go away, so no stale scene-graph
+    -- listener can fire into a freed layer record after a switch.
+    if self._tapListeners then
+        local ed = cc.Director:getInstance():getEventDispatcher()
+        for _, l in ipairs(self._tapListeners) do ed:removeEventListener(l) end
+    end
+    self._tapListeners = {}
     if self.stage then self.stage:removeAllChildren() end
     self.recs, self.dyn, self.taps = {}, {}, {}
     self.byCadence, self.byAsync, self.asyncCats = nil, nil, nil
@@ -163,14 +179,18 @@ function WFRender:clear()
 end
 
 -- Resolve an image filename to a loadable absolute path. Protected faces ship
--- images as .ppng (XOR-obfuscated PNG); decode them to a sibling .png on first
--- use (cached) so cc.Sprite can load them.
+-- images as .ppng / .pjpg (XOR-obfuscated PNG / JPEG); decode them to a sibling
+-- .png / .jpg on first use (cached) so cc.Sprite can load them.
 function WFRender:imageFile(path)
     if not path or path == "" then return "" end
     local dir = self.base .. "images/"
-    if path:sub(-5):lower() == ".ppng" then
+    local ext = path:sub(-5):lower()
+    if ext == ".ppng" then
         local png = dir .. path:sub(1, -6) .. ".png"
-        if fileExists(png) or WFProtect.ensurePng(dir .. path, png) then return png end
+        if fileExists(png) or WFProtect.ensureDecoded(dir .. path, png) then return png end
+    elseif ext == ".pjpg" then
+        local jpg = dir .. path:sub(1, -6) .. ".jpg"
+        if fileExists(jpg) or WFProtect.ensureDecoded(dir .. path, jpg) then return jpg end
     end
     local full = dir .. path
     if fileExists(full) then return full end
@@ -302,9 +322,9 @@ function Builders.text(self, rec)
         end
         if not lab and font ~= "" then
             local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, size) end
+            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
         end
-        if not lab then lab = cc.Label:createWithSystemFont(str, "sans-serif", size) end
+        if not lab then lab = cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size)) end
         return lab
     end
     local function caseOf(str)
@@ -315,12 +335,13 @@ function Builders.text(self, rec)
     local lab = makeLabel(caseOf(WFTags.evalText(L.text, rec.ctx0)))
     rec.visual = lab
     lab:setHorizontalAlignment(cc.TEXT_ALIGNMENT_CENTER)
-    -- Bitmap fonts render at their atlas size; scale so a line ≈ text_size.
+    -- Bitmap fonts render at their atlas size; scale so a line's visible height
+    -- lands near 1.6 * text_size, matching the reference renderer's bitmap rule.
     if rec.isBM then
         local ch = lab:getContentSize().height
         local lines = 1; for _ in (L.text or ""):gmatch("\n") do lines = lines + 1 end
         local perLine = (ch > 0 and ch / lines) or size
-        rec.bsx = 1.3 * size / perLine; rec.bsy = rec.bsx
+        rec.bsx = 1.6 * size / perLine; rec.bsy = rec.bsx
     end
     rec.update = function(ctx)
         lab:setString(caseOf(WFTags.evalText(L.text, ctx)))
@@ -615,9 +636,9 @@ function Builders.text_ring(self, rec)
         local lab
         if font ~= "" then
             local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, size) end
+            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
         end
-        return lab or cc.Label:createWithSystemFont(str, "sans-serif", size)
+        return lab or cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size))
     end
     for i = 1, n do
         local loopVal = (rt == "0-59") and (i - 1) or i
@@ -650,9 +671,9 @@ function Builders.text_curved(self, rec)
         local lab
         if font ~= "" then
             local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(s, ttf, size) end
+            if fileExists(ttf) then lab = cc.Label:createWithTTF(s, ttf, fontPx(size)) end
         end
-        return lab or cc.Label:createWithSystemFont(s, "sans-serif", size)
+        return lab or cc.Label:createWithSystemFont(s, "sans-serif", fontPx(size))
     end
     local nchar = #str
     if nchar == 0 then return end
@@ -705,6 +726,8 @@ local function attachTap(self, rec)
     end, cc.Handler.EVENT_TOUCH_ENDED)
     cc.Director:getInstance():getEventDispatcher()
         :addEventListenerWithSceneGraphPriority(listener, node)
+    -- Tracked so clear() can drop it on the next face switch (see clear()).
+    self._tapListeners[#self._tapListeners + 1] = listener
 end
 
 -- ── load & build ──────────────────────────────────────────────────────────────
@@ -913,6 +936,12 @@ function WFRender:_evalList(list, ctx)
         if not ok and not rec._warned then
             rec._warned = true
             print("[WFRender] update '" .. tostring(rec.type) .. "': " .. tostring(err))
+            -- Surface only the first layer-update error per face load (still logs
+            -- all) so a broken face can't stack a dialog per bad layer.
+            if not self._layerErrorReported and WatchfaceBridge and WatchfaceBridge.reportError then
+                self._layerErrorReported = true
+                WatchfaceBridge.reportError("Layer '" .. tostring(rec.type) .. "' update", err)
+            end
         end
     end
 end

@@ -114,11 +114,13 @@ class WatchfaceBridgeManager(
     }
 
     fun start() {
+        // Push the full snapshot only once Lua signals it is ready (wf_lua_ready,
+        // fired at the end of the scene's onEnter). Pushing eagerly here would
+        // queue WatchfaceBridgeDispatch onto the GL thread before the dispatcher /
+        // bridge handlers exist — at best dropped, at worst a GL-unsafe callback.
         LuaBridge.luaReadyHandler = { pushAllLiveData() }
         registerWatchfaceActionHandler()
         WeatherRepository.initialize(ctx)   // load cache so Lua gets data before first network fetch
-        pushStaticData()
-        pushAllLiveData()
         subscribeToLiveData()
         startPeriodicUpdates()
         if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {
@@ -160,17 +162,11 @@ class WatchfaceBridgeManager(
         sensorHelper.stop()
     }
 
-    // ── Static data (one-time) ────────────────────────────────────────────────
-
-    private fun pushStaticData() {
-        sendToLua("device", DeviceInfoHelper.getInfo(ctx))
-    }
-
     // ── Initial snapshot of all live categories ───────────────────────────────
 
     internal fun pushAllLiveData() {
-        // Static device info — must be included here because pushStaticData() runs before
-        // the Lua VM is ready (WatchfaceBridgeDispatch isn't defined yet at that point).
+        // Runs on the wf_lua_ready handshake, so the Lua VM is up and
+        // WatchfaceBridgeDispatch is defined. Static device info is included here.
         sendToLua("device", DeviceInfoHelper.getInfo(ctx))
 
         // Settings pushed first — watchface engine must not load until watchfacePath is valid.
@@ -367,9 +363,31 @@ class WatchfaceBridgeManager(
                 "openConfig" -> Handler(Looper.getMainLooper()).post {
                     com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(ctx)
                 }
+                "luaError" -> if (com.ailife.clox.BuildConfig.DEBUG) {
+                    val context = json.optString("context", "Lua error")
+                    val trace   = json.optString("trace")
+                    Handler(Looper.getMainLooper()).post { showLuaErrorDialog(context, trace) }
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "handleWatchfaceAction error", e)
+        }
+    }
+
+    /**
+     * Debug-only: surface a Lua error + traceback in a visible dialog so a broken
+     * watchface fails loudly during testing instead of silently. Release builds
+     * suppress this (see the "luaError" branch) and keep the graceful fallback.
+     */
+    private fun showLuaErrorDialog(title: String, trace: String) {
+        try {
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+                .setTitle(title)
+                .setMessage(if (trace.isBlank()) "(no detail)" else trace)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        } catch (e: Exception) {
+            Log.e(TAG, "showLuaErrorDialog failed", e)
         }
     }
 
