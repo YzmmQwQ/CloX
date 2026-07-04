@@ -5,7 +5,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.net.Uri
 import android.provider.AlarmClock
+import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
@@ -83,7 +85,58 @@ object TapActionHandler {
         action == "media_next"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_NEXT);       true }
         action == "media_prev"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PREVIOUS);   true }
         action.startsWith("set_alarm_") -> setAlarm(ctx, action.removePrefix("set_alarm_"))
+        // System-settings shortcuts (symbolic — the OS resolves the concrete screen).
+        action == "open_settings"  -> startIntentSafely(ctx, Intent(Settings.ACTION_SETTINGS))
+        action == "battery_status" -> startIntentSafely(ctx, Intent(Intent.ACTION_POWER_USAGE_SUMMARY))
+        // Direct launch of a specific app named by the watchface itself (not user-configured).
+        // Format: "w_app:label`package`activity" (label optional; a bare package or
+        // "package`activity" is also accepted). "m_app" means "launch on phone" in the
+        // WatchMaker vocabulary; CloX has no phone companion, so it launches locally too.
+        action.startsWith("w_app:") -> launchAppSpec(ctx, action.removePrefix("w_app:"))
+        action.startsWith("m_app:") -> launchAppSpec(ctx, action.removePrefix("m_app:"))
+        // Deep link / URL launched via ACTION_VIEW, e.g. "w_link:app://open.my.app"
+        // or "w_link:https://example.com". Mirrors WFF <Launch target="app://…"/>.
+        action.startsWith("w_link:") -> launchLink(ctx, action.removePrefix("w_link:"))
         else -> false
+    }
+
+    private fun launchLink(ctx: Context, uri: String): Boolean {
+        val target = uri.trim()
+        if (target.isEmpty()) return false
+        return startIntentSafely(ctx, Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+    }
+
+    /**
+     * Launches an app from a WatchMaker `w_app`/`m_app` spec. The spec is a
+     * backtick-separated string; the concrete component is the last one or two
+     * fields (a leading display label, if present, is ignored):
+     *   "label`pkg`activity" | "pkg`activity" | "pkg"
+     */
+    private fun launchAppSpec(ctx: Context, spec: String): Boolean {
+        val fields = spec.split("`").map { it.trim() }.filter { it.isNotEmpty() }
+        val intent = when (fields.size) {
+            0 -> return false
+            1 -> ctx.packageManager.getLaunchIntentForPackage(fields[0])
+                ?: run { Log.w(TAG, "w_app: no launch intent for ${fields[0]}"); return false }
+            else -> {
+                // Last two fields are package + activity; earlier fields are the label.
+                val pkg = fields[fields.size - 2]
+                val activity = fields.last()
+                Intent().setComponent(ComponentName(pkg, activity))
+            }
+        }
+        return startIntentSafely(ctx, intent)
+    }
+
+    private fun startIntentSafely(ctx: Context, intent: Intent?): Boolean {
+        if (intent == null) return false
+        return try {
+            ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "startActivity failed: $intent", e)
+            false
+        }
     }
 
     private fun setAlarm(ctx: Context, timeStr: String): Boolean {
