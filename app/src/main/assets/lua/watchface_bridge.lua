@@ -217,6 +217,17 @@ function WatchfaceBridge.openConfig()
     Bridge.sendToAndroid("wf_action", json.encode({ action = "openConfig" }))
 end
 
+-- Surface a Lua error (with traceback) to Android so it can be shown in a
+-- visible dialog instead of failing silently. Android only displays it in debug
+-- builds (WatchfaceBridgeManager action "luaError"); release builds keep the
+-- graceful default-face fallback. `context` is a short label, `trace` the detail.
+function WatchfaceBridge.reportError(context, trace)
+    if not json then return end
+    Bridge.sendToAndroid("wf_action", json.encode({
+        action = "luaError", context = tostring(context or "Lua error"), trace = tostring(trace),
+    }))
+end
+
 -- ── Android → Lua: watchface lifecycle commands ───────────────────────────────
 -- Java calls these globals via callLuaFunction on the GL thread.
 -- Watchface engines should listen with WatchfaceBridge.onChange("cmd_*", fn).

@@ -1,13 +1,16 @@
 -- wf_protect.lua — decode WatchMaker "protected" faces (protection="y").
 --
 -- Protected .watch packages ship a stub watch.xml plus the real definition in
--- watch.pxml, and images as .ppng. Both use light, fixed obfuscation:
+-- watch.pxml, and images as .ppng / .pjpg. Both use light, fixed obfuscation:
 --
---   watch.pxml : standard Base64 of the real watch.xml, but with two alphabet
---                entries swapped — 'D'↔'g' (values 3↔32) and '4'↔'L' (11↔56).
---   .ppng      : the real PNG bytes XOR'd with the repeating 5-byte key "SWHn-".
+--   watch.pxml     : standard Base64 of the real watch.xml, but with two alphabet
+--                    entries swapped — 'D'↔'g' (values 3↔32) and '4'↔'L' (11↔56).
+--   .ppng / .pjpg  : the real PNG / JPEG bytes XOR'd with the repeating 5-byte
+--                    key "SWHn-" (0x53 0x57 0x48 0x6E 0x2D).
 --
--- (Reverse-engineered from sample faces; see watchmaker-definition.)
+-- Matches the reference wftools WatchmakerExtractor.kt. (There is no crypto spec
+-- in the format docs; reverse-engineered from sample faces — see the CloX
+-- watchface_renderer_implementation.md "Protected asset streams" note.)
 
 local M = {}
 
@@ -109,13 +112,20 @@ function M.readPxml(baseDir)
     return M.decodePxml(enc)
 end
 
--- Decode a .ppng into a real .png on disk. Returns true on success. No-op (true)
--- if the .png already exists (cached from a previous load).
-function M.ensurePng(ppngPath, pngPath)
-    if fu:isFileExist(pngPath) then return true end
-    local data = fu:getStringFromFile(ppngPath)
+-- XOR-decode a protected image (.ppng / .pjpg) into a real image (.png / .jpg)
+-- on disk. Returns true on success. No-op (true) if the decoded file already
+-- exists (cached from a previous load). Extension-agnostic — the same repeating
+-- key covers both PNG and JPEG payloads.
+function M.ensureDecoded(srcPath, dstPath)
+    if fu:isFileExist(dstPath) then return true end
+    local data = fu:getStringFromFile(srcPath)
     if not data or #data == 0 then return false end
-    return fu:writeStringToFile(M.xorBytes(data, PPNG_KEY), pngPath)
+    return fu:writeStringToFile(M.xorBytes(data, PPNG_KEY), dstPath)
+end
+
+-- Back-compat alias for the .ppng-only helper.
+function M.ensurePng(ppngPath, pngPath)
+    return M.ensureDecoded(ppngPath, pngPath)
 end
 
 return M

@@ -78,6 +78,7 @@ function WatchfaceScene:ctor()
     self._currentPath = nil   -- path of the face on screen (false = built-in default)
     self._failedPath  = nil   -- a real path we tried and bounced off (avoid retry thrash)
     self._activeFeatures = { weather = false, health = {}, sensor = {} }
+    self._pendingLoad = nil   -- a load request deferred to the GL-safe scheduler pump
 end
 
 function WatchfaceScene:onEnter()
@@ -111,6 +112,15 @@ function WatchfaceScene:onEnter()
 
     self:wireBridge()
 
+    -- Permanent load pump. All face loading (which creates TTF Labels → compiles
+    -- GL shaders) must run from a Director scheduler callback, where the GL
+    -- context is guaranteed current. Bridge dispatches (which run on the GL thread
+    -- via queueEvent, possibly before onSurfaceCreated or during context churn)
+    -- only *request* a load; this pump performs it on the next frame. One boolean
+    -- check per frame when idle — negligible, and it ticks at the FPS cap (1 in AOD).
+    self._loadTimer = cc.Director:getInstance():getScheduler()
+        :scheduleScriptFunc(function() self:serviceLoad() end, 0, false)
+
     Bridge.sendToAndroid("wf_lua_ready", "")
 end
 
@@ -118,6 +128,7 @@ function WatchfaceScene:onExit()
     local sched = cc.Director:getInstance():getScheduler()
     if self._frameTimer then sched:unscheduleScriptEntry(self._frameTimer); self._frameTimer = nil end
     if self._clockTimer then sched:unscheduleScriptEntry(self._clockTimer); self._clockTimer = nil end
+    if self._loadTimer then sched:unscheduleScriptEntry(self._loadTimer); self._loadTimer = nil end
     -- release any async sensor streams the face had running
     self:applyFeatures({ weather = false, health = {}, sensor = {} })
 end
@@ -218,9 +229,10 @@ function WatchfaceScene:loadWatchface(path)
         print("[Watchface] watch definition missing/empty in " .. base)
         return false
     end
-    local ok, err = pcall(function() self._renderer:load(xml, base) end)
+    local ok, err = xpcall(function() self._renderer:load(xml, base) end, debug.traceback)
     if not ok then
         print("[Watchface] render failed: " .. tostring(err))
+        WatchfaceBridge.reportError("Watchface load failed", err)
         return false
     end
     -- A face that parsed to nothing renderable is a failure → fall back, never
@@ -239,8 +251,11 @@ end
 
 function WatchfaceScene:loadDefault(msg)
     local base = cc.FileUtils:getInstance():getWritablePath()   -- no packaged assets needed
-    local ok, err = pcall(function() self._renderer:load(DEFAULT_FACE, base) end)
-    if not ok then print("[Watchface] default render failed: " .. tostring(err)) end
+    local ok, err = xpcall(function() self._renderer:load(DEFAULT_FACE, base) end, debug.traceback)
+    if not ok then
+        print("[Watchface] default render failed: " .. tostring(err))
+        WatchfaceBridge.reportError("Default face render failed", err)
+    end
     self:setBg(self._renderer.bgColor)
     self._currentPath = false   -- false = built-in default is on screen
     self:afterLoad()
@@ -265,6 +280,24 @@ function WatchfaceScene:flashStatus(msg)
 end
 
 -- ── bridge wiring ─────────────────────────────────────────────────────────────
+
+-- Queue a load request; the GL-safe pump (serviceLoad) performs it on the next
+-- frame. `path` is a real path string, or false/"" for the built-in default.
+-- Last write wins, so a burst of settings pushes coalesces into a single load.
+function WatchfaceScene:requestLoad(path)
+    self._pendingLoad = { path = path }
+end
+
+-- Perform any queued load. Called only from the scheduler pump (GL context
+-- current), so this is the ONLY place face loading — and thus TTF Label / shader
+-- creation — runs. Loading from a raw bridge dispatch instead would risk a native
+-- shader-compile abort when the GL context isn't current (see onEnter).
+function WatchfaceScene:serviceLoad()
+    local req = self._pendingLoad
+    if not req then return end
+    self._pendingLoad = nil
+    self:syncWatchface(req.path)
+end
 
 -- Drive the display to match the requested path: load a real face, or fall back
 -- to the built-in default when the path is empty/false or the face won't load.
@@ -300,28 +333,30 @@ function WatchfaceScene:wireBridge()
         if data.aodEnabled ~= nil then
             self._renderer:setDim(data.aodEnabled and true or false)
         end
-        self:syncWatchface(data.watchfacePath)
+        -- Loading is deferred to the scheduler pump (GL-safe); the transform and
+        -- frame-rate touch no GL resources, so apply them immediately for a
+        -- responsive zoom/AOD change.
+        self:requestLoad(data.watchfacePath)
         self:applyStageTransform()
         self:applyFrameRate()
     end)
 
-    -- explicit lifecycle commands (watchface_bridge.lua §ANDROID → LUA)
+    -- explicit lifecycle commands (watchface_bridge.lua §ANDROID → LUA). These
+    -- only queue a load; the extract-cache side effects below touch no GL state.
     WatchfaceBridge.onChange("cmd_setActive", function(data)
-        local path = data and data.path
-        if not self:loadWatchface(path) then self:loadDefault("Failed to load watchface") end
+        self._failedPath = nil   -- explicit command: allow a retry
+        self:requestLoad(data and data.path)
     end)
     WatchfaceBridge.onChange("cmd_reload", function()
         extractSourcePath = nil   -- force re-extract
-        if not self:loadWatchface(WF.settings and WF.settings.watchfacePath) then
-            self:loadDefault()
-        end
+        self._failedPath = nil
+        self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
     WatchfaceBridge.onChange("cmd_reset", function()
         axRemoveDir(cc.FileUtils:getInstance():getWritablePath() .. "wf_active/")
         extractSourcePath, extractDir = nil, nil
-        if not self:loadWatchface(WF.settings and WF.settings.watchfacePath) then
-            self:loadDefault("Reset — showing default")
-        end
+        self._failedPath = nil
+        self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
 end
 
