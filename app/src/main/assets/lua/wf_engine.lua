@@ -1,0 +1,286 @@
+-- wf_engine.lua — the tag-indexed update engine: WFClock, WFTag, WFEvent,
+-- WFEngine.
+--
+-- Data flow (the whole point of the architecture):
+--
+--   event fires (ms every frame / second / minute / hour / day on boundary /
+--   a WF.* bridge category when Java pushes / "var:…" when the global script
+--   writes a variable)
+--        │
+--        ▼
+--   the event's ACTIVE tags recompute        (only tags some layer actually
+--        │  value changed?                    uses are ever active)
+--        ▼
+--   the tag's update bucket fires            (bucket = the (layer, property)
+--        │                                    bindings indexed at import)
+--        ▼
+--   each binding re-evaluates its compiled expression and applies the value
+--   to its cocos node
+--
+-- Nothing in this path allocates per frame beyond Lua's own value churn, and
+-- nothing pattern-matches — expressions were compiled at import (wf_expr) and
+-- tag names resolved at activation (wf_tagdefs).
+--
+-- A generation counter dedups bindings that depend on several tags of the same
+-- event (e.g. text "{dh23z}:{dmz}" fired by either tag changing): a binding
+-- runs at most once per fire().
+
+local WFTagDefs = require "wf_tagdefs"
+
+-- ── WFClock ───────────────────────────────────────────────────────────────────
+-- The per-tick time context handed to tag compute functions. One instance per
+-- engine, mutated in place; epoch/UTC are memoised per tick because only a few
+-- tags need them and os.time/os.date are not free.
+
+local WFClock = {}
+WFClock.__index = WFClock
+
+function WFClock.new()
+    return setmetatable({ t = os.date("*t"), subsec = 0, elapsed = 0 }, WFClock)
+end
+
+function WFClock:set(t, subsec, elapsed)
+    self.t       = t
+    self.subsec  = subsec or 0
+    self.elapsed = elapsed or 0
+    self._epoch, self._utc = nil, nil
+end
+
+function WFClock:epoch()
+    local e = self._epoch
+    if not e then e = os.time(self.t); self._epoch = e end
+    return e
+end
+
+function WFClock:utc()
+    local u = self._utc
+    if not u then u = os.date("!*t", self:epoch()); self._utc = u end
+    return u
+end
+
+-- ── WFTag ─────────────────────────────────────────────────────────────────────
+-- One live tag: its compute def, current value, and the bucket of property
+-- bindings to run when the value changes.
+
+local WFTag = {}
+WFTag.__index = WFTag
+
+function WFTag.new(name, def, engine)
+    return setmetatable({
+        name   = name,
+        def    = def,
+        engine = engine,
+        value  = nil,
+        bucket = {},          -- WFBinding list, indexed at import
+    }, WFTag)
+end
+
+function WFTag:addBinding(binding)
+    self.bucket[#self.bucket + 1] = binding
+end
+
+-- Recompute from the clock; publish + return true when the value moved.
+function WFTag:recompute(clock)
+    local ok, v = pcall(self.def.fn, clock)
+    if not ok then
+        if not self._warned then
+            self._warned = true
+            print("[WFEngine] tag '" .. self.name .. "' compute: " .. tostring(v))
+        end
+        return false
+    end
+    if v == self.value then return false end
+    self.value = v
+    self.engine.V[self.name] = v
+    return true
+end
+
+function WFTag:fireBucket(gen)
+    local bucket = self.bucket
+    for i = 1, #bucket do bucket[i]:fire(gen) end
+end
+
+-- ── WFEvent ───────────────────────────────────────────────────────────────────
+-- A named update source. Owns the active tags it drives plus raw listeners
+-- (global-script callbacks, gif frame steppers, the tween driver) that want
+-- the event itself rather than a tag value.
+
+local WFEvent = {}
+WFEvent.__index = WFEvent
+
+function WFEvent.new(name)
+    return setmetatable({ name = name, tags = {}, listeners = {} }, WFEvent)
+end
+
+function WFEvent:addTag(tag)      self.tags[#self.tags + 1] = tag end
+function WFEvent:addListener(fn)  self.listeners[#self.listeners + 1] = fn end
+
+function WFEvent:isEmpty()
+    return #self.tags == 0 and #self.listeners == 0
+end
+
+function WFEvent:fire(clock, gen)
+    -- tags first, so script callbacks (listeners) read FRESH values for this
+    -- event's tags. A callback that writes a variable re-fires the affected
+    -- bindings itself through engine:publish, so listener writes still land.
+    local tags = self.tags
+    for i = 1, #tags do
+        local tag = tags[i]
+        if tag:recompute(clock) then tag:fireBucket(gen) end
+    end
+    local ls = self.listeners
+    for i = 1, #ls do
+        local ok, err = pcall(ls[i], clock)
+        if not ok then print("[WFEngine] listener (" .. self.name .. "): " .. tostring(err)) end
+    end
+end
+
+-- ── WFEngine ──────────────────────────────────────────────────────────────────
+
+local WFEngine = {}
+WFEngine.__index = WFEngine
+
+function WFEngine.new()
+    local self = setmetatable({}, WFEngine)
+    self.V         = {}       -- live tag values (compiled expressions read this)
+    self.tags      = {}       -- name → WFTag (active only)
+    self.events    = {}       -- name → WFEvent
+    self.extraDefs = {}       -- name → def, registered by wf_script (vars, tweens)
+    self.prefixDefs = {}      -- { prefix, make(name)→def } families (tweens.*)
+    self.bindings  = {}       -- every binding, for full repaints
+    self.clock     = WFClock.new()
+    self.gen       = 0
+    self._warnedUnknown = {}
+    return self
+end
+
+function WFEngine:event(name)
+    local ev = self.events[name]
+    if not ev then ev = WFEvent.new(name); self.events[name] = ev end
+    return ev
+end
+
+-- Register an out-of-catalogue tag def (script variables, tweens.*). Must run
+-- before any expression referencing the name is compiled/activated; wf_script
+-- guarantees that by loading the global script before the layers are built.
+function WFEngine:define(name, ev, fn)
+    self.extraDefs[name] = { ev = ev, fn = fn }
+end
+
+-- Register a def family for a name prefix ("tweens." → wm_schedule values).
+-- Matched at activation only (import time / first reference).
+function WFEngine:definePrefix(prefix, make)
+    self.prefixDefs[#self.prefixDefs + 1] = { prefix = prefix, make = make }
+end
+
+local STATIC_EMPTY = { ev = "static", fn = function() return "" end }
+
+-- Activate a tag by name: resolve its def (script defs shadow the catalogue),
+-- create the WFTag, hook it into its event(s) and compute its initial value.
+-- Unknown names become static "" — same visible result as the old renderer's
+-- empty substitution, but reported once for diagnostics.
+function WFEngine:activate(name)
+    local tag = self.tags[name]
+    if tag then return tag end
+
+    local def = self.extraDefs[name] or WFTagDefs.lookup(name)
+    if not def then
+        for _, p in ipairs(self.prefixDefs) do
+            if name:sub(1, #p.prefix) == p.prefix then def = p.make(name); break end
+        end
+    end
+    if not def then
+        if not self._warnedUnknown[name] then
+            self._warnedUnknown[name] = true
+            print("[WFEngine] unknown tag '" .. tostring(name) .. "' → \"\"")
+        end
+        def = STATIC_EMPTY
+    end
+
+    tag = WFTag.new(name, def, self)
+    self.tags[name] = tag
+
+    local ev = def.ev
+    if type(ev) == "table" then
+        for _, e in ipairs(ev) do self:event(e):addTag(tag) end
+    elseif ev ~= "static" then
+        self:event(ev):addTag(tag)
+    end
+
+    tag:recompute(self.clock)      -- initial value; static tags live off this
+    if self.V[name] == nil then self.V[name] = "" end
+    return tag
+end
+
+-- Index a binding into the bucket of every tag it depends on.
+function WFEngine:bind(binding, deps)
+    self.bindings[#self.bindings + 1] = binding
+    for _, name in ipairs(deps) do
+        self:activate(name):addBinding(binding)
+    end
+end
+
+-- Attach a raw listener (fn(clock)) to an event.
+function WFEngine:listen(eventName, fn)
+    self:event(eventName):addListener(fn)
+end
+
+function WFEngine:setClock(t, subsec, elapsed)
+    self.clock:set(t, subsec, elapsed)
+end
+
+-- Fire one event: recompute its active tags, run changed tags' buckets.
+function WFEngine:fire(eventName)
+    local ev = self.events[eventName]
+    if not ev then return end
+    self.gen = self.gen + 1
+    ev:fire(self.clock, self.gen)
+end
+
+-- External value write (script variable, theme colour, tween step): publish a
+-- new value for a tag and run its bucket immediately when it changed.
+function WFEngine:publish(name, value)
+    local tag = self.tags[name] or self:activate(name)
+    if tag.value == value then return end
+    tag.value = value
+    self.V[name] = value
+    self.gen = self.gen + 1
+    tag:fireBucket(self.gen)
+end
+
+-- Current value of a tag; activates on first use so wm_tag() and script reads
+-- of clock tags stay live from then on.
+function WFEngine:resolve(name)
+    local tag = self.tags[name]
+    if not tag then
+        if not (self.extraDefs[name] or WFTagDefs.lookup(name)) then return nil end
+        tag = self:activate(name)
+    end
+    return tag.value
+end
+
+-- Re-apply every binding unconditionally (initial paint, dim toggle, theme
+-- reset). Uses a fresh generation so per-event dedup keeps working afterwards.
+function WFEngine:repaint()
+    self.gen = self.gen + 1
+    local bs = self.bindings
+    for i = 1, #bs do bs[i]:fire(self.gen) end
+end
+
+-- True when an event has anything to do — drives needFrame/needSecond and the
+-- bridge feature toggles in the renderer.
+function WFEngine:eventActive(name)
+    local ev = self.events[name]
+    return ev ~= nil and not ev:isEmpty()
+end
+
+-- Iterate active event names (for bridge listener registration / features).
+function WFEngine:activeEventNames()
+    local names = {}
+    for name, ev in pairs(self.events) do
+        if not ev:isEmpty() then names[#names + 1] = name end
+    end
+    return names
+end
+
+return WFEngine

@@ -6,18 +6,25 @@
 -- watchface is configured it shows a built-in vector face so the screen is never
 -- blank.
 --
--- Update model (see wf_render / wf_cadence): the scene owns the clock and, each
--- tick, tells the renderer which cadence buckets ticked (frame/second/minute/
--- hour/day). If a face has no sub-second/second layers the per-frame loop is
--- suspended and a 1s poll drives the minute+ boundaries instead. Async data
--- (weather/health/sensors/battery/…) updates via bridge listeners the renderer
--- registers per face; the scene enables only the data sources a face actually
--- uses (§ feature toggles) and caps FPS (normal max, 1 FPS in AOD).
+-- Update model (see wf_render / wf_engine): the scene owns the clock and, each
+-- tick, fires the engine events that ticked (ms every frame, second/minute/
+-- hour/day on their boundaries). Each event recomputes only its active tags;
+-- changed tags run the update buckets of exactly the layer properties indexed
+-- under them at import. If a face has no sub-second work (no ms tags, no
+-- on_millisecond, no tweens) the per-frame loop is suspended and a 1s poll
+-- drives the boundaries instead. Async data (weather/health/sensors/battery/…)
+-- updates via bridge listeners the renderer registers per face; the scene
+-- enables only the data sources a face actually uses (§ feature toggles) and
+-- caps FPS (normal max, 1 FPS in AOD).
 --
 --   bridge.lua            — JNI ↔ Lua event bus
 --   watchface_bridge.lua  — structured WF.* live data + WatchfaceBridge actions
---   wf_tags.lua           — {tag} resolution + Lua expression evaluation
---   wf_cadence.lua        — {tag} → update cadence / data-source classification
+--   wf_engine.lua         — WFTag/WFEvent/WFEngine: tag buckets + event firing
+--   wf_tagdefs.lua        — per-tag compute catalogue (value + owning event)
+--   wf_expr.lua           — import-time attribute → compiled-function compiler
+--   wf_binding.lua        — (layer, property) bucket entries
+--   wf_sandbox.lua        — restricted env for face scripts/expressions
+--   wf_script.lua         — global script host (on_*, vars, wm_*, tweens)
 --   wf_render.lua         — watch.xml parsing + cocos layer rendering
 
 require "bridge"
@@ -79,6 +86,8 @@ function WatchfaceScene:ctor()
     self._failedPath  = nil   -- a real path we tried and bounced off (avoid retry thrash)
     self._activeFeatures = { weather = false, health = {}, sensor = {} }
     self._pendingLoad = nil   -- a load request deferred to the GL-safe scheduler pump
+    -- reused per-tick event flags — the 60fps path must not allocate
+    self._ticks = { frame = false, second = false, minute = false, hour = false, day = false }
 end
 
 function WatchfaceScene:onEnter()
@@ -186,8 +195,9 @@ function WatchfaceScene:applyFeatures(f)
 end
 
 -- Start (or restart) the clock driver for the loaded face. A face with any
--- sub-second layer runs the per-frame scheduler for smooth motion; otherwise a
--- 1s poll drives minute+ boundaries and the per-frame loop stays suspended.
+-- sub-second work (ms tags, on_millisecond, live tweens) runs the per-frame
+-- scheduler for smooth motion; otherwise a 1s poll drives the boundaries and
+-- the per-frame loop stays suspended.
 function WatchfaceScene:restartClock()
     local sched = cc.Director:getInstance():getScheduler()
     if self._frameTimer then sched:unscheduleScriptEntry(self._frameTimer); self._frameTimer = nil end
@@ -209,6 +219,9 @@ function WatchfaceScene:afterLoad()
     self:applyFeatures(self._renderer.features)
     self:restartClock()
     self:applyFrameRate()
+    -- a tap script scheduling the first tween can flip the frame-loop need
+    -- while the per-frame scheduler is suspended — restart the driver then
+    self._renderer.onNeedFrame = function() self:restartClock() end
 end
 
 -- ── loading ───────────────────────────────────────────────────────────────────
@@ -373,30 +386,17 @@ function WatchfaceScene:tick(dt)
     self._elapsed = self._elapsed + dt
 
     local r = self._renderer
-    local clock = { t = t, subsec = self._subsec, elapsed = self._elapsed }
+    local ticks = self._ticks
+    ticks.frame  = r.needFrame
+    ticks.second = t.sec  ~= self._lastSec
+    ticks.minute = t.min  ~= self._lastMin
+    ticks.hour   = t.hour ~= self._lastHour
+    ticks.day    = t.day  ~= self._lastDay
 
-    local ticks = {
-        frame  = r.needFrame,
-        second = t.sec  ~= self._lastSec,
-        minute = t.min  ~= self._lastMin,
-        hour   = t.hour ~= self._lastHour,
-        day    = t.day  ~= self._lastDay,
-    }
-
-    -- A full snapshot rebuild is only needed when a clock bucket this face
-    -- actually uses ticks: minute+ always, second only if the face has second
-    -- (or frame) layers. Otherwise just advance the sub-second tags, or merely
-    -- keep the clock fresh for async pushes.
-    local clockTicked = ticks.minute or ticks.hour or ticks.day
-        or ((r.needFrame or r.needSecond) and ticks.second)
-    if clockTicked then
-        r:refreshFull(clock)
-    elseif r.needFrame then
-        r:refreshFrame(clock)
-    else
-        r:setClock(clock)
-    end
-    r:tickBuckets(ticks)
+    -- The engine does work proportional to what changed: each fired event
+    -- recomputes only its active tags, and only changed tags run their layer
+    -- buckets. No snapshot rebuilds, no per-layer re-scans.
+    r:tick(t, self._subsec, self._elapsed, ticks)
 
     self._lastSec, self._lastMin  = t.sec, t.min
     self._lastHour, self._lastDay = t.hour, t.day

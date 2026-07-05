@@ -1,24 +1,40 @@
 -- wf_render.lua — Watchmaker (.watch / JBwatch) renderer for Axmol/Cocos2d-x.
 --
 -- Parses a watch.xml face definition (format 1.0 flat layers and 2.0 Studio
--- groups/themes) and builds live cocos nodes for it. See the format reference in
--- watchmaker-definition/ (WM_FORMAT_1.0.md, WM_FORMAT_2.0.md, WM_TAGS.md).
+-- groups/themes) and builds live cocos nodes for it. See the format reference
+-- in watchmaker-definition/ (WM_FORMAT_1.0.md, WM_FORMAT_2.0.md, WM_TAGS.md).
 --
--- Coordinate model: the watch canvas is 512×512, origin at the centre. Authored
--- layer positions are screen-down (positive Y = toward the bottom); the renderer
--- flips them into cocos Y-up at the single `Y_SIGN` site below. The caller
--- supplies a `stage` cc.Node already positioned at screen centre and scaled so
--- 512 units fill the watch — so this module works purely in canvas units and
--- never touches screen pixels.
+-- Update model (the import-time indexing the engine is built around):
+--   • at LOAD, every dynamic attribute is compiled to a Lua function
+--     (wf_expr) and wrapped in a binding (wf_binding) that is indexed into
+--     the update bucket of every {tag} it reads (wf_engine);
+--   • at RUNTIME, the scene fires events (ms / second / minute / hour / day /
+--     bridge pushes); each event recomputes only its active tags and changed
+--     tags run their buckets. No XML, no gsub, no re-classification — just
+--     compiled chunks and table lookups.
+-- The face's global script (scripts/script.txt) loads BEFORE the layers so
+-- its variables resolve inside attribute expressions (wf_script, wf_sandbox).
+--
+-- Coordinate model: the watch canvas is 512×512, origin at the centre.
+-- Authored layer positions are screen-down (positive Y = toward the bottom);
+-- the renderer flips them into cocos Y-up at the single `Y_SIGN` site below.
+-- The caller supplies a `stage` cc.Node already positioned at screen centre
+-- and scaled so 512 units fill the watch — this module works purely in canvas
+-- units and never touches screen pixels.
 --
 -- Layout per layer:  holder (carries x/y, rotation, anim_scale, opacity, skew)
 --                    └─ visual (the sprite/label/draw-node, base-scaled to fit)
 -- Groups (2.0) are holders with no visual; children attach to them, so nested
 -- transforms fall out of the cocos scene graph for free.
 
-local WFTags    = require "wf_tags"
+local WFExpr    = require "wf_expr"
+local WFEngine  = require "wf_engine"
+local WFSandbox = require "wf_sandbox"
+local WFScript  = require "wf_script"
 local WFProtect = require "wf_protect"
-local WFCadence = require "wf_cadence"
+local B         = require "wf_binding"
+local WFBinding, WFSetterBinding, WFCompositeBinding, WFColor =
+    B.WFBinding, B.WFSetterBinding, B.WFCompositeBinding, B.WFColor
 
 local WFRender = {}
 WFRender.__index = WFRender
@@ -49,58 +65,14 @@ local function clamp(v, lo, hi) if v < lo then return lo elseif v > hi then retu
 local TTF_FONT_SCALE = 1.28
 local function fontPx(size) return math.min(492, floor(size * TTF_FONT_SCALE)) end
 
-local FRAME, SECOND, MINUTE, HOUR, DAY, STATIC =
-    WFCadence.FRAME, WFCadence.SECOND, WFCadence.MINUTE,
-    WFCadence.HOUR, WFCadence.DAY, WFCadence.STATIC
-
--- Attributes scanned for {tags} to decide a layer's update cadence + data needs.
-local SCAN_ATTRS = {
-    "text", "rotation", "x", "y", "opacity", "angle", "angle_total",
-    "pct_complete", "cond_value", "cond_grid", "color", "color2", "color3",
-    "color_dim", "anim_scale_x", "anim_scale_y", "radius", "radius_inner",
-    "radius_outer", "margin", "path", "paths", "skew_x", "skew_y",
+-- Engine event names that are NOT bridge push categories (everything else
+-- active in the engine gets a WatchfaceBridge.onChange listener).
+local CLOCK_EVENTS = {
+    ms = true, second = true, minute = true, hour = true, day = true,
+    static = true, theme = true,
 }
 
--- Map a wf_cadence async category to the WF.* bridge category Android pushes.
-local ASYNC_BRIDGE = {
-    ["weather"]               = "weather",
-    ["health:steps"]          = "health_steps",
-    ["health:heartRate"]      = "health_heartRate",
-    ["health:spo2"]           = "health_spo2",
-    ["sensor:accelerometer"]  = "sensor_accelerometer",
-    ["sensor:gyroscope"]      = "sensor_gyroscope",
-    ["sensor:compass"]        = "sensor_compass",
-    ["sensor:barometer"]      = "sensor_barometer",
-    ["battery"]               = "battery",
-    ["calendar"]              = "calendar",
-    ["notification"]          = "notification",
-    ["network"]               = "network",
-    ["connectivity"]          = "connectivity",
-    ["system"]                = "system",
-    ["storage"]               = "storage",
-    ["alarm"]                 = "alarm",
-    ["location"]              = "location",
-    ["timezone"]              = "timezones",
-}
-
--- ── colour helpers ────────────────────────────────────────────────────────────
-
-local function hexParts(hex)
-    hex = tostring(hex or "ffffff"):gsub("#", "")
-    if #hex < 6 then hex = "ffffff" end
-    return tonumber(hex:sub(1, 2), 16) or 255,
-           tonumber(hex:sub(3, 4), 16) or 255,
-           tonumber(hex:sub(5, 6), 16) or 255
-end
-local function c3b(hex) local r, g, b = hexParts(hex); return cc.c3b(r, g, b) end
-local function c4b(hex, op)
-    local r, g, b = hexParts(hex)
-    return cc.c4b(r, g, b, floor((op or 100) * 2.55))
-end
-local function c4f(hex, op)
-    local r, g, b = hexParts(hex)
-    return cc.c4f(r / 255, g / 255, b / 255, (op or 100) / 100)
-end
+local c3b, c4b, c4f = WFColor.c3b, WFColor.c4b, WFColor.c4f
 
 -- ── DrawNode fill helpers (only proven-available primitives) ──────────────────
 
@@ -129,14 +101,134 @@ end
 local function fillPolygon(dn, w, h, n, rot0, col)
     local rx, ry = w / 2, h / 2
     local prev
-    local first
     for i = 0, n do
         local a = rot0 + i / n * 2 * math.pi
         local p = cc.p(rx * cos(a), ry * sin(a))
-        if i == 0 then first = p
-        elseif prev then dn:drawTriangle(cc.p(0, 0), prev, p, col) end
+        if prev then dn:drawTriangle(cc.p(0, 0), prev, p, col) end
         prev = p
     end
+end
+
+-- squarify morph: stretch the placement radius toward a square outline
+local function squarifyRadius(r, angle, sq)
+    if sq <= 0 then return r end
+    local f = sq / 100
+    local c, s = math.abs(cos(angle)), math.abs(sin(angle))
+    local m = math.max(c, s)
+    if m < 1e-4 then return r end
+    return r * ((1 - f) + f / m)
+end
+
+-- ── WFLayerRec — one layer's record: node handles + compiled attributes ──────
+-- The rec owns the per-attribute compiled descriptors and offers the eval/bind
+-- helpers builders use. All compilation happens through here, once per attr.
+
+local WFLayerRec = {}
+WFLayerRec.__index = WFLayerRec
+
+function WFLayerRec.new(renderer, L, holder, key, index)
+    return setmetatable({
+        renderer = renderer,
+        engine   = renderer.engine,
+        sandbox  = renderer.sandbox,
+        L        = L,
+        holder   = holder,
+        key      = key,
+        index    = index,
+        type     = L.type,
+        bsx = 1, bsy = 1,
+        _descs   = {},
+    }, WFLayerRec)
+end
+
+-- Compiled descriptor for an attribute (memoised; kind fixed per attr).
+function WFLayerRec:desc(attr, kind)
+    local d = self._descs[attr]
+    if not d then
+        d = WFExpr.compile(self.L[attr], kind, self.engine, self.sandbox)
+        self._descs[attr] = d
+    end
+    return d
+end
+
+-- Pre-compile an attribute (composite builders declare their reads up front so
+-- every dependency is indexed before the face starts running).
+function WFLayerRec:use(attr, kind)
+    self:desc(attr, kind)
+end
+
+-- Evaluate NOW (build time or inside a composite redraw).
+function WFLayerRec:evalNum(attr, default)
+    local d = self:desc(attr, "num")
+    if d.const then
+        if d.value == nil then return default end
+        return d.value
+    end
+    return tonumber(d.fn(self.engine.V)) or default
+end
+
+function WFLayerRec:evalText(attr, default)
+    local d = self:desc(attr, "text")
+    if d.const then return d.value or default end
+    local v = d.fn(self.engine.V)
+    return v == nil and (default or "") or tostring(v)
+end
+
+function WFLayerRec:evalSub(attr, default)
+    local d = self:desc(attr, "sub")
+    if d.const then return d.value or default end
+    local v = d.fn(self.engine.V)
+    return v == nil and (default or "") or tostring(v)
+end
+
+-- Bind one numeric property: constants apply once at build; dynamic values
+-- become a setter binding indexed into every dep tag's bucket.
+function WFLayerRec:bindNum(attr, default, setter)
+    local d = self:desc(attr, "num")
+    if d.const then
+        if d.value ~= nil then setter(self, d.value) end
+        return
+    end
+    self.engine:bind(WFSetterBinding.new(self.engine, self, d, "num", default, setter), d.deps)
+end
+
+function WFLayerRec:bindText(attr, setter)
+    local d = self:desc(attr, "text")
+    if d.const then
+        if d.value ~= nil then setter(self, d.value) end
+        return
+    end
+    self.engine:bind(WFSetterBinding.new(self.engine, self, d, "text", "", setter), d.deps)
+end
+
+function WFLayerRec:bindSub(attr, setter)
+    local d = self:desc(attr, "sub")
+    if d.const then
+        if d.value ~= nil then setter(self, d.value) end
+        return
+    end
+    self.engine:bind(WFSetterBinding.new(self.engine, self, d, "text", "", setter), d.deps)
+end
+
+-- Composite: one redraw closure fired when ANY of the listed attributes' tags
+-- change (attrs = { {name, kind}, ... }). A fully static composite draws once
+-- and is never revisited.
+function WFLayerRec:composite(redraw, attrs)
+    local deps, seen = {}, {}
+    for _, spec in ipairs(attrs) do
+        local d = self:desc(spec[1], spec[2])
+        if not d.const then
+            for _, t in ipairs(d.deps) do
+                if not seen[t] then seen[t] = true; deps[#deps + 1] = t end
+            end
+        end
+    end
+    if #deps == 0 then
+        local ok, err = pcall(redraw, self)
+        if not ok then print("[WFRender] static draw '" .. tostring(self.type) .. "': " .. tostring(err)) end
+        return
+    end
+    self.engine:bind(WFCompositeBinding.new(self, redraw), deps)
 end
 
 -- ── module ────────────────────────────────────────────────────────────────────
@@ -145,19 +237,17 @@ function WFRender.new(stage)
     local self = setmetatable({}, WFRender)
     self.stage  = stage
     self.recs   = {}          -- every layer record
-    self.dyn    = {}          -- subset needing per-frame updates
-    self.taps   = {}          -- {visual, action, kind, rec}
     self._tapListeners = {}   -- registered touch listeners, dropped on clear()
     self.dim    = false
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
     self.bgColor = "000000"
-    self.scene  = nil         -- for touch dispatch registration
+    self.onNeedFrame = nil    -- scene hook: frame-loop need changed after load
     return self
 end
 
 function WFRender:clear()
     -- Drop bridge listeners from the previous face, or stale closures would keep
-    -- firing into freed layer records after a switch.
+    -- firing into a dead engine after a switch.
     if self._asyncHandlers and WatchfaceBridge and WatchfaceBridge.offChange then
         for bridgeCat, fn in pairs(self._asyncHandlers) do
             WatchfaceBridge.offChange(bridgeCat, fn)
@@ -172,10 +262,10 @@ function WFRender:clear()
     end
     self._tapListeners = {}
     if self.stage then self.stage:removeAllChildren() end
-    self.recs, self.dyn, self.taps = {}, {}, {}
-    self.byCadence, self.byAsync, self.asyncCats = nil, nil, nil
-    self.ctx, self._lastClock = nil, nil
+    self.recs = {}
+    self.engine, self.sandbox, self.script = nil, nil, nil
     self.needFrame, self.needSecond = false, false
+    WFBinding.errorReported = false
 end
 
 -- Resolve an image filename to a loadable absolute path. Protected faces ship
@@ -199,16 +289,6 @@ function WFRender:imageFile(path)
     -- background straight from assets (e.g. "wf_default/bg.png").
     if fileExists(path) then return path end
     return full
-end
-
--- Build a per-frame tag context with the active theme colours overlaid.
-function WFRender:buildContext(clock)
-    local T = WFTags.build(clock)
-    T.ucolor   = self.theme.ucolor
-    T.ucolor2  = self.theme.ucolor2
-    T.ucolor3  = self.theme.ucolor3
-    T.ucolor_b = self.theme.ucolor
-    return T
 end
 
 -- ── XML parsing ───────────────────────────────────────────────────────────────
@@ -247,8 +327,9 @@ end
 
 -- ── per-layer builders ────────────────────────────────────────────────────────
 -- Each builder creates rec.visual (or leaves nil for groups), sets rec.bsx/bsy
--- (intrinsic base scale to fit width/height) and optionally rec.update(ctx) for
--- dynamic content. Transform/opacity are applied generically afterwards.
+-- (intrinsic base scale to fit width/height) and registers its dynamic-content
+-- bindings through the rec helpers. Holder transform (x/y/rotation/scale/
+-- opacity) is bound generically afterwards.
 
 local Builders = {}
 
@@ -262,9 +343,7 @@ function Builders.image(self, rec)
     local cs = sp:getContentSize()
     if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
     if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
-    rec.update = function(ctx)
-        sp:setColor(c3b(WFTags.sub(L.color or "ffffff", ctx)))
-    end
+    rec:bindSub("color", function(_, v) sp:setColor(c3b(v)) end)
 end
 
 Builders.gif = Builders.image   -- native gif: render first frame statically
@@ -299,14 +378,15 @@ function Builders.image_gif(self, rec)
     local cs = sp:getContentSize()
     if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
     if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
+    -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener
     rec.lastFrame = -1
-    rec.update = function(ctx)
-        local fi = floor((ctx._elapsed or 0) / rec.delay) % #frames + 1
+    self.engine:listen("ms", function(clock)
+        local fi = floor(clock.elapsed / rec.delay) % #frames + 1
         if fi ~= rec.lastFrame then
             rec.lastFrame = fi
             sp:setTexture(self:imageFile(frames[fi]))
         end
-    end
+    end)
 end
 
 function Builders.text(self, rec)
@@ -332,7 +412,7 @@ function Builders.text(self, rec)
         elseif L.transform == "lc" then return str:lower() end
         return str
     end
-    local lab = makeLabel(caseOf(WFTags.evalText(L.text, rec.ctx0)))
+    local lab = makeLabel(caseOf(rec:evalText("text", "")))
     rec.visual = lab
     lab:setHorizontalAlignment(cc.TEXT_ALIGNMENT_CENTER)
     -- Bitmap fonts render at their atlas size; scale so a line's visible height
@@ -343,12 +423,13 @@ function Builders.text(self, rec)
         local perLine = (ch > 0 and ch / lines) or size
         rec.bsx = 1.6 * size / perLine; rec.bsy = rec.bsx
     end
-    rec.update = function(ctx)
-        lab:setString(caseOf(WFTags.evalText(L.text, ctx)))
-        local col = self.dim and (L.color_dim or L.color) or L.color
-        lab:setTextColor(c4b(WFTags.sub(col or "ffffff", ctx),
-                             WFTags.evalNumber(L.opacity, ctx, 100)))
-    end
+    rec:bindText("text", function(_, v) lab:setString(caseOf(v)) end)
+    -- colour follows dim mode (color_dim), tint alpha follows opacity
+    rec:use("color", "sub"); rec:use("color_dim", "sub"); rec:use("opacity", "num")
+    rec:composite(function(r)
+        local attr = (self.dim and L.color_dim) and "color_dim" or "color"
+        lab:setTextColor(c4b(r:evalSub(attr, "ffffff"), r:evalNum("opacity", 100)))
+    end, { { "color", "sub" }, { "color_dim", "sub" }, { "opacity", "num" } })
 end
 
 function Builders.image_cond(self, rec)
@@ -363,15 +444,16 @@ function Builders.image_cond(self, rec)
     if cw > 0 then rec.bsx = num(L.width, cw) / cw end
     if chh > 0 then rec.bsy = num(L.height, chh) / chh end
     rec.lastIdx = -1
-    rec.update = function(ctx)
-        local idx = clamp(floor(WFTags.evalNumber(L.cond_value, ctx, 1)) - 1, 0, cols * rows - 1)
+    rec:use("cond_value", "num"); rec:use("color", "sub")
+    rec:composite(function(r)
+        local idx = clamp(floor(r:evalNum("cond_value", 1)) - 1, 0, cols * rows - 1)
         if idx ~= rec.lastIdx then
             rec.lastIdx = idx
             local col, row = idx % cols, floor(idx / cols)   -- row-major, top-left
             sp:setTextureRect(cc.rect(col * cw, row * chh, cw, chh))
         end
-        sp:setColor(c3b(WFTags.sub(L.color or "ffffff", ctx)))
-    end
+        sp:setColor(c3b(r:evalSub("color", "ffffff")))
+    end, { { "cond_value", "num" }, { "color", "sub" } })
 end
 
 function Builders.shape(self, rec)
@@ -385,7 +467,7 @@ function Builders.shape(self, rec)
             local cs = sp:getContentSize()
             if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
             if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
-            rec.update = function(ctx) sp:setColor(c3b(WFTags.sub(L.color or "ffffff", ctx))) end
+            rec:bindSub("color", function(_, v) sp:setColor(c3b(v)) end)
             return
         end
     end
@@ -395,9 +477,9 @@ function Builders.shape(self, rec)
     local w, h = num(L.width, 50), num(L.height, 50)
     rec.shapeW, rec.shapeH = w, h
     local shp = (L.shape or "Square"):lower()
-    rec.update = function(ctx)
+    rec:composite(function(r)
         dn:clear()
-        local col = c4f(WFTags.sub(L.color or "ffffff", ctx), WFTags.evalNumber(L.opacity, ctx, 100))
+        local col = c4f(r:evalSub("color", "ffffff"), r:evalNum("opacity", 100))
         if shp == "circle" then
             dn:drawSolidCircle(cc.p(0, 0), w / 2, 0, 48, 1, h / w, col)
         elseif shp == "triangle" then
@@ -419,7 +501,7 @@ function Builders.shape(self, rec)
         else   -- Square / default / Heart fallback
             dn:drawSolidRect(cc.p(-w / 2, -h / 2), cc.p(w / 2, h / 2), col)
         end
-    end
+    end, { { "color", "sub" }, { "opacity", "num" } })
 end
 
 function Builders.rounded(self, rec)
@@ -428,7 +510,7 @@ function Builders.rounded(self, rec)
     rec.visual = dn
     local w, h = num(L.width, 100), num(L.height, 60)
     rec.shapeW, rec.shapeH = w, h
-    local r = math.min(num(L.radius, 0), w / 2, h / 2)
+    local r0 = math.min(num(L.radius, 0), w / 2, h / 2)
     local ct = floor(num(L.corner_type, 1))
     -- corner_type → which corners round (see WM_FORMAT_1.0 §7.12)
     local CORNERS = {
@@ -438,28 +520,28 @@ function Builders.rounded(self, rec)
         [14]={0,0,1,0},[15]={0,0,0,1},[16]={0,0,0,0},
     }
     local cor = CORNERS[ct] or CORNERS[1]   -- {TL,TR,BL,BR}
-    rec.update = function(ctx)
+    rec:composite(function(rr)
         dn:clear()
-        local col = c4f(WFTags.sub(L.color or "ffffff", ctx), WFTags.evalNumber(L.opacity, ctx, 100))
+        local col = c4f(rr:evalSub("color", "ffffff"), rr:evalNum("opacity", 100))
         local hw, hh = w / 2, h / 2
-        if r <= 0 then dn:drawSolidRect(cc.p(-hw, -hh), cc.p(hw, hh), col); return end
+        if r0 <= 0 then dn:drawSolidRect(cc.p(-hw, -hh), cc.p(hw, hh), col); return end
         -- centre cross fills everything except the four corner squares
-        dn:drawSolidRect(cc.p(-hw + r, -hh), cc.p(hw - r, hh), col)
-        dn:drawSolidRect(cc.p(-hw, -hh + r), cc.p(hw, hh - r), col)
+        dn:drawSolidRect(cc.p(-hw + r0, -hh), cc.p(hw - r0, hh), col)
+        dn:drawSolidRect(cc.p(-hw, -hh + r0), cc.p(hw, hh - r0), col)
         local function corner(cx, cy, rounded, q)
             if rounded == 1 then
-                dn:drawSolidCircle(cc.p(cx, cy), r, 0, 24, 1, 1, col)
+                dn:drawSolidCircle(cc.p(cx, cy), r0, 0, 24, 1, 1, col)
             else
                 local sx = (q == 2 or q == 4) and 1 or -1   -- toward outer x
                 local sy = (q >= 3) and -1 or 1
-                dn:drawSolidRect(cc.p(cx, cy), cc.p(cx + sx * r, cy + sy * r), col)
+                dn:drawSolidRect(cc.p(cx, cy), cc.p(cx + sx * r0, cy + sy * r0), col)
             end
         end
-        corner(-hw + r,  hh - r, cor[1], 1)   -- TL
-        corner( hw - r,  hh - r, cor[2], 2)   -- TR
-        corner(-hw + r, -hh + r, cor[3], 3)   -- BL
-        corner( hw - r, -hh + r, cor[4], 4)   -- BR
-    end
+        corner(-hw + r0,  hh - r0, cor[1], 1)   -- TL
+        corner( hw - r0,  hh - r0, cor[2], 2)   -- TR
+        corner(-hw + r0, -hh + r0, cor[3], 3)   -- BL
+        corner( hw - r0, -hh + r0, cor[4], 4)   -- BR
+    end, { { "color", "sub" }, { "opacity", "num" } })
 end
 
 function Builders.ring(self, rec)
@@ -469,23 +551,24 @@ function Builders.ring(self, rec)
     local ro = num(L.radius_outer, 100)
     local ri = num(L.radius_inner, ro * 0.8)
     local cw = (L.is_clockwise or "Y") ~= "N"
-    rec.update = function(ctx)
+    local outOp = num(L.outside_opacity, 100)
+    rec:composite(function(r)
         dn:clear()
-        local total = num(L.angle_total, 360)
-        local ang = clamp(WFTags.evalNumber(L.angle, ctx, 0), 0, total)
-        local outOp = num(L.outside_opacity, 100)
-        local opacity = WFTags.evalNumber(L.opacity, ctx, 100)
+        local total = r:evalNum("angle_total", 360)
+        local ang = clamp(r:evalNum("angle", 0), 0, total)
+        local opacity = r:evalNum("opacity", 100)
         -- outside band (beyond angle_total) with color3
         if total < 360 and L.color3 then
-            fillArc(dn, ri, ro, total, 360, cw, c4f(WFTags.sub(L.color3, ctx), outOp * opacity / 100))
+            fillArc(dn, ri, ro, total, 360, cw, c4f(r:evalSub("color3", "ffffff"), outOp * opacity / 100))
         end
         -- unfilled track [ang..total] with color2
         if L.color2 then
-            fillArc(dn, ri, ro, ang, total, cw, c4f(WFTags.sub(L.color2, ctx), outOp * opacity / 100))
+            fillArc(dn, ri, ro, ang, total, cw, c4f(r:evalSub("color2", "ffffff"), outOp * opacity / 100))
         end
         -- filled [0..ang] with color
-        fillArc(dn, ri, ro, 0, ang, cw, c4f(WFTags.sub(L.color or "ffffff", ctx), opacity))
-    end
+        fillArc(dn, ri, ro, 0, ang, cw, c4f(r:evalSub("color", "ffffff"), opacity))
+    end, { { "angle", "num" }, { "angle_total", "num" }, { "opacity", "num" },
+           { "color", "sub" }, { "color2", "sub" }, { "color3", "sub" } })
 end
 
 function Builders.progress(self, rec)
@@ -496,34 +579,25 @@ function Builders.progress(self, rec)
     rec.shapeW, rec.shapeH = w, h
     rec.rotOffset = -num(L.angle, 0)   -- angle 0=horizontal,90=vertical-up
     local margin = num(L.margin, 0)
-    rec.update = function(ctx)
+    local outOp = num(L.outside_opacity, 100)
+    rec:composite(function(r)
         dn:clear()
-        local pct = clamp(WFTags.evalNumber(L.pct_complete, ctx, 0), 0, 100)
-        local opacity = WFTags.evalNumber(L.opacity, ctx, 100)
-        local outOp = num(L.outside_opacity, 100)
+        local pct = clamp(r:evalNum("pct_complete", 0), 0, 100)
+        local opacity = r:evalNum("opacity", 100)
         local hw, hh = w / 2, h / 2
         -- track
         dn:drawSolidRect(cc.p(-hw, -hh), cc.p(hw, hh),
-            c4f(WFTags.sub(L.color3 or "444444", ctx), outOp * opacity / 100))
+            c4f(r:evalSub("color3", "444444"), outOp * opacity / 100))
         -- fill
         local innerW = w - margin * 2
         local fillW = innerW * pct / 100
         if fillW > 0 then
             dn:drawSolidRect(cc.p(-hw + margin, -hh + margin),
                 cc.p(-hw + margin + fillW, hh - margin),
-                c4f(WFTags.sub(L.color or "ffffff", ctx), opacity))
+                c4f(r:evalSub("color", "ffffff"), opacity))
         end
-    end
-end
-
--- squarify morph: stretch the placement radius toward a square outline
-local function squarifyRadius(r, angle, sq)
-    if sq <= 0 then return r end
-    local f = sq / 100
-    local c, s = math.abs(cos(angle)), math.abs(sin(angle))
-    local m = math.max(c, s)
-    if m < 1e-4 then return r end
-    return r * ((1 - f) + f / m)
+    end, { { "pct_complete", "num" }, { "opacity", "num" },
+           { "color", "sub" }, { "color3", "sub" } })
 end
 
 function Builders.markers(self, rec)
@@ -535,9 +609,9 @@ function Builders.markers(self, rec)
     local mw, mh = num(L.m_width, 10), num(L.m_height, 30)
     local shp = (L.shape or "Square"):lower()
     local sq = num(L.squarify, 0)
-    rec.update = function(ctx)
+    rec:composite(function(r)
         dn:clear()
-        local col = c4f(WFTags.sub(L.color or "ffffff", ctx), WFTags.evalNumber(L.opacity, ctx, 100))
+        local col = c4f(r:evalSub("color", "ffffff"), r:evalNum("opacity", 100))
         for i = 0, count - 1 do
             local th = rad(90 - i * 360 / count)     -- clockwise from 12
             local rr = squarifyRadius(radius - mh / 2, th, sq)
@@ -559,7 +633,7 @@ function Builders.markers(self, rec)
                 fillQuad(dn, p1, p2, p3, p4, col)
             end
         end
-    end
+    end, { { "color", "sub" }, { "opacity", "num" } })
 end
 
 function Builders.markers_hm(self, rec)
@@ -572,7 +646,6 @@ function Builders.markers_hm(self, rec)
     local msz = SZ[L.m_minute or "Medium"] or 3
     local sq = num(L.squarify, 0)
     local function tick(center, th, len, wdt, col)
-        local ru = cc.p(cos(th), sin(th))
         local tu = cc.p(-sin(th), cos(th))
         local outer = squarifyRadius(center, th, sq)
         local inner = outer - len
@@ -584,11 +657,11 @@ function Builders.markers_hm(self, rec)
             cc.p(ix - tu.x * wdt / 2, iy - tu.y * wdt / 2),
             cc.p(ix + tu.x * wdt / 2, iy + tu.y * wdt / 2), col)
     end
-    rec.update = function(ctx)
+    rec:composite(function(r)
         dn:clear()
-        local opacity = WFTags.evalNumber(L.opacity, ctx, 100)
-        local colM = c4f(WFTags.sub(L.color2 or L.color or "ffffff", ctx), opacity)
-        local colH = c4f(WFTags.sub(L.color or "ffffff", ctx), opacity)
+        local opacity = r:evalNum("opacity", 100)
+        local colM = c4f(r:evalSub(L.color2 and "color2" or "color", "ffffff"), opacity)
+        local colH = c4f(r:evalSub("color", "ffffff"), opacity)
         if msz > 0 then
             for i = 0, 59 do
                 if i % 5 ~= 0 then   -- skip where hour ticks sit
@@ -601,7 +674,7 @@ function Builders.markers_hm(self, rec)
                 tick(radius, rad(90 - i * 30), hsz * 6, hsz * 1.8, colH)
             end
         end
-    end
+    end, { { "color", "sub" }, { "color2", "sub" }, { "opacity", "num" } })
 end
 
 -- Ring of text labels (clock numerals). Built once; numerals are static.
@@ -665,7 +738,7 @@ function Builders.text_curved(self, rec)
     local size = math.max(1, floor(num(L.text_size, 30)))
     local font = L.font or ""
     local up = (L.curve_dir or "Up") ~= "Down"
-    local str = WFTags.evalText(L.text, rec.ctx0)
+    local str = rec:evalText("text", "")
     if L.transform == "uc" then str = str:upper() elseif L.transform == "lc" then str = str:lower() end
     local function mkLabel(s)
         local lab
@@ -695,19 +768,23 @@ end
 
 -- ── tap handling ──────────────────────────────────────────────────────────────
 
-function WFRender:dispatchTap(rec)
-    local action = rec.L.tap_action
-    if rec.tap then rec.tap() end          -- image_tap frame advance
+-- Run a tap-action string. `script:` bodies execute in the face sandbox (same
+-- environment as the global script, so its variables persist and propagate);
+-- anything else routes to Android as a shortcut.
+function WFRender:runAction(action)
     if not action or action == "" then return end
     if action:sub(1, 7) == "script:" then
-        local code = WFTags.unescape(action:sub(8))
-        local chunk = load(code, "=wf_tap", "t",
-            setmetatable({ WF = WF, WatchfaceBridge = WatchfaceBridge, print = print,
-                           math = math, string = string }, nil))
-        if chunk then pcall(chunk) end
+        if self.script then
+            self.script:runSnippet(WFExpr.unescape(action:sub(8)))
+        end
     elseif WatchfaceBridge and WatchfaceBridge.tapAction then
         WatchfaceBridge.tapAction(action)
     end
+end
+
+function WFRender:dispatchTap(rec)
+    if rec.tap then rec.tap() end          -- image_tap frame advance
+    self:runAction(rec.L.tap_action)
 end
 
 local function attachTap(self, rec)
@@ -728,6 +805,29 @@ local function attachTap(self, rec)
         :addEventListenerWithSceneGraphPriority(listener, node)
     -- Tracked so clear() can drop it on the next face switch (see clear()).
     self._tapListeners[#self._tapListeners + 1] = listener
+end
+
+-- ── generic holder transform bindings ─────────────────────────────────────────
+-- One setter binding per dynamic transform attribute. Static values apply once
+-- here and are never revisited; absent values match the cocos node defaults.
+
+local function bindTransform(rec)
+    rec:bindNum("x", 0, function(r, v) r.holder:setPositionX(v) end)
+    -- authored y is screen-down; Y_SIGN flips into cocos Y-up (see top)
+    rec:bindNum("y", 0, function(r, v) r.holder:setPositionY(Y_SIGN * v) end)
+    rec:bindNum("rotation", 0, function(r, v)
+        r.holder:setRotation(v + (r.rotOffset or 0))
+    end)
+    rec:bindNum("anim_scale_x", 100, function(r, v) r.holder:setScaleX(v / 100) end)
+    rec:bindNum("anim_scale_y", 100, function(r, v) r.holder:setScaleY(v / 100) end)
+    rec:bindNum("opacity", 100, function(r, v)
+        r.holder:setOpacity(floor(clamp(v, 0, 100) * 2.55))
+    end)
+    -- progress bars carry a static rotOffset; make sure it lands even when
+    -- `rotation` is absent (the loop above only fires for present attrs)
+    if rec.rotOffset and rec.rotOffset ~= 0 and not rec.L.rotation then
+        rec.holder:setRotation(rec.rotOffset)
+    end
 end
 
 -- ── load & build ──────────────────────────────────────────────────────────────
@@ -756,17 +856,34 @@ function WFRender:load(xml, baseDir)
     end
     self.themes = themes
 
-    local ctx0 = self:buildContext({ t = os.date("*t"), subsec = 0, elapsed = 0 })
+    -- engine + sandbox + global script — BEFORE any layer compiles, so script
+    -- variables resolve inside attribute expressions and {var} tags activate
+    -- with real initial values.
+    self.engine  = WFEngine.new()
+    self.sandbox = WFSandbox.new()
+    self.script  = WFScript.new(self.engine, self.sandbox,
+                                function(a) self:runAction(a) end)
+    WFBinding.onError = function(context, err)
+        if WatchfaceBridge and WatchfaceBridge.reportError then
+            WatchfaceBridge.reportError(context, err)
+        end
+    end
+    self:publishTheme()
+    self.script:load(baseDir)
+    self.script:attach()
+    self.script:onNeedFrameChanged(function()
+        local was = self.needFrame
+        self.needFrame = self.engine:eventActive("ms") or self.script:needsFrame()
+        if self.needFrame ~= was and self.onNeedFrame then self.onNeedFrame() end
+    end)
 
-    -- Pass 1: create a holder per layer, build its visual.
+    -- Pass 1: create a holder per layer, build its visual + content bindings.
     local holders = {}            -- key → holder node
-    local recsByKey = {}
     for i, L in ipairs(layers) do
         local key = (L.id and L.id ~= "" and L.id) or ("__" .. i)
         local holder = cc.Node:create()
         holder:setCascadeOpacityEnabled(true)
-        local rec = { L = L, holder = holder, type = L.type, key = key,
-                      bsx = 1, bsy = 1, ctx0 = ctx0, index = i }
+        local rec = WFLayerRec.new(self, L, holder, key, i)
         local builder = Builders[L.type]
         if builder then
             local ok, err = pcall(builder, self, rec)
@@ -792,32 +909,12 @@ function WFRender:load(xml, baseDir)
         if L.skew_x and num(L.skew_x) ~= 0 then holder:setSkewX(num(L.skew_x)) end
         if L.skew_y and num(L.skew_y) ~= 0 then holder:setSkewY(num(L.skew_y)) end
 
-        holders[key] = holder
-        recsByKey[key] = rec
-        self.recs[#self.recs + 1] = rec
+        -- transform attributes → setter bindings (constants apply immediately)
+        local ok, err = pcall(bindTransform, rec)
+        if not ok then print("[WFRender] transform " .. tostring(L.type) .. ": " .. tostring(err)) end
 
-        -- Classify by the {tags} the layer uses: the fastest clock cadence among
-        -- them drives how often it re-evaluates, and any async categories drive
-        -- bridge listeners + feature toggles. A layer with no tags is STATIC —
-        -- applied once and never revisited (same as the old "not dynamic").
-        local fastest, async, tagnames = STATIC, nil, nil
-        for _, a in ipairs(SCAN_ATTRS) do
-            local v = L[a]
-            if type(v) == "string" then
-                for name in v:gmatch("{([^{}]-)}") do
-                    local bucket, cat = WFCadence.classify(name)
-                    if bucket and bucket < fastest then fastest = bucket end
-                    if cat then async = async or {}; async[cat] = true end
-                    tagnames = tagnames or {}; tagnames[#tagnames + 1] = name
-                end
-            end
-        end
-        -- gif/tap frame animations are frame-timed regardless of their tags
-        if rec.frames or rec.type == "image_gif" then fastest = FRAME end
-        rec.cadence = fastest
-        rec.async   = async
-        rec.tags    = tagnames
-        rec.dynamic = (fastest ~= STATIC) or (async ~= nil)
+        holders[key] = holder
+        self.recs[#self.recs + 1] = rec
     end
 
     -- Pass 2: parent holders (handles arbitrary 2.0 ordering) in document order.
@@ -827,157 +924,90 @@ function WFRender:load(xml, baseDir)
         parent:addChild(rec.holder)
     end
 
-    -- Pass 3: initial transform + content + visibility, then index each layer
-    -- into its cadence bucket / async categories. Each layer is isolated so one
-    -- bad layer can't blank the whole face.
-    self.dyn       = {}
-    self.byCadence = { [FRAME] = {}, [SECOND] = {}, [MINUTE] = {}, [HOUR] = {}, [DAY] = {} }
-    self.byAsync   = {}
-    self.asyncCats = {}
+    -- Pass 3: visibility + tap targets, now that holders are in the scene graph.
     for _, rec in ipairs(self.recs) do
-        local ok, err = pcall(function()
-            self:applyTransform(rec, ctx0)
-            if rec.update then rec.update(ctx0) end
-        end)
-        if not ok then print("[WFRender] layer '" .. tostring(rec.type) .. "' apply: " .. tostring(err)) end
         rec.holder:setVisible(visibleIn(rec.L.display, self.dim))
-        if rec.dynamic then self.dyn[#self.dyn + 1] = rec end
-        if rec.cadence and self.byCadence[rec.cadence] then
-            table.insert(self.byCadence[rec.cadence], rec)
-        end
-        if rec.async then
-            for cat in pairs(rec.async) do
-                self.byAsync[cat] = self.byAsync[cat] or {}
-                table.insert(self.byAsync[cat], rec)
-                self.asyncCats[cat] = true
-            end
-        end
-        -- tap targets: attach now that the holder is in the scene graph
         if (rec.L.tap_action and rec.L.tap_action ~= "") or rec.tap then
             attachTap(self, rec)
         end
     end
 
-    self.ctx        = ctx0                        -- persistent snapshot, updated in place
-    self._lastClock = { t = os.date("*t"), subsec = 0, elapsed = 0 }
-    self.needFrame  = #self.byCadence[FRAME]  > 0
-    self.needSecond = #self.byCadence[SECOND] > 0
+    -- Initial paint: run every binding once against the freshly-computed tag
+    -- values, then wire the world.
+    self.engine:setClock(os.date("*t"), 0, 0)
+    self.engine:repaint()
+
+    self.needFrame  = self.engine:eventActive("ms") or self.script:needsFrame()
+    self.needSecond = self.engine:eventActive("second")
     self:buildFeatures()
     self:registerAsyncListeners()
 
-    print(string.format("[WFRender] loaded %d layers (%d dyn, frame=%s sec=%s), theme=%s",
-        #self.recs, #self.dyn, tostring(self.needFrame), tostring(self.needSecond), self.theme.ucolor))
+    local nBind = #self.engine.bindings
+    print(string.format("[WFRender] loaded %d layers (%d bindings, frame=%s sec=%s), theme=%s",
+        #self.recs, nBind, tostring(self.needFrame), tostring(self.needSecond),
+        tostring(self.theme.ucolor)))
     return true
+end
+
+-- Push the active theme colours through the engine — buckets of every layer
+-- referencing {ucolor}/{ucolor2}/{ucolor3} run immediately.
+function WFRender:publishTheme()
+    local e = self.engine
+    e:publish("ucolor",   self.theme.ucolor or "ffffff")
+    e:publish("ucolor2",  self.theme.ucolor2 or "ffffff")
+    e:publish("ucolor3",  self.theme.ucolor3 or "ffffff")
+    e:publish("ucolor_b", self.theme.ucolor or "ffffff")
 end
 
 -- Which async data sources this face uses (drives the Java feature toggles).
 function WFRender:buildFeatures()
-    local a = self.asyncCats or {}
+    local e = self.engine
     self.features = {
-        weather = a["weather"] and true or false,
+        weather = e:eventActive("weather"),
         health = {
-            steps     = a["health:steps"]     and true or false,
-            heartRate = a["health:heartRate"] and true or false,
-            spo2      = a["health:spo2"]      and true or false,
+            steps     = e:eventActive("health_steps"),
+            heartRate = e:eventActive("health_heartRate"),
+            spo2      = e:eventActive("health_spo2"),
         },
         sensor = {
-            accelerometer = a["sensor:accelerometer"] and true or false,
-            gyroscope     = a["sensor:gyroscope"]     and true or false,
-            compass       = a["sensor:compass"]       and true or false,
-            barometer     = a["sensor:barometer"]     and true or false,
+            accelerometer = e:eventActive("sensor_accelerometer"),
+            gyroscope     = e:eventActive("sensor_gyroscope"),
+            compass       = e:eventActive("sensor_compass"),
+            barometer     = e:eventActive("sensor_barometer"),
         },
     }
 end
 
--- Subscribe to the bridge categories this face reads. A push refreshes the
--- snapshot and re-evaluates only the layers bound to that source. Handlers are
--- torn down in clear() on the next switch.
+-- Subscribe to the bridge categories this face reads: engine event names that
+-- aren't clock events ARE bridge categories (wf_tagdefs uses the WF.* names).
+-- A push fires that category's event — its tags recompute and only the layers
+-- indexed under the changed tags re-apply. Torn down in clear() on switch.
 function WFRender:registerAsyncListeners()
     self._asyncHandlers = self._asyncHandlers or {}
     if not (WatchfaceBridge and WatchfaceBridge.onChange) then return end
-    local need = {}
-    for cat in pairs(self.asyncCats) do
-        local bc = ASYNC_BRIDGE[cat]
-        if bc then need[bc] = true end
-    end
-    for bridgeCat in pairs(need) do
-        local handler = function()
-            self:refreshFull()
-            for cat, list in pairs(self.byAsync) do
-                if ASYNC_BRIDGE[cat] == bridgeCat then self:_evalList(list, self.ctx) end
-            end
-        end
-        WatchfaceBridge.onChange(bridgeCat, handler)
-        self._asyncHandlers[bridgeCat] = handler
-    end
-end
-
-function WFRender:applyTransform(rec, ctx)
-    local L = rec.L
-    local holder = rec.holder
-    -- authored (x, y) is screen-down; Y_SIGN flips it into cocos Y-up (see top).
-    holder:setPosition(WFTags.evalNumber(L.x, ctx, 0),
-                       Y_SIGN * WFTags.evalNumber(L.y, ctx, 0))
-    holder:setRotation(WFTags.evalNumber(L.rotation, ctx, 0) + (rec.rotOffset or 0))
-    holder:setScaleX(WFTags.evalNumber(L.anim_scale_x, ctx, 100) / 100)
-    holder:setScaleY(WFTags.evalNumber(L.anim_scale_y, ctx, 100) / 100)
-    holder:setOpacity(floor(clamp(WFTags.evalNumber(L.opacity, ctx, 100), 0, 100) * 2.55))
-end
-
--- Re-evaluate a list of layers. A failing layer is logged once and skipped so
--- it can't take down the whole render loop.
-function WFRender:_evalList(list, ctx)
-    if not list then return end
-    for _, rec in ipairs(list) do
-        local ok, err = pcall(function()
-            self:applyTransform(rec, ctx)
-            if rec.update then rec.update(ctx) end
-        end)
-        if not ok and not rec._warned then
-            rec._warned = true
-            print("[WFRender] update '" .. tostring(rec.type) .. "': " .. tostring(err))
-            -- Surface only the first layer-update error per face load (still logs
-            -- all) so a broken face can't stack a dialog per bad layer.
-            if not self._layerErrorReported and WatchfaceBridge and WatchfaceBridge.reportError then
-                self._layerErrorReported = true
-                WatchfaceBridge.reportError("Layer '" .. tostring(rec.type) .. "' update", err)
-            end
+    local engine = self.engine
+    for _, name in ipairs(engine:activeEventNames()) do
+        if not CLOCK_EVENTS[name] and not self._asyncHandlers[name] then
+            local handler = function() engine:fire(name) end
+            WatchfaceBridge.onChange(name, handler)
+            self._asyncHandlers[name] = handler
         end
     end
 end
 
--- Full rebuild of the persistent snapshot — cheap enough at ≤1×/second (clock
--- boundary) or on an async bridge push. Reuses the last clock when none is given.
-function WFRender:refreshFull(clock)
-    clock = clock or self._lastClock or { t = os.date("*t"), subsec = 0, elapsed = 0 }
-    self._lastClock = clock
-    self.ctx = self:buildContext(clock)
-end
+-- ── per-tick driving (called by the scene) ────────────────────────────────────
 
--- Per-frame refresh: mutate only the sub-second tags in place (no allocation).
-function WFRender:refreshFrame(clock)
-    self._lastClock = clock
-    if self.ctx then WFTags.buildFrame(self.ctx, clock) end
-end
-
--- Keep the last clock current (so async pushes rebuild with a fresh time) even
--- when the per-frame loop is suspended for a minute-only face.
-function WFRender:setClock(clock)
-    self._lastClock = clock
-end
-
--- Fire the cadence buckets that ticked this frame. ticks = {frame,second,
--- minute,hour,day} booleans. Buckets hold disjoint layer sets, so no layer is
--- evaluated twice even when several buckets tick together (e.g. a minute wrap
--- also ticks second).
-function WFRender:tickBuckets(ticks)
-    local ctx = self.ctx
-    if not ctx or not self.byCadence then return end
-    if ticks.frame  then self:_evalList(self.byCadence[FRAME],  ctx) end
-    if ticks.second then self:_evalList(self.byCadence[SECOND], ctx) end
-    if ticks.minute then self:_evalList(self.byCadence[MINUTE], ctx) end
-    if ticks.hour   then self:_evalList(self.byCadence[HOUR],   ctx) end
-    if ticks.day    then self:_evalList(self.byCadence[DAY],    ctx) end
+-- ticks = {frame,second,minute,hour,day} booleans. Slow events fire first so
+-- the ms pass sees fresh minute/second values on boundary frames.
+function WFRender:tick(t, subsec, elapsed, ticks)
+    local e = self.engine
+    if not e then return end
+    e:setClock(t, subsec, elapsed)
+    if ticks.day    then e:fire("day")    end
+    if ticks.hour   then e:fire("hour")   end
+    if ticks.minute then e:fire("minute") end
+    if ticks.second then e:fire("second") end
+    if ticks.frame  then e:fire("ms")     end
 end
 
 function WFRender:setDim(dim)
@@ -986,14 +1016,17 @@ function WFRender:setDim(dim)
     for _, rec in ipairs(self.recs) do
         rec.holder:setVisible(visibleIn(rec.L.display, dim))
     end
+    -- dim-aware content (color_dim texts) repaints from live values
+    if self.engine then self.engine:repaint() end
 end
 
--- Switch to the Nth theme (1-based) and refresh themed colours next frame.
+-- Switch to the Nth theme (1-based); {ucolor*} buckets re-apply immediately.
 function WFRender:setTheme(idx)
     local th = self.themes and self.themes[idx]
     if not th then return end
     self.theme = { ucolor = th.ucolor, ucolor2 = th.ucolor2 or th.ucolor,
                    ucolor3 = th.ucolor3 or th.ucolor }
+    if self.engine then self:publishTheme() end
 end
 
 return WFRender

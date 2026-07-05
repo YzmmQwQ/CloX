@@ -1,0 +1,550 @@
+-- wf_tagdefs.lua — the {tag} catalogue: one compute function per tag, plus the
+-- event that owns it.
+--
+-- This replaces both halves of the old pipeline in one declarative table:
+--   • wf_tags.build      (WHAT each tag's value is)
+--   • wf_cadence.classify (WHEN it can change)
+--
+-- A def is { ev = <event-name or list>, fn = function(c) → value }.
+-- Event names:
+--   clock:  "ms" | "second" | "minute" | "hour" | "day" | "static"
+--   bridge: the WF.* category Java pushes — "battery", "weather",
+--           "health_steps", "health_heartRate", "health_spo2",
+--           "sensor_accelerometer", "sensor_gyroscope", "sensor_compass",
+--           "sensor_barometer", "calendar", "notification", "network",
+--           "connectivity", "system", "storage", "alarm", "location",
+--           "timezones", "settings"
+--   other:  "theme" (published by the renderer on theme switch)
+-- A def may list several events ({"minute","timezones"}) when its value moves
+-- with the clock AND with pushed data.
+--
+-- `c` is the engine's clock context: c.t (os.date("*t")), c.subsec (0..1),
+-- c.elapsed (seconds since face load), plus memoised c:epoch() and c:utc().
+-- Compute functions are ENGINE code — they read the launcher's WF table
+-- directly and never run inside the face sandbox.
+--
+-- Value formats are ported verbatim from the old wf_tags.build so every
+-- existing face renders identically. See WM_TAGS.md for the catalogue.
+
+local WFTagDefs = {}
+
+local floor, fmt = math.floor, string.format
+local function z2(n)  return fmt("%02d", n) end
+local function num(v) return tonumber(v) or 0 end
+local function boolStr(b) return b and "true" or "false" end
+
+local MONTHS_FULL = { "January","February","March","April","May","June",
+                      "July","August","September","October","November","December" }
+local MONTHS_3    = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" }
+local DOW_FULL    = { "Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday" }
+local DOW_3       = { "Sun","Mon","Tue","Wed","Thu","Fri","Sat" }
+local DOW_2       = { "Su","Mo","Tu","We","Th","Fr","Sa" }
+local DOW_1       = { "S","M","T","W","T","F","S" }
+
+local BEAR_8  = { "N","NE","E","SE","S","SW","W","NW" }
+local BEAR_16 = { "N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW" }
+local function bearing(deg, list)
+    local n = #list
+    local idx = floor((deg % 360) / (360 / n) + 0.5) % n
+    return list[idx + 1]
+end
+
+local function h12of(h23) local h = h23 % 12; if h == 0 then h = 12 end return h end
+local function daysInMonth(yr, mo)
+    local nd = { 31,28,31,30,31,30,31,31,30,31,30,31 }
+    if mo == 2 and (yr % 4 == 0 and (yr % 100 ~= 0 or yr % 400 == 0)) then return 29 end
+    return nd[mo]
+end
+
+-- ── the exact-name catalogue ──────────────────────────────────────────────────
+
+local D = {}
+local function def(ev, tbl)
+    for name, fn in pairs(tbl) do D[name] = { ev = ev, fn = fn } end
+end
+
+-- ms — sub-second motion, recomputed every rendered frame
+def("ms", {
+    dss  = function(c) return floor(c.subsec * 1000) end,
+    dssz = function(c) return fmt("%03d", floor(c.subsec * 1000)) end,
+    dsps = function(c) return c.t.sec * 1000 + floor(c.subsec * 1000) end,
+    drss = function(c) return (c.t.sec + c.subsec) / 60 * 360 end,
+    drms = function(c) return c.subsec * 360 end,
+    c_elapsed = function(c) return c.elapsed end,
+})
+
+-- second
+def("second", {
+    ds   = function(c) return c.t.sec end,
+    dsz  = function(c) return z2(c.t.sec) end,
+    dst  = function(c) return floor(c.t.sec / 10) end,
+    dso  = function(c) return c.t.sec % 10 end,
+    drs  = function(c) return c.t.sec / 60 * 360 end,
+    dtp  = function(c) return (c.t.hour * 3600 + c.t.min * 60 + c.t.sec) / 86400 end,
+    depoch = function(c) return c:epoch() end,
+})
+
+-- minute
+def("minute", {
+    dm   = function(c) return c.t.min end,
+    dmz  = function(c) return z2(c.t.min) end,
+    dmt  = function(c) return floor(c.t.min / 10) end,
+    dmo  = function(c) return c.t.min % 10 end,
+    drm  = function(c) return (c.t.min + c.t.sec / 60) / 60 * 360 end,
+    drh  = function(c) return ((c.t.hour % 12) + c.t.min / 60 + c.t.sec / 3600) / 12 * 360 end,
+    drh24 = function(c) return (c.t.hour + c.t.min / 60) / 24 * 360 end,
+    da   = function(c) return (c.t.hour < 12) and "AM" or "PM" end,
+    dz   = function(c) return os.date("%Z", c:epoch()) end,
+})
+
+-- hour
+def("hour", {
+    dh    = function(c) return h12of(c.t.hour) end,
+    dhz   = function(c) return z2(h12of(c.t.hour)) end,
+    dh11  = function(c) return c.t.hour % 12 end,
+    dh11z = function(c) return z2(c.t.hour % 12) end,
+    dh24  = function(c) return (c.t.hour == 0) and 24 or c.t.hour end,
+    dh24z = function(c) return z2((c.t.hour == 0) and 24 or c.t.hour) end,
+    dh23  = function(c) return c.t.hour end,
+    dh23z = function(c) return z2(c.t.hour) end,
+    dh23i = function(c) return c.t.hour end,
+    dhtt  = function(c) return floor(h12of(c.t.hour) / 10) end,
+    dhto  = function(c) return h12of(c.t.hour) % 10 end,
+    dh11tt = function(c) return floor((c.t.hour % 12) / 10) end,
+    dh11to = function(c) return (c.t.hour % 12) % 10 end,
+    dh24tt = function(c) local h = (c.t.hour == 0) and 24 or c.t.hour; return floor(h / 10) end,
+    dh24to = function(c) local h = (c.t.hour == 0) and 24 or c.t.hour; return h % 10 end,
+    dh23tt = function(c) return floor(c.t.hour / 10) end,
+    dh23to = function(c) return c.t.hour % 10 end,
+    dhutc24  = function(c) return c:utc().hour end,
+    dhutc24z = function(c) return z2(c:utc().hour) end,
+    dhutc12  = function(c) return h12of(c:utc().hour) end,
+    dhutc12z = function(c) return z2(h12of(c:utc().hour)) end,
+    drh0  = function(c) return (c.t.hour % 12) / 12 * 360 end,
+})
+
+-- day
+def("day", {
+    dd   = function(c) return c.t.day end,
+    ddz  = function(c) return z2(c.t.day) end,
+    ddy  = function(c) return c.t.yday end,
+    ddiy = function(c)
+        local y = c.t.year
+        return (y % 4 == 0 and (y % 100 ~= 0 or y % 400 == 0)) and 366 or 365
+    end,
+    ddim = function(c) return daysInMonth(c.t.year, c.t.month) end,
+    ddw0 = function(c) return c.t.wday - 1 end,
+    ddw  = function(c) return DOW_3[c.t.wday] end,
+    ddww = function(c) return DOW_FULL[c.t.wday] end,
+    ddw2 = function(c) return DOW_2[c.t.wday] end,
+    ddw1 = function(c) return DOW_1[c.t.wday] end,
+    dn   = function(c) return c.t.month end,
+    dnn  = function(c) return z2(c.t.month) end,
+    dnnn = function(c) return MONTHS_3[c.t.month] end,
+    dnnnn = function(c) return MONTHS_FULL[c.t.month] end,
+    dy   = function(c) return fmt("%02d", c.t.year % 100) end,
+    dyy  = function(c) return c.t.year end,
+    dw   = function(c) return (tonumber(os.date("%W", c:epoch())) or 0) + 1 end,
+    dwm  = function(c) return floor((c.t.day - 1) / 7) + 1 end,
+})
+
+-- ── battery ──
+def("battery", {
+    bl   = function() return floor(num(WF.battery.level)) end,
+    blp  = function() return floor(num(WF.battery.level)) .. "%" end,
+    br   = function() return num(WF.battery.level) * 3.6 end,
+    btc  = function() return floor(num(WF.battery.temperature)) end,
+    btf  = function() return floor(num(WF.battery.temperature) * 9 / 5 + 32) end,
+    btcd = function() return floor(num(WF.battery.temperature)) .. "°C" end,
+    btfd = function() return floor(num(WF.battery.temperature) * 9 / 5 + 32) .. "°F" end,
+    bc   = function() return WF.battery.charging and "Charging" or "Discharging" end,
+    bv   = function() return WF.battery.voltage or 0 end,
+    bi   = function() return WF.battery.current or 0 end,
+})
+
+-- ── weather (current conditions) ──
+def("weather", {
+    wl   = function() return WF.weather.locationName or "" end,
+    wt   = function() return floor(num(WF.weather.currentTemp)) end,
+    wm   = function() return WF.weather.tempUnit or "C" end,
+    wtd  = function() return floor(num(WF.weather.currentTemp)) .. "°" .. (WF.weather.tempUnit or "C") end,
+    wth  = function() return floor(num(WF.weather.highTemp)) end,
+    wthd = function() return floor(num(WF.weather.highTemp)) .. "°" .. (WF.weather.tempUnit or "C") end,
+    wtl  = function() return floor(num(WF.weather.lowTemp)) end,
+    wtld = function() return floor(num(WF.weather.lowTemp)) .. "°" .. (WF.weather.tempUnit or "C") end,
+    wct  = function() return WF.weather.conditionText or "" end,
+    wci  = function() return tostring(WF.weather.conditionIcon or "") end,
+    wh   = function() return floor(num(WF.weather.humidity)) end,
+    whp  = function() return floor(num(WF.weather.humidity)) .. "%" end,
+    wp   = function() return floor(num(WF.weather.pressure)) end,
+    wws  = function() return num(WF.weather.windSpeed) end,
+    wwd  = function() return num(WF.weather.windDirection) end,
+    wwdb = function() return bearing(num(WF.weather.windDirection), BEAR_8) end,
+    wwdbb = function() return bearing(num(WF.weather.windDirection), BEAR_16) end,
+    wcl  = function() return floor(num(WF.weather.cloudiness)) end,
+    wr   = function() return num(WF.weather.rainVolume) end,
+    wisday = function() return boolStr(WF.weather.isDaytime) end,
+    wsr  = function() return WF.weather.sunrise or "" end,
+    wss  = function() return WF.weather.sunset or "" end,
+    wmp  = function() return WF.weather.moonPhase or 0 end,
+    wlu  = function() return WF.weather.lastUpdate or 0 end,
+})
+
+-- ── health & activity ──
+def("health_steps", {
+    ssc   = function() return floor(num(WF.health_steps.steps)) end,
+    stsc  = function() return floor(num(WF.health_steps.stepGoal)) end,
+    sscp  = function()
+        local goal = floor(num(WF.health_steps.stepGoal))
+        return goal > 0 and floor(floor(num(WF.health_steps.steps)) / goal * 100) or 0
+    end,
+    sdst  = function() return num(WF.health_steps.distance) end,
+    stdst = function() return 8.0 end,
+    sdstp = function() return floor(num(WF.health_steps.distance) / 8.0 * 100) end,
+    sdstu = function() return "km" end,
+    scal  = function() return num(WF.health_steps.calories) end,
+    stcal = function() return 350 end,
+    scalp = function() return floor(num(WF.health_steps.calories) / 350 * 100) end,
+})
+def("health_heartRate", {
+    shr  = function() return floor(num(WF.health_heartRate.bpm)) end,
+    sthr = function() return floor(num(WF.health_heartRate.maxHeartRate)) end,
+    shrp = function()
+        local mx = floor(num(WF.health_heartRate.maxHeartRate))
+        return mx > 0 and floor(floor(num(WF.health_heartRate.bpm)) / mx * 100) or 0
+    end,
+})
+def("health_spo2", {
+    sbo = function() return floor(num(WF.health_spo2.percent)) end,
+})
+
+-- ── sensors / compass ──
+def("sensor_accelerometer", {
+    sax = function() return num(WF.sensor_accelerometer.x) end,
+    say = function() return num(WF.sensor_accelerometer.y) end,
+    saz = function() return num(WF.sensor_accelerometer.z) end,
+})
+def("sensor_gyroscope", {
+    sgx = function() return num(WF.sensor_gyroscope.x) end,
+    sgy = function() return num(WF.sensor_gyroscope.y) end,
+    sgz = function() return num(WF.sensor_gyroscope.z) end,
+})
+local function heading() return (num(WF.sensor_compass.azimuth) + 360) % 360 end
+def("sensor_compass", {
+    scr  = function() return -heading() end,
+    sct  = function() return heading() end,
+    sctd = function() return fmt("%d°", floor(heading())) end,
+    scb  = function() return bearing(heading(), BEAR_8) end,
+    scbb = function() return bearing(heading(), BEAR_16) end,
+    sctdb  = function() return fmt("%d°", floor(heading())) .. bearing(heading(), BEAR_8) end,
+    sctdbb = function() return fmt("%d°", floor(heading())) .. bearing(heading(), BEAR_16) end,
+})
+def("sensor_barometer", {
+    sprs = function() return num(WF.sensor_barometer.pressure) end,
+})
+
+-- ── system & device ──
+def("static", {
+    aos    = function() return WF.device.osType or "Android" end,
+    aosv   = function() return WF.device.apiLevel or 0 end,
+    aman   = function() return WF.device.manufacturer or "" end,
+    amodel = function() return WF.device.deviceModel or "" end,
+    aname  = function() return WF.device.productName or "" end,
+    awname = function() return WF.device.deviceLabel or WF.device.deviceModel or "" end,
+    around = function() return boolStr(WF.device.isRound) end,
+    atyre  = function() return "false" end,
+    alangcode = function() return WF.device.language or "" end,
+    alangfull = function() return WF.device.language or "" end,
+    areboot   = function() return WF.device.lastReboot or "" end,
+})
+-- abright tracks AOD state, which arrives on the settings push — the old
+-- STATIC classification meant it never updated after load.
+def("settings", {
+    abright = function() return boolStr(not (WF.settings and WF.settings.aodEnabled)) end,
+})
+def("system", {
+    avol   = function() return (WF.system or {}).volume or 0 end,
+    abrt   = function() return (WF.system or {}).brightness or 0 end,
+    alowpw = function() return boolStr((WF.system or {}).lowPowerMode) end,
+    adark  = function() return boolStr((WF.system or {}).darkMode) end,
+})
+
+-- location (the old snapshot pinned these to 0; kept until the bridge carries
+-- real coordinates)
+def("location", {
+    alat = function() return 0 end,
+    alon = function() return 0 end,
+    aalt = function() return 0 end,
+})
+
+-- ── memory & storage (bytes → GB strings) ──
+local GB = 1073741824
+local function gb1(bytes) return fmt("%.1f", num(bytes) / GB) end
+def("storage", {
+    amu  = function() return gb1(WF.storage.usedRam) end,
+    amuf = function() return gb1(WF.storage.usedRam) .. " GB" end,
+    amt  = function() return gb1(WF.storage.totalRam) end,
+    amtf = function() return gb1(WF.storage.totalRam) .. " GB" end,
+    amf  = function() return gb1(num(WF.storage.totalRam) - num(WF.storage.usedRam)) end,
+    amff = function() return gb1(num(WF.storage.totalRam) - num(WF.storage.usedRam)) .. " GB" end,
+    adsu  = function() return gb1(WF.storage.usedStorage) end,
+    adsuf = function() return gb1(WF.storage.usedStorage) .. " GB" end,
+    adst  = function() return gb1(WF.storage.totalStorage) end,
+    adstf = function() return gb1(WF.storage.totalStorage) .. " GB" end,
+    adsf  = function() return gb1(num(WF.storage.totalStorage) - num(WF.storage.usedStorage)) end,
+    adsff = function() return gb1(num(WF.storage.totalStorage) - num(WF.storage.usedStorage)) .. " GB" end,
+})
+
+-- ── network / connectivity ──
+def("network", {
+    nc   = function() return boolStr(WF.network.wifiConnected or WF.network.dataConnected) end,
+    ncc  = function() return boolStr(WF.network.dataConnected) end,
+    pwc  = function() return boolStr(WF.network.wifiConnected) end,
+    pws  = function() return floor(num(WF.network.wifiSignal) / 4 * 100) end,
+    nwip = function() return WF.network.wifiIp or "" end,
+})
+def("connectivity", {
+    nbc  = function() return boolStr((WF.connectivity or {}).bluetoothEnabled) end,
+    ngc  = function() return boolStr((WF.connectivity or {}).gpsEnabled) end,
+    abtc = function() return boolStr((WF.connectivity or {}).bluetoothEnabled) end,
+})
+
+-- ── notifications ──
+def("notification", {
+    cnc = function() return (WF.notification or {}).count or 0 end,
+})
+
+-- ── alarm ──
+def("alarm", {
+    aalo = function() return (WF.alarm or {}).hasAlarm and 1 or 0 end,
+    aalh23z = function()
+        local al = WF.alarm or {}
+        if al.hasAlarm and al.alarmTime and al.alarmTime:find(":") then
+            local ah = al.alarmTime:match("(%d+):")
+            return z2(tonumber(ah) or 0)
+        end
+        return "--"
+    end,
+    aalmz = function()
+        local al = WF.alarm or {}
+        if al.hasAlarm and al.alarmTime and al.alarmTime:find(":") then
+            local am = al.alarmTime:match(":(%d+)")
+            return z2(tonumber(am) or 0)
+        end
+        return "--"
+    end,
+})
+
+-- ── calendar (aggregate; per-event fields are the c<N><field> pattern) ──
+def("calendar", {
+    cex = function() return boolStr((WF.calendar or {}).hasEvents) end,
+})
+
+-- ── theme accents (published by the renderer via engine:publish on theme
+--    switch; the fns supply the pre-theme default) ──
+def("theme", {
+    ucolor   = function() return "ffffff" end,
+    ucolor2  = function() return "ffffff" end,
+    ucolor3  = function() return "ffffff" end,
+    ucolor_b = function() return "ffffff" end,
+})
+
+-- ── time zones (time-of-day moves with the clock; metadata with the push) ──
+local function tzOf(i) return (WF.timezones or {})["tz" .. i] end
+for i = 1, 3 do
+    local p = "tz" .. i
+    def("timezones", {
+        [p .. "l"]   = function() local tz = tzOf(i); return tz and (tz.locationShort or "") or "" end,
+        [p .. "ll"]  = function() local tz = tzOf(i); return tz and (tz.locationLong or "") or "" end,
+        [p .. "o"]   = function() local tz = tzOf(i); return tz and (tz.utcOffset or "") or "" end,
+        [p .. "om"]  = function() local tz = tzOf(i); return tz and (tz.utcOffsetMinutes or 0) or 0 end,
+        [p .. "dst"] = function() local tz = tzOf(i); return tz and boolStr(tz.dstActive) or "false" end,
+    })
+    -- tz1 falls back to device local time when no zone data has been pushed
+    def({ "minute", "timezones" }, {
+        [p .. "t"] = function(c)
+            local tz = tzOf(i)
+            if not tz and i == 1 then return z2(c.t.hour) .. ":" .. z2(c.t.min) end
+            if not tz then return "" end
+            local zt = os.date("!*t", c:epoch() + num(tz.utcOffsetMinutes) * 60)
+            return z2(zt.hour) .. ":" .. z2(zt.min)
+        end,
+        [p .. "rh"] = function(c)
+            local tz = tzOf(i)
+            if not tz and i == 1 then
+                return ((c.t.hour % 12) + c.t.min / 60 + c.t.sec / 3600) / 12 * 360
+            end
+            if not tz then return 0 end
+            local zt = os.date("!*t", c:epoch() + num(tz.utcOffsetMinutes) * 60)
+            return ((zt.hour % 12) + zt.min / 60) / 12 * 360
+        end,
+        [p .. "rh24"] = function(c)
+            local tz = tzOf(i)
+            if not tz and i == 1 then return (c.t.hour + c.t.min / 60) / 24 * 360 end
+            if not tz then return 0 end
+            local zt = os.date("!*t", c:epoch() + num(tz.utcOffsetMinutes) * 60)
+            return (zt.hour + zt.min / 60) / 24 * 360
+        end,
+        [p .. "rm"] = function(c)
+            local tz = tzOf(i)
+            if not tz and i == 1 then return (c.t.min + c.t.sec / 60) / 60 * 360 end
+            if not tz then return 0 end
+            local zt = os.date("!*t", c:epoch() + num(tz.utcOffsetMinutes) * 60)
+            return zt.min / 60 * 360
+        end,
+    })
+end
+
+-- ── parametric families ───────────────────────────────────────────────────────
+-- Matched at ACTIVATION (import time — patterns are fine here). Each factory
+-- parses the name once and returns a def whose compute closure captures the
+-- parsed parameters, so the runtime never re-parses anything.
+
+local FAMILIES = {
+
+    -- {c_FROM_TO_DURATION_MODE[_DELAY]} — animation counters off elapsed time
+    { pat = "^c_", make = function(name)
+        local from, to, dur, mode, delay =
+            name:match("^c_([%-%d%.]+)_([%-%d%.]+)_([%d%.]+)_(%a+)_?([%d%.]*)$")
+        if not from then return nil end
+        from, to, dur = tonumber(from), tonumber(to), tonumber(dur)
+        delay = tonumber(delay) or 0
+        if not (from and to and dur and dur > 0) then return nil end
+        return { ev = "ms", fn = function(c)
+            local e = c.elapsed - delay
+            if e < 0 then return from end
+            local phase = e / dur
+            local frac
+            if mode == "rp" then
+                frac = phase % 1
+            elseif mode == "rv" then
+                local p = phase % 2
+                frac = p <= 1 and p or (2 - p)
+            else                       -- "st" and default: run once, stop
+                frac = math.min(phase, 1)
+            end
+            return from + (to - from) * frac
+        end }
+    end },
+
+    -- heart-rate history {shr_1}..{shr_9} (1 = previous, history[10] = newest)
+    { pat = "^shr_%d+$", make = function(name)
+        local n = tonumber(name:match("^shr_(%d+)$"))
+        if not n or n < 1 or n > 9 then return nil end
+        return { ev = "health_heartRate", fn = function()
+            local entry = (WF.health_heartRate.history or {})[10 - n]
+            return entry and floor(num(entry.bpm)) or 0
+        end }
+    end },
+
+    -- daily forecast {wf<N>d<field>} — N 0..5, daily[1] = today
+    { pat = "^wf%d+d", make = function(name)
+        local n, field = name:match("^wf(%d+)d(%a+)$")
+        n = tonumber(n)
+        if not n or not field then return nil end
+        local PICK = {
+            t  = function(d) return floor(num(d.avgTemp)) end,
+            th = function(d) return floor(num(d.high)) end,
+            tl = function(d) return floor(num(d.low)) end,
+            ct = function(d) return d.conditionText or "" end,
+            ci = function(d) return tostring(d.conditionIcon or "") end,
+        }
+        local pick = PICK[field]
+        if not pick then return nil end
+        return { ev = "weather", fn = function()
+            local d = (WF.weather.daily or {})[n + 1]
+            return d and pick(d) or ""
+        end }
+    end },
+
+    -- hourly forecast {wf<N>h<field>} — N 1..12, hourly[1] = next hour
+    { pat = "^wf%d+h", make = function(name)
+        local n, field = name:match("^wf(%d+)h(%a+)$")
+        n = tonumber(n)
+        if not n or not field then return nil end
+        local PICK = {
+            t  = function(h) return floor(num(h.temp)) end,
+            h  = function(h) return floor(num(h.hourOfDay)) end,
+            ct = function(h) return h.conditionText or "" end,
+            ci = function(h) return tostring(h.conditionIcon or "") end,
+        }
+        local pick = PICK[field]
+        if not pick then return nil end
+        return { ev = "weather", fn = function()
+            local h = (WF.weather.hourly or {})[n]
+            return h and pick(h) or ""
+        end }
+    end },
+
+    -- notifications {cn<N>a|t|c} — app name / title / content
+    { pat = "^cn%d+[atc]$", make = function(name)
+        local n, field = name:match("^cn(%d+)([atc])$")
+        n = tonumber(n)
+        if not n then return nil end
+        local KEY = { a = "appName", t = "title", c = "content" }
+        local key = KEY[field]
+        return { ev = "notification", fn = function()
+            local it = ((WF.notification or {}).list or {})[n]
+            return it and (it[key] or "") or ""
+        end }
+    end },
+
+    -- calendar events {c<N><field>} — c1ex / c1t / c1b / … / c10cal
+    { pat = "^c%d+%a", make = function(name)
+        local n, field = name:match("^c(%d+)(%a+)$")
+        n = tonumber(n)
+        if not n or n < 1 or n > 10 then return nil end
+        local PICK = {
+            ex  = function(ev) return boolStr(ev.exists) end,
+            t   = function(ev) return ev.title or "" end,
+            b   = function(ev) return ev.beginTime or "" end,
+            e   = function(ev) return ev.endTime or "" end,
+            bd  = function(ev) return ev.beginDate or "" end,
+            ed  = function(ev) return ev.endDate or "" end,
+            l   = function(ev) return ev.location or "" end,
+            c   = function(ev) return ev.color or "ffffff" end,
+            ad  = function(ev) return boolStr(ev.allDay) end,
+            cal = function(ev) return ev.calendar or "" end,
+            i   = function(ev) return ev.id or "" end,
+        }
+        local pick = PICK[field]
+        if not pick then return nil end
+        return { ev = "calendar", fn = function()
+            local ev = ((WF.calendar or {}).events or {})[n] or {}
+            return pick(ev)
+        end }
+    end },
+
+    -- future weekday names {ddw_1}..{ddww_6} (N days ahead)
+    { pat = "^ddww?[12]?_%d+$", make = function(name)
+        local kind, n = name:match("^(ddw[w12]?)_(%d+)$")
+        n = tonumber(n)
+        if not kind or not n or n < 1 or n > 6 then return nil end
+        local LIST = { ddw = DOW_3, ddww = DOW_FULL, ddw1 = DOW_1, ddw2 = DOW_2 }
+        local list = LIST[kind]
+        if not list then return nil end
+        return { ev = "day", fn = function(c)
+            local ft = os.date("*t", c:epoch() + n * 86400)
+            return list[ft.wday]
+        end }
+    end },
+}
+
+-- ── public API ────────────────────────────────────────────────────────────────
+
+-- lookup(name) → def { ev, fn } or nil for unknown tags (engine decides the
+-- fallback). Pattern families allocate one def per distinct name; the engine
+-- caches the result on its WFTag object so this runs once per name per face.
+function WFTagDefs.lookup(name)
+    local d = D[name]
+    if d then return d end
+    for _, fam in ipairs(FAMILIES) do
+        if name:find(fam.pat) then
+            local made = fam.make(name)
+            if made then return made end
+        end
+    end
+    return nil
+end
+
+return WFTagDefs
