@@ -107,12 +107,52 @@ end
 -- Expression source: the raw text with each {tag} spliced in as a V lookup.
 -- "{drh}+90" → "V.drh+90". Improves on the old substitute-text-then-load
 -- pipeline for string tags (they arrive as real string values, not bare words).
-local function exprSrc(segs)
-    local parts = {}
-    for _, s in ipairs(segs) do
-        parts[#parts + 1] = s.lit or tagRef(s.tag)
+--
+-- Quote-aware: a tag INSIDE a string literal — string.match("{wsr}", "(%d+):"),
+-- '{da}' == 'AM' — must splice as a concat, not an identifier, or the literal
+-- would contain the text "V.wsr". Inside quote q the tag emits  q .. V.x .. q
+-- (close, concat, reopen); `..` binds tighter than comparisons, so '{da}'=='AM'
+-- → '' .. V.da .. '' == 'AM' parses as intended.
+local function exprSrc(raw)
+    local out = {}
+    local i, n = 1, #raw
+    local quote = nil
+    while i <= n do
+        local c = raw:sub(i, i)
+        if not quote and c == "{" then
+            local _, e, name = raw:find("^{([^{}]-)}", i)
+            if e then
+                out[#out + 1] = tagRef(name)
+                i = e + 1
+            else
+                out[#out + 1] = c
+                i = i + 1
+            end
+        elseif quote and c == "{" then
+            local _, e, name = raw:find("^{([^{}]-)}", i)
+            if e then
+                out[#out + 1] = quote .. " .. " .. tagRef(name) .. " .. " .. quote
+                i = e + 1
+            else
+                out[#out + 1] = c
+                i = i + 1
+            end
+        else
+            out[#out + 1] = c
+            if quote then
+                if c == "\\" and i < n then
+                    out[#out + 1] = raw:sub(i + 1, i + 1)   -- escaped char verbatim
+                    i = i + 1
+                elseif c == quote then
+                    quote = nil
+                end
+            elseif c == "'" or c == '"' then
+                quote = c
+            end
+            i = i + 1
+        end
     end
-    return table.concat(parts)
+    return table.concat(out)
 end
 
 -- Compile "return <src>" in the face sandbox; the resulting chunk takes V as
@@ -179,13 +219,13 @@ function WFExpr.compile(raw, kind, engine, sandbox)
         fn = compileChunk(sandbox, templateSrc(segs), "=wf_attr_sub")
     elseif kind == "num" then
         if looksLikeExprNum(probe) then
-            fn = compileChunk(sandbox, exprSrc(segs), "=wf_attr_num")
+            fn = compileChunk(sandbox, exprSrc(s), "=wf_attr_num")
         end
         fn = fn or compileChunk(sandbox, templateSrc(segs), "=wf_attr_num")
     else -- "text"
         local tpl = compileChunk(sandbox, templateSrc(segs), "=wf_attr_text")
         if looksLikeExprText(probe) then
-            local ex = compileChunk(sandbox, exprSrc(segs), "=wf_attr_text_expr")
+            local ex = compileChunk(sandbox, exprSrc(s), "=wf_attr_text_expr")
             if ex and tpl then
                 -- old evalText contract: run the expression; any failure falls
                 -- back to the substituted template string. pcall only — no
