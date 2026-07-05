@@ -23,8 +23,71 @@
 -- Reads fall through: shadow store → sandbox libraries/helpers → live tag
 -- values (engine:resolve). No pattern matching anywhere on this path.
 
+local WFTagDefs = require "wf_tagdefs"
+
 local WFScript = {}
 WFScript.__index = WFScript
+
+-- ── {tag} splicing in script SOURCE (load time — patterns are fine here) ─────
+-- Real faces write tags straight into their scripts:
+--     if var_chime == 1 and {dm} == 30 then …
+--     local condition = "{wct}"
+-- In plain Lua `{dm}` is a table constructor and "{wct}" a literal string, so
+-- neither ever works. Rewrite KNOWN catalogue tags to live bare reads (the env
+-- proxy resolves them through the engine at call time):
+--     {dm}     → (dm)            outside strings
+--     "{wct}"  → "" .. wct .. "" inside strings (same splice as wf_expr)
+-- Unknown names are left untouched — `{ 'DOM', 'LUN' }` table constructors and
+-- author-local names keep their Lua meaning. Comments are skipped so an
+-- apostrophe in "-- it's" can't derail quote tracking.
+local function knownName(name)
+    if WFTagDefs.lookup(name) then return true end
+    return name:sub(1, 7) == "tweens."
+end
+
+local function spliceTags(src)
+    local out, i, n = {}, 1, #src
+    local quote = nil
+    while i <= n do
+        local c = src:sub(i, i)
+        if quote then
+            if c == "\\" then
+                out[#out + 1] = src:sub(i, i + 1); i = i + 2
+            elseif c == "{" then
+                local _, e, name = src:find("^{([%w_%.]+)}", i)
+                if e and knownName(name) then
+                    out[#out + 1] = quote .. " .. " .. name .. " .. " .. quote
+                    i = e + 1
+                else
+                    out[#out + 1] = c; i = i + 1
+                end
+            else
+                out[#out + 1] = c
+                if c == quote then quote = nil end
+                i = i + 1
+            end
+        elseif c == "-" and src:sub(i, i + 1) == "--" then
+            local a, e = src:find("^%-%-%[%[.-%]%]", i)     -- long comment
+            if not a then e = (src:find("\n", i) or n + 1) - 1 end
+            out[#out + 1] = src:sub(i, e)
+            i = e + 1
+        elseif c == "'" or c == '"' then
+            quote = c; out[#out + 1] = c; i = i + 1
+        elseif c == "{" then
+            local _, e, name = src:find("^{([%w_%.]+)}", i)
+            if e and knownName(name) then
+                out[#out + 1] = "(" .. name .. ")"
+                i = e + 1
+            else
+                out[#out + 1] = c; i = i + 1
+            end
+        else
+            out[#out + 1] = c; i = i + 1
+        end
+    end
+    return table.concat(out)
+end
+WFScript.spliceTags = spliceTags   -- exposed for tap-action snippets + tests
 
 -- ── easing catalogue (normalized t ∈ 0..1 → 0..1), exposed to scripts ─────────
 
@@ -79,9 +142,28 @@ function WFScript.new(engine, sandbox, actionHandler)
         if type(a) == "string" and actionHandler then actionHandler(a) end
     end
     base.wm_sfx = function(s)
-        -- sound effects are not wired to Android yet; keep the call harmless
-        print("[WFScript] wm_sfx('" .. tostring(s) .. "') — not supported")
+        local dir = self.base
+        if not dir then return end
+        local path = dir .. "sfx/" .. tostring(s) .. ".mp3"
+        local ok, err = pcall(function()
+            if cc.FileUtils:getInstance():isFileExist(path) then
+                ax.AudioEngine:play2d(path, false, 1.0)
+            else
+                print("[WFScript] wm_sfx: no such file " .. path)
+            end
+        end)
+        if not ok then print("[WFScript] wm_sfx: " .. tostring(err)) end
     end
+    -- UL semantics (WatchSkinUtils.wm_vibrate): duration in ms, repeat ignored
+    base.wm_vibrate = function(durationMs)
+        local ok = pcall(function()
+            cc.Device:vibrate((tonumber(durationMs) or 100) / 1000)
+        end)
+        if not ok then print("[WFScript] wm_vibrate failed") end
+    end
+    -- present-but-inert in UL too; stubs keep faces that call them alive
+    base.wm_transition = function() end
+    base.wm_unschedule_all = function() self.tweens = {} end
     base.wm_schedule = function(args) self:schedule(args) end
     for name, fn in pairs(EASING) do base[name] = fn end
 
@@ -125,12 +207,20 @@ end
 -- chunk once; variables it sets flow through the proxy into the engine BEFORE
 -- the renderer compiles any layer expression (call order in wf_render:load).
 function WFScript:load(baseDir)
+    self.base = baseDir            -- wm_sfx resolves sfx/ against this
     local path = baseDir .. "scripts/script.txt"
     local fu = cc.FileUtils:getInstance()
     if not fu:isFileExist(path) then return false end
     local src = fu:getStringFromFile(path)
     if not src or #src == 0 then return false end
     print("[WFScript] loading scripts/script.txt (" .. #src .. " bytes)")
+    if src:find("{", 1, true) then
+        local spliced = spliceTags(src)
+        if spliced ~= src then
+            print("[WFScript] spliced {tag} references in script source")
+            src = spliced
+        end
+    end
     local ok, err = self.sandbox:run(src, "=wf_script")
     if not ok then
         print("[WFScript] global script failed: " .. tostring(err))
@@ -144,8 +234,10 @@ function WFScript:load(baseDir)
 end
 
 -- Run a `script:` tap-action body in the same environment (variables persist
--- and propagate exactly like global-script writes).
+-- and propagate exactly like global-script writes). Tag references get the
+-- same splice as the global script.
 function WFScript:runSnippet(src, label)
+    if src:find("{", 1, true) then src = spliceTags(src) end
     local ok, err = self.sandbox:run(src, label or "=wf_tap")
     if not ok then print("[WFScript] snippet failed: " .. tostring(err)) end
     return ok

@@ -130,10 +130,16 @@ function WatchfaceScene:onEnter()
     self._loadTimer = cc.Director:getInstance():getScheduler()
         :scheduleScriptFunc(function() self:serviceLoad() end, 0, false)
 
+    -- Touch entry point from Android: GestureInterceptorLayout forwards single
+    -- taps via LuaBridge.passTouch → passTouchNative → this global (already on
+    -- the GL thread).
+    WatchfaceOnTouch = function(x, y, action) self:onTouch(x, y, action) end
+
     Bridge.sendToAndroid("wf_lua_ready", "")
 end
 
 function WatchfaceScene:onExit()
+    WatchfaceOnTouch = nil
     local sched = cc.Director:getInstance():getScheduler()
     if self._frameTimer then sched:unscheduleScriptEntry(self._frameTimer); self._frameTimer = nil end
     if self._clockTimer then sched:unscheduleScriptEntry(self._clockTimer); self._clockTimer = nil end
@@ -371,6 +377,23 @@ function WatchfaceScene:wireBridge()
         self._failedPath = nil
         self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
+end
+
+-- ── touch → tap dispatch ──────────────────────────────────────────────────────
+
+-- (x, y) are Android view pixels (origin top-left, Y down). Undo the stage
+-- transform (position + scale, set in applyStageTransform) to get 512-canvas
+-- coordinates, then let the renderer pick the tapped layer.
+function WatchfaceScene:onTouch(x, y, action)
+    if action ~= 1 then return end              -- MotionEvent.ACTION_UP only
+    local glY = self._H - y                     -- android Y-down → cocos Y-up
+    local sx, sy = self._stage:getPosition()
+    local sc = self._stage:getScale()
+    if not sc or sc == 0 then return end
+    local cx = (x - sx) / sc
+    local cy = (glY - sy) / sc
+    print(string.format("[Watchface] tap screen(%.0f,%.0f) canvas(%.1f,%.1f)", x, y, cx, cy))
+    self._renderer:tapAt(cx, cy)
 end
 
 -- ── per-frame / per-tick update ───────────────────────────────────────────────

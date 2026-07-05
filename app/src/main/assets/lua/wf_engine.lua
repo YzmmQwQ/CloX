@@ -248,6 +248,15 @@ function WFEngine:publish(name, value)
     tag:fireBucket(self.gen)
 end
 
+-- True when a name is resolvable as a live value: a script variable/tween
+-- (extraDefs), an already-active tag, or a catalogue tag. wf_expr uses this to
+-- recognise BARE identifiers in expressions ("var_img == 1 and 100 or 0" — no
+-- braces) as dependencies, so writes to them re-fire the right buckets.
+function WFEngine:knowsName(name)
+    if self.extraDefs[name] or self.tags[name] then return true end
+    return WFTagDefs.lookup(name) ~= nil
+end
+
 -- Current value of a tag; activates on first use so wm_tag() and script reads
 -- of clock tags stay live from then on.
 function WFEngine:resolve(name)

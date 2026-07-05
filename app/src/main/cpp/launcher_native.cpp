@@ -80,8 +80,24 @@ Java_com_ailife_clox_cocos_CocosManager_nativeSetBlurRadius(
     BlurPostProcess::g_radius.store(radius, std::memory_order_relaxed);
 }
 
+// Forward a touch from the Android gesture layer into Lua. Must arrive on the
+// GL thread (LuaBridge.passTouch queueEvents it) — the Lua VM is single-
+// threaded. x/y are Android view pixels (origin top-left, Y down); the Lua
+// side converts them into watch-canvas coordinates.
 extern "C" JNIEXPORT void JNICALL
 Java_com_ailife_clox_cocos_LuaBridge_passTouchNative(
         JNIEnv *, jobject, jfloat x, jfloat y, jint action) {
     LOGI("passTouchNative: action=%d x=%.1f y=%.1f", action, x, y);
+    auto *engine = ax::LuaEngine::getInstance();
+    if (!engine) { LOGE("passTouchNative: LuaEngine not ready"); return; }
+    lua_State *L = engine->getLuaStack()->getLuaState();
+    lua_getglobal(L, "WatchfaceOnTouch");
+    if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
+    lua_pushnumber(L, x);
+    lua_pushnumber(L, y);
+    lua_pushinteger(L, action);
+    if (lua_pcall(L, 3, 0, 0) != 0) {
+        LOGE("WatchfaceOnTouch error: %s", lua_tostring(L, -1));
+        lua_pop(L, 1);
+    }
 }

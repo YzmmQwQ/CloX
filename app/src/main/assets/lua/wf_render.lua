@@ -237,7 +237,7 @@ function WFRender.new(stage)
     local self = setmetatable({}, WFRender)
     self.stage  = stage
     self.recs   = {}          -- every layer record
-    self._tapListeners = {}   -- registered touch listeners, dropped on clear()
+    self.taps   = {}          -- tappable recs (tap_action / image_tap frames)
     self.dim    = false
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
     self.bgColor = "000000"
@@ -254,15 +254,9 @@ function WFRender:clear()
         end
     end
     self._asyncHandlers = {}
-    -- Drop tap listeners before the nodes go away, so no stale scene-graph
-    -- listener can fire into a freed layer record after a switch.
-    if self._tapListeners then
-        local ed = cc.Director:getInstance():getEventDispatcher()
-        for _, l in ipairs(self._tapListeners) do ed:removeEventListener(l) end
-    end
-    self._tapListeners = {}
     if self.stage then self.stage:removeAllChildren() end
-    self.recs = {}
+    self.recs, self.taps = {}, {}
+    self._colorIdx = 0
     self.engine, self.sandbox, self.script = nil, nil, nil
     self.needFrame, self.needSecond = false, false
     WFBinding.errorReported = false
@@ -550,6 +544,7 @@ function Builders.ring(self, rec)
     rec.visual = dn
     local ro = num(L.radius_outer, 100)
     local ri = num(L.radius_inner, ro * 0.8)
+    rec.hitW, rec.hitH = ro * 2, ro * 2      -- tap target (DrawNode has no size)
     local cw = (L.is_clockwise or "Y") ~= "N"
     local outOp = num(L.outside_opacity, 100)
     rec:composite(function(r)
@@ -606,6 +601,7 @@ function Builders.markers(self, rec)
     rec.visual = dn
     local count = math.max(1, floor(num(L.m_count, 12)))
     local radius = num(L.radius, 200)
+    rec.hitW, rec.hitH = radius * 2, radius * 2
     local mw, mh = num(L.m_width, 10), num(L.m_height, 30)
     local shp = (L.shape or "Square"):lower()
     local sq = num(L.squarify, 0)
@@ -641,6 +637,7 @@ function Builders.markers_hm(self, rec)
     local dn = cc.DrawNode:create()
     rec.visual = dn
     local radius = num(L.radius, 240)
+    rec.hitW, rec.hitH = radius * 2, radius * 2
     local SZ = { None = 0, Tiny = 1, Small = 2, Medium = 3, Large = 4 }
     local hsz = SZ[L.m_hour or "Medium"] or 3
     local msz = SZ[L.m_minute or "Medium"] or 3
@@ -767,44 +764,121 @@ function Builders.text_curved(self, rec)
 end
 
 -- ── tap handling ──────────────────────────────────────────────────────────────
+-- Touches arrive from Android (GestureInterceptorLayout → LuaBridge.passTouch
+-- → WatchfaceOnTouch → scene → tapAt), NOT from cocos touch listeners — the
+-- Java gesture layer consumes raw events before the GL surface sees them.
+-- Dispatch mirrors the UL reference renderer (WatchSkin:touch): test every
+-- tappable, visible layer against its bounds with a generous 50-canvas-unit
+-- radius fallback, and fire only the layer whose centre is closest.
 
--- Run a tap-action string. `script:` bodies execute in the face sandbox (same
--- environment as the global script, so its variables persist and propagate);
--- anything else routes to Android as a shortcut.
+-- UL's colour-switch palette (WatchSkinUtils.lua ucolor_map) for the
+-- color_switch_* tap actions on faces without <ThemeSets>. Index 0 = the
+-- face's own default colour.
+local UCOLOR_MAP = {
+    "5987b2","20b2aa","a10d09","0bf9ab","ffa419","e6f0fa","f0e6fa","faecf3",
+    "f6f5f0","e6effa","e6e6fa","ffcccc","306a9f","fef65b","ffcccc","e6e6fa",
+    "a1090d","a10900","12e6a0","660066","cce5cc","004c64","20b2aa","40e0d0",
+    "7fffd4","fff8e7","f04b23","d8b2d8","008aa0","3b444b","ac8141","1e90ff",
+    "838da6","8b0000","ffcccc","e5f2e5","cce5cc","fbe6fb","ffffcc","000000",
+    "ffffff",
+}
+
+-- Run a tap-action string. `script:` bodies execute in the face sandbox — the
+-- SAME environment as the global script, so functions/variables defined there
+-- are callable and their writes propagate through the tag buckets. The
+-- colour-switch family is renderer-level (WM_TAP_ACTIONS.md §6: no Java
+-- handler); everything else routes to Android as a shortcut.
 function WFRender:runAction(action)
     if not action or action == "" then return end
     if action:sub(1, 7) == "script:" then
         if self.script then
             self.script:runSnippet(WFExpr.unescape(action:sub(8)))
         end
+    elseif action == "color_switch_next" or action == "color_switch_select" then
+        self:colorSwitch(1)
+    elseif action == "color_switch_prev" then
+        self:colorSwitch(-1)
     elseif WatchfaceBridge and WatchfaceBridge.tapAction then
         WatchfaceBridge.tapAction(action)
     end
 end
 
+-- Cycle the accent colour: through <ThemeSets> when the face defines them,
+-- otherwise through UL's palette over {ucolor} (index 0 = face default).
+function WFRender:colorSwitch(dir)
+    if self.themes and #self.themes > 1 then
+        self._themeIdx = ((self._themeIdx or 1) - 1 + dir) % #self.themes + 1
+        self:setTheme(self._themeIdx)
+        return
+    end
+    local n = #UCOLOR_MAP
+    self._colorIdx = ((self._colorIdx or 0) + dir) % (n + 1)   -- 0..n, 0 = default
+    local u = (self._colorIdx == 0)
+        and ((self.watch and self.watch.ucolor_default) or "ffffff")
+        or UCOLOR_MAP[self._colorIdx]
+    self.theme = { ucolor = u, ucolor2 = self.theme.ucolor2, ucolor3 = self.theme.ucolor3 }
+    self.engine:publish("ucolor", u)
+    self.engine:publish("ucolor_b", u)
+    print("[WFRender] color_switch → " .. self._colorIdx .. " (" .. u .. ")")
+end
+
 function WFRender:dispatchTap(rec)
+    print("[WFRender] tap layer '" .. tostring(rec.type) .. "' action=" ..
+          tostring(rec.L.tap_action))
     if rec.tap then rec.tap() end          -- image_tap frame advance
     self:runAction(rec.L.tap_action)
 end
 
-local function attachTap(self, rec)
-    local node = rec.visual
-    if not node then return end
-    local listener = cc.EventListenerTouchOneByOne:create()
-    listener:setSwallowTouches(false)
-    listener:registerScriptHandler(function(touch)
-        local p = node:convertToNodeSpace(touch:getLocation())
-        local s = node:getContentSize()
-        if s.width <= 0 then return false end
-        return cc.rectContainsPoint(cc.rect(0, 0, s.width, s.height), p)
-    end, cc.Handler.EVENT_TOUCH_BEGAN)
-    listener:registerScriptHandler(function()
-        self:dispatchTap(rec)
-    end, cc.Handler.EVENT_TOUCH_ENDED)
-    cc.Director:getInstance():getEventDispatcher()
-        :addEventListenerWithSceneGraphPriority(listener, node)
-    -- Tracked so clear() can drop it on the next face switch (see clear()).
-    self._tapListeners[#self._tapListeners + 1] = listener
+-- A layer is tappable only when its whole holder chain is visible (hidden
+-- groups / dim-mode-hidden layers must not swallow taps).
+local function chainVisible(node, stop)
+    while node and node ~= stop do
+        if not node:isVisible() then return false end
+        node = node:getParent()
+    end
+    return true
+end
+
+-- Half-extents of a layer's tap target, in holder-local (canvas) units.
+function WFRender:hitExtent(rec)
+    if rec.hitW then return rec.hitW / 2, (rec.hitH or rec.hitW) / 2 end
+    if rec.shapeW then return rec.shapeW / 2, rec.shapeH / 2 end
+    local v = rec.visual
+    if v then
+        local cs = v:getContentSize()
+        if cs.width > 0 then
+            return cs.width * rec.bsx / 2, cs.height * rec.bsy / 2
+        end
+    end
+    local w, h = rec:evalNum("width", 0), rec:evalNum("height", 0)
+    return w / 2, h / 2      -- 0 extents still get the 50-unit radius below
+end
+
+-- Canvas-space tap dispatch. (cx, cy) are 512-canvas coordinates (origin
+-- centre, cocos Y-up) — the scene converts from screen pixels. Returns true
+-- when a layer consumed the tap.
+function WFRender:tapAt(cx, cy)
+    local world = self.stage:convertToWorldSpace(cc.p(cx, cy))
+    local best, bestDist
+    for _, rec in ipairs(self.taps) do
+        if chainVisible(rec.holder, self.stage) then
+            local ok, lp = pcall(function() return rec.holder:convertToNodeSpace(world) end)
+            if ok and lp then
+                local hw, hh = self:hitExtent(rec)
+                local dist = math.sqrt(lp.x * lp.x + lp.y * lp.y)
+                -- inside the bounds, or within UL's 50-unit grace radius
+                if (math.abs(lp.x) <= hw and math.abs(lp.y) <= hh) or dist < 50 then
+                    if not best or dist < bestDist then best, bestDist = rec, dist end
+                end
+            end
+        end
+    end
+    if best then
+        local ok, err = pcall(function() self:dispatchTap(best) end)
+        if not ok then print("[WFRender] tap dispatch: " .. tostring(err)) end
+        return true
+    end
+    return false
 end
 
 -- ── generic holder transform bindings ─────────────────────────────────────────
@@ -924,11 +998,11 @@ function WFRender:load(xml, baseDir)
         parent:addChild(rec.holder)
     end
 
-    -- Pass 3: visibility + tap targets, now that holders are in the scene graph.
+    -- Pass 3: visibility + tap-target index, now that holders are parented.
     for _, rec in ipairs(self.recs) do
         rec.holder:setVisible(visibleIn(rec.L.display, self.dim))
         if (rec.L.tap_action and rec.L.tap_action ~= "") or rec.tap then
-            attachTap(self, rec)
+            self.taps[#self.taps + 1] = rec
         end
     end
 
@@ -1024,6 +1098,7 @@ end
 function WFRender:setTheme(idx)
     local th = self.themes and self.themes[idx]
     if not th then return end
+    self._themeIdx = idx
     self.theme = { ucolor = th.ucolor, ucolor2 = th.ucolor2 or th.ucolor,
                    ucolor3 = th.ucolor3 or th.ucolor }
     if self.engine then self:publishTheme() end

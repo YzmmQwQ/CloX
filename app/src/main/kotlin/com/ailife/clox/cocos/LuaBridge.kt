@@ -13,10 +13,20 @@ object LuaBridge {
     external fun passTouchNative(x: Float, y: Float, action: Int)
 
     fun passTouch(x: Float, y: Float, action: Int) {
-        try {
-            passTouchNative(x, y, action)
-        } catch (e: UnsatisfiedLinkError) {
-            Log.w(TAG, "Native library not loaded — touch dropped")
+        // Callers are on the UI thread; the Lua VM is single-threaded on the
+        // GL thread, so marshal like every other Lua call (see queueOnGL in
+        // WatchfaceBridgeManager).
+        val glView = CocosManager.getGlView() as? android.opengl.GLSurfaceView
+        if (glView == null) {
+            Log.w(TAG, "passTouch skipped — GL view not ready")
+            return
+        }
+        glView.queueEvent {
+            try {
+                passTouchNative(x, y, action)
+            } catch (e: UnsatisfiedLinkError) {
+                Log.w(TAG, "Native library not loaded — touch dropped")
+            }
         }
     }
 

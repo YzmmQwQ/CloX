@@ -155,6 +155,24 @@ local function exprSrc(raw)
     return table.concat(out)
 end
 
+-- Bare identifiers the engine can resolve live (script variables like
+-- var_img, or catalogue tags used without braces). They resolve through the
+-- sandbox env proxy at eval time, but they must ALSO be dependencies — an
+-- attribute like opacity="var_img == 1 and 100 or 0" has no {tag} at all, and
+-- without this it would freeze as a constant at load. False positives (a tag
+-- name inside a string literal) only cost a redundant bucket entry; the
+-- value diff in the binding suppresses the apply.
+local function identDeps(s, engine, into, seen)
+    if not engine or not engine.knowsName then return into end
+    for id in s:gmatch("[%a_][%w_]*") do
+        if not seen[id] and engine:knowsName(id) then
+            seen[id] = true
+            into[#into + 1] = id
+        end
+    end
+    return into
+end
+
 -- Compile "return <src>" in the face sandbox; the resulting chunk takes V as
 -- its single argument. Returns fn or nil+err.
 local function compileChunk(sandbox, src, label)
@@ -180,13 +198,19 @@ function WFExpr.compile(raw, kind, engine, sandbox)
 
     local segs, deps = segment(s)
 
-    -- ── no tags: the value can never change → resolve once, right now ──
+    -- ── no {tags}: constant UNLESS the expression reads live bare
+    --    identifiers (script variables, tags without braces) ──
     if #deps == 0 then
         if kind == "num" then
             local n = tonumber(s)
             if n then return { const = true, value = n } end
             if looksLikeExprNum(s) then
+                local ideps = identDeps(s, engine, {}, {})
                 local fn = compileChunk(sandbox, s, "=wf_attr_const")
+                if fn and #ideps > 0 then
+                    for _, name in ipairs(ideps) do engine:activate(name) end
+                    return { const = false, fn = fn, deps = ideps }
+                end
                 if fn then
                     local ok, res = pcall(fn, engine and engine.V or {})
                     if ok and tonumber(res) then return { const = true, value = tonumber(res) } end
@@ -195,7 +219,12 @@ function WFExpr.compile(raw, kind, engine, sandbox)
             return { const = true, value = nil }   -- caller applies its default
         elseif kind == "text" then
             if looksLikeExprText(s) then
+                local ideps = identDeps(s, engine, {}, {})
                 local fn = compileChunk(sandbox, s, "=wf_attr_const")
+                if fn and #ideps > 0 then
+                    for _, name in ipairs(ideps) do engine:activate(name) end
+                    return { const = false, fn = fn, deps = ideps }
+                end
                 if fn then
                     local ok, res = pcall(fn, engine and engine.V or {})
                     if ok and res ~= nil then return { const = true, value = tostring(res) } end
@@ -211,8 +240,12 @@ function WFExpr.compile(raw, kind, engine, sandbox)
     for _, name in ipairs(deps) do engine:activate(name) end
 
     -- Expression-ness decided at compile time on the placeholder-substituted
-    -- text (each tag stands in as a plain value "0").
+    -- text (each tag stands in as a plain value "0"). Expression forms also
+    -- pick up bare-identifier deps ("{drss}+var_off" must re-fire when the
+    -- script writes var_off, not only on ms).
     local probe = s:gsub("{[^{}]-}", "0")
+    local seen = {}
+    for _, name in ipairs(deps) do seen[name] = true end
 
     local fn
     if kind == "sub" then
@@ -220,12 +253,20 @@ function WFExpr.compile(raw, kind, engine, sandbox)
     elseif kind == "num" then
         if looksLikeExprNum(probe) then
             fn = compileChunk(sandbox, exprSrc(s), "=wf_attr_num")
+            if fn then
+                identDeps(probe, engine, deps, seen)
+                for _, name in ipairs(deps) do engine:activate(name) end
+            end
         end
         fn = fn or compileChunk(sandbox, templateSrc(segs), "=wf_attr_num")
     else -- "text"
         local tpl = compileChunk(sandbox, templateSrc(segs), "=wf_attr_text")
         if looksLikeExprText(probe) then
             local ex = compileChunk(sandbox, exprSrc(s), "=wf_attr_text_expr")
+            if ex then
+                identDeps(probe, engine, deps, seen)
+                for _, name in ipairs(deps) do engine:activate(name) end
+            end
             if ex and tpl then
                 -- old evalText contract: run the expression; any failure falls
                 -- back to the substituted template string. pcall only — no
