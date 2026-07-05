@@ -3,6 +3,7 @@ package com.ailife.clox.cocos
 import android.app.Activity
 import android.util.Log
 import android.view.SurfaceView
+import com.ailife.clox.crash.NativeCrashHandler
 import dev.axmol.lib.AxmolEngine
 import dev.axmol.lib.AxmolGLSurfaceView
 import dev.axmol.lib.AxmolRenderer
@@ -12,6 +13,10 @@ object CocosManager {
     private var glView: AxmolGLSurfaceView? = null
 
     fun init(activity: Activity): SurfaceView {
+        // libclox is loaded (companion init) — the native signal handler's JNI
+        // entry point exists now, so C++ crashes surface in the crash reporter
+        // like Java ones.
+        NativeCrashHandler.install(activity.application)
         AxmolEngine.init(activity)
         val view = AxmolGLSurfaceView(activity)
         view.setEGLConfigChooser(5, 6, 5, 0, 16, 8)

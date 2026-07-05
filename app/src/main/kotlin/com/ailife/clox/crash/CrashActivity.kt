@@ -28,7 +28,9 @@ class CrashActivity : AppCompatActivity() {
             insets
         }
 
-        val report = loadReport()
+        // The report file is deleted on first read (one-shot); keep the text
+        // across recreation so a config change doesn't blank the screen.
+        val report = savedInstanceState?.getString(STATE_REPORT) ?: loadReport()
 
         binding.crashText.text = report
 
@@ -55,13 +57,24 @@ class CrashActivity : AppCompatActivity() {
     private fun loadReport(): String {
         val path = intent.getStringExtra(EXTRA_CRASH_FILE) ?: return getString(R.string.crash_no_data)
         return try {
-            File(path).readText()
+            val text = File(path).readText()
+            // One-shot cache file: delete after reading so the native handler's
+            // next-launch fallback (NativeCrashHandler.install) can't re-show a
+            // report the user has already seen.
+            File(path).delete()
+            text
         } catch (_: Exception) {
             getString(R.string.crash_read_failed)
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_REPORT, binding.crashText.text?.toString())
+    }
+
     companion object {
         const val EXTRA_CRASH_FILE = "crash_file"
+        private const val STATE_REPORT = "report_text"
     }
 }
