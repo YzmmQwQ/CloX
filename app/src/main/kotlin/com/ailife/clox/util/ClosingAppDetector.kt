@@ -4,6 +4,7 @@ import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import android.util.Log
@@ -28,12 +29,21 @@ object ClosingAppDetector {
     fun hasUsagePermission(ctx: Context): Boolean {
         return try {
             val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-            val mode = appOps.unsafeCheckOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName
-            )
+            // unsafeCheckOpNoThrow only exists from API 29; older frameworks (e.g. API 27) throw
+            // NoSuchMethodError, not a catchable Exception, if called there.
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                appOps.checkOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName
+                )
+            }
             mode == AppOpsManager.MODE_ALLOWED
-        } catch (e: Exception) {
-            Log.w(TAG, "usage-access check failed", e)
+        } catch (t: Throwable) {
+            Log.w(TAG, "usage-access check failed", t)
             false
         }
     }

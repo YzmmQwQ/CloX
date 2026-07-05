@@ -113,7 +113,7 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+            android:theme="@style/Theme.CloX.Transparent" />
 
         <!-- Launcher alias for watch face selector -->
         <activity-alias

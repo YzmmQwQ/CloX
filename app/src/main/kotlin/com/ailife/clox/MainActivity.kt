@@ -57,6 +57,17 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     companion object {
         const val ACTION_ENTER_RTOS = "com.ailife.clox.ACTION_ENTER_RTOS"
+        // Set on the HOME intent used to bring the launcher forward before layering another
+        // activity on top of it (e.g. the watchface config dialog from Settings) — without
+        // this, whatever overlay/app-list was left open before backgrounding would still be
+        // showing behind the new activity instead of the bare watchface.
+        const val EXTRA_CLOSE_OVERLAYS = "com.ailife.clox.EXTRA_CLOSE_OVERLAYS"
+        // Paired with EXTRA_CLOSE_OVERLAYS: open the watchface config dialog only AFTER the
+        // reset above actually runs. Handled here (not as a second intent fired independently
+        // from Settings) because this activity can be destroyed/recreated (onCreate, not
+        // onNewIntent) even from a plain background/foreground cycle on memory-constrained
+        // watches — a second, separately-fired intent has no way to wait for that.
+        const val EXTRA_OPEN_WATCHFACE_CONFIG = "com.ailife.clox.EXTRA_OPEN_WATCHFACE_CONFIG"
     }
 
     override fun showDialog(pTitle: String, pMessage: String) {}
@@ -319,6 +330,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
 
         registerReceiver(screenOffReceiver, android.content.IntentFilter(Intent.ACTION_SCREEN_OFF))
+
+        handleCloseOverlaysIntent(intent)
+    }
+
+    // Handles EXTRA_CLOSE_OVERLAYS (+ optional EXTRA_OPEN_WATCHFACE_CONFIG) on a HOME intent —
+    // called from both onCreate and onNewIntent since this activity can be recreated from
+    // scratch (onCreate) even for a plain background/foreground cycle on memory-constrained
+    // watches, and the reset must run before the config dialog is opened on top of it.
+    private fun handleCloseOverlaysIntent(intent: Intent) {
+        if (intent.action != Intent.ACTION_MAIN ||
+            intent.categories?.contains(Intent.CATEGORY_HOME) != true) return
+        if (!intent.getBooleanExtra(EXTRA_CLOSE_OVERLAYS, false)) return
+        resetToWatchface()
+        if (intent.getBooleanExtra(EXTRA_OPEN_WATCHFACE_CONFIG, false)) {
+            com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(this)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -345,6 +372,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Only handle HOME button presses for our own dismiss logic
         if (intent.action != Intent.ACTION_MAIN ||
             intent.categories?.contains(Intent.CATEGORY_HOME) != true) return
+
+        if (intent.getBooleanExtra(EXTRA_CLOSE_OVERLAYS, false)) {
+            handleCloseOverlaysIntent(intent)
+            return
+        }
 
         // If launch animation is still playing, reverse it instead of proceeding
         if (activeLaunchAnim != null) {
@@ -1217,7 +1249,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onPause() {
         super.onPause()
-        CocosManager.onPause()
+        // Keep rendering while the watchface config dialog is up top so its live
+        // preview isn't frozen — see WatchfaceConfigActivity.isActive.
+        if (!com.ailife.clox.watchface.config.WatchfaceConfigActivity.isActive) {
+            CocosManager.onPause()
+        }
         aodManager.onPause()
         suppressSystemTransition()
     }

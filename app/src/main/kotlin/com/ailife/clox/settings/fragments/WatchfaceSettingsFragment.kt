@@ -38,6 +38,22 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
             startActivity(Intent(requireContext(), WatchfaceSelectorActivity::class.java))
         }
 
+        // Open per-face config dialog — Settings lives in its own task, so bring the
+        // launcher's task (home) forward first, same as AodManager.bringToForeground().
+        // MainActivity itself resets overlays and opens the config dialog (see
+        // MainActivity.handleCloseOverlaysIntent) — it can't be done as a second intent
+        // fired from here since MainActivity may need to fully recreate first.
+        view.findViewById<View>(R.id.cardWfOpenConfig).setOnClickListener {
+            val ctx = requireContext()
+            ctx.startActivity(Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                setPackage(ctx.packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                putExtra(com.ailife.clox.MainActivity.EXTRA_CLOSE_OVERLAYS, true)
+                putExtra(com.ailife.clox.MainActivity.EXTRA_OPEN_WATCHFACE_CONFIG, true)
+            })
+        }
+
         // Selector mode picker
         val tvSelectorMode = view.findViewById<TextView>(R.id.tvWfSelectorMode)
         fun refreshSelectorMode() {

@@ -372,6 +372,8 @@
     <string name="pref_watchface_summary">Selector style, sort order, store and remote management</string>
     <string name="pref_wf_open_selector_title">Open Watch Face Selector</string>
     <string name="pref_wf_open_selector_summary">Browse, manage and choose your active watch face</string>
+    <string name="pref_wf_open_config_title">Adjust Position &amp; Frame Rate</string>
+    <string name="pref_wf_open_config_summary">Scale, offset and max FPS for the active watch face</string>
     <string name="pref_wf_category_selector">Selector</string>
     <string name="pref_wf_category_management">Management</string>
     <string name="pref_wf_selector_mode_title">Selector style</string>
