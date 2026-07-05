@@ -235,6 +235,19 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- Pre-API-28 screen-off fallback: GLOBAL_ACTION_LOCK_SCREEN doesn't exist before Android P -->
+        <receiver
+            android:name=".admin.CloXDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Notification listener -->
         <service
             android:name=".overlay.notifications.CloXNotificationListenerService"

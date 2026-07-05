@@ -7,8 +7,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.Window
 import androidx.preference.PreferenceManager
-import com.ailife.clox.qs.CloXAccessibilityService
-import com.ailife.clox.qs.QsPermissionHelper
+import com.ailife.clox.qs.ScreenOffHelper
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.settings.SettingsActivity
@@ -65,8 +64,8 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         // When AOD is active, go straight into the dimmed AOD state instead of
         // locking the screen (which would turn the display off and force a re-wake).
         if (onScreenOffWhileAod?.invoke() == true) return
-        if (!CloXAccessibilityService.lockScreen()) {
-            QsPermissionHelper.ensureAccessibilityEnabled(ctx)
+        if (!ScreenOffHelper.lock(ctx)) {
+            ScreenOffHelper.requestPermission(ctx)
         }
     }
 

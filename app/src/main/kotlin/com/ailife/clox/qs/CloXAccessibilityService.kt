@@ -19,6 +19,8 @@ class CloXAccessibilityService : AccessibilityService() {
         fun triggerRecents(): Boolean =
             instance?.performGlobalAction(GLOBAL_ACTION_RECENTS) ?: false
 
+        // GLOBAL_ACTION_LOCK_SCREEN doesn't exist below API 28 — callers should route through
+        // ScreenOffHelper, which falls back to Device Admin on older devices.
         fun lockScreen(): Boolean {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 return instance?.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN) ?: false

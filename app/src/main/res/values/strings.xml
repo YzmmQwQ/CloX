@@ -900,6 +900,9 @@
     <string name="dialog_qs_permissions_title">Permissions Required</string>
     <string name="dialog_qs_permissions_message">Some permissions were permanently denied. Please open App Settings and grant them under Permissions.</string>
 
+    <!-- ── Device admin (pre-Android-P screen-off fallback) ────────────────── -->
+    <string name="dialog_device_admin_explanation">Needed to turn the screen off on this Android version.</string>
+
     <!-- ── Notification reply dialog ────────────────────────────────────── -->
     <string name="dialog_reply_title">Reply</string>
 
