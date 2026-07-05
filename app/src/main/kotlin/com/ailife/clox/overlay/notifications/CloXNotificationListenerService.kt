@@ -11,6 +11,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.util.Log
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +51,18 @@ class CloXNotificationListenerService : NotificationListenerService() {
         val blockPersistent = prefs.getBoolean(NotificationPrefs.NOTIF_BLOCK_PERSISTENT, false)
         val blockedApps = blockedApps(prefs)
 
-        val filtered = (activeNotifications?.toList() ?: emptyList())
+        // After a force-stop the system may deliver onListenerConnected with a
+        // stale binder token; getActiveNotifications then throws
+        // SecurityException ("unknown notification listener"). The system
+        // rebinds the listener shortly after, so skip this refresh instead of
+        // crashing — the next callback repopulates the list.
+        val active = try {
+            activeNotifications?.toList()
+        } catch (e: SecurityException) {
+            Log.w("CloXNotifListener", "getActiveNotifications with stale listener token", e)
+            return
+        }
+        val filtered = (active ?: emptyList())
             .filter { sbn ->
                 sbn.packageName !in blockedApps &&
                         !(blockPersistent && isPersistent(sbn)) &&
