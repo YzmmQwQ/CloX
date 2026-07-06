@@ -886,6 +886,341 @@ function Builders.markers_hm(self, rec)
     end, { { "color", "sub" }, { "color2", "sub" } })
 end
 
+-- ── chart layer (ports UL WatchSkin:createChartLayer / renderChart) ──────────
+-- Import-time parsers for the chart's packed attribute strings. Patterns are
+-- fine here (build time only); the redraw path below is pattern-free.
+
+local function fmtDp(v, dp) return string.format("%." .. dp .. "f", v) end
+
+-- "40 to 20" → {max=40, min=20} (UL: FIRST value is max). Anything else → auto.
+local function parseMinMax(s)
+    if not s or s == "" then return { auto = true } end
+    local a, b = s:match("^%s*(-?[%d%.]+)%s*to%s*(-?[%d%.]+)%s*$")
+    if a then return { auto = false, max = tonumber(a), min = tonumber(b) } end
+    return { auto = true }
+end
+
+-- Split preserving empty fields (label entries carry empties: "P||3|...").
+local function splitKeep(s, sep)
+    local out, from = {}, 1
+    while true do
+        local a = s:find(sep, from, true)
+        if not a then out[#out + 1] = s:sub(from); break end
+        out[#out + 1] = s:sub(from, a - 1)
+        from = a + 1
+    end
+    return out
+end
+
+-- lines="type|style|width|color|opacity|count|dashW|dashGap`..."
+local function parseChartLines(s)
+    local lines = {}
+    for entry in (s or ""):gmatch("[^`]+") do
+        local p = {}
+        for f in entry:gmatch("[^|]+") do p[#p + 1] = f end
+        if #p >= 8 then
+            lines[#lines + 1] = {
+                lineType = p[1], style = p[2],
+                width = tonumber(p[3]) or 1, color = p[4] or "ffffff",
+                opacity = tonumber(p[5]) or 100, numLines = tonumber(p[6]) or 1,
+                dashW = tonumber(p[7]) or 5, dashG = tonumber(p[8]) or 5,
+            }
+        end
+    end
+    return lines
+end
+
+-- Label text template → segment list ({lit=} / {key=}) so the runtime redraw
+-- only concatenates (no gsub). Keys: value / value0dp / value1dp / value2dp /
+-- index / min / max / avg / count.
+local function compileLabelText(t)
+    local segs, pos = {}, 1
+    while true do
+        local a, b, key = (t or ""):find("{([^{}]+)}", pos)
+        if not a then break end
+        if a > pos then segs[#segs + 1] = { lit = t:sub(pos, a - 1) } end
+        segs[#segs + 1] = { key = key }
+        pos = b + 1
+    end
+    if t and pos <= #t then segs[#segs + 1] = { lit = t:sub(pos) } end
+    return segs
+end
+
+-- labels="position|alignment|maxCount|text|font|color|size|opacity|xOff|yOff`..."
+local function parseChartLabels(s)
+    local labels = {}
+    if not s or s == "" then return labels end
+    for _, entry in ipairs(splitKeep(s, "`")) do
+        local p = splitKeep(entry, "|")
+        if #p >= 10 then
+            labels[#labels + 1] = {
+                position = p[1], alignment = p[2] or "",
+                maxCount = tonumber(p[3]) or 1,
+                segs = compileLabelText(p[4]),
+                color = (p[6] ~= "" and p[6]) or "ffffff",
+                size = tonumber(p[7]) or 12,
+                opacity = tonumber(p[8]) or 100,
+                xOff = tonumber(p[9]) or 0, yOff = tonumber(p[10]) or 0,
+            }
+        end
+    end
+    return labels
+end
+
+local function drawDashedLine(dn, x1, y1, x2, y2, col, width, dashW, gapW)
+    local dx, dy = x2 - x1, y2 - y1
+    local len = math.sqrt(dx * dx + dy * dy)
+    if len <= 0 then return end
+    local ux, uy = dx / len, dy / len
+    local dist, isDash = 0, true
+    while dist < len do
+        local seg = isDash and dashW or gapW
+        local nextD = math.min(dist + seg, len)
+        if isDash then
+            dn:drawSegment(cc.p(x1 + ux * dist, y1 + uy * dist),
+                           cc.p(x1 + ux * nextD, y1 + uy * nextD), width / 4, col)
+        end
+        dist = nextD
+        isDash = not isDash
+    end
+end
+
+-- Line or bar chart. UL colour roles: LINE charts stroke with color3 and dot
+-- with color4; BAR charts fill with `color` faded from bottom_opacity at the
+-- base to top_opacity at the bar tip (color2 is parsed by UL but never drawn).
+-- Data points are semicolon-separated expressions compiled once; the chart
+-- redraws when any referenced tag changes. min_max is "MAX to MIN" (UL) —
+-- absent → auto range from the data.
+function Builders.chart(self, rec)
+    local L = rec.L
+    local node = cc.Node:create()
+    rec.visual = node
+    local w, h = num(L.width, 100), num(L.height, 100)
+    rec.shapeW, rec.shapeH = w, h
+    local dn    = cc.DrawNode:create()   -- grid + data
+    local dots  = cc.DrawNode:create()   -- line-chart markers, above the line
+    local labNode = cc.Node:create()     -- labels topmost
+    node:addChild(dn, 1); node:addChild(dots, 2); node:addChild(labNode, 3)
+
+    local isLine     = (L.chart_type or "line") ~= "bar"
+    local lineWidth  = num(L.line_width, 10)
+    local markerSize = num(L.marker_size, 10)
+    local barThick   = num(L.bar_thickness, 50)
+    local topOp      = num(L.top_opacity, 100)
+    local botOp      = num(L.bottom_opacity, 100)
+    local radius     = num(L.radius, 10)
+    local cor        = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]
+    local minMax     = parseMinMax(L.min_max)
+    local chartLines = parseChartLines(L.lines)
+    local chartLabels = parseChartLabels(L.labels)
+
+    -- compile the data-point expressions; the composite fires on any dep
+    local exprs, deps, seen = {}, {}, {}
+    local function mergeDeps(d)
+        if d.const then return end
+        for _, t in ipairs(d.deps) do
+            if not seen[t] then seen[t] = true; deps[#deps + 1] = t end
+        end
+    end
+    for e in (L.data_points or ""):gmatch("[^;]+") do
+        local d = WFExpr.compile(e, "num", self.engine, self.sandbox)
+        exprs[#exprs + 1] = d
+        mergeDeps(d)
+    end
+    rec:use("color", "sub"); rec:use("color3", "sub"); rec:use("color4", "sub")
+    mergeDeps(rec:desc("color", "sub"))
+    mergeDeps(rec:desc("color3", "sub"))
+    mergeDeps(rec:desc("color4", "sub"))
+
+    local ox, oy = -w / 2, -h / 2       -- centre-anchored box (UL offsets)
+
+    local function labelText(segs, ctx)
+        local out = {}
+        for _, s in ipairs(segs) do
+            out[#out + 1] = s.lit or tostring(ctx[s.key] or "")
+        end
+        return table.concat(out)
+    end
+    local function addLabel(def, str, x, y, anchorY)
+        local lab = cc.Label:createWithSystemFont(str, "sans-serif", def.size)
+        lab:setPosition(x, y)
+        lab:setAnchorPoint(cc.p(0.5, anchorY))
+        lab:setTextColor(c4b(def.color, def.opacity))
+        labNode:addChild(lab)
+    end
+
+    local function redraw(r)
+        dn:clear(); dots:clear(); labNode:removeAllChildren()
+        local V = r.engine.V
+        local vals, n = {}, 0
+        for i, d in ipairs(exprs) do
+            local v = d.const and d.value or d.fn(V)
+            vals[i] = tonumber(v) or 0
+            n = i
+        end
+        if n == 0 then return end
+        local dMin, dMax, sum = math.huge, -math.huge, 0
+        for i = 1, n do
+            local v = vals[i]
+            if v < dMin then dMin = v end
+            if v > dMax then dMax = v end
+            sum = sum + v
+        end
+        local avg = sum / n
+        local minY = minMax.auto and dMin or minMax.min
+        local maxY = minMax.auto and dMax or minMax.max
+        local range = maxY - minY
+        if range == 0 then range = 1 end
+        local spacing = w / n
+        local function px(i) return (i - 0.5) * spacing + ox end
+        local function py(v) return ((v - minY) / range) * h + oy end
+
+        -- grid / reference lines first
+        for _, ln in ipairs(chartLines) do
+            local col = c4f(ln.color, ln.opacity)
+            local function hline(y)
+                if ln.style == "Dashed" then
+                    drawDashedLine(dn, ox, y, ox + w, y, col, ln.width, ln.dashW, ln.dashG)
+                else
+                    dn:drawSegment(cc.p(ox, y), cc.p(ox + w, y), ln.width / 4, col)
+                end
+            end
+            if ln.lineType == "H" then
+                local sp = h / (ln.numLines + 1)
+                for i = 1, ln.numLines do hline(i * sp + oy) end
+            elseif ln.lineType == "V" then
+                local sp = w / ln.numLines
+                for i = 1, ln.numLines do
+                    local x = (i - 0.5) * sp + ox
+                    if ln.style == "Dashed" then
+                        drawDashedLine(dn, x, oy, x, oy + h, col, ln.width, ln.dashW, ln.dashG)
+                    else
+                        dn:drawSegment(cc.p(x, oy), cc.p(x, oy + h), ln.width / 4, col)
+                    end
+                end
+            elseif ln.lineType == "MAX" then hline(py(dMax))
+            elseif ln.lineType == "MIN" then hline(py(dMin))
+            elseif ln.lineType == "AVG" then hline(py(avg))
+            end
+        end
+
+        if isLine then
+            local lcol = c4f(r:evalSub("color3", "ffffff"), 100)
+            local dcol = c4f(r:evalSub("color4", "ffffff"), 100)
+            for i = 1, n - 1 do
+                dn:drawSegment(cc.p(px(i), py(vals[i])), cc.p(px(i + 1), py(vals[i + 1])),
+                    lineWidth / 4, lcol)
+            end
+            for i = 1, n do
+                dots:drawDot(cc.p(px(i), py(vals[i])), markerSize / 4, dcol)
+            end
+        else
+            -- bars: single colour, opacity gradient bottom→top, rounded per
+            -- corner via per-slice width adjustment (UL drawBarChart)
+            local barW = math.min(barThick, spacing * 0.8)
+            local cr = math.min(radius, barW / 2)
+            local cHex = r:evalSub("color", "ffffff")
+            local cRGB = WFColor.rgb(cHex)
+            for i = 1, n do
+                local x0 = px(i) - barW / 2
+                local bh = ((vals[i] - minY) / range) * h
+                if bh > 0 then
+                    local slices = math.max(10, floor(bh / 2))
+                    local sh = bh / slices
+                    for s = 0, slices - 1 do
+                        local t = s / math.max(1, slices - 1)
+                        local op = botOp + (topOp - botOp) * t
+                        local sy = oy + s * sh
+                        local sx, sw = x0, barW
+                        local function arcInset(dist)
+                            local yc = cr - dist
+                            if yc >= 0 and yc <= cr then
+                                return cr - math.sqrt(math.max(0, cr * cr - yc * yc))
+                            end
+                            return 0
+                        end
+                        if bh > cr * 2 then
+                            local dTop = (oy + bh) - sy
+                            local dBot = sy - oy
+                            if dTop <= cr then
+                                local ins = arcInset(dTop)
+                                if cor[1] == 1 then sx = sx + ins; sw = sw - ins end
+                                if cor[2] == 1 then sw = sw - ins end
+                            end
+                            if dBot <= cr then
+                                local ins = arcInset(dBot)
+                                if cor[3] == 1 then sx = sx + ins; sw = sw - ins end
+                                if cor[4] == 1 then sw = sw - ins end
+                            end
+                        elseif bh > cr then
+                            local dTop = (oy + bh) - sy
+                            if dTop <= cr then
+                                local ins = arcInset(dTop)
+                                if cor[1] == 1 then sx = sx + ins; sw = sw - ins end
+                                if cor[2] == 1 then sw = sw - ins end
+                            end
+                        end
+                        if sw > 0 then
+                            dn:drawSolidRect(cc.p(sx, sy), cc.p(sx + sw, sy + sh),
+                                cc.c4f(cRGB.r / 255, cRGB.g / 255, cRGB.b / 255, op / 100))
+                        end
+                    end
+                end
+            end
+        end
+
+        -- labels last (UL: system font; per-point anchor is bottom-centre)
+        for _, def in ipairs(chartLabels) do
+            if def.position == "P" then
+                local step = math.max(1, math.ceil(n / def.maxCount))
+                for i = 1, n, step do
+                    local v = vals[i]
+                    local ctx = {
+                        value = v, value0dp = fmtDp(v, 0), value1dp = fmtDp(v, 1),
+                        value2dp = fmtDp(v, 2), index = i - 1,
+                        min = dMin, max = dMax, avg = avg, count = n,
+                    }
+                    addLabel(def, labelText(def.segs, ctx),
+                        px(i) + def.xOff,
+                        py(v) + def.yOff + (isLine and markerSize or 0) / 2 + 5, 0)
+                end
+            elseif def.position == "A" then
+                local vert = (def.alignment == "L" or def.alignment == "R")
+                for i = 0, def.maxCount - 1 do
+                    local pct = i / math.max(1, def.maxCount - 1)
+                    local v = vert and (minY + pct * (maxY - minY)) or i
+                    local ctx = {
+                        value = v, value0dp = fmtDp(v, 0), value1dp = fmtDp(v, 1),
+                        value2dp = fmtDp(v, 2), min = minY, max = maxY,
+                        avg = avg, count = n,
+                    }
+                    local x, y
+                    if def.alignment == "L" then x = ox + def.xOff; y = pct * h + oy
+                    elseif def.alignment == "R" then x = ox + w + def.xOff; y = pct * h + oy
+                    elseif def.alignment == "T" then x = pct * w + ox; y = oy + h + def.yOff
+                    else x = pct * w + ox; y = oy + def.yOff end
+                    addLabel(def, labelText(def.segs, ctx), x, y, 0.5)
+                end
+            elseif def.position == "S" then
+                local a = def.alignment
+                local y = (a:find("T", 1, true) and oy + h)
+                       or (a:find("B", 1, true) and oy) or 0
+                local x = (a:find("L", 1, true) and ox)
+                       or (a:find("R", 1, true) and ox + w) or 0
+                local ctx = { min = dMin, max = dMax, avg = avg, count = n }
+                addLabel(def, labelText(def.segs, ctx), x + def.xOff, y + def.yOff, 0.5)
+            end
+        end
+    end
+
+    if #deps == 0 then
+        local ok, err = pcall(redraw, rec)
+        if not ok then print("[WFRender] static chart: " .. tostring(err)) end
+    else
+        self.engine:bind(WFCompositeBinding.new(rec, redraw), deps)
+    end
+end
+
 -- Ring of text labels (clock numerals). Built once; numerals are static.
 -- Semantics port UL WatchSkin:createTextRing:
 --   • label sets: named (I-XII with "IIII", Mo-Su / Mon-Sun starting at Sun,

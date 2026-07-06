@@ -112,6 +112,21 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: chart layer implemented (Builders.chart), ported from UL
+  createChartLayer/renderChart. Line charts stroke with color3 + color4 dots
+  (NOT color/color2!); bar charts fill with `color` faded bottom_opacity→
+  top_opacity (color2 parsed by UL but never drawn); min_max is "MAX to MIN"
+  (first value max — doc said "min;max", fixed); data_points = semicolon-
+  separated expressions compiled via WFExpr at import, chart redraws as a
+  composite bound to the union of all data-point + color deps; lines
+  (H/V/MAX/MIN/AVG, Solid/Dashed) and labels (P per-point w/ step=ceil(n/max),
+  A axis L/R/T/B, S static) ported — label {value0dp}-style templates are
+  precompiled to segment lists so the redraw stays pattern-free; bar corner
+  rounding via per-slice width insets (CORNERS table); x slots at
+  (i-0.5)*w/n, y=(v-min)/range*h, centre-anchored box. Not implemented (UL
+  doesn't either): tension smoothing, chart_group sync. Verified live on
+  device (chart-test.watch): {ds}-driven point/bar move each second, AVG line
+  tracks, gradient + rounded bottoms + axis/point labels correct.
 - 2026-07-07: watchdog false-positive fixed. On activity recreation with the
   reused GL view, the face is ALREADY loaded — no wf_loaded ever arrives, so
   the startup watchdog false-alarmed 15s after every recreation (log:
