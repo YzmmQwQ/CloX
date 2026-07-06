@@ -112,6 +112,24 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: video + map layers implemented. VIDEO uses axmol's IN-SCENE
+  ui.MediaPlayer (AndroidMediaEngine → MediaCodec decodes straight into a GL
+  NV12 texture, composited in z-order) — NO frame pre-extraction like UL's
+  cocos2d-x VideoFrameExtractor path. The axui.MediaPlayer Lua binding ships
+  with axmol (registered via register_ui_module under AX_ENABLE_MEDIA, which
+  is ON for Android) — zero C++/Kotlin needed. setStyle(NONE),
+  keepAspectRatio(false) (WM stretches), looping, muted-by-content; videos
+  STOP in dim mode and on face clear() (codec/AudioTrack hygiene — no pause
+  binding, stop/play restarts the loop which is fine for ambient videos).
+  MAP: one OSM tile centred on lat/lon (UL behaviour) — Lua computes the
+  slippy tile x/y, requests via wf_action requestMapTile, Kotlin
+  MapTileHelper downloads to cacheDir/map_tiles (OSM UA policy header, LRU
+  trim at 64 tiles) and pushes a "map" category {file, zoom, tx, ty}; the
+  layer matches tx/ty and textures the sprite scaled to width/height ×
+  map_scale%. lat/lon may be dynamic tags (tile re-requested only when the
+  tile actually changes). No GPS {alat}/{alon} tags yet — authored coords
+  work. Verified on device (mv-test.watch): testsrc2 mp4 animating in-scene
+  + Eiffel Tower tile at z15 under a live seconds clock.
 - 2026-07-07: bitmap-font text must ALWAYS be uppercased (UL rule:
   createWithBMFont(fnt, text:upper()) everywhere) — BM atlases usually carry
   only uppercase glyphs, and lowercase text rendered BLANK with no error

@@ -185,6 +185,14 @@ end
 
 -- ── Enable / disable optional async data sources ─────────────────────────────
 
+-- Ask Android to fetch (or serve from cache) the OSM tile covering lat/lon at
+-- `zoom`; the tile comes back as a "map" category push {file, zoom, tx, ty}.
+function WatchfaceBridge.requestMapTile(lat, lon, zoom)
+    if not json then return end
+    Bridge.sendToAndroid("wf_action", json.encode({
+        action = "requestMapTile", lat = lat, lon = lon, zoom = zoom }))
+end
+
 function WatchfaceBridge.setWeatherEnabled(enabled)
     if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setWeatherEnabled", enabled = enabled }))

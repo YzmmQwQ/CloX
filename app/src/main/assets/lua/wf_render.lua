@@ -410,6 +410,8 @@ function WFRender.new(stage)
     self.recs   = {}          -- every layer record
     self.taps   = {}          -- tappable recs (tap_action / image_tap frames)
     self.dimRedraws = {}      -- static composites that must re-run on dim flip
+    self.videos = {}          -- MediaPlayer widgets (stopped on dim/switch)
+    self._mapRecs = {}        -- map layers fed by the "map" bridge pushes
     self.dim    = false
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
     self.bgColor = "000000"
@@ -429,8 +431,12 @@ function WFRender:clear()
     -- Release the previous face's audio device — a face switch must never
     -- leave the OpenAL mixer (and its wakelock) running.
     if self.script and self.script.releaseAudio then self.script:releaseAudio() end
+    -- Stop video decoders BEFORE the nodes are released (MediaCodec +
+    -- AudioTrack must never outlive the face — see the audio hygiene rule).
+    for _, mp in ipairs(self.videos or {}) do pcall(function() mp:stop() end) end
     if self.stage then self.stage:removeAllChildren() end
     self.recs, self.taps, self.dimRedraws = {}, {}, {}
+    self.videos, self._mapRecs = {}, {}
     self._colorIdx = 0
     self.engine, self.sandbox, self.script = nil, nil, nil
     self.needFrame, self.needSecond = false, false
@@ -888,6 +894,88 @@ function Builders.markers_hm(self, rec)
             end
         end
     end, { { "color", "sub" }, { "color2", "sub" } })
+end
+
+-- ── video + map layers ────────────────────────────────────────────────────────
+
+-- Video playback via axmol's in-scene MediaPlayer: MediaEngine (MediaCodec on
+-- Android) decodes straight into a GL texture composited in z-order like any
+-- node — no frame pre-extraction like the UL/cocos2d-x path. Videos stop in
+-- dim mode and on face switch (codec + AudioTrack must never outlive the
+-- face — same hygiene rule as wm_sfx).
+function Builders.video(self, rec)
+    local L = rec.L
+    if not (axui and axui.MediaPlayer) then
+        print("[WFRender] video: axui.MediaPlayer unavailable in this build")
+        return
+    end
+    local path = self.base .. "videos/" .. (L.path or "")
+    if not fileExists(path) then
+        print("[WFRender] video: missing " .. path)
+        return
+    end
+    local mp = axui.MediaPlayer:create()
+    rec.visual = mp
+    local w, h = num(L.width, 512), num(L.height, 512)
+    mp:setContentSize(cc.size(w, h))
+    mp:setAnchorPoint(cc.p(0.5, 0.5))
+    mp:setStyle(1)                        -- StyleType.NONE: no controls
+    mp:setKeepAspectRatioEnabled(false)   -- WM stretches to width×height
+    mp:setFileName(path)
+    mp:setLooping(true)
+    mp:play()
+    self.videos[#self.videos + 1] = mp
+end
+
+-- One OSM tile centred on lat/lon (UL behaviour: single tile texture scaled
+-- to the layer box). lat/lon may be dynamic; a change requests the new tile
+-- through the bridge and the tile file arrives as a "map" category push.
+local LATLIM = 85.05112878
+local function osmTile(lat, lon, zoom)
+    local n = 2 ^ zoom
+    local tx = floor((lon + 180) / 360 * n)
+    if lat > LATLIM then lat = LATLIM elseif lat < -LATLIM then lat = -LATLIM end
+    local la = rad(lat)
+    local ty = floor((1 - math.log(math.tan(la) + 1 / cos(la)) / math.pi) / 2 * n)
+    local max = n - 1
+    return clamp(tx, 0, max), clamp(ty, 0, max)
+end
+
+function Builders.map(self, rec)
+    local L = rec.L
+    local sp = cc.Sprite:create()
+    if not sp then return end
+    rec.visual = sp
+    local w, h = num(L.width, 256), num(L.height, 256)
+    local zoom = clamp(floor(num(L.map_zoom, 15)), 1, 19)
+    local mscale = num(L.map_scale, 100) / 100
+    local wantTx, wantTy
+    rec.onMapPush = function(data)
+        if not (data and data.file and data.file ~= "") then return end
+        if data.zoom ~= zoom or data.tx ~= wantTx or data.ty ~= wantTy then return end
+        local ok, err = pcall(function()
+            sp:setTexture(data.file)
+            local cs = sp:getTexture():getContentSize()
+            sp:setTextureRect(cc.rect(0, 0, cs.width, cs.height))
+            if cs.width > 0 and cs.height > 0 then
+                sp:setScaleX(w / cs.width * mscale)
+                sp:setScaleY(h / cs.height * mscale)
+            end
+        end)
+        if not ok then print("[WFRender] map tile apply: " .. tostring(err)) end
+    end
+    self:registerMapRec(rec)
+    rec:use("lat", "num"); rec:use("lon", "num")
+    rec:composite(function(r)
+        local lat = r:evalNum("lat", 0)
+        local lon = r:evalNum("lon", 0)
+        local tx, ty = osmTile(lat, lon, zoom)
+        if tx == wantTx and ty == wantTy then return end   -- same tile, skip
+        wantTx, wantTy = tx, ty
+        if WatchfaceBridge and WatchfaceBridge.requestMapTile then
+            WatchfaceBridge.requestMapTile(lat, lon, zoom)
+        end
+    end, { { "lat", "num" }, { "lon", "num" } })
 end
 
 -- ── series + calendar layers (port UL WatchSkin) ─────────────────────────────
@@ -1978,6 +2066,30 @@ function WFRender:setDim(dim)
     -- aren't in any bucket, so re-run them explicitly
     if self.engine then self.engine:repaint() end
     for _, fn in ipairs(self.dimRedraws) do fn() end
+    -- videos are power hogs: decode only in bright mode (no pause binding —
+    -- stop/play restarts the loop, fine for ambient face videos)
+    for _, mp in ipairs(self.videos) do
+        pcall(function()
+            if dim then mp:stop() else mp:play() end
+        end)
+    end
+end
+
+-- Map layers share ONE bridge listener for the "map" tile pushes; it lives in
+-- _asyncHandlers so clear() tears it down with the rest.
+function WFRender:registerMapRec(rec)
+    self._mapRecs[#self._mapRecs + 1] = rec
+    self._asyncHandlers = self._asyncHandlers or {}
+    if not self._asyncHandlers["map"] and WatchfaceBridge and WatchfaceBridge.onChange then
+        local recs = self._mapRecs
+        local handler = function(data)
+            for _, r in ipairs(recs) do
+                if r.onMapPush then r.onMapPush(data) end
+            end
+        end
+        WatchfaceBridge.onChange("map", handler)
+        self._asyncHandlers["map"] = handler
+    end
 end
 
 -- Switch to the Nth theme (1-based); {ucolor*} buckets re-apply immediately.

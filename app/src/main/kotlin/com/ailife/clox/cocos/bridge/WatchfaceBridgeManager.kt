@@ -486,6 +486,14 @@ class WatchfaceBridgeManager(
                     json.optString("sensor"),
                     json.optBoolean("enabled")
                 ) { sensor, data -> sendToLua("sensor_$sensor", data) }
+                "requestMapTile" -> {
+                    val lat = json.optDouble("lat", 0.0)
+                    val lon = json.optDouble("lon", 0.0)
+                    val zoom = json.optInt("zoom", 15).coerceIn(1, 19)
+                    scope.launch {
+                        MapTileHelper.fetch(ctx, lat, lon, zoom)?.let { sendToLua("map", it) }
+                    }
+                }
                 "openConfig" -> Handler(Looper.getMainLooper()).post {
                     com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(ctx)
                 }
