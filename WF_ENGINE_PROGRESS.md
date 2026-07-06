@@ -112,6 +112,12 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: bitmap-font text must ALWAYS be uppercased (UL rule:
+  createWithBMFont(fnt, text:upper()) everywhere) — BM atlases usually carry
+  only uppercase glyphs, and lowercase text rendered BLANK with no error
+  (only native "LabelTextFormatter: can't find letter definition" logcat
+  warnings). Fixed Builders.text (creation + setString via caseOf) and the
+  series updater; text_curved/text_ring/calendar BM paths already uppercased.
 - 2026-07-07: series + calendar layers implemented (ports of UL WatchSkin).
   series: UL expands to offset text layers at parse; ours is one node with
   2n+1 labels updated on the owning clock event (minute/hour/day) — window 7

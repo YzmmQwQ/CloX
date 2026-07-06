@@ -578,7 +578,10 @@ function Builders.text(self, rec)
         local lab
         if font:sub(1, 3) == "bm:" then
             local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
-            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, str) end
+            -- BM atlases usually carry ONLY uppercase glyphs; UL uppercases
+            -- every bitmap-font string (lowercase renders as missing glyphs
+            -- with no visible error — blank text).
+            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, str:upper()) end
             if lab then rec.isBM = true end
         end
         if not lab and font ~= "" then
@@ -589,6 +592,7 @@ function Builders.text(self, rec)
         return lab
     end
     local function caseOf(str)
+        if rec.isBM then return str:upper() end
         if L.transform == "uc" then return str:upper()
         elseif L.transform == "lc" then return str:lower() end
         return str
@@ -981,21 +985,23 @@ function Builders.series(self, rec)
     end
     local items = {}
     for _, k in ipairs(ks) do
-        local lab
+        local lab, isBM
         if k == 0 then
-            lab = mkLabel(L.font, size1, L.color or "ffffff")
+            lab, isBM = mkLabel(L.font, size1, L.color or "ffffff")
         else
-            lab = mkLabel(L.font2 or L.font, size2, L.color2 or L.color or "ffffff")
+            lab, isBM = mkLabel(L.font2 or L.font, size2, L.color2 or L.color or "ffffff")
         end
         -- vertical: past items sit ABOVE the current one (cocos +y), future
         -- below; horizontal: past left, future right (UL screen layout)
         if vertical then lab:setPosition(0, -k * step) else lab:setPosition(k * step, 0) end
         node:addChild(lab)
-        items[#items + 1] = { lab = lab, k = k }
+        items[#items + 1] = { lab = lab, k = k, bm = isBM }
     end
     local function update()
         for _, it in ipairs(items) do
-            it.lab:setString(caseOf(seriesValue(sname, it.k)))
+            local s = caseOf(seriesValue(sname, it.k))
+            -- BM atlases are usually uppercase-only (UL uppercases all bm text)
+            it.lab:setString(it.bm and s:upper() or s)
         end
     end
     update()
