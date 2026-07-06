@@ -829,23 +829,16 @@ function WFRender:dispatchTap(rec)
     self:runAction(rec.L.tap_action)
 end
 
--- A layer is tappable only when its whole holder chain is visible AND it is
--- not faded out: faces build in-face "dialogs" from opacity-0 layers
--- (opacity="var_x"), and a hidden overlay's buttons must not swallow taps —
--- nor should a visible overlay's close button lose to them.
+-- A layer is tappable when its whole holder chain is display-visible.
+-- Opacity NEVER affects the touch zone (UL semantics): opacity-0 shapes are
+-- the standard WM invisible-hotspot pattern, so transparent targets must stay
+-- tappable — even ones a script faded out.
 local function chainVisible(node, stop)
     while node and node ~= stop do
         if not node:isVisible() then return false end
         node = node:getParent()
     end
     return true
-end
-
-local function tappable(rec, stop)
-    if not chainVisible(rec.holder, stop) then return false end
-    local ok, op = pcall(function() return rec.holder:getDisplayedOpacity() end)
-    if not ok then ok, op = pcall(function() return rec.holder:getOpacity() end) end
-    return not ok or op == nil or op > 0
 end
 
 -- Half-extents of a layer's tap target, in holder-local (canvas) units.
@@ -870,7 +863,7 @@ function WFRender:tapAt(cx, cy)
     local world = self.stage:convertToWorldSpace(cc.p(cx, cy))
     local best, bestDist
     for _, rec in ipairs(self.taps) do
-        if tappable(rec, self.stage) then
+        if chainVisible(rec.holder, self.stage) then
             local ok, lp = pcall(function() return rec.holder:convertToNodeSpace(world) end)
             if ok and lp then
                 local hw, hh = self:hitExtent(rec)
