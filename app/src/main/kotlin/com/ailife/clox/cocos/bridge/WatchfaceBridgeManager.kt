@@ -227,9 +227,22 @@ class WatchfaceBridgeManager(
         // fired at the end of the scene's onEnter). Pushing eagerly here would
         // queue WatchfaceBridgeDispatch onto the GL thread before the dispatcher /
         // bridge handlers exist — at best dropped, at worst a GL-unsafe callback.
-        LuaBridge.luaReadyHandler = { pushAllLiveData() }
+        // Keep identity refs: during fragment recreation the OLD instance's
+        // stop() can run AFTER this start() (create-before-destroy interleave)
+        // and must not clobber the hooks we just registered — that silently
+        // dropped every wf_action (sensor enables etc.) until a face reload.
+        myReadyHandler = { pushAllLiveData() }
+        LuaBridge.luaReadyHandler = myReadyHandler
         registerWatchfaceActionHandler()
         LuaBridge.addEventListner(luaEventListener)
+        // If this manager is attaching to an already-running engine (activity
+        // recreation with the GL view reused), Lua must re-announce its
+        // feature toggles — this manager's sensor/health/weather state is
+        // blank while Lua's differ remembers them as enabled, so sensors like
+        // the compass would silently stay off until a face reload. On a fresh
+        // engine the global doesn't exist yet: harmless, the normal
+        // wf_lua_ready flow covers that path.
+        queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnBridgeRestart", "") }
         // Startup uses liveness mode (expectLoadAfter = null), not a wf_loaded
         // demand: on a reused engine the face is already on screen and no
         // wf_loaded will ever arrive.
@@ -265,8 +278,11 @@ class WatchfaceBridgeManager(
     }
 
     fun stop() {
-        LuaBridge.luaReadyHandler = null
-        LuaBridge.watchfaceActionHandler = null
+        // Only clear the global hooks if they are still OURS — a stale stop()
+        // from a destroyed-after-recreation instance must not disconnect the
+        // live manager.
+        if (LuaBridge.luaReadyHandler === myReadyHandler) LuaBridge.luaReadyHandler = null
+        if (LuaBridge.watchfaceActionHandler === myActionHandler) LuaBridge.watchfaceActionHandler = null
         LuaBridge.removeEventListener(luaEventListener)
         watchGen += 1                       // invalidate any in-flight watch
         watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
@@ -430,8 +446,12 @@ class WatchfaceBridgeManager(
 
     // ── Lua → Android action handler ──────────────────────────────────────────
 
+    private var myReadyHandler: (() -> Unit)? = null
+    private var myActionHandler: ((String) -> Unit)? = null
+
     private fun registerWatchfaceActionHandler() {
-        LuaBridge.watchfaceActionHandler = { payload -> handleWatchfaceAction(payload) }
+        myActionHandler = { payload -> handleWatchfaceAction(payload) }
+        LuaBridge.watchfaceActionHandler = myActionHandler
     }
 
     // ── Java → Lua: watchface lifecycle commands ──────────────────────────────

@@ -112,6 +112,21 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: compass/sensors dying after activity or fragment recreation —
+  TWO stacked bugs. (a) A recreated Kotlin bridge starts with blank
+  sensor/health/weather state while Lua's applyFeatures differ remembers
+  everything as enabled → nothing re-sent, sensors stay off until a face
+  reload. Fix: WatchfaceOnBridgeRestart global (scene onEnter) — resets
+  _activeFeatures, re-announces from renderer.features, re-emits wf_lua_ready
+  (full snapshot); the new manager queues that call in start() (no-op on a
+  fresh engine). (b) HomeFragment create-before-destroy interleave: the OLD
+  instance's stop() ran AFTER the new start() and NULLED
+  LuaBridge.watchfaceActionHandler/luaReadyHandler — every wf_action (sensor
+  enables!) silently dropped; SensorHelper never registered despite the
+  enables being logged. Fix: identity-guarded stop() (only clear hooks that
+  still point to this manager's closures). Verified: fresh start + dark-mode
+  recreation round-trip → SensorHelper active with gyro+mag+accel and compass
+  pushes flowing (21 in the last 100 log lines).
 - 2026-07-07: full Penner easing catalogue (wf_script EASING). Faces call
   WatchMaker's SHORT names with the 4-arg Penner signature in attribute
   expressions — outElastic(t,b,c,d) etc. (gshock face errored "attempt to

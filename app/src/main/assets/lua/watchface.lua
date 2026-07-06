@@ -135,11 +135,26 @@ function WatchfaceScene:onEnter()
     -- the GL thread).
     WatchfaceOnTouch = function(x, y, action) self:onTouch(x, y, action) end
 
+    -- Called by a NEW Kotlin bridge attaching to this LIVE engine (activity
+    -- recreation reusing the GL view). The fresh manager's sensor/health/
+    -- weather state is blank while our feature differ remembers everything as
+    -- already-enabled — nothing would be re-sent and e.g. the compass stays
+    -- OFF until a face reload. Re-announce features from scratch and re-run
+    -- the ready handshake so the new bridge also pushes a full data snapshot.
+    WatchfaceOnBridgeRestart = function()
+        self._activeFeatures = { weather = false, health = {}, sensor = {} }
+        if self._renderer and self._renderer.features then
+            self:applyFeatures(self._renderer.features)
+        end
+        Bridge.sendToAndroid("wf_lua_ready", "")
+    end
+
     Bridge.sendToAndroid("wf_lua_ready", "")
 end
 
 function WatchfaceScene:onExit()
     WatchfaceOnTouch = nil
+    WatchfaceOnBridgeRestart = nil
     local sched = cc.Director:getInstance():getScheduler()
     if self._frameTimer then sched:unscheduleScriptEntry(self._frameTimer); self._frameTimer = nil end
     if self._clockTimer then sched:unscheduleScriptEntry(self._clockTimer); self._clockTimer = nil end
