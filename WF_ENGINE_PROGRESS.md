@@ -112,6 +112,18 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: shape vector geometry calibrated against the UL mask textures
+  (user chose vector drawing over bundling the PNG masks). UL renders shapes
+  by stretching 512×512 mask textures that carry INTERNAL PADDING — heart
+  spans y 4..96% of its box, hexagon is a regular hexagon at 86.6% height,
+  triangle y 7..93% — so idealized full-bleed polygons were oversized and
+  misaligned. Outlines were alpha-traced from
+  clock-skin-coco-hack/assets/res/shape_*.png (polar sampling from centroid +
+  Douglas-Peucker) and baked into SHAPE_PTS (box units, fan-filled from the
+  centroid): triangle 3 pts, pentagon 5, hexagon 6, star 10 (real inner
+  radii, point-up), heart 26. Circle/square stay analytic (masks are
+  full-bleed). fillPolygon removed. Shape test face shape-test.watch on the
+  phone shows all six matching the reference proportions.
 - 2026-07-07: text_ring rewritten to UL createTextRing semantics. Label sets:
   named (I-XII uses "IIII"; Mo-Su/Mon-Sun start at SUNDAY; Jan-Dec added) plus
   generic numeric "A-B" and "A to B" ranges (reversible) — previously only 4

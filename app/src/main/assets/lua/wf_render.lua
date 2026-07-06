@@ -220,14 +220,46 @@ end
 -- small). Confirmed on device 2026-07-07; TTF labels stay at fontPx(text_size)
 -- unscaled, bitmap fonts scale per-line (both device-validated earlier).
 
--- Regular n-gon (optionally rotated), scaled to a w×h box, filled as a fan.
-local function fillPolygon(dn, w, h, n, rot0, col)
-    local rx, ry = w / 2, h / 2
+-- Shape outlines traced from the UL reference mask textures (shape_*.png,
+-- 512×512, alpha-sampled + Douglas-Peucker). Coordinates are BOX units
+-- (x right, y up, ±0.5 = the layer's width/height box). The masks carry
+-- internal padding — e.g. the heart spans y 4%..96% and the hexagon is a
+-- regular hexagon at 86.6% of the box height — so idealized full-bleed
+-- polygons never lined up with the reference rendering. Each polygon is
+-- star-shaped from its centroid (cx,cy), so a triangle fan fills it.
+local SHAPE_PTS = {
+    triangle = { cx = 0, cy = -0.1442, pts = {
+        -0.4973,-0.4313,  0.4973,-0.4313,  0,0.4222,
+    } },
+    pentagon = { cx = 0, cy = -0.0483, pts = {
+        0,0.4673,  0.4922,0.1116,  0.3054,-0.4686,  -0.3054,-0.4686,  -0.4922,0.1116,
+    } },
+    hexagon = { cx = 0, cy = 0, pts = {
+        0.5,0,  0.25,-0.433,  -0.25,-0.433,  -0.5,0,  -0.25,0.433,  0.25,0.433,
+    } },
+    star = { cx = 0, cy = -0.0486, pts = {
+        0,0.4710,  0.1506,0.1607,  0.4941,0.1120,  0.2464,-0.1310,  0.3024,-0.4686,
+        0,-0.3102,  -0.3024,-0.4686,  -0.2464,-0.1310,  -0.4941,0.1120,  -0.1506,0.1607,
+    } },
+    heart = { cx = -0.0010, cy = 0.0791, pts = {
+        0.4873,0.0791, 0.4490,-0.0207, 0.3884,-0.1025, -0.0010,-0.4521, -0.3920,-0.0991, -0.4588,-0.0016,
+        -0.4854,0.0791, -0.4995,0.1760, -0.4913,0.2624, -0.4530,0.3507, -0.3784,0.4189, -0.3188,0.4447,
+        -0.2511,0.4570, -0.1679,0.4452, -0.1293,0.4315, -0.0573,0.3825, 0.0010,0.3096, 0.0545,0.3787,
+        0.1142,0.4236, 0.1837,0.4497, 0.2491,0.4570, 0.3525,0.4327, 0.3997,0.4036, 0.4462,0.3586,
+        0.4954,0.2452, 0.4980,0.1492,
+    } },
+}
+
+-- Fan-fill a traced outline scaled to a w×h box.
+local function fillShapePts(dn, w, h, def, col)
+    local pts = def.pts
+    local n = #pts / 2
+    local c = cc.p(def.cx * w, def.cy * h)
     local prev
     for i = 0, n do
-        local a = rot0 + i / n * 2 * math.pi
-        local p = cc.p(rx * cos(a), ry * sin(a))
-        if prev then dn:drawTriangle(cc.p(0, 0), prev, p, col) end
+        local k = (i % n) * 2
+        local p = cc.p(pts[k + 1] * w, pts[k + 2] * h)
+        if prev then dn:drawTriangle(c, prev, p, col) end
         prev = p
     end
 end
@@ -631,29 +663,8 @@ function Builders.shape(self, rec)
         local col = c4f(r:evalSub(colAttr(r), "ffffff"), 100)
         if shp == "circle" then
             dn:drawSolidCircle(cc.p(0, 0), w / 2, 0, 48, 1, h / w, col)
-        elseif shp == "triangle" then
-            dn:drawTriangle(cc.p(-w / 2, -h / 2), cc.p(w / 2, -h / 2), cc.p(0, h / 2), col)
-        elseif shp == "pentagon" then
-            fillPolygon(dn, w, h, 5, math.pi / 2, col)
-        elseif shp == "hexagon" then
-            fillPolygon(dn, w, h, 6, 0, col)
-        elseif shp == "star" then
-            -- 10-point star: alternate outer/inner radius
-            local prev, rx, ry = nil, w / 2, h / 2
-            for i = 0, 10 do
-                local a = math.pi / 2 + i / 10 * 2 * math.pi
-                local rr = (i % 2 == 0) and 1 or 0.45
-                local p = cc.p(rx * rr * cos(a), ry * rr * sin(a))
-                if prev then dn:drawTriangle(cc.p(0, 0), prev, p, col) end
-                prev = p
-            end
-        elseif shp == "heart" then
-            -- approximation of the reference heart mask: two lobes + tip wedge
-            local rx, ry = w / 2, h / 2
-            local lr, ly = rx * 0.5, ry * 0.3
-            dn:drawSolidCircle(cc.p(-rx * 0.5, ly), lr, 0, 32, 1, ry * 0.55 / lr, col)
-            dn:drawSolidCircle(cc.p( rx * 0.5, ly), lr, 0, 32, 1, ry * 0.55 / lr, col)
-            dn:drawTriangle(cc.p(-rx * 0.98, ly), cc.p(rx * 0.98, ly), cc.p(0, -ry), col)
+        elseif SHAPE_PTS[shp] then
+            fillShapePts(dn, w, h, SHAPE_PTS[shp], col)
         else   -- Square / default
             dn:drawSolidRect(cc.p(-w / 2, -h / 2), cc.p(w / 2, h / 2), col)
         end
