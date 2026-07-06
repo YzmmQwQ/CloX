@@ -82,9 +82,11 @@ local function fillQuad(dn, p1, p2, p3, p4, col)
 end
 
 -- Filled annular arc, swept from 12 o'clock. a0,a1 are sweep degrees (a1>a0).
+-- `col` is a c4f, or a function(sweepMid)→c4f for gradient fills.
 local function fillArc(dn, ri, ro, a0, a1, cw, col)
     if a1 <= a0 then return end
     local steps = math.max(1, floor((a1 - a0) / 3))
+    local isFn = type(col) == "function"
     local function pt(sweep, r)
         -- 12 o'clock = +Y (90°); clockwise sweep decreases the polar angle
         local th = cw and rad(90 - sweep) or rad(90 + sweep)
@@ -93,9 +95,130 @@ local function fillArc(dn, ri, ro, a0, a1, cw, col)
     for i = 0, steps - 1 do
         local s0 = a0 + (a1 - a0) * i / steps
         local s1 = a0 + (a1 - a0) * (i + 1) / steps
-        fillQuad(dn, pt(s0, ri), pt(s0, ro), pt(s1, ro), pt(s1, ri), col)
+        local c = isFn and col((s0 + s1) / 2) or col
+        fillQuad(dn, pt(s0, ri), pt(s0, ro), pt(s1, ro), pt(s1, ri), c)
     end
 end
+
+-- Rounded end cap for a ring arc: a disc centred on the arc centreline at
+-- `sweep` degrees (same polar convention as fillArc).
+local function ringCap(dn, rc, capR, sweep, cw, col)
+    local th = cw and rad(90 - sweep) or rad(90 + sweep)
+    dn:drawSolidCircle(cc.p(rc * cos(th), rc * sin(th)), capR, 0, 24, 1, 1, col)
+end
+
+-- Interpolated fill colour between two WFColor.rgb tables (alpha 1: layer
+-- opacity is applied ONCE via the holder — DrawNode multiplies node opacity
+-- into vertex alpha, so baking it here would square it).
+local function lerpRGB(ca, cb, t)
+    return cc.c4f((ca.r + (cb.r - ca.r) * t) / 255,
+                  (ca.g + (cb.g - ca.g) * t) / 255,
+                  (ca.b + (cb.b - ca.b) * t) / 255, 1)
+end
+
+-- corner_type → which corners round: {TL,TR,BL,BR} (WM_FORMAT_1.0 §7.12;
+-- shared by `rounded` and `progress`, same table as the UL Rounded shader).
+local CORNERS = {
+    [0]={0,0,0,0},[1]={1,1,1,1},[2]={1,1,1,0},[3]={1,1,0,1},[4]={1,0,1,1},
+    [5]={0,1,1,1},[6]={1,1,0,0},[7]={0,0,1,1},[8]={1,0,1,0},[9]={0,1,0,1},
+    [10]={1,0,0,1},[11]={0,1,1,0},[12]={1,0,0,0},[13]={0,1,0,0},
+    [14]={0,0,1,0},[15]={0,0,0,1},[16]={0,0,0,0},
+}
+
+-- Quarter-circle fan around a corner centre (radians a0..a1).
+local function cornerFan(dn, cx, cy, r, a0, a1, col)
+    local steps = math.max(2, floor((a1 - a0) / rad(15)))
+    local prev
+    for i = 0, steps do
+        local a = a0 + (a1 - a0) * i / steps
+        local p = cc.p(cx + r * cos(a), cy + r * sin(a))
+        if prev then dn:drawTriangle(cc.p(cx, cy), prev, p, col) end
+        prev = p
+    end
+end
+
+-- Solid rect x0..x1 × y0..y1 with per-corner radii rr = {tl, tr, bl, br}
+-- (0 = sharp). Drawn as a middle band + top/bottom bands with corner fans.
+local function fillRoundedRect(dn, x0, y0, x1, y1, rr, col)
+    if x1 <= x0 or y1 <= y0 then return end
+    local tl, tr, bl, br = rr[1] or 0, rr[2] or 0, rr[3] or 0, rr[4] or 0
+    local top, bot = math.max(tl, tr), math.max(bl, br)
+    if y1 - top > y0 + bot then
+        dn:drawSolidRect(cc.p(x0, y0 + bot), cc.p(x1, y1 - top), col)
+    end
+    if top > 0 then
+        if x1 - tr > x0 + tl then
+            dn:drawSolidRect(cc.p(x0 + tl, y1 - top), cc.p(x1 - tr, y1), col)
+        end
+        if tl > 0 then
+            cornerFan(dn, x0 + tl, y1 - tl, tl, rad(90), rad(180), col)
+            if top > tl then dn:drawSolidRect(cc.p(x0, y1 - top), cc.p(x0 + tl, y1 - tl), col) end
+        end
+        if tr > 0 then
+            cornerFan(dn, x1 - tr, y1 - tr, tr, rad(0), rad(90), col)
+            if top > tr then dn:drawSolidRect(cc.p(x1 - tr, y1 - top), cc.p(x1, y1 - tr), col) end
+        end
+    end
+    if bot > 0 then
+        if x1 - br > x0 + bl then
+            dn:drawSolidRect(cc.p(x0 + bl, y0), cc.p(x1 - br, y0 + bot), col)
+        end
+        if bl > 0 then
+            cornerFan(dn, x0 + bl, y0 + bl, bl, rad(180), rad(270), col)
+            if bot > bl then dn:drawSolidRect(cc.p(x0, y0 + bl), cc.p(x0 + bl, y0 + bot), col) end
+        end
+        if br > 0 then
+            cornerFan(dn, x1 - br, y0 + br, br, rad(270), rad(360), col)
+            if bot > br then dn:drawSolidRect(cc.p(x1 - br, y0 + br), cc.p(x1, y0 + bot), col) end
+        end
+    end
+end
+
+-- Axis-aligned gradient body drawn as flat strips; colAt(t) samples the
+-- gradient, t0..t1 is the parameter range this span covers.
+local function gradStrips(dn, x0, y0, x1, y1, vertical, colAt, t0, t1)
+    if x1 <= x0 or y1 <= y0 then return end
+    local N = 16
+    if vertical then
+        local hh = y1 - y0
+        for i = 0, N - 1 do
+            dn:drawSolidRect(cc.p(x0, y0 + hh * i / N), cc.p(x1, y0 + hh * (i + 1) / N),
+                colAt(t0 + (t1 - t0) * (i + 0.5) / N))
+        end
+    else
+        local ww = x1 - x0
+        for i = 0, N - 1 do
+            dn:drawSolidRect(cc.p(x0 + ww * i / N, y0), cc.p(x0 + ww * (i + 1) / N, y1),
+                colAt(t0 + (t1 - t0) * (i + 0.5) / N))
+        end
+    end
+end
+
+-- Dim-mode colour pick: UL swaps color→color_dim for EVERY layer type, not
+-- just text.
+local function colAttr(rec)
+    return (rec.renderer.dim and rec.L.color_dim) and "color_dim" or "color"
+end
+
+-- UL sizing quirk: when the texture is non-square but the authored box is
+-- square, BOTH axes scale by the width ratio (texture aspect preserved instead
+-- of squashing into the box) — WatchSkin's `tSizeOrig.height = width` fixup.
+local function setBaseScale(rec, texW, texH, W, H)
+    if texW <= 0 or texH <= 0 then return end
+    if texW ~= texH and W == H then
+        local s = W / texW
+        rec.bsx, rec.bsy = s, s
+    else
+        rec.bsx, rec.bsy = W / texW, H / texH
+    end
+end
+
+-- NOTE on text sizing: UL scales labels to contentHeight == 1.6 × text_size,
+-- but that rule does NOT transfer to axmol — axmol's Label reports different
+-- content-height metrics than UL's cocos2d-x 3.x, so applying it here made
+-- native faces render text visibly too large (and metric-heavy fonts too
+-- small). Confirmed on device 2026-07-07; TTF labels stay at fontPx(text_size)
+-- unscaled, bitmap fonts scale per-line (both device-validated earlier).
 
 -- Regular n-gon (optionally rotated), scaled to a w×h box, filled as a fan.
 local function fillPolygon(dn, w, h, n, rot0, col)
@@ -226,9 +349,25 @@ function WFLayerRec:composite(redraw, attrs)
     if #deps == 0 then
         local ok, err = pcall(redraw, self)
         if not ok then print("[WFRender] static draw '" .. tostring(self.type) .. "': " .. tostring(err)) end
-        return
+        return false
     end
     self.engine:bind(WFCompositeBinding.new(self, redraw), deps)
+    return true
+end
+
+-- Composite whose output depends on renderer.dim (color vs color_dim pick).
+-- Bound composites re-run through engine:repaint() on a dim flip, but a fully
+-- static composite draws once and never re-fires — register those for an
+-- explicit re-run in setDim().
+function WFLayerRec:dimComposite(redraw, attrs)
+    local bound = self:composite(redraw, attrs)
+    if not bound and self.L.color_dim then
+        local rdr = self.renderer
+        rdr.dimRedraws[#rdr.dimRedraws + 1] = function()
+            local ok, err = pcall(redraw, self)
+            if not ok then print("[WFRender] dim redraw '" .. tostring(self.type) .. "': " .. tostring(err)) end
+        end
+    end
 end
 
 -- ── module ────────────────────────────────────────────────────────────────────
@@ -238,6 +377,7 @@ function WFRender.new(stage)
     self.stage  = stage
     self.recs   = {}          -- every layer record
     self.taps   = {}          -- tappable recs (tap_action / image_tap frames)
+    self.dimRedraws = {}      -- static composites that must re-run on dim flip
     self.dim    = false
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
     self.bgColor = "000000"
@@ -258,7 +398,7 @@ function WFRender:clear()
     -- leave the OpenAL mixer (and its wakelock) running.
     if self.script and self.script.releaseAudio then self.script:releaseAudio() end
     if self.stage then self.stage:removeAllChildren() end
-    self.recs, self.taps = {}, {}
+    self.recs, self.taps, self.dimRedraws = {}, {}, {}
     self._colorIdx = 0
     self.engine, self.sandbox, self.script = nil, nil, nil
     self.needFrame, self.needSecond = false, false
@@ -330,6 +470,19 @@ end
 
 local Builders = {}
 
+-- Sprite tint from `color` (+ dim-mode `color_dim` pick, like UL applies to
+-- every image/shape layer).
+local function bindTint(rec, sp)
+    if rec.L.color_dim then
+        rec:use("color", "sub"); rec:use("color_dim", "sub")
+        rec:dimComposite(function(r)
+            sp:setColor(c3b(r:evalSub(colAttr(r), "ffffff")))
+        end, { { "color", "sub" }, { "color_dim", "sub" } })
+    else
+        rec:bindSub("color", function(_, v) sp:setColor(c3b(v)) end)
+    end
+end
+
 function Builders.group(self, rec) end   -- container only; no visual
 
 function Builders.image(self, rec)
@@ -338,9 +491,8 @@ function Builders.image(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
-    if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
-    rec:bindSub("color", function(_, v) sp:setColor(c3b(v)) end)
+    setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+    bindTint(rec, sp)
 end
 
 Builders.gif = Builders.image   -- native gif: render first frame statically
@@ -354,8 +506,8 @@ function Builders.image_tap(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
-    if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
+    setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+    bindTint(rec, sp)
     rec.tap = function()
         rec.frameIdx = (rec.frameIdx % #frames) + 1
         sp:setTexture(self:imageFile(frames[rec.frameIdx]))
@@ -373,8 +525,8 @@ function Builders.image_gif(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
-    if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
+    setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+    bindTint(rec, sp)
     -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener
     rec.lastFrame = -1
     self.engine:listen("ms", function(clock)
@@ -414,6 +566,7 @@ function Builders.text(self, rec)
     lab:setHorizontalAlignment(cc.TEXT_ALIGNMENT_CENTER)
     -- Bitmap fonts render at their atlas size; scale so a line's visible height
     -- lands near 1.6 * text_size, matching the reference renderer's bitmap rule.
+    -- (TTF labels are already created at fontPx(text_size) — see sizing NOTE.)
     if rec.isBM then
         local ch = lab:getContentSize().height
         local lines = 1; for _ in (L.text or ""):gmatch("\n") do lines = lines + 1 end
@@ -421,12 +574,12 @@ function Builders.text(self, rec)
         rec.bsx = 1.6 * size / perLine; rec.bsy = rec.bsx
     end
     rec:bindText("text", function(_, v) lab:setString(caseOf(v)) end)
-    -- colour follows dim mode (color_dim), tint alpha follows opacity
-    rec:use("color", "sub"); rec:use("color_dim", "sub"); rec:use("opacity", "num")
-    rec:composite(function(r)
-        local attr = (self.dim and L.color_dim) and "color_dim" or "color"
-        lab:setTextColor(c4b(r:evalSub(attr, "ffffff"), r:evalNum("opacity", 100)))
-    end, { { "color", "sub" }, { "color_dim", "sub" }, { "opacity", "num" } })
+    -- colour follows dim mode (color_dim); alpha stays 100 — layer opacity is
+    -- applied once, via the holder (baking it here would square it)
+    rec:use("color", "sub"); rec:use("color_dim", "sub")
+    rec:dimComposite(function(r)
+        lab:setTextColor(c4b(r:evalSub(colAttr(r), "ffffff"), 100))
+    end, { { "color", "sub" }, { "color_dim", "sub" } })
 end
 
 function Builders.image_cond(self, rec)
@@ -438,19 +591,18 @@ function Builders.image_cond(self, rec)
     local cols, rows = (L.cond_grid or "1x1"):match("(%d+)x(%d+)")
     cols, rows = num(cols, 1), num(rows, 1)
     local cw, chh = cs.width / cols, cs.height / rows
-    if cw > 0 then rec.bsx = num(L.width, cw) / cw end
-    if chh > 0 then rec.bsy = num(L.height, chh) / chh end
+    setBaseScale(rec, cw, chh, num(L.width, cw), num(L.height, chh))
     rec.lastIdx = -1
-    rec:use("cond_value", "num"); rec:use("color", "sub")
-    rec:composite(function(r)
+    rec:use("cond_value", "num"); rec:use("color", "sub"); rec:use("color_dim", "sub")
+    rec:dimComposite(function(r)
         local idx = clamp(floor(r:evalNum("cond_value", 1)) - 1, 0, cols * rows - 1)
         if idx ~= rec.lastIdx then
             rec.lastIdx = idx
             local col, row = idx % cols, floor(idx / cols)   -- row-major, top-left
             sp:setTextureRect(cc.rect(col * cw, row * chh, cw, chh))
         end
-        sp:setColor(c3b(r:evalSub("color", "ffffff")))
-    end, { { "cond_value", "num" }, { "color", "sub" } })
+        sp:setColor(c3b(r:evalSub(colAttr(r), "ffffff")))
+    end, { { "cond_value", "num" }, { "color", "sub" }, { "color_dim", "sub" } })
 end
 
 function Builders.shape(self, rec)
@@ -462,9 +614,8 @@ function Builders.shape(self, rec)
         if sp then
             rec.visual = sp
             local cs = sp:getContentSize()
-            if cs.width > 0 then rec.bsx = num(L.width, cs.width) / cs.width end
-            if cs.height > 0 then rec.bsy = num(L.height, cs.height) / cs.height end
-            rec:bindSub("color", function(_, v) sp:setColor(c3b(v)) end)
+            setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+            bindTint(rec, sp)
             return
         end
     end
@@ -474,9 +625,10 @@ function Builders.shape(self, rec)
     local w, h = num(L.width, 50), num(L.height, 50)
     rec.shapeW, rec.shapeH = w, h
     local shp = (L.shape or "Square"):lower()
-    rec:composite(function(r)
+    rec:use("color", "sub"); rec:use("color_dim", "sub")
+    rec:dimComposite(function(r)
         dn:clear()
-        local col = c4f(r:evalSub("color", "ffffff"), r:evalNum("opacity", 100))
+        local col = c4f(r:evalSub(colAttr(r), "ffffff"), 100)
         if shp == "circle" then
             dn:drawSolidCircle(cc.p(0, 0), w / 2, 0, 48, 1, h / w, col)
         elseif shp == "triangle" then
@@ -495,10 +647,17 @@ function Builders.shape(self, rec)
                 if prev then dn:drawTriangle(cc.p(0, 0), prev, p, col) end
                 prev = p
             end
-        else   -- Square / default / Heart fallback
+        elseif shp == "heart" then
+            -- approximation of the reference heart mask: two lobes + tip wedge
+            local rx, ry = w / 2, h / 2
+            local lr, ly = rx * 0.5, ry * 0.3
+            dn:drawSolidCircle(cc.p(-rx * 0.5, ly), lr, 0, 32, 1, ry * 0.55 / lr, col)
+            dn:drawSolidCircle(cc.p( rx * 0.5, ly), lr, 0, 32, 1, ry * 0.55 / lr, col)
+            dn:drawTriangle(cc.p(-rx * 0.98, ly), cc.p(rx * 0.98, ly), cc.p(0, -ry), col)
+        else   -- Square / default
             dn:drawSolidRect(cc.p(-w / 2, -h / 2), cc.p(w / 2, h / 2), col)
         end
-    end, { { "color", "sub" }, { "opacity", "num" } })
+    end, { { "color", "sub" }, { "color_dim", "sub" } })
 end
 
 function Builders.rounded(self, rec)
@@ -508,94 +667,134 @@ function Builders.rounded(self, rec)
     local w, h = num(L.width, 100), num(L.height, 60)
     rec.shapeW, rec.shapeH = w, h
     local r0 = math.min(num(L.radius, 0), w / 2, h / 2)
-    local ct = floor(num(L.corner_type, 1))
-    -- corner_type → which corners round (see WM_FORMAT_1.0 §7.12)
-    local CORNERS = {
-        [0]={0,0,0,0},[1]={1,1,1,1},[2]={1,1,1,0},[3]={1,1,0,1},[4]={1,0,1,1},
-        [5]={0,1,1,1},[6]={1,1,0,0},[7]={0,0,1,1},[8]={1,0,1,0},[9]={0,1,0,1},
-        [10]={1,0,0,1},[11]={0,1,1,0},[12]={1,0,0,0},[13]={0,1,0,0},
-        [14]={0,0,1,0},[15]={0,0,0,1},[16]={0,0,0,0},
-    }
-    local cor = CORNERS[ct] or CORNERS[1]   -- {TL,TR,BL,BR}
-    rec:composite(function(rr)
+    local cor = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]   -- {TL,TR,BL,BR}
+    rec:use("color", "sub"); rec:use("color_dim", "sub")
+    rec:dimComposite(function(rr)
         dn:clear()
-        local col = c4f(rr:evalSub("color", "ffffff"), rr:evalNum("opacity", 100))
-        local hw, hh = w / 2, h / 2
-        if r0 <= 0 then dn:drawSolidRect(cc.p(-hw, -hh), cc.p(hw, hh), col); return end
-        -- centre cross fills everything except the four corner squares
-        dn:drawSolidRect(cc.p(-hw + r0, -hh), cc.p(hw - r0, hh), col)
-        dn:drawSolidRect(cc.p(-hw, -hh + r0), cc.p(hw, hh - r0), col)
-        local function corner(cx, cy, rounded, q)
-            if rounded == 1 then
-                dn:drawSolidCircle(cc.p(cx, cy), r0, 0, 24, 1, 1, col)
-            else
-                local sx = (q == 2 or q == 4) and 1 or -1   -- toward outer x
-                local sy = (q >= 3) and -1 or 1
-                dn:drawSolidRect(cc.p(cx, cy), cc.p(cx + sx * r0, cy + sy * r0), col)
-            end
-        end
-        corner(-hw + r0,  hh - r0, cor[1], 1)   -- TL
-        corner( hw - r0,  hh - r0, cor[2], 2)   -- TR
-        corner(-hw + r0, -hh + r0, cor[3], 3)   -- BL
-        corner( hw - r0, -hh + r0, cor[4], 4)   -- BR
-    end, { { "color", "sub" }, { "opacity", "num" } })
+        local col = c4f(rr:evalSub(colAttr(rr), "ffffff"), 100)
+        fillRoundedRect(dn, -w / 2, -h / 2, w / 2, h / 2,
+            { cor[1] * r0, cor[2] * r0, cor[3] * r0, cor[4] * r0 }, col)
+    end, { { "color", "sub" }, { "color_dim", "sub" } })
 end
 
+-- Ring semantics follow the UL Ring shader (and the wftools preview), NOT the
+-- old WM_FORMAT_1.0 §7.3 text: the fill is a gradient color→color2 laid over
+-- the whole angle_total span and revealed by `angle`; color3 is the UNFILLED
+-- track (at outside_opacity); anything beyond angle_total stays transparent.
+-- Both fill and track get rounded end caps (half-thickness discs).
 function Builders.ring(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
     local ro = num(L.radius_outer, 100)
     local ri = num(L.radius_inner, ro * 0.8)
-    rec.hitW, rec.hitH = ro * 2, ro * 2      -- tap target (DrawNode has no size)
+    if ri > ro then ri, ro = ro, ri end
+    rec.shapeW, rec.shapeH = ro * 2, ro * 2  -- UL layer box: 2×radius_outer
+                                             -- (drives alignment shift + taps)
+    local rc, capR = (ri + ro) / 2, (ro - ri) / 2
     local cw = (L.is_clockwise or "Y") ~= "N"
-    local outOp = num(L.outside_opacity, 100)
+    local outOp = clamp(num(L.outside_opacity, 100), 0, 100)
     rec:composite(function(r)
         dn:clear()
         local total = r:evalNum("angle_total", 360)
+        if total <= 0 then total = 360 end
         local ang = clamp(r:evalNum("angle", 0), 0, total)
-        local opacity = r:evalNum("opacity", 100)
-        -- outside band (beyond angle_total) with color3
-        if total < 360 and L.color3 then
-            fillArc(dn, ri, ro, total, 360, cw, c4f(r:evalSub("color3", "ffffff"), outOp * opacity / 100))
+        -- unfilled track [ang..total]: color3 at outside_opacity
+        if L.color3 and ang < total then
+            local ct3 = c4f(r:evalSub("color3", "000000"), outOp)
+            fillArc(dn, ri, ro, ang, total, cw, ct3)
+            ringCap(dn, rc, capR, ang, cw, ct3)
+            ringCap(dn, rc, capR, total, cw, ct3)
         end
-        -- unfilled track [ang..total] with color2
-        if L.color2 then
-            fillArc(dn, ri, ro, ang, total, cw, c4f(r:evalSub("color2", "ffffff"), outOp * opacity / 100))
+        -- fill [0..ang]: gradient color→color2, revealed by angle; caps take
+        -- the flat gradient colour at their sweep (UL cap behaviour)
+        if ang > 0 then
+            local ca = WFColor.rgb(r:evalSub("color", "ffffff"))
+            local cb = L.color2 and WFColor.rgb(r:evalSub("color2", "ffffff")) or ca
+            fillArc(dn, ri, ro, 0, ang, cw,
+                function(s) return lerpRGB(ca, cb, s / total) end)
+            ringCap(dn, rc, capR, 0, cw, lerpRGB(ca, cb, 0))
+            ringCap(dn, rc, capR, ang, cw, lerpRGB(ca, cb, ang / total))
         end
-        -- filled [0..ang] with color
-        fillArc(dn, ri, ro, 0, ang, cw, c4f(r:evalSub("color", "ffffff"), opacity))
-    end, { { "angle", "num" }, { "angle_total", "num" }, { "opacity", "num" },
+    end, { { "angle", "num" }, { "angle_total", "num" },
            { "color", "sub" }, { "color2", "sub" }, { "color3", "sub" } })
 end
 
+-- Progress semantics: `angle` picks the fill AXIS (wftools / real WatchMaker):
+-- 0/180 = vertical bar filling bottom→top, anything else (90 = the authored
+-- default) = horizontal filling left→right. The box is NOT rotated by angle
+-- (`rotation` still applies normally). Track + color4 border exist ONLY when
+-- margin > 0 (UL Rounded shader: margin=0 leaves the unfilled area
+-- transparent). The fill is a gradient color→color2 across the FILLED span,
+-- start corners round per corner_type (pill radius), the leading edge rounds
+-- per end_style at the corner radius. WM defaults radius to 50 → a full pill.
 function Builders.progress(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
     local w, h = num(L.width, 120), num(L.height, 24)
     rec.shapeW, rec.shapeH = w, h
-    rec.rotOffset = -num(L.angle, 0)   -- angle 0=horizontal,90=vertical-up
-    local margin = num(L.margin, 0)
-    local outOp = num(L.outside_opacity, 100)
+    local vertical = false
+    do
+        local a = num(L.angle, 90)
+        vertical = (a == 0 or a == 180)
+    end
+    local margin = math.max(0, num(L.margin, 0))
+    local r0 = math.min(num(L.radius, 50), w / 2, h / 2)
+    local cor = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]
+    local roundEnd = (L.end_style == "round")
+    local outOp = clamp(num(L.outside_opacity, 100), 0, 100) / 100
     rec:composite(function(r)
         dn:clear()
         local pct = clamp(r:evalNum("pct_complete", 0), 0, 100)
-        local opacity = r:evalNum("opacity", 100)
-        local hw, hh = w / 2, h / 2
-        -- track
-        dn:drawSolidRect(cc.p(-hw, -hh), cc.p(hw, hh),
-            c4f(r:evalSub("color3", "444444"), outOp * opacity / 100))
-        -- fill
-        local innerW = w - margin * 2
-        local fillW = innerW * pct / 100
-        if fillW > 0 then
-            dn:drawSolidRect(cc.p(-hw + margin, -hh + margin),
-                cc.p(-hw + margin + fillW, hh - margin),
-                c4f(r:evalSub("color", "ffffff"), opacity))
+        local ix0, iy0 = -w / 2 + margin, -h / 2 + margin
+        local ix1, iy1 = w / 2 - margin, h / 2 - margin
+        local tw, th = ix1 - ix0, iy1 - iy0
+        if tw <= 0 or th <= 0 then return end
+        local rIn = math.min(r0, tw / 2, th / 2)
+        if margin > 0 then
+            -- color4 border, then the color3 track blended over it by
+            -- outside_opacity (both opaque, exactly like the UL shader)
+            local c4 = WFColor.rgb(r:evalSub("color4", "ffffff"))
+            fillRoundedRect(dn, -w / 2, -h / 2, w / 2, h / 2,
+                { cor[1] * r0, cor[2] * r0, cor[3] * r0, cor[4] * r0 },
+                cc.c4f(c4.r / 255, c4.g / 255, c4.b / 255, 1))
+            local c3 = WFColor.rgb(r:evalSub("color3", "000000"))
+            fillRoundedRect(dn, ix0, iy0, ix1, iy1,
+                { cor[1] * rIn, cor[2] * rIn, cor[3] * rIn, cor[4] * rIn },
+                cc.c4f((c3.r * outOp + c4.r * (1 - outOp)) / 255,
+                       (c3.g * outOp + c4.g * (1 - outOp)) / 255,
+                       (c3.b * outOp + c4.b * (1 - outOp)) / 255, 1))
         end
-    end, { { "pct_complete", "num" }, { "opacity", "num" },
-           { "color", "sub" }, { "color3", "sub" } })
+        if pct <= 0 then return end
+        local ca = WFColor.rgb(r:evalSub("color", "ffffff"))
+        local cb = L.color2 and WFColor.rgb(r:evalSub("color2", "ffffff")) or ca
+        local function colAt(t) return lerpRGB(ca, cb, t) end
+        local capR = math.min(tw, th) / 2          -- start-cap radius (UL)
+        local rLead = roundEnd and rIn or 0        -- leading edge (end_style)
+        if vertical then
+            local fh = th * pct / 100
+            local rS, rL = math.min(capR, fh / 2), math.min(rLead, fh / 2)
+            local blF, brF = cor[3] * rS, cor[4] * rS   -- start = bottom corners
+            local bw, tw2 = math.max(blF, brF), rL
+            local fy1 = iy0 + fh
+            fillRoundedRect(dn, ix0, iy0, ix1, iy0 + bw, { 0, 0, blF, brF }, colAt(0))
+            fillRoundedRect(dn, ix0, fy1 - tw2, ix1, fy1, { rL, rL, 0, 0 }, colAt(1))
+            gradStrips(dn, ix0, iy0 + bw, ix1, fy1 - tw2, true, colAt,
+                bw / fh, (fh - tw2) / fh)
+        else
+            local fw = tw * pct / 100
+            local rS, rL = math.min(capR, fw / 2), math.min(rLead, fw / 2)
+            local tlF, blF = cor[1] * rS, cor[3] * rS   -- start = left corners
+            local lw, rw = math.max(tlF, blF), rL
+            local fx1 = ix0 + fw
+            fillRoundedRect(dn, ix0, iy0, ix0 + lw, iy1, { tlF, 0, blF, 0 }, colAt(0))
+            fillRoundedRect(dn, fx1 - rw, iy0, fx1, iy1, { 0, rL, 0, rL }, colAt(1))
+            gradStrips(dn, ix0 + lw, iy0, fx1 - rw, iy1, false, colAt,
+                lw / fw, (fw - rw) / fw)
+        end
+    end, { { "pct_complete", "num" }, { "color", "sub" }, { "color2", "sub" },
+           { "color3", "sub" }, { "color4", "sub" } })
 end
 
 function Builders.markers(self, rec)
@@ -610,7 +809,7 @@ function Builders.markers(self, rec)
     local sq = num(L.squarify, 0)
     rec:composite(function(r)
         dn:clear()
-        local col = c4f(r:evalSub("color", "ffffff"), r:evalNum("opacity", 100))
+        local col = c4f(r:evalSub("color", "ffffff"), 100)
         for i = 0, count - 1 do
             local th = rad(90 - i * 360 / count)     -- clockwise from 12
             local rr = squarifyRadius(radius - mh / 2, th, sq)
@@ -632,7 +831,7 @@ function Builders.markers(self, rec)
                 fillQuad(dn, p1, p2, p3, p4, col)
             end
         end
-    end, { { "color", "sub" }, { "opacity", "num" } })
+    end, { { "color", "sub" } })
 end
 
 function Builders.markers_hm(self, rec)
@@ -659,9 +858,8 @@ function Builders.markers_hm(self, rec)
     end
     rec:composite(function(r)
         dn:clear()
-        local opacity = r:evalNum("opacity", 100)
-        local colM = c4f(r:evalSub(L.color2 and "color2" or "color", "ffffff"), opacity)
-        local colH = c4f(r:evalSub("color", "ffffff"), opacity)
+        local colM = c4f(r:evalSub(L.color2 and "color2" or "color", "ffffff"), 100)
+        local colH = c4f(r:evalSub("color", "ffffff"), 100)
         if msz > 0 then
             for i = 0, 59 do
                 if i % 5 ~= 0 then   -- skip where hour ticks sit
@@ -674,7 +872,7 @@ function Builders.markers_hm(self, rec)
                 tick(radius, rad(90 - i * 30), hsz * 6, hsz * 1.8, colH)
             end
         end
-    end, { { "color", "sub" }, { "color2", "sub" }, { "opacity", "num" } })
+    end, { { "color", "sub" }, { "color2", "sub" } })
 end
 
 -- Ring of text labels (clock numerals). Built once; numerals are static.
@@ -894,19 +1092,12 @@ local function bindTransform(rec)
     rec:bindNum("x", 0, function(r, v) r.holder:setPositionX(v) end)
     -- authored y is screen-down; Y_SIGN flips into cocos Y-up (see top)
     rec:bindNum("y", 0, function(r, v) r.holder:setPositionY(Y_SIGN * v) end)
-    rec:bindNum("rotation", 0, function(r, v)
-        r.holder:setRotation(v + (r.rotOffset or 0))
-    end)
+    rec:bindNum("rotation", 0, function(r, v) r.holder:setRotation(v) end)
     rec:bindNum("anim_scale_x", 100, function(r, v) r.holder:setScaleX(v / 100) end)
     rec:bindNum("anim_scale_y", 100, function(r, v) r.holder:setScaleY(v / 100) end)
     rec:bindNum("opacity", 100, function(r, v)
         r.holder:setOpacity(floor(clamp(v, 0, 100) * 2.55))
     end)
-    -- progress bars carry a static rotOffset; make sure it lands even when
-    -- `rotation` is absent (the loop above only fires for present attrs)
-    if rec.rotOffset and rec.rotOffset ~= 0 and not rec.L.rotation then
-        rec.holder:setRotation(rec.rotOffset)
-    end
 end
 
 -- ── load & build ──────────────────────────────────────────────────────────────
@@ -1095,8 +1286,10 @@ function WFRender:setDim(dim)
     for _, rec in ipairs(self.recs) do
         rec.holder:setVisible(visibleIn(rec.L.display, dim))
     end
-    -- dim-aware content (color_dim texts) repaints from live values
+    -- dim-aware content repaints from live values; static color_dim layers
+    -- aren't in any bucket, so re-run them explicitly
     if self.engine then self.engine:repaint() end
+    for _, fn in ipairs(self.dimRedraws) do fn() end
 end
 
 -- Switch to the Nth theme (1-based); {ucolor*} buckets re-apply immediately.

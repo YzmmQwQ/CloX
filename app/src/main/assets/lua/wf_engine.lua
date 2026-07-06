@@ -173,12 +173,15 @@ function WFEngine:definePrefix(prefix, make)
     self.prefixDefs[#self.prefixDefs + 1] = { prefix = prefix, make = make }
 end
 
-local STATIC_EMPTY = { ev = "static", fn = function() return "" end }
+-- Unknown tags resolve to the NUMBER 0, matching UL (evalString substitutes
+-- '0' for any nil global). A "" default type-errors any relational compare
+-- like `{dtp} >= {unknowntag}` — seen in the wild on faces comparing against
+-- tags we don't provide.
+local STATIC_ZERO = { ev = "static", fn = function() return 0 end }
 
 -- Activate a tag by name: resolve its def (script defs shadow the catalogue),
 -- create the WFTag, hook it into its event(s) and compute its initial value.
--- Unknown names become static "" — same visible result as the old renderer's
--- empty substitution, but reported once for diagnostics.
+-- Unknown names become static 0 (UL parity), reported once for diagnostics.
 function WFEngine:activate(name)
     local tag = self.tags[name]
     if tag then return tag end
@@ -192,9 +195,9 @@ function WFEngine:activate(name)
     if not def then
         if not self._warnedUnknown[name] then
             self._warnedUnknown[name] = true
-            print("[WFEngine] unknown tag '" .. tostring(name) .. "' → \"\"")
+            print("[WFEngine] unknown tag '" .. tostring(name) .. "' → 0")
         end
-        def = STATIC_EMPTY
+        def = STATIC_ZERO
     end
 
     tag = WFTag.new(name, def, self)

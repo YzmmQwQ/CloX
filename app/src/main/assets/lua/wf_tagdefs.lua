@@ -50,6 +50,25 @@ local function bearing(deg, list)
 end
 
 local function h12of(h23) local h = h23 % 12; if h == 0 then h = 12 end return h end
+
+-- "HH:MM"(:SS) clock string → fraction of the day (0..1); 0 when absent or
+-- unparseable. Byte walk, no patterns (runtime path). Used by {wsrp}/{wssp}.
+local function dayFrac(hm)
+    if type(hm) ~= "string" or #hm == 0 then return 0 end
+    local h, m, phase = 0, 0, 1
+    for i = 1, #hm do
+        local b = hm:byte(i)
+        if b == 58 then                       -- ':'
+            phase = phase + 1
+            if phase > 2 then break end       -- ignore seconds
+        elseif b >= 48 and b <= 57 then
+            if phase == 1 then h = h * 10 + (b - 48)
+            elseif phase == 2 then m = m * 10 + (b - 48) end
+        end
+    end
+    if phase == 1 then return 0 end           -- no colon → not a clock string
+    return (h * 60 + m) / 1440
+end
 local function daysInMonth(yr, mo)
     local nd = { 31,28,31,30,31,30,31,31,30,31,30,31 }
     if mo == 2 and (yr % 4 == 0 and (yr % 100 ~= 0 or yr % 400 == 0)) then return 29 end
@@ -186,6 +205,8 @@ def("weather", {
     wisday = function() return boolStr(WF.weather.isDaytime) end,
     wsr  = function() return WF.weather.sunrise or "" end,
     wss  = function() return WF.weather.sunset or "" end,
+    wsrp = function() return dayFrac(WF.weather.sunrise) end,   -- sunrise as fraction of day
+    wssp = function() return dayFrac(WF.weather.sunset) end,    -- sunset as fraction of day
     wmp  = function() return WF.weather.moonPhase or 0 end,
     wlu  = function() return WF.weather.lastUpdate or 0 end,
 })
