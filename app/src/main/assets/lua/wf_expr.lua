@@ -204,8 +204,11 @@ function WFExpr.compile(raw, kind, engine, sandbox)
         if kind == "num" then
             local n = tonumber(s)
             if n then return { const = true, value = n } end
-            if looksLikeExprNum(s) then
-                local ideps = identDeps(s, engine, {}, {})
+            -- A known bare identifier IS an expression even without operator
+            -- syntax: real faces write opacity="var_opacidad2" (just the
+            -- variable) and expect it to track the script's writes.
+            local ideps = identDeps(s, engine, {}, {})
+            if #ideps > 0 or looksLikeExprNum(s) then
                 local fn = compileChunk(sandbox, s, "=wf_attr_const")
                 if fn and #ideps > 0 then
                     for _, name in ipairs(ideps) do engine:activate(name) end
