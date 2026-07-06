@@ -63,6 +63,12 @@ local function looksLikeExprText(s)
         and (s:find("%sand%s") or s:find("%sor%s")) then
         return true
     end
+    -- Comparison-less boolean ternaries too ("{swr} and 'STOP' or 'START'"):
+    -- needing BOTH and+or keeps plain labels literal, and a false positive
+    -- still falls back to the template.
+    if s:find("%sand%s") and s:find("%sor%s") then
+        return true
+    end
     return false
 end
 
@@ -113,6 +119,14 @@ end
 -- would contain the text "V.wsr". Inside quote q the tag emits  q .. V.x .. q
 -- (close, concat, reopen); `..` binds tighter than comparisons, so '{da}'=='AM'
 -- → '' .. V.da .. '' == 'AM' parses as intended.
+--
+-- UNQUOTED tags splice through __wb (boolean coercion): UL substitutes a
+-- boolean tag as the bare words true/false, which Lua parses as boolean
+-- LITERALS — so faces write "{swr} and 'STOP' or 'START'". Our tag values
+-- are the strings "true"/"false" (both truthy!), so the unquoted splice
+-- coerces exactly those two strings back to booleans and passes everything
+-- else through untouched. Quoted splices stay strings ('{swr}'=='true'
+-- keeps working).
 local function exprSrc(raw)
     local out = {}
     local i, n = 1, #raw
@@ -122,7 +136,7 @@ local function exprSrc(raw)
         if not quote and c == "{" then
             local _, e, name = raw:find("^{([^{}]-)}", i)
             if e then
-                out[#out + 1] = tagRef(name)
+                out[#out + 1] = "__wb(" .. tagRef(name) .. ")"
                 i = e + 1
             else
                 out[#out + 1] = c
@@ -175,7 +189,19 @@ end
 
 -- Compile "return <src>" in the face sandbox; the resulting chunk takes V as
 -- its single argument. Returns fn or nil+err.
+local function ensureHelpers(sandbox)
+    if sandbox._wbInstalled then return end
+    sandbox._wbInstalled = true
+    -- boolean coercion for UNQUOTED tag splices (see exprSrc)
+    sandbox:expose("__wb", function(v)
+        if v == "true" then return true
+        elseif v == "false" then return false end
+        return v
+    end)
+end
+
 local function compileChunk(sandbox, src, label)
+    ensureHelpers(sandbox)
     local fn, err = sandbox:compile("local V = ... return (" .. src .. ")", label)
     if not fn then
         print("[WFExpr] compile failed (" .. tostring(label) .. "): " .. tostring(err)

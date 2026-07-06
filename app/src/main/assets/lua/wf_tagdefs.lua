@@ -92,6 +92,35 @@ def("ms", {
     c_elapsed = function(c) return c.elapsed end,
 })
 
+-- stopwatch — shared state in wf_stopwatch, driven by the sw_start_stop /
+-- sw_reset tap actions. Values match UL WatchSkin: swh/swm/sws/swss/swsss
+-- are plain NUMBERS (UL stopped zero-padding them); the tsw* variants are
+-- the zero-padded strings faces embed in text. While stopped the values
+-- don't change, so the ms recompute is diffed away.
+local SW = require "wf_stopwatch"
+local function swms(c) return SW.durationMs(c.elapsed) end
+def("ms", {
+    swr   = function()  return boolStr(SW.running) end,
+    swsst = function(c) return floor(swms(c)) end,
+    swh   = function(c) return floor(swms(c) / 3600000) end,
+    swm   = function(c) return floor(swms(c) % 3600000 / 60000) end,
+    sws   = function(c) return floor(swms(c) % 60000 / 1000) end,
+    swss  = function(c) return floor(swms(c) % 1000 / 10) end,
+    swsss = function(c) return floor(swms(c) % 1000) end,
+    tswh  = function(c) return z2(floor(swms(c) / 3600000)) end,
+    tswm  = function(c) return z2(floor(swms(c) % 3600000 / 60000)) end,
+    tsws  = function(c) return z2(floor(swms(c) % 60000 / 1000)) end,
+    tswss = function(c) return z2(floor(swms(c) % 1000 / 10)) end,
+    tswsss = function(c) return fmt("%03d", floor(swms(c) % 1000)) end,
+    tswsst = function(c) return floor(swms(c)) end,
+    swrm  = function(c) return floor(swms(c) % 3600000 / 60000) * 6.0 end,
+    swrs  = function(c) return floor(swms(c) % 60000 / 1000) * 6.0 end,
+    swrss = function(c)
+        local ms = swms(c)
+        return floor(ms % 60000 / 1000) * 6.0 + 6 * (ms % 1000) / 1000
+    end,
+})
+
 -- second
 def("second", {
     ds   = function(c) return c.t.sec end,

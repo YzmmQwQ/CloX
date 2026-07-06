@@ -29,6 +29,7 @@
 
 local WFExpr    = require "wf_expr"
 local WFEngine  = require "wf_engine"
+local WFStopwatch = require "wf_stopwatch"
 local WFSandbox = require "wf_sandbox"
 local WFScript  = require "wf_script"
 local WFProtect = require "wf_protect"
@@ -1775,6 +1776,12 @@ function WFRender:runAction(action)
         self:colorSwitch(1)
     elseif action == "color_switch_prev" then
         self:colorSwitch(-1)
+    elseif action == "sw_start_stop" then
+        WFStopwatch.startStop(self.engine.clock.elapsed)
+        self.engine:fire("ms")   -- repaint {sw*} layers immediately
+    elseif action == "sw_reset" then
+        WFStopwatch.reset()
+        self.engine:fire("ms")
     elseif WatchfaceBridge and WatchfaceBridge.tapAction then
         WatchfaceBridge.tapAction(action)
     end
@@ -1902,6 +1909,9 @@ end
 
 -- xml: watch.xml content. baseDir: extract dir ending in "/" (has images/ etc).
 function WFRender:load(xml, baseDir)
+    -- the new face's engine clock restarts elapsed at 0; a running stopwatch
+    -- keeps its accumulated time across the switch (UL: one global stopwatch)
+    if self.engine then WFStopwatch.rebase(self.engine.clock.elapsed) end
     self:clear()
     self.base = baseDir
     local watch, themes, layers = parseXml(xml)

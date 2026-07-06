@@ -112,6 +112,32 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: bare-boolean ternaries fixed ("{swr} and 'STOP' or 'START'").
+  Two wf_expr gaps: (a) looksLikeExprText required a comparison next to
+  and/or, so comparison-less ternaries rendered as literal text — now
+  and+or together also classify as expression (false positives still fall
+  back to the template); (b) our boolean tags are the STRINGS
+  "true"/"false" — both truthy — while UL splices bare boolean literals.
+  Unquoted tag splices in expressions now go through __wb() (sandbox
+  helper): coerces exactly "true"/"false" back to booleans, passes all
+  other values through; quoted splices ('{swr}'=='true') stay strings.
+  Unit-tested (text+num ternaries both states, quoted compare, templates,
+  numeric passthrough, label classification) + user face renders STOP/START
+  correctly with zero luaError.
+- 2026-07-07: stopwatch implemented. wf_stopwatch.lua = one process-global
+  state (UL parity: survives face switches; wf_render rebases startAt on load
+  since the engine clock's elapsed restarts per face). {sw*} tags live on the
+  ms event in wf_tagdefs: swr ("true"/"false" string), swh/swm/sws/swss/swsss
+  numeric (UL stopped padding them), tswh/tswm/tsws/tswss/tswsss zero-padded
+  strings, swsst/tswsst total ms, swrm/swrs/swrss rotations (swrss = second
+  hand + 6*ms/1000 smoothing). sw_start_stop / sw_reset handled in
+  WFRender:runAction (renderer level, like UL — WM_TAP_ACTIONS.md §6
+  updated); each fires "ms" for an instant repaint. NOTE: a face with {sw*}
+  tags keeps the frame loop running even when stopped (ms event active) —
+  same as UL renders; acceptable, revisit if watch battery shows it.
+  Verified: unit tests (run/stop/resume/rebase/reset + h:m:s breakdown) and
+  on-device tap cycle (running count + smooth ring arc → frozen across 2s →
+  reset to zero).
 - 2026-07-07: compass/sensors dying after activity or fragment recreation —
   TWO stacked bugs. (a) A recreated Kotlin bridge starts with blank
   sensor/health/weather state while Lua's applyFeatures differ remembers
