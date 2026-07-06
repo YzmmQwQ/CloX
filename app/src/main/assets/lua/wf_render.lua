@@ -254,6 +254,9 @@ function WFRender:clear()
         end
     end
     self._asyncHandlers = {}
+    -- Release the previous face's audio device — a face switch must never
+    -- leave the OpenAL mixer (and its wakelock) running.
+    if self.script and self.script.releaseAudio then self.script:releaseAudio() end
     if self.stage then self.stage:removeAllChildren() end
     self.recs, self.taps = {}, {}
     self._colorIdx = 0

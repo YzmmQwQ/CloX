@@ -141,16 +141,40 @@ function WFScript.new(engine, sandbox, actionHandler)
     base.wm_action = function(a)
         if type(a) == "string" and actionHandler then actionHandler(a) end
     end
+    -- Sound playback with STRICT audio-device hygiene. Axmol's AudioEngine
+    -- lazily opens the OpenAL Soft device on the first play2d and NEVER
+    -- closes it — the alsoft-mixer thread then renders 24/7, audioserver
+    -- holds an AudioMix wakelock charged to our uid, doze never engages and
+    -- the watch cooks (observed: ~25% CPU, 48–59°C at "idle"). So: when the
+    -- last sound finishes, tear the engine down (endToLua) and let the next
+    -- wm_sfx re-initialise it; the few-ms open cost is nothing next to a
+    -- permanently awake SoC.
     base.wm_sfx = function(s)
         local dir = self.base
         if not dir then return end
         local path = dir .. "sfx/" .. tostring(s) .. ".mp3"
         local ok, err = pcall(function()
-            if cc.FileUtils:getInstance():isFileExist(path) then
-                ax.AudioEngine:play2d(path, false, 1.0)
-            else
+            if not cc.FileUtils:getInstance():isFileExist(path) then
                 print("[WFScript] wm_sfx: no such file " .. path)
+                return
             end
+            local AE = ax.AudioEngine
+            local id = AE:play2d(path, false, 1.0)
+            if not id or id < 0 then
+                print("[WFScript] wm_sfx: play2d failed for " .. path)
+                self:releaseAudio()          -- don't leave a half-open device
+                return
+            end
+            self._activeSfx = (self._activeSfx or 0) + 1
+            AE:setFinishCallback(id, function()
+                self._activeSfx = math.max(0, (self._activeSfx or 1) - 1)
+                if self._activeSfx == 0 then
+                    -- Deferred one tick: end() from inside the finish
+                    -- callback would destroy the engine while it iterates
+                    -- its own callback list.
+                    self:_releaseAudioNextTick()
+                end
+            end)
         end)
         if not ok then print("[WFScript] wm_sfx: " .. tostring(err)) end
     end
@@ -284,6 +308,38 @@ end
 -- script scheduling the first tween while the frame loop is suspended).
 function WFScript:onNeedFrameChanged(fn)
     self._needFrameChanged = fn
+end
+
+-- ── audio-device teardown ─────────────────────────────────────────────────────
+
+-- Close the OpenAL device so its mixer thread and the audioserver wakelock go
+-- away. Safe to call when audio was never initialised. Called when the last
+-- sound finishes and on face switch (renderer clear()).
+function WFScript:releaseAudio()
+    self._activeSfx = 0
+    local ok, err = pcall(function()
+        ax.AudioEngine:stopAll()
+        ax.AudioEngine:uncacheAll()
+        ax.AudioEngine:endToLua()
+    end)
+    if ok then
+        print("[WFScript] audio engine released")
+    else
+        print("[WFScript] releaseAudio: " .. tostring(err))
+    end
+end
+
+function WFScript:_releaseAudioNextTick()
+    if self._releasePending then return end
+    self._releasePending = true
+    local sched = cc.Director:getInstance():getScheduler()
+    local entry
+    entry = sched:scheduleScriptFunc(function()
+        sched:unscheduleScriptEntry(entry)
+        self._releasePending = false
+        -- a new sound may have started in the meantime — keep the device then
+        if (self._activeSfx or 0) == 0 then self:releaseAudio() end
+    end, 0, false)
 end
 
 -- ── tweens (wm_schedule) ──────────────────────────────────────────────────────
