@@ -27,6 +27,11 @@
 
 local WFExpr = {}
 
+-- Set by the renderer per face load: fn(context, err). Compile failures fall
+-- back to templates/literals so the face still renders, but they must fail
+-- LOUDLY too — a silently mis-rendered attribute is as bad as a black layer.
+WFExpr.onError = nil
+
 -- ── XML entity decode (attributes are stored XML-escaped) ─────────────────────
 
 function WFExpr.unescape(str)
@@ -151,6 +156,14 @@ local function exprSrc(raw)
                 out[#out + 1] = c
                 i = i + 1
             end
+        elseif not quote and c == "\194" and raw:sub(i + 1, i + 1) == "\160" then
+            -- U+00A0 no-break space, outside strings: face editors sneak
+            -- these into expressions and Lua's lexer rejects the raw byte
+            -- ("unexpected symbol near '<\194>'") — normalise to a space.
+            -- Inside string literals it stays verbatim (legal, and possibly
+            -- intentional display text).
+            out[#out + 1] = " "
+            i = i + 2
         else
             out[#out + 1] = c
             if quote then
@@ -179,7 +192,13 @@ end
 local function identDeps(s, engine, into, seen)
     if not engine or not engine.knowsName then return into end
     for id in s:gmatch("[%a_][%w_]*") do
-        if not seen[id] and engine:knowsName(id) then
+        -- var_* names are script variables by WatchMaker convention even when
+        -- the script hasn't WRITTEN them yet (e.g. only assigned inside a
+        -- function called later): register the dep now — activation gives a
+        -- neutral 0 and the script's first write publishes into the same tag,
+        -- firing this binding. Without this, a layer compiled before the
+        -- first write froze as literal text forever.
+        if not seen[id] and (engine:knowsName(id) or id:sub(1, 4) == "var_") then
             seen[id] = true
             into[#into + 1] = id
         end
@@ -206,6 +225,9 @@ local function compileChunk(sandbox, src, label)
     if not fn then
         print("[WFExpr] compile failed (" .. tostring(label) .. "): " .. tostring(err)
               .. " src=" .. src:sub(1, 120))
+        if WFExpr.onError then
+            WFExpr.onError(tostring(label), tostring(err) .. "\nsrc: " .. src:sub(1, 200))
+        end
     end
     return fn, err
 end
@@ -247,12 +269,23 @@ function WFExpr.compile(raw, kind, engine, sandbox)
             end
             return { const = true, value = nil }   -- caller applies its default
         elseif kind == "text" then
-            if looksLikeExprText(s) then
-                local ideps = identDeps(s, engine, {}, {})
+            -- A known bare identifier IS an expression here too: faces write
+            -- text="var_s_date" (just the script variable) and expect the
+            -- VALUE, not the name. Prose labels stay safe: multi-word text is
+            -- not a valid Lua expression, so compileChunk fails → literal.
+            local ideps = identDeps(s, engine, {}, {})
+            if #ideps > 0 or looksLikeExprText(s) then
                 local fn = compileChunk(sandbox, s, "=wf_attr_const")
                 if fn and #ideps > 0 then
                     for _, name in ipairs(ideps) do engine:activate(name) end
-                    return { const = false, fn = fn, deps = ideps }
+                    -- runtime failure falls back to the literal text, like
+                    -- the tagged path falls back to its template
+                    local lit = s
+                    return { const = false, deps = ideps, fn = function(V)
+                        local ok, res = pcall(fn, V)
+                        if ok and res ~= nil then return tostring(res) end
+                        return lit
+                    end }
                 end
                 if fn then
                     local ok, res = pcall(fn, engine and engine.V or {})

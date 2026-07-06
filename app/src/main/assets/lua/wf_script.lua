@@ -245,7 +245,7 @@ function WFScript.new(engine, sandbox, actionHandler)
     self.engine   = engine
     self.sandbox  = sandbox
     self.vars     = {}        -- shadow store: script globals / variables
-    self.tweens   = {}        -- name → live tween state
+    self.tweens   = {}        -- array of live tween entries (see scheduleTween)
     self.hasScript = false
     self._lastMsElapsed = nil
     self._needFrameChanged = nil   -- scene hook: tween scheduled post-load
@@ -463,43 +463,81 @@ end
 
 -- ── tweens (wm_schedule) ──────────────────────────────────────────────────────
 
--- wm_schedule{ tween = "name", from, to, duration, easing?, delay?, loop? }
-function WFScript:schedule(args)
-    if type(args) ~= "table" or not args.tween then return end
-    local name = tostring(args.tween)
-    local from, to = tonumber(args.from) or 0, tonumber(args.to) or 0
-    local dur = tonumber(args.duration) or 1
+-- Tween values land in the script VARIABLE itself (WatchMaker semantics:
+-- wm_schedule{action='tween', tween='var_x', …} animates var_x, and layers
+-- read {var_x}) — plus our engine's {tweens.NAME} alias for faces using it.
+function WFScript:publishTween(name, v)
+    self.vars[name] = v
+    if not self.engine.extraDefs[name] then
+        local vars = self.vars
+        self.engine:define(name, "static", function() return vars[name] end)
+    end
+    self.engine:publish(name, v)
+    self.engine:publish("tweens." .. name, v)
+end
+
+-- One tween entry. `delay` is absolute seconds from now; a pending (delayed)
+-- tween writes nothing until its window starts, so overlapping tweens on the
+-- SAME variable queue correctly (the tween list is an array, not name-keyed).
+function WFScript:scheduleTween(t, delay)
+    local name = tostring(t.tween)
+    local from, to = tonumber(t.from) or 0, tonumber(t.to) or 0
+    local dur = tonumber(t.duration) or 1
     if dur <= 0 then dur = 0.001 end
     local wasIdle = next(self.tweens) == nil
-    self.tweens[name] = {
-        from = from, to = to, dur = dur,
-        delay  = tonumber(args.delay) or 0,
-        loop   = args.loop and true or false,
-        easing = type(args.easing) == "function" and args.easing or EASING.linearTween,
+    self.tweens[#self.tweens + 1] = {
+        name = name, from = from, to = to, dur = dur,
+        delay  = delay,
+        loop   = t.loop and true or false,
+        easing = type(t.easing) == "function" and t.easing or EASING.linearTween,
         start  = self.engine.clock.elapsed,
     }
-    self.engine:publish("tweens." .. name, from)
+    if delay <= 0 then self:publishTween(name, from) end
     if wasIdle and self._needFrameChanged then self._needFrameChanged() end
 end
 
+-- Accepts BOTH forms real faces use:
+--   single:   wm_schedule{ tween="name", from=, to=, duration=, easing?, delay?, loop? }
+--   sequence: wm_schedule{ {action='sleep', sleep=3},
+--                          {action='tween', tween='var_x', from=, to=, duration=, easing=}, … }
+--             (WM's documented form: steps run in order — sleeps and tween
+--              durations accumulate into the following steps' start time)
+function WFScript:schedule(args)
+    if type(args) ~= "table" then return end
+    if args.tween then
+        self:scheduleTween(args, tonumber(args.delay) or 0)
+        return
+    end
+    local at = 0
+    for _, step in ipairs(args) do
+        if type(step) == "table" then
+            if step.action == "sleep" then
+                at = at + (tonumber(step.sleep) or 0)
+            elseif step.action == "tween" and step.tween then
+                self:scheduleTween(step, at + (tonumber(step.delay) or 0))
+                at = at + (tonumber(step.duration) or 0)
+            end
+        end
+    end
+end
+
 function WFScript:stepTweens(clock)
-    local done = nil
-    for name, tw in pairs(self.tweens) do
+    local tws = self.tweens
+    for i = #tws, 1, -1 do
+        local tw = tws[i]
         local e = clock.elapsed - tw.start - tw.delay
         if e >= 0 then
             local p = e / tw.dur
+            local last = false
             if tw.loop then
                 p = p % 1
             elseif p >= 1 then
                 p = 1
-                done = done or {}
-                done[#done + 1] = name
+                last = true
             end
-            self.engine:publish("tweens." .. name, tw.from + (tw.to - tw.from) * tw.easing(p))
+            self:publishTween(tw.name, tw.from + (tw.to - tw.from) * tw.easing(p))
+            if last then table.remove(tws, i) end
         end
-    end
-    if done then
-        for _, name in ipairs(done) do self.tweens[name] = nil end
     end
 end
 

@@ -1946,6 +1946,16 @@ function WFRender:load(xml, baseDir)
             WatchfaceBridge.reportError(context, err)
         end
     end
+    -- Attribute compile failures surface through the same dialog as runtime
+    -- errors (first one per face load; the rest are in logcat). The face
+    -- still renders via the template/literal fallback.
+    WFExpr.onError = function(context, err)
+        if WFBinding.errorReported then return end
+        WFBinding.errorReported = true
+        if WatchfaceBridge and WatchfaceBridge.reportError then
+            WatchfaceBridge.reportError("Expression compile failed (" .. context .. ")", err)
+        end
+    end
     self:publishTheme()
     self.script:load(baseDir)
     self.script:attach()

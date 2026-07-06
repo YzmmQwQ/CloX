@@ -112,6 +112,50 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: attribute COMPILE failures now surface in the error dialog
+  (WFExpr.onError hook → WatchfaceBridge.reportError, wired per load by
+  wf_render next to WFBinding.onError; first error per face load, dedup via
+  WFBinding.errorReported; the face still renders through the
+  template/literal fallback). Previously compile failures only printed to
+  logcat — the NBSP bug shipped invisible. Verified on device with a
+  deliberately broken expression: dialog shows the Lua error + generated src.
+- 2026-07-07: NBSP in expressions ("moon phase shows raw ternary"). The
+  ProTrek face's {wmp} ternary contains a U+00A0 NO-BREAK SPACE (looked like
+  a double space) — Lua's lexer rejects the raw 0xC2 byte outside string
+  literals ("unexpected symbol near '<\\194>'"), the expression compile
+  failed and the SILENT template fallback displayed the raw ternary text.
+  exprSrc now normalises NBSP→space OUTSIDE quotes (inside string literals
+  it stays verbatim — legal and possibly intentional display text). Also
+  {wmp} itself: Kotlin pushes the raw lunation FRACTION (0=new .5=full);
+  WM's {wmp} is the integer 0..9 index (1=young 5=full 9=old) faces compare
+  with == — the tag now converts (floor(f*10)%10, >1 passes through).
+- 2026-07-07: wm_schedule SEQUENCE form + variable tweens (ProTrek tap
+  actions "didn't work"). Taps dispatched fine (script:Fade(n) ran) but our
+  wm_schedule only accepted the single-table form {tween=..} and silently
+  dropped WM's documented sequence form {{action='sleep',sleep=3},
+  {action='tween',tween='var_x',from,to,duration,easing}} — Fade() did
+  nothing. Rewritten: both forms; sequence steps accumulate start time
+  (sleeps + tween durations); tween values land in the script VARIABLE
+  itself via publishTween (vars[name] + engine:publish — WM semantics:
+  layers read {var_x}) plus the legacy {tweens.NAME} alias; the tween list
+  is an ARRAY (name-keyed lost queued tweens on the same variable — Fade
+  schedules fade-in now + fade-out at +9s on one var); delayed tweens don't
+  write until their window starts. Unit-tested with the exact Fade(9) body
+  (75 mid-in, hold, 25 mid-out, drained) + on device: tapping the hotspot
+  fades the world-time overlay in/out.
+- 2026-07-07: bare script-variable TEXT attributes fixed (ProTrek face showed
+  literal "var_s_date"/"var_s_wrpt" names). Two wf_expr gaps: (a) the text
+  kind's no-tags branch never considered bare identifiers (the num kind did)
+  — now identDeps runs first and a compilable ident-bearing text becomes a
+  dynamic binding with a pcall fallback to the literal (prose stays literal:
+  multi-word text isn't valid Lua, compile fails); (b) vars assigned ONLY
+  inside script functions (var_s_c2t at line 492 of the face's script) were
+  unknown at layer-compile time → identDeps now treats any var_* identifier
+  as a dep by WatchMaker convention: activation yields neutral 0 and the
+  script's first write publishes into the same tag, firing the binding.
+  Verified: unit tests (pre-write 0, post-write value, updates, prose
+  literal) + ProTrek face now renders like its preview incl. the scripted
+  weather graph and screen toggles.
 - 2026-07-07: bare-boolean ternaries fixed ("{swr} and 'STOP' or 'START'").
   Two wf_expr gaps: (a) looksLikeExprText required a comparison next to
   and/or, so comparison-less ternaries rendered as literal text — now

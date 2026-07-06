@@ -236,7 +236,15 @@ def("weather", {
     wss  = function() return WF.weather.sunset or "" end,
     wsrp = function() return dayFrac(WF.weather.sunrise) end,   -- sunrise as fraction of day
     wssp = function() return dayFrac(WF.weather.sunset) end,    -- sunset as fraction of day
-    wmp  = function() return WF.weather.moonPhase or 0 end,
+    wmp  = function()
+        -- Kotlin pushes the raw lunation FRACTION (0=new, .5=full, 1=new
+        -- again); WM's {wmp} is the integer 0..9 phase index (1=young,
+        -- 5=full, 9=old) that faces compare with == — a fractional value
+        -- never matches. Values already > 1 pass through as an index.
+        local f = num(WF.weather.moonPhase)
+        if f <= 1 then return floor(f * 10) % 10 end
+        return floor(f)
+    end,
     wlu  = function() return WF.weather.lastUpdate or 0 end,
 })
 
