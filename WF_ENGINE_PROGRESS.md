@@ -112,6 +112,15 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: text_curved rewritten to the UL algorithm (WatchSkin:
+  createTextCurved): per-glyph widths measured via Label:getLetter off a
+  whole-string label, every char advances by the widest glyph's angle (spaces
+  half), curve_dir Up = arc over the TOP of the circle at (x,y), Down = arc
+  under the BOTTOM (upright, readable), glyphs rotated to the tangent, BM font
+  support, rebuilt on text change via bindText (was: static fixed-width guess
+  at the top for both directions → scrambled overlap + stale time). Literal
+  quotes around converted faces' text ('...') are a wftools CONVERTER issue,
+  deliberately NOT worked around in CloX.
 - 2026-07-07: unknown tags now resolve to NUMBER 0 (UL parity — evalString
   substitutes '0' for nil globals); "" default type-errored relational
   compares (`{dtp} >= {wsrp}` on wf505jb's sunrise screen, only reachable via

@@ -927,7 +927,26 @@ function Builders.text_ring(self, rec)
     end
 end
 
--- Text along a circular arc. Static content (no tag re-eval per frame).
+-- Split a UTF-8 string into characters. Byte walk, no patterns — this runs
+-- at rebuild time (curved text with tags rebuilds when the value changes).
+local function utf8chars(s)
+    local out, i, n = {}, 1, #s
+    while i <= n do
+        local b = s:byte(i)
+        local len = (b >= 0xF0 and 4) or (b >= 0xE0 and 3) or (b >= 0xC0 and 2) or 1
+        out[#out + 1] = s:sub(i, i + len - 1)
+        i = i + len
+    end
+    return out
+end
+
+-- Text along a circular arc. Geometry ports UL WatchSkin:createTextCurved:
+-- per-glyph widths measured off a whole-string label (getLetter), every char
+-- advances by the WIDEST glyph's angle (spaces advance half), curve_dir "Up"
+-- arcs over the TOP of the circle centred on the layer (x,y), "Down" arcs
+-- under the BOTTOM; glyphs rotate to the local tangent. Rebuilt whenever the
+-- text value changes (UL recreates on change; a static build went stale on
+-- faces curving "{dh23z}:{dmz}").
 function Builders.text_curved(self, rec)
     local L = rec.L
     local node = cc.Node:create()
@@ -936,32 +955,67 @@ function Builders.text_curved(self, rec)
     local size = math.max(1, floor(num(L.text_size, 30)))
     local font = L.font or ""
     local up = (L.curve_dir or "Up") ~= "Down"
-    local str = rec:evalText("text", "")
-    if L.transform == "uc" then str = str:upper() elseif L.transform == "lc" then str = str:lower() end
+    local isBM = font:sub(1, 3) == "bm:"
     local function mkLabel(s)
         local lab
-        if font ~= "" then
+        if isBM then
+            local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
+            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, s:upper()) end
+        elseif font ~= "" then
             local ttf = self.base .. "fonts/" .. font .. ".ttf"
             if fileExists(ttf) then lab = cc.Label:createWithTTF(s, ttf, fontPx(size)) end
         end
         return lab or cc.Label:createWithSystemFont(s, "sans-serif", fontPx(size))
     end
-    local nchar = #str
-    if nchar == 0 then return end
-    local span = math.min(160, nchar * (size * 0.9 / radius) * 57.3)  -- rough degrees
-    local startA = -span / 2
-    for i = 1, nchar do
-        local ch = str:sub(i, i)
-        local lab = mkLabel(ch)
-        lab:setTextColor(c4b(L.color or "ffffff", 100))
-        local frac = (nchar > 1) and ((i - 1) / (nchar - 1)) or 0.5
-        local sweep = startA + span * frac
-        local sign = up and 1 or -1
-        local th = rad(90 - sweep * sign)
-        lab:setPosition(radius * cos(th), radius * sin(th))
-        lab:setRotation(sweep * sign)
-        node:addChild(lab)
+    local function rebuild(str)
+        node:removeAllChildren()
+        if L.transform == "uc" then str = str:upper()
+        elseif L.transform == "lc" then str = str:lower() end
+        local chars = utf8chars(str)
+        local n = #chars
+        if n == 0 then return end
+        -- measure per-glyph widths off one whole-string label
+        local meas = mkLabel(str)
+        local bmScale = 1
+        if isBM then
+            local ch = meas:getContentSize().height
+            if ch > 0 then bmScale = 1.6 * size / ch end
+        end
+        local maxAng = 0
+        for i = 1, n do
+            local gt = meas.getLetter and meas:getLetter(i - 1)
+            if gt then
+                local bb = gt:getBoundingBox()
+                local w, h = bb.width * bmScale, bb.height * bmScale
+                -- UL: Up arcs measure against radius + 2*glyph height
+                local a = up and math.atan(w / (radius + 2 * h)) or math.atan(w / radius)
+                if a > maxAng then maxAng = a end
+            end
+        end
+        if maxAng == 0 then maxAng = (size * 0.9) / radius end   -- no letter info
+        local nspace = 0
+        for i = 1, n do if chars[i] == " " then nspace = nspace + 1 end end
+        local allAng = maxAng * (n - nspace / 2)
+        local coef = up and 1 or -1
+        local rot0 = math.pi / 2 + coef * allAng / 2
+        local col = c4b(rec:evalSub("color", "ffffff"), 100)
+        local ang = 0
+        for i = 1, n do
+            local step = (chars[i] == " ") and maxAng / 2 or maxAng
+            ang = ang + step / 2
+            if chars[i] ~= " " then
+                local lab = mkLabel(chars[i])
+                if isBM then lab:setScale(bmScale) else lab:setTextColor(col) end
+                local th = rot0 - coef * ang
+                lab:setPosition(coef * radius * cos(th), coef * radius * sin(th))
+                lab:setRotation(90 - math.deg(th))
+                node:addChild(lab)
+            end
+            ang = ang + step / 2
+        end
     end
+    rec:use("color", "sub")
+    rec:bindText("text", function(_, v) rebuild(v) end)
 end
 
 -- ── tap handling ──────────────────────────────────────────────────────────────
