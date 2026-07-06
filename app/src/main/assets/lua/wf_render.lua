@@ -1864,10 +1864,32 @@ end
 -- One setter binding per dynamic transform attribute. Static values apply once
 -- here and are never revisited; absent values match the cocos node defaults.
 
+-- Holder position = authored (x, Y_SIGN*y) plus the gyro parallax offset.
+-- UL (screen coords, y-down): x += sgy*gyro, y += sgx*(-gyro); in cocos y-up
+-- both offsets come out positive: (base + sgy*g, base + sgx*g).
+local function applyPos(r)
+    local ox, oy = 0, 0
+    if r.gyro and r.gyro ~= 0 then
+        local V = r.engine.V
+        ox = (tonumber(V.sgy) or 0) * r.gyro
+        oy = (tonumber(V.sgx) or 0) * r.gyro
+    end
+    r.holder:setPosition((r.baseX or 0) + ox, (r.baseY or 0) + oy)
+end
+
 local function bindTransform(rec)
-    rec:bindNum("x", 0, function(r, v) r.holder:setPositionX(v) end)
+    -- gyro parallax: activating sgx/sgy switches the gyroscope stream on via
+    -- the normal feature pipeline; the composite re-places the holder on
+    -- every sensor push.
+    rec.gyro = num(rec.L.gyro, 0)
+    if rec.gyro ~= 0 then
+        local e = rec.engine
+        e:activate("sgx"); e:activate("sgy")
+        e:bind(WFCompositeBinding.new(rec, applyPos), { "sgx", "sgy" })
+    end
+    rec:bindNum("x", 0, function(r, v) r.baseX = v; applyPos(r) end)
     -- authored y is screen-down; Y_SIGN flips into cocos Y-up (see top)
-    rec:bindNum("y", 0, function(r, v) r.holder:setPositionY(Y_SIGN * v) end)
+    rec:bindNum("y", 0, function(r, v) r.baseY = Y_SIGN * v; applyPos(r) end)
     rec:bindNum("rotation", 0, function(r, v) r.holder:setRotation(v) end)
     rec:bindNum("anim_scale_x", 100, function(r, v) r.holder:setScaleX(v / 100) end)
     rec:bindNum("anim_scale_y", 100, function(r, v) r.holder:setScaleY(v / 100) end)

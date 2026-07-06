@@ -112,6 +112,14 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: gyro parallax implemented (bindTransform). UL formula in screen
+  coords: x += sgy*gyro, y += sgx*(-gyro) → cocos y-up: holder pos =
+  (baseX + sgy*g, baseY + sgx*g). x/y bindings now store rec.baseX/baseY and
+  place through applyPos; a gyro≠0 layer activates the sgx/sgy tags (which
+  flips the gyroscope stream on through the normal feature pipeline — zero
+  new Kotlin) and binds a composite on them that re-places the holder per
+  sensor push (~UI rate). Verified: harness asserts exact offsets + rest
+  restore; on device the gyroscope registers on face load and pushes flow.
 - 2026-07-07: video + map layers implemented. VIDEO uses axmol's IN-SCENE
   ui.MediaPlayer (AndroidMediaEngine → MediaCodec decodes straight into a GL
   NV12 texture, composited in z-order) — NO frame pre-extraction like UL's
