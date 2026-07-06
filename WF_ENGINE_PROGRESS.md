@@ -112,6 +112,23 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: black-screen wedge fixed + renderer watchdog added (Kotlin).
+  Root cause: MainActivity recreation in a live process — HomeFragment re-ran
+  CocosManager.init (axmol native CANNOT re-init per process) and the OLD
+  activity's late onDestroy unconditionally nulled the manager's glView, so
+  every queueOnGL was "skipped — GL view not ready" forever: black face, dead
+  bridge, zero errors. Fixes in CocosManager: reuse (re-parent) a live GL view
+  on recreation; owner-guarded onDestroy(activity); if the engine ran but its
+  view is gone → restartProcess (inexact alarm relaunch — setExact needs
+  SCHEDULE_EXACT_ALARM — plus the system auto-restarts home anyway).
+  WatchfaceBridgeManager: wf_loaded doubles as the liveness signal — watchdog
+  armed at bridge start, on watchface_path pref change, and on
+  setActive/reload/reset; 15s without wf_loaded (or GL view already null) →
+  "Watchface renderer not responding" dialog with Restart launcher button;
+  dialog auto-dismisses if wf_loaded arrives late. luaError dialog no longer
+  DEBUG-gated — errors always show. End-to-end tested with a script that
+  hangs the Lua VM (while true do end): change-trigger dialog fired, restart
+  worked, startup-trigger dialog fired in the fresh process.
 - 2026-07-07: text_curved rewritten to the UL algorithm (WatchSkin:
   createTextCurved): per-glyph widths measured via Label:getLetter off a
   whole-string label, every char advances by the widest glyph's angle (spaces

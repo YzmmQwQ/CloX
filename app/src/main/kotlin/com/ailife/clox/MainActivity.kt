@@ -1271,7 +1271,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        CocosManager.onDestroy()
+        CocosManager.onDestroy(this)
         stateManager.detach()
         aodManager.stop()
         GestureLockManager.onLockChanged = null

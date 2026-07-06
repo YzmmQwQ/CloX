@@ -33,7 +33,7 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
             // Respect the user's privacy setting for this sensor
             if (!SensorsPrefs.sensorEnabled(ctx, sensorName)) return
             // Silently ignore if the device doesn't have the hardware
-            val checkType = sensorTypeFor(sensorName) ?: return
+            val checkType = typesFor(sensorName).firstOrNull() ?: return
             if (sensorManager.getDefaultSensor(checkType) == null) return
 
             if (activeSensors.add(sensorName)) registerSensor(sensorName)
@@ -47,28 +47,35 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
         activeSensors.clear()
     }
 
+    // Every hardware sensor type a named stream needs. Compass derives its
+    // orientation from accelerometer + magnetic field, so BOTH must register
+    // on enable and BOTH must drop on disable (only unregistering the
+    // "primary" type used to leak the magnetometer forever — visible in
+    // dumpsys sensorservice as a never-removed AK09918C registration).
+    private fun typesFor(name: String): List<Int> = when (name) {
+        "accelerometer" -> listOf(Sensor.TYPE_ACCELEROMETER)
+        "barometer"     -> listOf(Sensor.TYPE_PRESSURE)
+        "gyroscope"     -> listOf(Sensor.TYPE_GYROSCOPE)
+        "compass"       -> listOf(Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_MAGNETIC_FIELD)
+        else            -> emptyList()
+    }
+
     private fun registerSensor(name: String) {
-        val type = sensorTypeFor(name) ?: return
-        sensorManager.getDefaultSensor(type)?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-        }
-        // Compass needs both accelerometer and magnetic field
-        if (name == "compass") {
-            sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.let {
-                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-            }
-            sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let {
+        for (type in typesFor(name)) {
+            sensorManager.getDefaultSensor(type)?.let {
                 sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
             }
         }
-        // Gyroscope is a single sensor; no secondary registration needed
     }
 
     private fun unregisterSensor(name: String) {
-        // Only unregister if no other active sensor needs this type
-        val type = sensorTypeFor(name) ?: return
-        if (activeSensors.none { sensorTypeFor(it) == type }) {
-            sensorManager.getDefaultSensor(type)?.let { sensorManager.unregisterListener(this, it) }
+        // Drop each hardware type this stream needed — unless another active
+        // stream still needs it (compass and accelerometer share the
+        // accelerometer hardware).
+        for (type in typesFor(name)) {
+            if (activeSensors.none { type in typesFor(it) }) {
+                sensorManager.getDefaultSensor(type)?.let { sensorManager.unregisterListener(this, it) }
+            }
         }
     }
 
@@ -132,12 +139,4 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
     }
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
-
-    private fun sensorTypeFor(name: String): Int? = when (name) {
-        "accelerometer" -> Sensor.TYPE_ACCELEROMETER
-        "barometer"     -> Sensor.TYPE_PRESSURE
-        "gyroscope"     -> Sensor.TYPE_GYROSCOPE
-        "compass"       -> Sensor.TYPE_ACCELEROMETER // primary; magnetic field registered separately
-        else            -> null
-    }
 }

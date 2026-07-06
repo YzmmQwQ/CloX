@@ -108,8 +108,77 @@ class WatchfaceBridgeManager(
                 sendToLua("timezones", LiveDataHelper.timezonesJson(ctx))
             }
             key in watchfaceSettingsKeys ||
-                com.ailife.clox.watchface.WatchfaceConfigPrefs.isConfigKey(key) ->
+                com.ailife.clox.watchface.WatchfaceConfigPrefs.isConfigKey(key) -> {
                 sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
+                // A face switch (selector / import / random) travels this path.
+                // If the renderer is gone the push above was dropped silently —
+                // that must surface as a dialog, never as a black screen.
+                if (key == "watchface_path") expectFaceLoad("watchface change")
+            }
+        }
+    }
+
+    // ── Renderer-alive watchdog ───────────────────────────────────────────────
+    // Lua fires "wf_loaded" after EVERY successful face build (including the
+    // built-in fallback face), so it doubles as a liveness signal: whenever a
+    // load is expected (bridge start, face switch, explicit reload) and no
+    // wf_loaded arrives in time — or the GL view is already gone — the user
+    // gets a dialog with a restart option instead of a silent black screen.
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile private var lastLoadedAt = 0L
+    private var watchdogRunnable: Runnable? = null
+    private var deadDialog: android.app.Dialog? = null
+
+    private val luaEventListener: (String, String) -> Unit = { event, _ ->
+        if (event == "wf_loaded") {
+            lastLoadedAt = android.os.SystemClock.elapsedRealtime()
+            mainHandler.post {
+                deadDialog?.dismiss()
+                deadDialog = null
+            }
+        }
+    }
+
+    /** A face load is expected now: fail fast if the GL view is gone, otherwise
+     *  demand a wf_loaded within the timeout. */
+    private fun expectFaceLoad(reason: String) {
+        if (CocosManager.getGlView() == null) {
+            Log.e(TAG, "expectFaceLoad($reason): GL view is gone — renderer dead")
+            mainHandler.post { showRendererDeadDialog(reason, "The rendering engine is not running (GL view missing).") }
+            return
+        }
+        armWatchdog(reason)
+    }
+
+    private fun armWatchdog(reason: String) {
+        watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
+        val armedAt = android.os.SystemClock.elapsedRealtime()
+        val r = Runnable {
+            if (lastLoadedAt < armedAt) {
+                Log.e(TAG, "watchdog($reason): no wf_loaded within ${WATCHDOG_MS}ms")
+                showRendererDeadDialog(
+                    reason,
+                    "The watchface engine did not finish loading within ${WATCHDOG_MS / 1000}s. " +
+                    "The screen would stay black or frozen."
+                )
+            }
+        }
+        watchdogRunnable = r
+        mainHandler.postDelayed(r, WATCHDOG_MS)
+    }
+
+    private fun showRendererDeadDialog(reason: String, detail: String) {
+        if (deadDialog?.isShowing == true) return
+        try {
+            deadDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+                .setTitle("Watchface renderer not responding")
+                .setMessage("Trigger: $reason\n\n$detail\n\nRestarting the launcher recovers it.")
+                .setPositiveButton("Restart launcher") { _, _ -> CocosManager.restartProcess(ctx) }
+                .setNegativeButton("Dismiss", null)
+                .show()
+        } catch (e: Exception) {
+            Log.e(TAG, "showRendererDeadDialog failed", e)
         }
     }
 
@@ -120,6 +189,10 @@ class WatchfaceBridgeManager(
         // bridge handlers exist — at best dropped, at worst a GL-unsafe callback.
         LuaBridge.luaReadyHandler = { pushAllLiveData() }
         registerWatchfaceActionHandler()
+        LuaBridge.addEventListner(luaEventListener)
+        // The first face load is expected shortly after start; if it never
+        // reports in, surface the failure instead of sitting on a black screen.
+        armWatchdog("startup")
         WeatherRepository.initialize(ctx)   // load cache so Lua gets data before first network fetch
         subscribeToLiveData()
         startPeriodicUpdates()
@@ -153,6 +226,11 @@ class WatchfaceBridgeManager(
     fun stop() {
         LuaBridge.luaReadyHandler = null
         LuaBridge.watchfaceActionHandler = null
+        LuaBridge.removeEventListener(luaEventListener)
+        watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
+        watchdogRunnable = null
+        deadDialog?.dismiss()
+        deadDialog = null
         ctx.contentResolver.unregisterContentObserver(calendarObserver)
         ctx.contentResolver.unregisterContentObserver(brightnessObserver)
         runCatching { ctx.unregisterReceiver(systemStateReceiver) }
@@ -317,16 +395,22 @@ class WatchfaceBridgeManager(
     // ── Java → Lua: watchface lifecycle commands ──────────────────────────────
 
     /** Tell the Lua watchface engine to load a different watchface. */
-    fun setActiveWatchface(path: String) =
+    fun setActiveWatchface(path: String) {
+        expectFaceLoad("set active watchface")
         queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnSetActive", path) }
+    }
 
     /** Tell the Lua watchface engine to destroy and reload the current watchface. */
-    fun reloadWatchface() =
+    fun reloadWatchface() {
+        expectFaceLoad("reload watchface")
         queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnReload", "") }
+    }
 
     /** Tell the Lua watchface engine to clear persistent storage and reload. */
-    fun resetWatchface() =
+    fun resetWatchface() {
+        expectFaceLoad("reset watchface")
         queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnReset", "") }
+    }
 
     // ── Lua → Android: action handler ────────────────────────────────────────
 
@@ -363,7 +447,9 @@ class WatchfaceBridgeManager(
                 "openConfig" -> Handler(Looper.getMainLooper()).post {
                     com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(ctx)
                 }
-                "luaError" -> if (com.ailife.clox.BuildConfig.DEBUG) {
+                "luaError" -> {
+                    // Always shown (was debug-only): a broken watchface must
+                    // fail loudly — a silent black/partial face is never OK.
                     val context = json.optString("context", "Lua error")
                     val trace   = json.optString("trace")
                     Handler(Looper.getMainLooper()).post { showLuaErrorDialog(context, trace) }
@@ -375,9 +461,9 @@ class WatchfaceBridgeManager(
     }
 
     /**
-     * Debug-only: surface a Lua error + traceback in a visible dialog so a broken
-     * watchface fails loudly during testing instead of silently. Release builds
-     * suppress this (see the "luaError" branch) and keep the graceful fallback.
+     * Surface a Lua error + traceback in a visible dialog so a broken watchface
+     * fails loudly instead of silently (all builds — a silent black or partial
+     * face is never acceptable).
      */
     private fun showLuaErrorDialog(title: String, trace: String) {
         try {
@@ -463,5 +549,8 @@ class WatchfaceBridgeManager(
 
     companion object {
         private const val TAG = "WatchfaceBridgeMgr"
+
+        // Generous: a cold start needs GL init + asset extraction + face build.
+        private const val WATCHDOG_MS = 15_000L
     }
 }
