@@ -89,32 +89,151 @@ local function spliceTags(src)
 end
 WFScript.spliceTags = spliceTags   -- exposed for tap-action snippets + tests
 
--- ── easing catalogue (normalized t ∈ 0..1 → 0..1), exposed to scripts ─────────
+-- ── easing catalogue ──────────────────────────────────────────────────────────
+-- Penner-style f(t, b, c, d[, s]) → value, with b/c/d defaulting to 0/1/1 so
+-- f(p) also works as a normalized 0..1 curve (wm_schedule tweens call it that
+-- way). Exposed under BOTH naming schemes real faces use in attribute
+-- expressions and scripts: WatchMaker's short names (outElastic, inQuad,
+-- outInBack, …) and the easeXxx aliases UL's WatchSkinUtils also defines.
 
-local pow, sin, cos, pi = nil, math.sin, math.cos, math.pi
+local sin, cos, pi, sqrt = math.sin, math.cos, math.pi, math.sqrt
 local EASING = {}
-EASING.linearTween    = function(t) return t end
-EASING.easeInQuad     = function(t) return t * t end
-EASING.easeOutQuad    = function(t) return t * (2 - t) end
-EASING.easeInOutQuad  = function(t) return t < 0.5 and 2*t*t or -1 + (4 - 2*t)*t end
-EASING.easeInCubic    = function(t) return t^3 end
-EASING.easeOutCubic   = function(t) local u = t - 1; return u^3 + 1 end
-EASING.easeInOutCubic = function(t) return t < 0.5 and 4*t^3 or (t-1)*(2*t-2)^2 + 1 end
-EASING.easeInQuart    = function(t) return t^4 end
-EASING.easeOutQuart   = function(t) local u = t - 1; return 1 - u^4 end
-EASING.easeInOutQuart = function(t) local u = t - 1; return t < 0.5 and 8*t^4 or 1 - 8*u^4 end
-EASING.easeInQuint    = function(t) return t^5 end
-EASING.easeOutQuint   = function(t) local u = t - 1; return u^5 + 1 end
-EASING.easeInOutQuint = function(t) local u = t - 1; return t < 0.5 and 16*t^5 or 1 + 16*u^5 end
-EASING.easeInSine     = function(t) return 1 - cos(t * pi / 2) end
-EASING.easeOutSine    = function(t) return sin(t * pi / 2) end
-EASING.easeInOutSine  = function(t) return -(cos(pi * t) - 1) / 2 end
-EASING.easeInExpo     = function(t) return t == 0 and 0 or 2 ^ (10 * (t - 1)) end
-EASING.easeOutExpo    = function(t) return t == 1 and 1 or 1 - 2 ^ (-10 * t) end
-EASING.easeInOutExpo  = function(t)
-    if t == 0 or t == 1 then return t end
-    if t < 0.5 then return 2 ^ (20 * t - 10) / 2 end
-    return (2 - 2 ^ (-20 * t + 10)) / 2
+
+local function reg(short, f)
+    local fn = function(t, b, c, d, s)
+        return f(t or 0, b or 0, c or 1, d or 1, s)
+    end
+    EASING[short] = fn
+    EASING["ease" .. short:sub(1, 1):upper() .. short:sub(2)] = fn
+    return fn
+end
+
+reg("linear", function(t, b, c, d) return c * t / d + b end)
+EASING.linearTween = EASING.linear
+
+reg("inQuad",    function(t,b,c,d) t = t/d; return c*t*t + b end)
+reg("outQuad",   function(t,b,c,d) t = t/d; return -c*t*(t - 2) + b end)
+reg("inOutQuad", function(t,b,c,d)
+    t = t/d*2
+    if t < 1 then return c/2*t*t + b end
+    t = t - 1
+    return -c/2*(t*(t - 2) - 1) + b
+end)
+reg("inCubic",  function(t,b,c,d) t = t/d; return c*t^3 + b end)
+reg("outCubic", function(t,b,c,d) t = t/d - 1; return c*(t^3 + 1) + b end)
+reg("inOutCubic", function(t,b,c,d)
+    t = t/d*2
+    if t < 1 then return c/2*t^3 + b end
+    t = t - 2
+    return c/2*(t^3 + 2) + b
+end)
+reg("inQuart",  function(t,b,c,d) t = t/d; return c*t^4 + b end)
+reg("outQuart", function(t,b,c,d) t = t/d - 1; return -c*(t^4 - 1) + b end)
+reg("inOutQuart", function(t,b,c,d)
+    t = t/d*2
+    if t < 1 then return c/2*t^4 + b end
+    t = t - 2
+    return -c/2*(t^4 - 2) + b
+end)
+reg("inQuint",  function(t,b,c,d) t = t/d; return c*t^5 + b end)
+reg("outQuint", function(t,b,c,d) t = t/d - 1; return c*(t^5 + 1) + b end)
+reg("inOutQuint", function(t,b,c,d)
+    t = t/d*2
+    if t < 1 then return c/2*t^5 + b end
+    t = t - 2
+    return c/2*(t^5 + 2) + b
+end)
+reg("inSine",    function(t,b,c,d) return -c*cos(t/d*(pi/2)) + c + b end)
+reg("outSine",   function(t,b,c,d) return c*sin(t/d*(pi/2)) + b end)
+reg("inOutSine", function(t,b,c,d) return -c/2*(cos(pi*t/d) - 1) + b end)
+reg("inExpo",  function(t,b,c,d) if t == 0 then return b end return c*2^(10*(t/d - 1)) + b end)
+reg("outExpo", function(t,b,c,d) if t == d then return b + c end return c*(1 - 2^(-10*t/d)) + b end)
+reg("inOutExpo", function(t,b,c,d)
+    if t == 0 then return b end
+    if t == d then return b + c end
+    t = t/d*2
+    if t < 1 then return c/2*2^(10*(t - 1)) + b end
+    t = t - 1
+    return c/2*(2 - 2^(-10*t)) + b
+end)
+reg("inCirc",  function(t,b,c,d) t = t/d; return -c*(sqrt(1 - t*t) - 1) + b end)
+reg("outCirc", function(t,b,c,d) t = t/d - 1; return c*sqrt(1 - t*t) + b end)
+reg("inOutCirc", function(t,b,c,d)
+    t = t/d*2
+    if t < 1 then return -c/2*(sqrt(1 - t*t) - 1) + b end
+    t = t - 2
+    return c/2*(sqrt(1 - t*t) + 1) + b
+end)
+reg("inElastic", function(t,b,c,d)
+    if t == 0 then return b end
+    t = t/d
+    if t == 1 then return b + c end
+    local p = d*0.3
+    local s = p/4
+    t = t - 1
+    return -(c*2^(10*t)*sin((t*d - s)*(2*pi)/p)) + b
+end)
+reg("outElastic", function(t,b,c,d)
+    if t == 0 then return b end
+    t = t/d
+    if t == 1 then return b + c end
+    local p = d*0.3
+    local s = p/4
+    return c*2^(-10*t)*sin((t*d - s)*(2*pi)/p) + c + b
+end)
+reg("inOutElastic", function(t,b,c,d)
+    if t == 0 then return b end
+    t = t/d*2
+    if t == 2 then return b + c end
+    local p = d*(0.3*1.5)
+    local s = p/4
+    if t < 1 then
+        t = t - 1
+        return -0.5*(c*2^(10*t)*sin((t*d - s)*(2*pi)/p)) + b
+    end
+    t = t - 1
+    return c*2^(-10*t)*sin((t*d - s)*(2*pi)/p)*0.5 + c + b
+end)
+reg("inBack", function(t,b,c,d,s)
+    s = s or 1.70158
+    t = t/d
+    return c*t*t*((s + 1)*t - s) + b
+end)
+reg("outBack", function(t,b,c,d,s)
+    s = s or 1.70158
+    t = t/d - 1
+    return c*(t*t*((s + 1)*t + s) + 1) + b
+end)
+reg("inOutBack", function(t,b,c,d,s)
+    s = (s or 1.70158)*1.525
+    t = t/d*2
+    if t < 1 then return c/2*(t*t*((s + 1)*t - s)) + b end
+    t = t - 2
+    return c/2*(t*t*((s + 1)*t + s) + 2) + b
+end)
+local function bounceOut(t, b, c, d)
+    t = t/d
+    if t < 1/2.75 then return c*(7.5625*t*t) + b end
+    if t < 2/2.75 then t = t - 1.5/2.75; return c*(7.5625*t*t + 0.75) + b end
+    if t < 2.5/2.75 then t = t - 2.25/2.75; return c*(7.5625*t*t + 0.9375) + b end
+    t = t - 2.625/2.75
+    return c*(7.5625*t*t + 0.984375) + b
+end
+local function bounceIn(t, b, c, d) return c - bounceOut(d - t, 0, c, d) + b end
+reg("outBounce", bounceOut)
+reg("inBounce", bounceIn)
+reg("inOutBounce", function(t,b,c,d)
+    if t < d/2 then return bounceIn(t*2, 0, c, d)*0.5 + b end
+    return bounceOut(t*2 - d, 0, c, d)*0.5 + c*0.5 + b
+end)
+-- outIn variants (UL defines outInExpo/outInBack explicitly; generic here)
+for _, fam in ipairs({ "Quad","Cubic","Quart","Quint","Sine","Expo","Circ",
+                       "Elastic","Back","Bounce" }) do
+    local fin, fout = EASING["in" .. fam], EASING["out" .. fam]
+    reg("outIn" .. fam, function(t, b, c, d)
+        if t < d/2 then return fout(t*2, b, c/2, d) end
+        return fin(t*2 - d, b + c/2, c/2, d)
+    end)
 end
 
 -- ── construction ──────────────────────────────────────────────────────────────

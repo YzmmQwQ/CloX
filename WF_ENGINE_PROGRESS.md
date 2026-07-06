@@ -112,6 +112,17 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: full Penner easing catalogue (wf_script EASING). Faces call
+  WatchMaker's SHORT names with the 4-arg Penner signature in attribute
+  expressions — outElastic(t,b,c,d) etc. (gshock face errored "attempt to
+  call a nil value (global 'outElastic')"). Rewrote EASING as Penner
+  f(t,b,c,d[,s]) with b/c/d defaulting to 0/1/1 so the same functions serve
+  wm_schedule's normalized f(p) calls, registered under BOTH schemes (short
+  names + easeXxx aliases): linear/linearTween, in/out/inOut ×
+  quad,cubic,quart,quint,sine,expo,circ,elastic,back,bounce, plus generic
+  outIn× variants (UL defines outInExpo/outInBack). Verified: unit asserts
+  (boundaries, midpoints, normalized compat) + the gshock face loads with no
+  luaError.
 - 2026-07-07: gyro parallax implemented (bindTransform). UL formula in screen
   coords: x += sgy*gyro, y += sgx*(-gyro) → cocos y-up: holder pos =
   (baseX + sgy*g, baseY + sgx*g). x/y bindings now store rec.baseX/baseY and
