@@ -876,6 +876,16 @@ function Builders.markers_hm(self, rec)
 end
 
 -- Ring of text labels (clock numerals). Built once; numerals are static.
+-- Semantics port UL WatchSkin:createTextRing:
+--   • label sets: named (I-XII with "IIII", Mo-Su / Mon-Sun starting at Sun,
+--     Jan-Dec) plus generic numeric ranges "A-B" and "A to B" (reversible);
+--   • item k sits k steps PAST 12 o'clock, so the LAST value lands at 12 for
+--     a full ring (classic "12 at top" clocks, "60 at top" minute rings);
+--   • show_every keeps values that are multiples of it (5,10,…,60 on 1-60);
+--     hide_text compares against the numeral (numeric) / 1-based position
+--     (named sets);
+--   • rotated_text: "y" = along the ring, "ru"/"ri" = flipped upright on the
+--     bottom/top half respectively.
 function Builders.text_ring(self, rec)
     local L = rec.L
     local node = cc.Node:create()
@@ -883,45 +893,88 @@ function Builders.text_ring(self, rec)
     local radius = num(L.radius, 200)
     local size = math.max(1, floor(num(L.text_size, 24)))
     local font = L.font or ""
-    local a0, a1 = num(L.angle_start, 0), num(L.angle_end, 360)
-    local rotated = (L.rotated_text == "y")
+    local isBM = font:sub(1, 3) == "bm:"
+    local rotMode = L.rotated_text
     local sq = num(L.squarify, 0)
     local showEvery = math.max(1, floor(num(L.show_every, 1)))
     local hide = {}
-    for h in (L.hide_text or ""):gmatch("%d+") do hide[tonumber(h)] = true end
+    for h in (L.hide_text or ""):gmatch("-?%d+") do hide[tonumber(h)] = true end
 
-    -- numeral set
-    local labels = {}
+    -- label set: labels[k] = text, vals[k] = value for show_every / hide_text
+    local labels, vals = {}, {}
+    local function addNamed(list)
+        for k, s in ipairs(list) do labels[k] = s; vals[k] = k end
+    end
     local rt = L.ring_type or "1-12"
-    if rt == "0-59" then
-        for i = 0, 59 do labels[#labels + 1] = tostring(i) end
+    if rt == "I-XII" then
+        addNamed({ "I","II","III","IIII","V","VI","VII","VIII","IX","X","XI","XII" })
+    elseif rt == "Mo-Su" then
+        addNamed({ "Su","Mo","Tu","We","Th","Fr","Sa" })
     elseif rt == "Mon-Sun" then
-        labels = { "Mon","Tue","Wed","Thu","Fri","Sat","Sun" }
-    elseif rt == "I-XII" then
-        labels = { "I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII" }
-    else   -- default 1-12
-        for i = 1, 12 do labels[#labels + 1] = tostring(i) end
+        addNamed({ "Sun","Mon","Tue","Wed","Thu","Fri","Sat" })
+    elseif rt == "Jan-Dec" then
+        addNamed({ "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" })
+    else
+        local ra, rb = rt:match("^%s*(-?%d+)%s+to%s+(-?%d+)%s*$")
+        if not ra then ra, rb = rt:match("^%s*(-?%d+)%s*%-%s*(-?%d+)%s*$") end
+        ra, rb = tonumber(ra), tonumber(rb)
+        if not ra or not rb then ra, rb = 1, 12 end
+        for v = ra, rb, (ra <= rb) and 1 or -1 do
+            labels[#labels + 1] = tostring(v)
+            vals[#vals + 1] = v
+        end
     end
     local n = #labels
+    if n == 0 then return end
+
+    if L.transform == "uc" then
+        for k = 1, n do labels[k] = labels[k]:upper() end
+    elseif L.transform == "lc" then
+        for k = 1, n do labels[k] = labels[k]:lower() end
+    end
+
+    local aStart, aEnd = num(L.angle_start, 0), num(L.angle_end, 360)
+    local stepA = (aEnd - aStart) / n
+    local rot = -aStart
+    local colHex = rec:evalSub("color", "ffffff")
     local function mkLabel(str)
         local lab
-        if font ~= "" then
+        if isBM then
+            local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
+            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, str:upper()) end
+            if lab then
+                local ch = lab:getContentSize().height
+                if ch > 0 then lab:setScale(1.6 * size / ch) end
+                lab:setColor(c3b(colHex))
+                return lab
+            end
+        elseif font ~= "" then
             local ttf = self.base .. "fonts/" .. font .. ".ttf"
             if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
         end
-        return lab or cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size))
+        lab = lab or cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size))
+        lab:setTextColor(c4b(colHex, 100))
+        return lab
     end
-    for i = 1, n do
-        local loopVal = (rt == "0-59") and (i - 1) or i
-        if (i - 1) % showEvery == 0 and not hide[loopVal] then
-            local frac = (n > 1) and ((i - 1) / n) or 0
-            local sweep = a0 + (a1 - a0) * frac
-            local th = rad(90 - sweep)
-            local rr = squarifyRadius(radius, th, sq)
-            local lab = mkLabel(labels[i])
-            lab:setTextColor(c4b(L.color or "ffffff", 100))
+    -- UL quirk kept: bitmap-font rings place labels at radius/1.6
+    local placeR = isBM and radius / 1.6 or radius
+
+    for k = 1, n do
+        if vals[k] % showEvery == 0 and not hide[vals[k]] then
+            local sweep = rot - stepA * k + 90        -- polar degrees
+            local th = rad(sweep)
+            local rr = squarifyRadius(placeR, th, sq)
+            local lab = mkLabel(labels[k])
             lab:setPosition(rr * cos(th), rr * sin(th))
-            if rotated then lab:setRotation(sweep) end
+            if rotMode == "y" or rotMode == "ru" or rotMode == "ri" then
+                local r0 = stepA * k - rot            -- tangent rotation
+                local pol = (rot - stepA * k) % 360
+                local flip = (pol > 90 and pol < 270)
+                if (rotMode == "ru" and flip) or (rotMode == "ri" and not flip) then
+                    r0 = r0 + 180
+                end
+                lab:setRotation(r0)
+            end
             node:addChild(lab)
         end
     end

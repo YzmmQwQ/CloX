@@ -112,6 +112,18 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: text_ring rewritten to UL createTextRing semantics. Label sets:
+  named (I-XII uses "IIII"; Mo-Su/Mon-Sun start at SUNDAY; Jan-Dec added) plus
+  generic numeric "A-B" and "A to B" ranges (reversible) — previously only 4
+  hardcoded sets, so ring_type="1-60" silently fell back to 1-12. Placement:
+  item k sits k steps PAST 12 o'clock → the LAST value lands at 12 (classic
+  12-at-top clocks, 60-at-top minute rings); we had item 1 at 12 (off by one
+  slot). show_every keeps values that are MULTIPLES of it (5,10,…,60), not
+  (i-1)%N. rotated_text "ru"/"ri" (flip upright on bottom/top half) added.
+  BM-font rings: UL's radius/1.6 quirk kept. NOTE: wftools WmPreview.kt
+  text_ring indexes from 0 (label 1 at top) — disagrees with UL and with
+  wftools' own generated preview.jpg; UL adopted, wftools preview needs the
+  same fix eventually.
 - 2026-07-07: black-screen wedge fixed + renderer watchdog added (Kotlin).
   Root cause: MainActivity recreation in a live process — HomeFragment re-ran
   CocosManager.init (axmol native CANNOT re-init per process) and the OLD
