@@ -140,72 +140,72 @@ class WatchfaceBridgeManager(
         }
     }
 
-    /** A face load is expected now: fail fast if the GL view is gone, otherwise
-     *  demand a wf_loaded within the timeout. */
+    /** A face load is expected now: watch for wf_loaded (strike-based). */
     private fun expectFaceLoad(reason: String) {
-        if (CocosManager.getGlView() == null) {
-            Log.e(TAG, "expectFaceLoad($reason): GL view is gone — renderer dead")
-            mainHandler.post { showRendererDeadDialog(reason, "The rendering engine is not running (GL view missing).") }
-            return
-        }
-        armWatchdog(reason)
+        startRendererWatch(reason, android.os.SystemClock.elapsedRealtime())
     }
 
-    private fun armWatchdog(reason: String) {
-        watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
-        val armedAt = android.os.SystemClock.elapsedRealtime()
-        val r = object : Runnable {
-            override fun run() {
-                if (lastLoadedAt >= armedAt) return
-                if (CocosManager.isPaused()) {
-                    // GL legitimately paused (screen off / backgrounded): the
-                    // load will finish on resume — keep waiting, don't alert.
-                    mainHandler.postDelayed(this, WATCHDOG_MS)
-                    return
-                }
-                Log.e(TAG, "watchdog($reason): no wf_loaded within ${WATCHDOG_MS}ms")
+    /**
+     * Strike-based renderer watch. Every WATCHDOG_MS round it re-acquires the
+     * CURRENT GL view, queues a fresh no-op probe onto it, and judges the
+     * PREVIOUS round:
+     *   - success (a wf_loaded arrived when one is expected, or the previous
+     *     probe executed in liveness mode) → done, silently;
+     *   - GL paused (screen off / backgrounded) → strikes reset, keep waiting;
+     *   - otherwise a strike; TWO consecutive strikes → dialog.
+     *
+     * One probe/one timeout was not race-safe: a probe queued while the view
+     * detaches (activity recreation, selector round-trips) lands on a dying
+     * GLThread and silently never runs, and getGlView() can be legitimately
+     * null for a moment mid-recreation. Re-probing the live view each round
+     * self-heals both; only a renderer that stays dead across two full rounds
+     * alarms.
+     *
+     * expectLoadAfter == null → pure liveness mode (startup on a possibly
+     * reused engine, where no wf_loaded will ever come).
+     */
+    private var watchGen = 0
+    private fun startRendererWatch(reason: String, expectLoadAfter: Long?) {
+        watchGen += 1
+        val gen = watchGen
+        var strikes = 0
+        var lastProbe: java.util.concurrent.atomic.AtomicBoolean? = null
+        lateinit var round: Runnable
+        round = Runnable {
+            if (gen != watchGen) return@Runnable            // superseded / stopped
+            if (expectLoadAfter != null && lastLoadedAt >= expectLoadAfter) return@Runnable
+            if (expectLoadAfter == null && lastProbe?.get() == true) return@Runnable
+            if (CocosManager.isPaused()) {
+                strikes = 0
+                lastProbe = null
+            } else if (lastProbe != null || CocosManager.getGlView() == null) {
+                // a probed round that failed, or no view to probe at all
+                strikes += 1
+            }
+            if (strikes >= 2) {
+                Log.e(TAG, "watchdog($reason): renderer unresponsive for 2 rounds (${2 * WATCHDOG_MS}ms)")
                 showRendererDeadDialog(
                     reason,
-                    "The watchface engine did not finish loading within ${WATCHDOG_MS / 1000}s. " +
-                    "The screen would stay black or frozen."
+                    if (expectLoadAfter != null)
+                        "The watchface did not finish loading within ${2 * WATCHDOG_MS / 1000}s. " +
+                        "The screen would stay black or frozen."
+                    else
+                        "The rendering thread has not responded for ${2 * WATCHDOG_MS / 1000}s. " +
+                        "The watchface is hung or the engine is dead."
                 )
+                return@Runnable
             }
-        }
-        watchdogRunnable = r
-        mainHandler.postDelayed(r, WATCHDOG_MS)
-    }
-
-    /** Liveness probe: queue a no-op onto the GL thread; if it never executes
-     *  (and the GL isn't just paused), the render thread is hung or gone.
-     *  Unlike armWatchdog this makes no assumption that a face load is coming
-     *  — correct for startup on a reused engine. */
-    private fun probeRendererAlive(reason: String) {
-        val glView = CocosManager.getGlView() as? GLSurfaceView
-        if (glView == null) {
-            Log.e(TAG, "probeRendererAlive($reason): GL view is gone")
-            showRendererDeadDialog(reason, "The rendering engine is not running (GL view missing).")
-            return
-        }
-        val alive = java.util.concurrent.atomic.AtomicBoolean(false)
-        glView.queueEvent { alive.set(true) }
-        watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
-        val r = object : Runnable {
-            override fun run() {
-                if (alive.get()) return
-                if (CocosManager.isPaused()) {
-                    mainHandler.postDelayed(this, WATCHDOG_MS)
-                    return
+            val gl = CocosManager.getGlView() as? GLSurfaceView
+            lastProbe = if (gl != null) {
+                java.util.concurrent.atomic.AtomicBoolean(false).also { p ->
+                    gl.queueEvent { p.set(true) }
                 }
-                Log.e(TAG, "watchdog($reason): GL thread did not respond within ${WATCHDOG_MS}ms")
-                showRendererDeadDialog(
-                    reason,
-                    "The rendering thread did not respond within ${WATCHDOG_MS / 1000}s. " +
-                    "The watchface is hung or the engine is dead."
-                )
-            }
+            } else null
+            mainHandler.postDelayed(round, WATCHDOG_MS)
         }
-        watchdogRunnable = r
-        mainHandler.postDelayed(r, WATCHDOG_MS)
+        watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
+        watchdogRunnable = round
+        round.run()
     }
 
     private fun showRendererDeadDialog(reason: String, detail: String) {
@@ -230,11 +230,10 @@ class WatchfaceBridgeManager(
         LuaBridge.luaReadyHandler = { pushAllLiveData() }
         registerWatchfaceActionHandler()
         LuaBridge.addEventListner(luaEventListener)
-        // Startup uses a GL-thread liveness PROBE, not a wf_loaded demand:
-        // when the activity was recreated and the live GL view reused, the
-        // face is already on screen and no wf_loaded will ever arrive —
-        // demanding one false-alarmed the dialog on every recreation.
-        probeRendererAlive("startup")
+        // Startup uses liveness mode (expectLoadAfter = null), not a wf_loaded
+        // demand: on a reused engine the face is already on screen and no
+        // wf_loaded will ever arrive.
+        startRendererWatch("startup", null)
         WeatherRepository.initialize(ctx)   // load cache so Lua gets data before first network fetch
         subscribeToLiveData()
         startPeriodicUpdates()
@@ -269,6 +268,7 @@ class WatchfaceBridgeManager(
         LuaBridge.luaReadyHandler = null
         LuaBridge.watchfaceActionHandler = null
         LuaBridge.removeEventListener(luaEventListener)
+        watchGen += 1                       // invalidate any in-flight watch
         watchdogRunnable?.let { mainHandler.removeCallbacks(it) }
         watchdogRunnable = null
         deadDialog?.dismiss()

@@ -127,7 +127,25 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   doesn't either): tension smoothing, chart_group sync. Verified live on
   device (chart-test.watch): {ds}-driven point/bar move each second, AVG line
   tracks, gradient + rounded bottoms + axis/point labels correct.
-- 2026-07-07: watchdog false-positive fixed. On activity recreation with the
+- 2026-07-07 (round 2): watchdog false positives eliminated for real. Two
+  root causes the probe version missed: (a) CocosManager.onDestroy guarded by
+  view.context — but a RE-PARENTED view keeps the CREATING activity as its
+  context, so the old activity's late onDestroy still nulled the live view
+  (cascade: false "GL view is gone" dialog on face change mid-selector →
+  restartProcess loop). Now guarded by an explicit hostActivity updated on
+  every init/reuse. (b) a single queued probe is lost forever if the view
+  detaches right then (GLSurfaceView kills its GLThread on detach; queued
+  events on the dying thread never run) → false "GL thread did not respond".
+  Replaced with startRendererWatch: STRIKE-BASED — each WATCHDOG_MS round
+  re-acquires the CURRENT GL view and queues a fresh probe; success (wf_loaded
+  when expected / probe ran in liveness mode) ends silently, paused GL resets
+  strikes, and only TWO consecutive failed rounds (30s) alarm. Null view
+  counts a strike only while it STAYS null (recreation gaps self-heal next
+  round). Verified: selector round-trips + face switches + double recreation
+  → zero false triggers (and the reuse path now survives recreation, only 1
+  process restart instead of cascades); hang-face true positive still fires
+  at 30s.
+- 2026-07-07 (round 1, superseded by round 2 above): watchdog false-positive fixed. On activity recreation with the
   reused GL view, the face is ALREADY loaded — no wf_loaded ever arrives, so
   the startup watchdog false-alarmed 15s after every recreation (log:
   "Reusing live AxmolGLSurfaceView" at 04:44:45 → "watchdog(startup)" at

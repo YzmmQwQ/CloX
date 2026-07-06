@@ -17,6 +17,12 @@ object CocosManager {
     private const val TAG = "CocosManager"
     private var glView: AxmolGLSurfaceView? = null
 
+    // The activity CURRENTLY hosting the view. Tracked explicitly because the
+    // view's own context always stays the CREATING activity — after a
+    // re-parent onto a recreated activity, guarding onDestroy by view.context
+    // matched the OLD activity and nulled the live view (black wedge again).
+    private var hostActivity: Activity? = null
+
     // The axmol native engine (director, Lua VM, GL program cache) can only be
     // brought up ONCE per process — a second AxmolEngine.init on a fresh view
     // leaves the native scene bound to a dead context: black watchface, dead
@@ -31,6 +37,7 @@ object CocosManager {
             // of re-initializing the native engine.
             Log.i(TAG, "Reusing live AxmolGLSurfaceView across activity recreation")
             (existing.parent as? ViewGroup)?.removeView(existing)
+            hostActivity = activity
             return existing
         }
         if (engineInited) {
@@ -57,6 +64,7 @@ object CocosManager {
         view.preserveEGLContextOnPause = true
         view.setRenderer(AxmolRenderer())
         glView = view
+        hostActivity = activity
         engineInited = true
         Log.i(TAG, "AxmolGLSurfaceView initialized")
         return view
@@ -73,15 +81,17 @@ object CocosManager {
     fun onPause()   { paused = true; glView?.onPause() }
 
     /**
-     * Forget the GL view — but ONLY if it still belongs to the activity being
-     * destroyed. During recreation the OLD instance's onDestroy can run AFTER
-     * the NEW instance registered its view; unconditionally nulling here
-     * orphaned the live view (every queueOnGL "skipped — GL view not ready"
-     * forever) and black-wedged the launcher with no error shown.
+     * Forget the GL view — but ONLY if the dying activity is the one currently
+     * HOSTING it. During recreation the OLD instance's onDestroy can run after
+     * the NEW instance took the view (re-parent); nulling then orphans the
+     * live view (every queueOnGL "skipped" forever) and black-wedges the
+     * launcher. Do NOT compare view.context here — a re-parented view keeps
+     * the creating activity as its context.
      */
     fun onDestroy(activity: Activity) {
-        if ((glView?.context as? Activity) === activity) {
+        if (hostActivity === activity) {
             glView = null
+            hostActivity = null
         } else if (glView != null) {
             Log.i(TAG, "onDestroy from a stale activity instance — keeping the live GL view")
         }
