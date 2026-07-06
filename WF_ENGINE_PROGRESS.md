@@ -112,6 +112,23 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: series + calendar layers implemented (ports of UL WatchSkin).
+  series: UL expands to offset text layers at parse; ours is one node with
+  2n+1 labels updated on the owning clock event (minute/hour/day) — window 7
+  for time series, 3 for ddw/dd_ddw, 5 for dnnn; values computed by offsetting
+  real epoch time (wraps correct); current item font/text_size/color,
+  neighbours font2/text_size2/color2, offset spacing+text_size (CURRENT size,
+  UL rule); vertical: past above/future below; current_pos "m", "f"/"u"/"t"
+  (current first), "l"/"b" (current last) — doc's t/b naming mapped onto UL's
+  f/l behaviour. calendar: header letters = FIRST no_letters_header letters
+  (a count, not a flag — doc wrong); dow_start default 1=Monday; Zeller's
+  congruence for the 1st; cells (text_size+margin) boxes; days BEFORE today
+  dim to outside_opacity (not "outside month" — doc wrong); today = color2
+  square + brightness-inverted numeral; header color, dates color2; grid
+  anchored per alignment internally (UL offsets); rebuilt on the day event.
+  Verified on device (sercal-test.watch): dmz picker centred on the live
+  minute, ddw horizontal with correct today, July 2026 grid correct (1st on
+  We, 7 highlighted, 1-6 dimmed).
 - 2026-07-07: chart layer implemented (Builders.chart), ported from UL
   createChartLayer/renderChart. Line charts stroke with color3 + color4 dots
   (NOT color/color2!); bar charts fill with `color` faded bottom_opacity→

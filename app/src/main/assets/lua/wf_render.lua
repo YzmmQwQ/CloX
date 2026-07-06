@@ -886,6 +886,235 @@ function Builders.markers_hm(self, rec)
     end, { { "color", "sub" }, { "color2", "sub" } })
 end
 
+-- ── series + calendar layers (port UL WatchSkin) ─────────────────────────────
+
+local SER_DOW3 = { "Sun","Mon","Tue","Wed","Thu","Fri","Sat" }
+local SER_DOWFULL = { "Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday" }
+local SER_MON3 = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" }
+
+-- Window half-size and the clock event that moves each series (UL: 7 for
+-- time series, 3 for day-of-week, 5 for months).
+local SERIES_CFG = {
+    dmz   = { n = 7, ev = "minute" }, dm    = { n = 7, ev = "minute" },
+    dhz   = { n = 7, ev = "hour"   }, dh    = { n = 7, ev = "hour"   },
+    dh24z = { n = 7, ev = "hour"   }, dh23z = { n = 7, ev = "hour"   },
+    dh24  = { n = 7, ev = "hour"   },
+    ddw   = { n = 3, ev = "day"    }, dd_ddw = { n = 3, ev = "day"   },
+    dnnn  = { n = 5, ev = "day"    },
+}
+
+-- Series value at offset k items from now (negative = past). Time-based
+-- series offset real epoch time like UL, so hour/day wraps come out right.
+local function seriesValue(sname, k)
+    local now = os.time()
+    if sname == "dmz" then
+        return string.format("%02d", os.date("*t", now + k * 60).min)
+    elseif sname == "dm" then
+        return tostring(os.date("*t", now + k * 60).min)
+    elseif sname == "dhz" then
+        return os.date("%I", now + k * 3600)
+    elseif sname == "dh" then
+        return tostring(tonumber(os.date("%I", now + k * 3600)))
+    elseif sname == "dh24z" or sname == "dh23z" then
+        return string.format("%02d", os.date("*t", now + k * 3600).hour)
+    elseif sname == "dh24" then
+        return tostring(os.date("*t", now + k * 3600).hour)
+    elseif sname == "ddw" then
+        return SER_DOW3[os.date("*t", now + k * 86400).wday]
+    elseif sname == "dd_ddw" then
+        local d = os.date("*t", now + k * 86400)
+        return string.format("%d %s", d.day, SER_DOW3[d.wday])
+    elseif sname == "dnnn" then
+        local mo = (os.date("*t", now).month - 1 + k) % 12 + 1
+        return SER_MON3[mo]
+    end
+    return ""
+end
+
+-- Scrolling series (date-picker style): the current value in font/text_size/
+-- color, a window of neighbours in font2/text_size2/color2 offset by
+-- spacing + text_size along the orientation. current_pos: "m" = window on
+-- both sides, "f"/"u"/"t" = current first (only future items), "l"/"b" =
+-- current last (only past items) — UL parse-time expansion, done live here.
+function Builders.series(self, rec)
+    local L = rec.L
+    local node = cc.Node:create()
+    rec.visual = node
+    local sname = L.series or "dm"
+    local cfg = SERIES_CFG[sname] or { n = 7, ev = "minute" }
+    local vertical = (L.orientation or "v") ~= "h"
+    local pos = L.current_pos or "m"
+    local size1 = math.max(1, floor(num(L.text_size, 24)))
+    local size2 = math.max(1, floor(num(L.text_size2, size1)))
+    local step = num(L.spacing, 0) + size1     -- UL offsets use the CURRENT size
+    local function caseOf(s)
+        if L.transform == "uc" then return s:upper()
+        elseif L.transform == "lc" then return s:lower() end
+        return s
+    end
+    local function mkLabel(fontName, size, colorHex)
+        local lab
+        if (fontName or ""):sub(1, 3) == "bm:" then
+            local fnt = self.base .. "fonts_bm/" .. fontName:sub(4) .. ".fnt"
+            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, " ") end
+            if lab then
+                local ch = lab:getContentSize().height
+                if ch > 0 then lab:setScale(1.6 * size / ch) end
+                lab:setColor(c3b(colorHex))
+                return lab, true
+            end
+        elseif fontName and fontName ~= "" then
+            local ttf = self.base .. "fonts/" .. fontName .. ".ttf"
+            if fileExists(ttf) then lab = cc.Label:createWithTTF(" ", ttf, fontPx(size)) end
+        end
+        lab = lab or cc.Label:createWithSystemFont(" ", "sans-serif", fontPx(size))
+        lab:setTextColor(c4b(colorHex, 100))
+        return lab, false
+    end
+    local ks = {}
+    if pos == "m" then
+        for k = -cfg.n, cfg.n do ks[#ks + 1] = k end
+    elseif pos == "l" or pos == "b" then
+        for k = -cfg.n, 0 do ks[#ks + 1] = k end
+    else -- "f" / "u" / "t": current first
+        for k = 0, cfg.n do ks[#ks + 1] = k end
+    end
+    local items = {}
+    for _, k in ipairs(ks) do
+        local lab
+        if k == 0 then
+            lab = mkLabel(L.font, size1, L.color or "ffffff")
+        else
+            lab = mkLabel(L.font2 or L.font, size2, L.color2 or L.color or "ffffff")
+        end
+        -- vertical: past items sit ABOVE the current one (cocos +y), future
+        -- below; horizontal: past left, future right (UL screen layout)
+        if vertical then lab:setPosition(0, -k * step) else lab:setPosition(k * step, 0) end
+        node:addChild(lab)
+        items[#items + 1] = { lab = lab, k = k }
+    end
+    local function update()
+        for _, it in ipairs(items) do
+            it.lab:setString(caseOf(seriesValue(sname, it.k)))
+        end
+    end
+    update()
+    self.engine:listen(cfg.ev, function() update() end)
+end
+
+-- Monthly calendar grid. UL semantics (createCalendar): header letters =
+-- FIRST no_letters_header letters of each weekday (it's a count, not a
+-- flag); dow_start default 1 = Monday; cells are (text_size+margin) boxes;
+-- days BEFORE today dim to outside_opacity; today gets a color2 square with
+-- brightness-inverted numeral; header uses color, dates color2; the grid is
+-- anchored per `alignment` internally.
+function Builders.calendar(self, rec)
+    local L = rec.L
+    local node = cc.Node:create()
+    rec.visual = node
+    local marginX = num(L.margin_x, 5)
+    local marginY = num(L.margin_y, 5)
+    local size = math.max(1, floor(num(L.text_size, 10)))
+    local color1 = L.color or "ffffff"
+    local color2 = L.color2 or L.color or "ffffff"
+    local outOp = num(L.outside_opacity, 60)
+    local dowStart = floor(num(L.dow_start, 1))
+    local nHdr = math.max(0, floor(num(L.no_letters_header, 1)))
+    local align = (L.alignment and L.alignment ~= "") and L.alignment or "cc"
+    local font = L.font or ""
+    local isBM = font:sub(1, 3) == "bm:"
+    local function mkLabel(str, colorHex)
+        local lab
+        if isBM then
+            local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
+            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, str:upper()) end
+            if lab then
+                local ch = lab:getContentSize().height
+                if ch > 0 then lab:setScale(1.6 * size / ch) end
+                lab:setColor(c3b(colorHex))
+                return lab
+            end
+        elseif font ~= "" then
+            local ttf = self.base .. "fonts/" .. font .. ".ttf"
+            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
+        end
+        lab = lab or cc.Label:createWithSystemFont(str, "sans-serif", size)
+        lab:setTextColor(c4b(colorHex, 100))
+        return lab
+    end
+    local function daysIn(y, m)
+        local d = { 31,28,31,30,31,30,31,31,30,31,30,31 }
+        if m == 2 and (y % 4 == 0 and (y % 100 ~= 0 or y % 400 == 0)) then return 29 end
+        return d[m]
+    end
+    local function rebuild()
+        node:removeAllChildren()
+        local t = os.date("*t")
+        local year, month, day = t.year, t.month, t.day
+        local dim = daysIn(year, month)
+        -- Zeller's congruence (UL): weekday of the 1st, 0=Sunday, shifted
+        -- by dow_start
+        local mAdj, yAdj = month, year
+        if mAdj < 3 then mAdj = mAdj + 12; yAdj = yAdj - 1 end
+        local kk, jj = yAdj % 100, floor(yAdj / 100)
+        local hh = (1 + floor((13 * (mAdj + 1)) / 5) + kk + floor(kk / 4) + floor(jj / 4) - 2 * jj) % 7
+        local firstDay = (((hh + 6) % 7) - dowStart + 7) % 7
+
+        local cw, chh = size + marginX, size + marginY
+        local totalW = 7 * cw
+        local rows = math.ceil((dim + firstDay) / 7) + 1   -- +1 header row
+        local totalH = rows * chh
+        local offX = 0
+        if align == "cc" or align == "tc" or align == "bc" then offX = -totalW / 2
+        elseif align == "cr" or align == "tr" or align == "br" then offX = -totalW end
+        local offY = 0
+        if align == "cc" or align == "cl" or align == "cr" then offY = totalH / 2
+        elseif align == "tc" or align == "tl" or align == "tr" then offY = totalH end
+
+        -- weekday header
+        for i = 1, 7 do
+            local name = SER_DOWFULL[((i - 1 + dowStart) % 7) + 1]
+            local txt = name:sub(1, nHdr)
+            if L.transform == "uc" then txt = txt:upper() end
+            local lab = mkLabel(txt, color1)
+            lab:setPosition((i - 1) * cw + offX, offY)
+            node:addChild(lab)
+        end
+
+        -- date grid
+        local y0 = -(size + marginY)
+        local d = 1
+        local row = 0
+        while d <= dim do
+            for col = 0, 6 do
+                if not (row == 0 and col < firstDay) and d <= dim then
+                    local x = col * cw + offX
+                    local y = y0 - row * chh + offY
+                    local colHex = color2
+                    if d == day then
+                        -- today: color2 square behind a brightness-inverted numeral
+                        local dn = cc.DrawNode:create()
+                        local r0 = (size + 2) / 2
+                        dn:drawSolidRect(cc.p(x - r0, y - r0), cc.p(x + r0, y + r0), c4f(color2, 100))
+                        node:addChild(dn)
+                        local c = WFColor.rgb(color2)
+                        local bright = (c.r * 299 + c.g * 587 + c.b * 114) / 1000
+                        colHex = bright > 128 and "000000" or "ffffff"
+                    end
+                    local lab = mkLabel(tostring(d), colHex)
+                    lab:setPosition(x, y)
+                    if d < day then lab:setOpacity(floor(clamp(outOp, 0, 100) * 2.55)) end
+                    node:addChild(lab)
+                    d = d + 1
+                end
+            end
+            row = row + 1
+        end
+    end
+    rebuild()
+    self.engine:listen("day", function() rebuild() end)
+end
+
 -- ── chart layer (ports UL WatchSkin:createChartLayer / renderChart) ──────────
 -- Import-time parsers for the chart's packed attribute strings. Patterns are
 -- fine here (build time only); the redraw path below is pattern-free.
