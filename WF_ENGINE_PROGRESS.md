@@ -112,6 +112,17 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: watchdog false-positive fixed. On activity recreation with the
+  reused GL view, the face is ALREADY loaded — no wf_loaded ever arrives, so
+  the startup watchdog false-alarmed 15s after every recreation (log:
+  "Reusing live AxmolGLSurfaceView" at 04:44:45 → "watchdog(startup)" at
+  04:45:00). Startup now uses a GL-thread liveness PROBE (queueEvent no-op;
+  hung Lua still never executes it → real wedges still caught) instead of
+  demanding a face load; and BOTH watchdogs defer (re-poll) while
+  CocosManager.isPaused() — a screen-off/backgrounded GL is not a dead
+  renderer. Face-change watchdog still demands wf_loaded. Also observed:
+  dark-mode toggle recreates the activity in destroy→create order → view
+  gone → clean process auto-restart path (by design, ~1s relaunch).
 - 2026-07-07: shape vector geometry calibrated against the UL mask textures
   (user chose vector drawing over bundling the PNG masks). UL renders shapes
   by stretching 512×512 mask textures that carry INTERNAL PADDING — heart

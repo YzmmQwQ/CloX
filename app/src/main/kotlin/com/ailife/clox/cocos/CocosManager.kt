@@ -64,8 +64,13 @@ object CocosManager {
 
     fun getGlView(): SurfaceView? = glView
 
-    fun onResume()  { glView?.onResume() }
-    fun onPause()   { glView?.onPause() }
+    // Watchdogs must not treat a legitimately paused GL thread (screen off,
+    // launcher backgrounded) as a dead renderer.
+    @Volatile private var paused = false
+    fun isPaused() = paused
+
+    fun onResume()  { paused = false; glView?.onResume() }
+    fun onPause()   { paused = true; glView?.onPause() }
 
     /**
      * Forget the GL view — but ONLY if it still belongs to the activity being
