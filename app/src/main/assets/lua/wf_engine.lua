@@ -120,13 +120,25 @@ function WFEvent:isEmpty()
 end
 
 function WFEvent:fire(clock, gen)
-    -- tags first, so script callbacks (listeners) read FRESH values for this
-    -- event's tags. A callback that writes a variable re-fires the affected
-    -- bindings itself through engine:publish, so listener writes still land.
+    -- TWO PHASES: recompute EVERY tag first, then run the changed tags'
+    -- buckets. Interleaving (recompute→fire per tag) ran a shared binding —
+    -- e.g. a "{aalh23z}:{aalmz}" template sitting in BOTH tags' buckets —
+    -- right after the FIRST tag recomputed, so it read the second tag's STALE
+    -- value; the gen dedup then skipped the second bucket and the stale half
+    -- froze until some unrelated change (the "alarm hour updates, minute
+    -- doesn't" bug). Tags still recompute before listeners, so script
+    -- callbacks read fresh values.
     local tags = self.tags
+    local changed = self._changed
+    if not changed then changed = {}; self._changed = changed end
+    local n = 0
     for i = 1, #tags do
         local tag = tags[i]
-        if tag:recompute(clock) then tag:fireBucket(gen) end
+        if tag:recompute(clock) then n = n + 1; changed[n] = tag end
+    end
+    for i = 1, n do
+        changed[i]:fireBucket(gen)
+        changed[i] = nil
     end
     local ls = self.listeners
     for i = 1, #ls do
