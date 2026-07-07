@@ -382,14 +382,28 @@ function WFScript:load(baseDir)
     end
     local ok, err = self.sandbox:run(src, "=wf_script")
     if not ok then
-        print("[WFScript] global script failed: " .. tostring(err))
-        if WatchfaceBridge and WatchfaceBridge.reportError then
-            WatchfaceBridge.reportError("Global script failed", err)
-        end
+        self:reportError("Global script failed", err)
         return false
     end
     self.hasScript = true
     return true
+end
+
+-- Surface a script runtime failure in the Android error dialog (same pipeline
+-- as global-script load and attribute-compile failures — a silently broken
+-- face is never OK). `once` dedups per context per face load: on_* callbacks
+-- fire every frame/second and must not open a dialog per tick; logcat keeps
+-- every occurrence either way.
+function WFScript:reportError(context, err, once)
+    print("[WFScript] " .. context .. ": " .. tostring(err))
+    if once then
+        self._reported = self._reported or {}
+        if self._reported[context] then return end
+        self._reported[context] = true
+    end
+    if WatchfaceBridge and WatchfaceBridge.reportError then
+        WatchfaceBridge.reportError(context, err)
+    end
 end
 
 -- Run a `script:` tap-action body in the same environment (variables persist
@@ -398,7 +412,7 @@ end
 function WFScript:runSnippet(src, label)
     if src:find("{", 1, true) then src = spliceTags(src) end
     local ok, err = self.sandbox:run(src, label or "=wf_tap")
-    if not ok then print("[WFScript] snippet failed: " .. tostring(err)) end
+    if not ok then self:reportError("Tap script failed", err) end
     return ok
 end
 
@@ -409,27 +423,37 @@ end
 function WFScript:attach()
     local eng, vars = self.engine, self.vars
 
+    -- callbacks run guarded so a broken face surfaces the error dialog
+    -- (once per callback per face load) instead of dying in the engine's
+    -- listener pcall with only a logcat line
+    local function guarded(name, cb, ...)
+        local ok, err = pcall(cb, ...)
+        if not ok then self:reportError("Script " .. name .. " failed", err, true) end
+    end
+
     eng:listen("ms", function(clock)
         -- tween driver first so on_millisecond sees this frame's tween values
-        if next(self.tweens) ~= nil then self:stepTweens(clock) end
+        if next(self.tweens) ~= nil then
+            guarded("tween", self.stepTweens, self, clock)
+        end
         local cb = vars.on_millisecond
         if cb then
             local last = self._lastMsElapsed
             self._lastMsElapsed = clock.elapsed
-            cb(last and (clock.elapsed - last) or 0)
+            guarded("on_millisecond", cb, last and (clock.elapsed - last) or 0)
         end
     end)
     eng:listen("second", function(clock)
         local cb = vars.on_second
-        if cb then cb(clock.t.min, clock.t.sec) end
+        if cb then guarded("on_second", cb, clock.t.min, clock.t.sec) end
     end)
     eng:listen("minute", function()
         local cb = vars.on_minute
-        if cb then cb() end
+        if cb then guarded("on_minute", cb) end
     end)
     eng:listen("hour", function()
         local cb = vars.on_hour
-        if cb then cb() end
+        if cb then guarded("on_hour", cb) end
     end)
 end
 
