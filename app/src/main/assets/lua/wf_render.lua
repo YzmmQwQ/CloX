@@ -622,6 +622,100 @@ local function bindEffects(rec, opts)
     end
 end
 
+-- ── shape shaders (WM_EFFECTS.md §3–4) ────────────────────────────────────────
+-- The UL fragment shaders ship VERBATIM (Source/shaders/wm_*.frag, compiled by
+-- axslcc into assets/axslc/custom/). Each program loads ONCE per app run and is
+-- shared by every layer using that shader; each layer carries only its own
+-- ProgramState with the u_* uniforms, refreshed through one composite so
+-- tag-driven values ({drms}, {bl}, script vars) animate like UL's per-frame
+-- uniforms. u_* semantics follow the UL .fsh sources (the WM_EFFECTS tables
+-- for Progress and Radar are wrong): Progress u_1=%, u_2=angle, u_3=opIn,
+-- u_4=opOut; Radar u_1=angle, u_2=opIn, u_3=opOut.
+
+-- uniform spec per shader: { name, "color"|"num", default }
+local SHADER_UNIFORMS = {
+    GradientLinear  = { { "u_1", "color", "ffffff" }, { "u_2", "color", "000000" },
+                        { "u_3", "num", 0 }, { "u_4", "num", 100 } },
+    GradientRadial  = { { "u_1", "color", "ffffff" }, { "u_2", "color", "000000" },
+                        { "u_3", "num", 100 } },
+    Rainbow         = { { "u_1", "num", 0 } },
+    HSV             = { { "u_1", "num", 0 }, { "u_2", "num", 0 }, { "u_3", "num", 0 } },
+    RGB             = { { "u_1", "num", 0 }, { "u_2", "num", 0 }, { "u_3", "num", 0 } },
+    Segment         = { { "u_1", "num", 0 }, { "u_2", "num", 100 }, { "u_3", "num", 0 } },
+    SegmentBetween  = { { "u_1", "num", 0 }, { "u_2", "num", 360 },
+                        { "u_3", "num", 100 }, { "u_4", "num", 0 } },
+    Radar           = { { "u_1", "num", 0 }, { "u_2", "num", 100 }, { "u_3", "num", 0 } },
+    Progress        = { { "u_1", "num", 0 }, { "u_2", "num", 0 },
+                        { "u_3", "num", 100 }, { "u_4", "num", 0 } },
+    ProgressBetween = { { "u_1", "num", 0 }, { "u_2", "num", 0 }, { "u_3", "num", 0 },
+                        { "u_4", "num", 100 }, { "u_5", "num", 0 } },
+}
+
+-- one backend Program per shader, loaded on first use and never re-created
+local shaderPrograms = {}
+local function shaderProgram(name)
+    local prog = shaderPrograms[name]
+    if prog == nil then
+        local ok, p = pcall(function()
+            -- 3 = backend::VertexLayoutType::Sprite (V3F_C4B_T2F)
+            return axb.ProgramManager:getInstance():loadProgram(
+                "positionTextureColor_vs", "custom/wm_" .. name .. "_fs", 3)
+        end)
+        prog = (ok and p) or false
+        if not prog then
+            print("[WFRender] shader program 'wm_" .. name .. "' failed to load: " .. tostring(p))
+        end
+        shaderPrograms[name] = prog
+    end
+    return prog
+end
+
+-- setUniform's Lua binding takes raw bytes: pack floats little-endian
+local spack, srep, sbyte = string.pack, string.rep, string.byte
+local function packFloats(...)
+    local s = spack("<" .. srep("f", select("#", ...)), ...)
+    return { sbyte(s, 1, #s) }
+end
+
+-- Attach `shader=` to a textured node. The node's tint/opacity flow into the
+-- shader as v_color (UL's u_opacity); u_* refresh through one composite.
+-- Returns false for unknown shaders so callers fall back to the plain path.
+local function bindShapeShader(rec, sp)
+    local L = rec.L
+    local spec = L.shader and SHADER_UNIFORMS[L.shader]
+    if not spec then return false end
+    local prog = shaderProgram(L.shader)
+    if not prog then return false end
+    local st = axb.ProgramState:new(prog)
+    sp:setProgramState(st)
+    local attrs = { { "color", "sub" }, { "color_dim", "sub" } }
+    rec:use("color", "sub"); rec:use("color_dim", "sub")
+    for _, u in ipairs(spec) do
+        local kind = u[2] == "color" and "sub" or "num"
+        rec:use(u[1], kind)
+        attrs[#attrs + 1] = { u[1], kind }
+    end
+    rec:dimComposite(function(r)
+        sp:setColor(c3b(r:evalSub(colAttr(r), "ffffff")))
+        for _, u in ipairs(spec) do
+            if u[2] == "color" then
+                local c = WFColor.rgb(r:evalSub(u[1], u[3]))
+                st:setUniform(u[1], packFloats(c.r / 255, c.g / 255, c.b / 255))
+            else
+                st:setUniform(u[1], packFloats(r:evalNum(u[1], u[3])))
+            end
+        end
+    end, attrs)
+    return true
+end
+
+-- A white-texture quad for primitive/rounded shapes: the shaders sample
+-- texcoords, which DrawNode geometry doesn't carry.
+local function whiteQuad()
+    local tex = cc.Director:getInstance():getTextureCache():getWhiteTexture()
+    return tex and cc.Sprite:createWithTexture(tex) or nil
+end
+
 function Builders.group(self, rec) end   -- container only; no visual
 
 function Builders.image(self, rec)
@@ -840,7 +934,11 @@ function Builders.shape(self, rec)
             rec.visual = sp
             local cs = sp:getContentSize()
             setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
-            bindTint(rec, sp)
+            -- shader consumes the image alpha as its mask (exactly UL);
+            -- otherwise plain tint
+            if not bindShapeShader(rec, sp) then
+                bindTint(rec, sp)
+            end
             bindEffects(rec, {
                 makeCopy = function(z)
                     local c = cc.Sprite:create(shapeImg)
@@ -859,10 +957,7 @@ function Builders.shape(self, rec)
         end
     end
     -- Otherwise draw the primitive with a DrawNode.
-    local dn = cc.DrawNode:create()
-    rec.visual = dn
     local w, h = num(L.width, 50), num(L.height, 50)
-    rec.shapeW, rec.shapeH = w, h
     local shp = (L.shape or "Square"):lower()
     local function drawPrim(node, col)
         node:clear()
@@ -874,6 +969,33 @@ function Builders.shape(self, rec)
             node:drawSolidRect(cc.p(-w / 2, -h / 2), cc.p(w / 2, h / 2), col)
         end
     end
+    if L.shader and SHADER_UNIFORMS[L.shader] then
+        -- primitives have no texcoords: run the shader on a white quad sized
+        -- to the layer box; non-rectangular shapes clip it through the
+        -- primitive geometry
+        local sp = whiteQuad()
+        if sp and bindShapeShader(rec, sp) then
+            local cs = sp:getContentSize()
+            if shp == "square" or shp == "" then
+                rec.visual = sp
+                setBaseScale(rec, cs.width, cs.height, w, h)
+            else
+                sp:setScaleX(w / cs.width); sp:setScaleY(h / cs.height)
+                sp:setCascadeOpacityEnabled(true)
+                local mask = cc.DrawNode:create()
+                drawPrim(mask, cc.c4f(1, 1, 1, 1))
+                local clip = cc.ClippingNode:create()
+                clip:setStencil(mask)
+                clip:addChild(sp)
+                rec.visual = clip
+                rec.shapeW, rec.shapeH = w, h
+            end
+            return
+        end
+    end
+    local dn = cc.DrawNode:create()
+    rec.visual = dn
+    rec.shapeW, rec.shapeH = w, h
     rec:use("color", "sub"); rec:use("color_dim", "sub")
     rec:dimComposite(function(r)
         drawPrim(dn, c4f(r:evalSub(colAttr(r), "ffffff"), 100))
@@ -897,12 +1019,30 @@ end
 
 function Builders.rounded(self, rec)
     local L = rec.L
-    local dn = cc.DrawNode:create()
-    rec.visual = dn
     local w, h = num(L.width, 100), num(L.height, 60)
-    rec.shapeW, rec.shapeH = w, h
     local r0 = math.min(num(L.radius, 0), w / 2, h / 2)
     local cor = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]   -- {TL,TR,BL,BR}
+    if L.shader and SHADER_UNIFORMS[L.shader] then
+        -- shader on a white quad clipped through the rounded-rect geometry
+        local sp = whiteQuad()
+        if sp and bindShapeShader(rec, sp) then
+            local cs = sp:getContentSize()
+            sp:setScaleX(w / cs.width); sp:setScaleY(h / cs.height)
+            sp:setCascadeOpacityEnabled(true)
+            local mask = cc.DrawNode:create()
+            fillRoundedRect(mask, -w / 2, -h / 2, w / 2, h / 2,
+                { cor[1] * r0, cor[2] * r0, cor[3] * r0, cor[4] * r0 }, cc.c4f(1, 1, 1, 1))
+            local clip = cc.ClippingNode:create()
+            clip:setStencil(mask)
+            clip:addChild(sp)
+            rec.visual = clip
+            rec.shapeW, rec.shapeH = w, h
+            return
+        end
+    end
+    local dn = cc.DrawNode:create()
+    rec.visual = dn
+    rec.shapeW, rec.shapeH = w, h
     rec:use("color", "sub"); rec:use("color_dim", "sub")
     rec:dimComposite(function(rr)
         dn:clear()

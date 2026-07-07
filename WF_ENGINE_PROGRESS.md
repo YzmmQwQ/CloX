@@ -365,3 +365,57 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   compares (`{dtp} >= {wsrp}` on wf505jb's sunrise screen, only reachable via
   tap → short-circuit hid it until then). Added missing {wsrp}/{wssp} tags
   (sunrise/sunset as fraction of day, byte-walk "HH:MM" parse, no patterns).
+
+## Effects, stencil & shape shaders (2026-07-07)
+
+- **sub-attr expressions** (wf_expr): tag-less "sub" attributes (colors,
+  paths) referencing known bare identifiers now compile as LIVE expressions —
+  UL evaluates ANY attribute containing script variables as code, and faces
+  write color="var_col_time[var_i_t]" for tap-to-cycle color schemes. Our
+  "sub" kind froze those as literal strings, the hex parse failed and the
+  layer stuck white forever. Runtime failure still falls back to the literal,
+  so plain hex colors/paths are unaffected.
+- **text/shape effects** (WM_EFFECTS §1–2, shared bindEffects in wf_render):
+  Glow = rings of 8 offset copies of the visual (UL formula: ring r at 2r px,
+  opacity (o/rings)·(1−(r−1)/rings)) — rings CAPPED at 8 for the watch GPU
+  with the step widened to keep the authored o_size spread. Outline = native
+  TTF stroke (enableOutline) for TTF text; 8 copies pushed out o_size for
+  shapes and non-TTF text (UL parity). Shadow: Drop = 1 copy at w_distance
+  opposite the w_angle light, Flat = floor(w_distance) stacked copies at
+  1..n. Copies live in the layer holder (inherit transform/anim_scale/
+  opacity/visibility); colors/opacities/offsets stay live via composites;
+  copy COUNT is fixed at build (dynamic o_size/w_distance keep initial count).
+- **text stencil** (WM_EFFECTS §6): glyphs become see-through cutouts in a
+  FULL-CANVAS plate of the layer color. A Label can NOT be an alpha-threshold
+  ClippingNode stencil (the alpha-test program doesn't reach its internal
+  commands — glyph QUADS punch rectangles); like UL, the glyphs are baked
+  into a 512² RenderTexture and that sprite masks an inverted ClippingNode.
+  RT + mask label are off-graph: retained explicitly, released in
+  WFRender:clear() (renderer.retained list). Plate redraws only on color/dim;
+  text changes re-render just the RT.
+- **shape shaders** (WM_EFFECTS §3–4): the UL fragment shaders ship VERBATIM —
+  Source/shaders/wm_*.frag (GradientLinear, GradientRadial, Rainbow, HSV,
+  RGB, Segment, SegmentBetween, Radar, Progress, ProgressBetween), only the
+  I/O header adapted to axmol #version 310 es (fs_ub std140 block; UL's
+  u_opacity arrives as v_color.a). axslcc auto-compiles Source/shaders →
+  assets/axslc/custom/ (existing gradle preBuild copy; NOTE: a brand-new
+  shader file needs CMake reconfigure + one extra build for the asset copy).
+  Lua side: ONE backend Program per shader per app run (shaderPrograms cache;
+  axb.ProgramManager:loadProgram("positionTextureColor_vs",
+  "custom/wm_X_fs", VertexLayoutType.Sprite=3)); each layer only carries its
+  own ProgramState; u_* uniforms (colors → vec3, numbers → float; packed
+  little-endian via string.pack for the byte-table setUniform binding)
+  refresh through one dimComposite, so {drms}-driven uniforms animate
+  per-frame exactly like UL. Image-mask shapes get the program on their
+  sprite (texture alpha = mask, as UL); primitive shapes run it on a
+  getWhiteTexture() quad — squares as-is, other primitives + rounded clipped
+  through their DrawNode geometry via ClippingNode. #version must be the
+  FIRST line of a .frag — axslcc rejects leading comments.
+  **Doc erratum**: WM_EFFECTS.md's u_* tables for Progress and Radar are
+  WRONG; the .fsh sources (and all-shaders.watch) are authoritative:
+  Progress u_1=%, u_2=angle, u_3=opIn, u_4=opOut; Radar u_1=angle, u_2=opIn,
+  u_3=opOut.
+- Verified on device (all-shaders.watch): all 9 shaders + Segment-on-rounded
+  render and animate at the ms cadence; logcat shows each wm_* program loaded
+  exactly once (two Segment layers share one program). Effects verified with
+  a one-effect-per-label test face; stencil cutouts show true letterforms.

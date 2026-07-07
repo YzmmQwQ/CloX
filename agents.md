@@ -95,6 +95,8 @@ Any swipe dismisses active overlay before any other routing runs (`handleSwipeEn
 | `assets/lua/watchface.lua` | Axmol scene: clock, animation, `ccui.Button` touch test |
 | `assets/lua/bridge.lua` | Lua-side event bus (onEvent / dispatchEvent / sendToAndroid) |
 | `assets/lua/main.lua` | Axmol entry point — creates WatchfaceScene |
+| `assets/lua/wf_*.lua` | Watchmaker face engine (see `WF_ENGINE_PROGRESS.md`): wf_render builders + effects/stencil/shaders, wf_engine tag buckets, wf_expr attr compiler, wf_script sandboxed face scripts |
+| `Source/shaders/wm_*.frag` | WatchMaker shape shaders (UL ports, verbatim math) — axslcc compiles them to `assets/axslc/custom/` at native build |
 | `CMakeLists.txt` | Native build; detects Axmol submodule, falls back to JNI stub |
 
 ---
