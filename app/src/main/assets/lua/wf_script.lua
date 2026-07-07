@@ -7,7 +7,7 @@
 --   • on_second(minute, second)   — on the second boundary
 --   • on_minute() / on_hour()     — on their boundaries
 --   • every {tag} readable as a bare global (dh, blp, shr, …)
---   • helpers: wm_tag(t) · wm_action(a) · wm_sfx(s) · wm_schedule{...}
+--   • helpers: wm_tag(t) · wm_action(a) · wm_set_alarm(t) · wm_sfx(s) · wm_schedule{...}
 --   • tweens via wm_schedule are referenced as {tweens.NAME}
 --   • script variables are referenced from attributes as {var} tags AND as
 --     bare identifiers inside expressions
@@ -268,6 +268,13 @@ function WFScript.new(engine, sandbox, actionHandler)
     end
     base.wm_action = function(a)
         if type(a) == "string" and actionHandler then actionHandler(a) end
+    end
+    -- WatchMaker wm_set_alarm('HH:MM') — routes through the shortcut pipeline
+    -- as set_alarm_HH:MM (TapActionHandler → AlarmClock.ACTION_SET_ALARM)
+    base.wm_set_alarm = function(t)
+        if type(t) == "string" and t ~= "" and actionHandler then
+            actionHandler("set_alarm_" .. t)
+        end
     end
     -- Sound playback with STRICT audio-device hygiene. Axmol's AudioEngine
     -- lazily opens the OpenAL Soft device on the first play2d and NEVER
