@@ -27,5 +27,5 @@ void main()
     yNew = (yNew - 0.5) / (u_4 / 100.0) + 0.5;
     yNew = clamp(yNew, 0.0, 1.0);
     vec3 mixed = vec3(mix(u_1, u_2, yNew));
-    FragColor = vec4(mixed, color.a);
+    FragColor = vec4(mixed * color.a, color.a);   // premultiplied — transparent texels stay transparent
 }

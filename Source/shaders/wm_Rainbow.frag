@@ -18,5 +18,6 @@ void main()
 {
     vec4 color1 = texture(u_tex0, v_texCoord);
     vec3 color2 = vec3((sin(u_1) + 1.0) / 2.0, v_texCoord.x, v_texCoord.y);
-    FragColor = vec4(color2, color1.a * v_color.a);
+    float a = color1.a * v_color.a;
+    FragColor = vec4(color2 * a, a);   // premultiplied
 }

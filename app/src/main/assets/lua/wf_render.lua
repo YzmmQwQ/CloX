@@ -716,6 +716,39 @@ local function whiteQuad()
     return tex and cc.Sprite:createWithTexture(tex) or nil
 end
 
+-- Bake an off-graph node into a retained RenderTexture and hand back the
+-- sprite + a rebake(). Labels (straight or curved) carry font-ATLAS
+-- texcoords, so their shaders must run over a texture whose 0..1 spans the
+-- layer box instead. getSize() → content w,h; the node draws centred. The RT
+-- reallocates only when the content outgrows it (released via retained).
+local function bakedSprite(self, node, getSize)
+    node:retain()
+    self.retained[#self.retained + 1] = node
+    local rtSlot = #self.retained + 1
+    local rt, rw, rh
+    local sp = cc.Sprite:create()
+    local function rebake()
+        local w, h = getSize()
+        w = math.max(2, math.ceil(w)); h = math.max(2, math.ceil(h))
+        if not rt or w > rw or h > rh or (rw - w) > 8 or (rh - h) > 8 then
+            if rt then pcall(function() rt:release() end) end
+            rw, rh = w, h
+            rt = cc.RenderTexture:create(rw, rh)
+            rt:retain()
+            self.retained[rtSlot] = rt
+        end
+        node:setPosition(rw / 2, rh / 2)
+        rt:beginWithClear(0, 0, 0, 0)
+        node:visit()
+        rt:endToLua()
+        sp:setTexture(rt:getSprite():getTexture())
+        sp:setTextureRect(cc.rect(0, 0, rw, rh))
+        sp:setFlippedY(true)             -- RT textures are y-flipped
+    end
+    rebake()
+    return sp, rebake
+end
+
 function Builders.group(self, rec) end   -- container only; no visual
 
 function Builders.image(self, rec)
@@ -725,7 +758,9 @@ function Builders.image(self, rec)
     rec.visual = sp
     local cs = sp:getContentSize()
     setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
-    bindTint(rec, sp)
+    -- shader consumes the image alpha as its mask (UL applies shaders to
+    -- image layers the same way); otherwise plain tint
+    if not bindShapeShader(rec, sp) then bindTint(rec, sp) end
 end
 
 Builders.gif = Builders.image   -- native gif: render first frame statically
@@ -740,7 +775,7 @@ function Builders.image_tap(self, rec)
     rec.visual = sp
     local cs = sp:getContentSize()
     setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
-    bindTint(rec, sp)
+    if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
     rec.tap = function()
         rec.frameIdx = (rec.frameIdx % #frames) + 1
         sp:setTexture(self:imageFile(frames[rec.frameIdx]))
@@ -759,7 +794,7 @@ function Builders.image_gif(self, rec)
     rec.visual = sp
     local cs = sp:getContentSize()
     setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
-    bindTint(rec, sp)
+    if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
     -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener
     rec.lastFrame = -1
     self.engine:listen("ms", function(clock)
@@ -866,6 +901,27 @@ function Builders.text(self, rec)
         return
     end
 
+    if L.shader and SHADER_UNIFORMS[L.shader] then
+        -- labels carry font-ATLAS texcoords: bake the glyphs (white — the
+        -- layer color arrives as the sprite tint) into an RT sized to the
+        -- text box and run the shader over THAT sprite
+        lab:setAnchorPoint(cc.p(.5, .5))
+        lab:setScale(rec.bsx, rec.bsy)
+        local bsx, bsy = rec.bsx, rec.bsy
+        rec.bsx, rec.bsy = 1, 1
+        local sp, rebake = bakedSprite(self, lab, function()
+            local cs = lab:getContentSize()
+            return cs.width * bsx + 4, cs.height * bsy + 4
+        end)
+        rec.visual = sp
+        bindShapeShader(rec, sp)
+        rec:bindText("text", function(_, v)
+            lab:setString(caseOf(v))
+            rebake()
+        end)
+        return
+    end
+
     -- effect copies: labels mirroring lab's string, behind it in the holder
     local fx = {}
     local function addFx(z)
@@ -911,6 +967,9 @@ function Builders.image_cond(self, rec)
     cols, rows = num(cols, 1), num(rows, 1)
     local cw, chh = cs.width / cols, cs.height / rows
     setBaseScale(rec, cw, chh, num(L.width, cw), num(L.height, chh))
+    -- shader rides the sprite (texcoords span the CELL's atlas sub-rect —
+    -- same quirk as UL, which also sets the program straight on the sprite)
+    bindShapeShader(rec, sp)
     rec.lastIdx = -1
     rec:use("cond_value", "num"); rec:use("color", "sub"); rec:use("color_dim", "sub")
     rec:dimComposite(function(r)
@@ -2074,7 +2133,9 @@ function Builders.text_curved(self, rec)
         local allAng = maxAng * (n - nspace / 2)
         local coef = up and 1 or -1
         local rot0 = math.pi / 2 + coef * allAng / 2
-        local col = c4b(rec:evalSub("color", "ffffff"), 100)
+        -- shader mode bakes WHITE glyphs — the layer color arrives as tint
+        local col = rec.shaderBake and cc.c4b(255, 255, 255, 255)
+                    or c4b(rec:evalSub("color", "ffffff"), 100)
         local ang = 0
         for i = 1, n do
             local step = (chars[i] == " ") and maxAng / 2 or maxAng
@@ -2089,6 +2150,21 @@ function Builders.text_curved(self, rec)
             end
             ang = ang + step / 2
         end
+    end
+    if L.shader and SHADER_UNIFORMS[L.shader] then
+        -- per-glyph labels carry font-ATLAS texcoords: bake the arc into an
+        -- RT covering the full circle bounds and shader THAT sprite
+        rec.shaderBake = true
+        rebuild(rec:evalText("text", ""))
+        local D = 2 * (radius + 2 * size) + 4
+        local sp, rebake = bakedSprite(self, node, function() return D, D end)
+        rec.visual = sp
+        bindShapeShader(rec, sp)
+        rec:bindText("text", function(_, v)
+            rebuild(v)
+            rebake()
+        end)
+        return
     end
     rec:use("color", "sub")
     rec:bindText("text", function(_, v) rebuild(v) end)

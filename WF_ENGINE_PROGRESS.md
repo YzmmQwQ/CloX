@@ -419,3 +419,21 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   render and animate at the ms cadence; logcat shows each wm_* program loaded
   exactly once (two Segment layers share one program). Effects verified with
   a one-effect-per-label test face; stencil cutouts show true letterforms.
+- 2026-07-07 (follow-up): shaders extended to the full image family + text.
+  image/gif/image_tap/image_gif: program straight on the sprite (texture
+  alpha = mask; survives setTexture frame swaps). image_cond: same, texcoords
+  span the CELL's atlas sub-rect (UL parity quirk). text + text_curved:
+  labels carry font-ATLAS texcoords, so the glyphs are baked WHITE into a
+  retained RenderTexture (bakedSprite helper — RT reallocates only when
+  content outgrows it) and the shader runs over THAT sprite; the layer color
+  arrives as sprite tint, and text changes re-render just the RT. Curved
+  bake box = full circle bounds (2·(radius+2·size)). Stencil takes
+  precedence over shader on text.
+- 2026-07-07 premultiplied-alpha fix: the rgb-REPLACING shaders
+  (GradientLinear/GradientRadial/Rainbow) must output PREMULTIPLIED color
+  (rgb·a). PNG/RT textures blend with (ONE, 1−SRC_ALPHA); straight rgb output
+  painted transparent texels solid — an image ring rendered as a solid
+  gradient square and gradient text as a solid bar. Pass-through shaders
+  (Segment/Radar/HSV/RGB/…) already emit premultiplied rgb (texture·v_color)
+  and were correct. Verified on device: gradients respect texture alpha on
+  images and baked text.
