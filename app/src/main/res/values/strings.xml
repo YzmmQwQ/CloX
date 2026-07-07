@@ -430,6 +430,7 @@
     <string name="wf_store_downloading">Downloading…</string>
     <string name="wf_store_download_done">Installed!</string>
     <string name="wf_search_hint">Search watch faces…</string>
+    <string name="wf_loading">Loading…</string>
     <string name="wf_pinned_section">Pinned</string>
     <string name="wf_other_section">Other</string>
     <string name="wf_add_folder">Add folder</string>

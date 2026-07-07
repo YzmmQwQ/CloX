@@ -113,10 +113,15 @@ function WatchfaceScene:onEnter()
 
     self._renderer = WFRender.new(self._stage)
 
-    -- load the configured face, or the built-in fallback
-    local initPath = WF.settings and WF.settings.watchfacePath
-    if not self:loadWatchface(initPath) then
-        self:loadDefault("No watchface set — showing default")
+    -- Load now only if a settings push already arrived (WF.settings always
+    -- exists as a stub — WF._settingsReceived is the real signal). On a cold
+    -- start it hasn't: stay black and wait for the settings push instead of
+    -- flashing the built-in default — that default build would announce
+    -- wf_loaded and dismiss the Android loading overlay before the real face
+    -- even starts loading. The default face is strictly a fallback: no face
+    -- configured, or a load failure (both via syncWatchface).
+    if WF._settingsReceived then
+        self:syncWatchface(WF.settings.watchfacePath)
     end
 
     self:wireBridge()
@@ -293,6 +298,10 @@ function WatchfaceScene:loadDefault(msg)
     self:setBg(self._renderer.bgColor)
     self._currentPath = false   -- false = built-in default is on screen
     self:afterLoad()
+    -- The built-in face counts as a successful build: Kotlin keys the loading
+    -- placeholder AND the renderer watchdog on a wf_loaded after every load
+    -- request (watchface change / reload / reset), including fallbacks.
+    Bridge.sendToAndroid("wf_loaded", "default")
     if msg then self:flashStatus(msg) end
 end
 
@@ -319,7 +328,7 @@ end
 -- frame. `path` is a real path string, or false/"" for the built-in default.
 -- Last write wins, so a burst of settings pushes coalesces into a single load.
 function WatchfaceScene:requestLoad(path)
-    self._pendingLoad = { path = path }
+    self._pendingLoad = { path = path, defer = 1 }
 end
 
 -- Perform any queued load. Called only from the scheduler pump (GL context
@@ -329,6 +338,17 @@ end
 function WatchfaceScene:serviceLoad()
     local req = self._pendingLoad
     if not req then return end
+    -- Let one frame present before the blocking load. After a surface
+    -- (re)creation — returning home from the selector — GLSurfaceView's
+    -- surfaceChanged BLOCKS the Android main thread until the GL thread swaps
+    -- a frame; loading inside that first frame freezes the whole app UI
+    -- (stuck selector zoom, loading overlay never drawn) for the entire
+    -- extract+build. One presented frame releases the main thread and lets
+    -- the loading overlay appear and animate while the load runs.
+    if req.defer > 0 then
+        req.defer = req.defer - 1
+        return
+    end
     self._pendingLoad = nil
     self:syncWatchface(req.path)
 end
@@ -348,7 +368,7 @@ function WatchfaceScene:syncWatchface(path)
             self._failedPath = path
             self:loadDefault("Couldn't load watchface — showing default")
         end
-    else
+    elseif WF._settingsReceived then
         if self._currentPath ~= false then
             self:loadDefault()                  -- switched to no/default watchface
         else
@@ -356,6 +376,8 @@ function WatchfaceScene:syncWatchface(path)
         end
         self._failedPath = nil
     end
+    -- else: no settings push yet (cold start) — keep waiting under the loading
+    -- overlay; the settings push queues another load when it lands.
 end
 
 function WatchfaceScene:wireBridge()
@@ -399,6 +421,7 @@ end
 -- coordinates, then let the renderer pick the tapped layer.
 function WatchfaceScene:onTouch(x, y, action)
     if action ~= 1 then return end              -- MotionEvent.ACTION_UP only
+    if self._currentPath == nil then return end -- nothing loaded yet (cold-start wait)
     local glY = self._H - y                     -- android Y-down → cocos Y-up
     local sx, sy = self._stage:getPosition()
     local sc = self._stage:getScale()

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Merged into WatchfaceLoadingOverlay (FrameLayout). Shown over the Axmol
+     surface while a watchface loads: its preview stretched full-bleed, a scrim
+     for contrast, and the animated app-icon indicator with a loading label. -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ImageView
+        android:id="@+id/wfLoadingPreview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:background="@color/clox_bg"
+        android:importantForAccessibility="no" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/wf_loading_scrim" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <FrameLayout
+            android:id="@+id/wfLoadingIcon"
+            android:layout_width="88dp"
+            android:layout_height="88dp">
+
+            <com.ailife.clox.watchface.loading.SquircleIconView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- AVD: animates on the RenderThread, immune to main-thread jank -->
+            <ImageView
+                android:id="@+id/wfLoadingSticks"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/avd_x_loading"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/wfLoadingText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/wf_loading"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="@color/on_dark_medium" />
+    </LinearLayout>
+</merge>

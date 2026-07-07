@@ -155,6 +155,13 @@ function WatchfaceBridgeDispatch(jsonStr)
 
     WF[category] = data  -- replace snapshot; always read WF.x.y, never cache WF.x
 
+    -- The pre-initialised WF.settings stub has watchfacePath = false, which is
+    -- ALSO what Java sends when no face is configured — the value alone cannot
+    -- tell "not yet received" from "default face requested". This flag can:
+    -- face loading is gated on it so a cold start waits for the real settings
+    -- push instead of flashing (and announcing) the built-in default.
+    if category == "settings" then WF._settingsReceived = true end
+
     local handlers = WatchfaceBridge._handlers[category]
     if handlers then
         for _, h in ipairs(handlers) do

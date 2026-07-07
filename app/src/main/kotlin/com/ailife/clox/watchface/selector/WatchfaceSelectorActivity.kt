@@ -31,6 +31,7 @@ import com.ailife.clox.watchface.WatchfaceItem
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
 import com.ailife.clox.watchface.WatchfaceSnapshot
+import com.ailife.clox.watchface.loading.WatchfaceLoadingOverlay
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -349,14 +350,38 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
     // ── Watchface selection ───────────────────────────────────────────────────
 
-    private fun selectWatchface(item: WatchfaceItem, previewImageView: ImageView) {
-        WatchfacePrefs.setActivePath(this, item.absolutePath)
+    private var loadingOverlay: WatchfaceLoadingOverlay? = null
 
+    /**
+     * Commit the selection and leave, covering the window handoff with the SAME
+     * loading UI MainActivity shows. The swap back to home takes several hundred
+     * ms on this hardware (home's window surface must be re-created and its
+     * first GL frame gates the transition) — with identical loading content in
+     * both windows the swap is invisible instead of a frozen last frame.
+     * The pref is set only here, AFTER any zoom animation: the pref change
+     * kicks off the Lua face load, whose CPU work would starve the animation.
+     */
+    private fun showLoadingHandoff(path: String, preview: android.graphics.Bitmap?) {
+        val overlay = loadingOverlay ?: WatchfaceLoadingOverlay(this).also {
+            it.isClickable = true   // selection is committed — swallow further taps
+            findViewById<android.view.ViewGroup>(android.R.id.content).addView(
+                it,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            loadingOverlay = it
+        }
+        overlay.show(preview)
+        WatchfacePrefs.setActivePath(this, path)
+        finishWithNoAnim()
+    }
+
+    private fun selectWatchface(item: WatchfaceItem, previewImageView: ImageView) {
         val preview = (previewImageView.drawable as? BitmapDrawable)?.bitmap
             ?: WatchfaceRepository.getPreviewCached(item.absolutePath)
 
         if (preview == null) {
-            finishWithNoAnim()
+            showLoadingHandoff(item.absolutePath, null)
             return
         }
 
@@ -378,18 +403,25 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
 
+        // A plain withEndAction is not enough — it is skipped when the animation
+        // is cancelled (activity destroyed mid-zoom), which would silently drop
+        // the selection; onAnimationEnd fires on cancel too.
         overlay.animate()
             .translationX(0f).translationY(0f)
             .scaleX(1f).scaleY(1f)
             .setDuration(300)
             .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction { finishWithNoAnim() }
+            .setListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    overlay.animate().setListener(null)
+                    showLoadingHandoff(item.absolutePath, preview)
+                }
+            })
             .start()
     }
 
     private fun selectDefault() {
-        WatchfacePrefs.setActivePath(this, "")
-        finishWithNoAnim()
+        showLoadingHandoff("", null)
     }
 
     private fun finishWithNoAnim() {
@@ -563,9 +595,8 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             val items = withContext(Dispatchers.IO) { WatchfaceRepository.scan(this@WatchfaceSelectorActivity) }
             if (items.isEmpty()) return@launch
             val pick = items.random()
-            WatchfacePrefs.setActivePath(this@WatchfaceSelectorActivity, pick.absolutePath)
             android.widget.Toast.makeText(this@WatchfaceSelectorActivity, getString(R.string.toast_wf_selected, pick.name), android.widget.Toast.LENGTH_SHORT).show()
-            finishWithNoAnim()
+            showLoadingHandoff(pick.absolutePath, WatchfaceRepository.getPreviewCached(pick.absolutePath))
         }
     }
 

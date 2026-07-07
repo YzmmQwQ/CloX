@@ -140,8 +140,17 @@ class WatchfaceBridgeManager(
         }
     }
 
+    /**
+     * Notified whenever a face load is expected (watchface change, reload,
+     * reset) — NOT for the startup liveness watch, which may never see a
+     * wf_loaded on a reused engine. HomeFragment uses this to show the
+     * loading placeholder; the matching hide is the wf_loaded Lua event.
+     */
+    var onFaceLoadExpected: ((String) -> Unit)? = null
+
     /** A face load is expected now: watch for wf_loaded (strike-based). */
     private fun expectFaceLoad(reason: String) {
+        onFaceLoadExpected?.invoke(reason)
         startRendererWatch(reason, android.os.SystemClock.elapsedRealtime())
     }
 
