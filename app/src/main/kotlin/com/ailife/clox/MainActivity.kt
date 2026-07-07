@@ -1306,6 +1306,19 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         gestureRoot.widgetOverlayActive = { overlayController.isWidgetActive() }
         gestureRoot.widgetListCanScrollUp = { widgets.canScrollUp() }
 
+        // Double-tap detection is active only when an action is configured;
+        // whether single taps are additionally held for the double-tap window
+        // (blocking the first tap at ~300ms latency cost) is the user's choice —
+        // holding makes tap-heavy faces like stopwatches sluggish.
+        gestureRoot.doubleTapArmed = {
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+                .getString("double_tap_action", "screen_off") != "nothing"
+        }
+        gestureRoot.holdTapForDoubleTap = {
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean("double_tap_hold_taps", false)
+        }
+
         gestureRoot.doubleTapListener = {
             if (RtosManager.isActive) {
                 // RTOS active: tap feeds unlock handler only (already done in dispatchTouchEvent)

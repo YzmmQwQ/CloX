@@ -47,6 +47,24 @@
                         android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
 
+                <!-- Block first tap while waiting for a double tap -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_double_tap_hold_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:text="@string/pref_double_tap_hold_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchDoubleTapHold"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
                 <!-- Long press -->
                 <LinearLayout android:id="@+id/rowLongPress"
                     android:layout_width="match_parent" android:layout_height="wrap_content"

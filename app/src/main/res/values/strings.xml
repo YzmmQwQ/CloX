@@ -30,6 +30,8 @@
 
     <!-- ── Settings ─────────────────────────────────────────────────────────── -->
     <string name="pref_double_tap_title">Double-tap action</string>
+    <string name="pref_double_tap_hold_title">Block first tap of double-tap</string>
+    <string name="pref_double_tap_hold_summary">Hold watchface taps briefly so a double-tap doesn\'t also trigger the face\'s tap action. Adds a short delay to every tap — turn off for stopwatch-style faces.</string>
     <string name="pref_icon_pack_title">Global icon pack</string>
     <string name="pref_icon_pack_none">None (system icons)</string>
     <string name="pref_blur_mode_title">Blur mode</string>

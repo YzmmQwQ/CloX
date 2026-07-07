@@ -63,6 +63,23 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     var doubleTapListener: (() -> Unit)? = null
     var longPressListener: (() -> Unit)? = null
 
+    /**
+     * Returns true when a double-tap action is actually configured. When armed,
+     * two quick nearby taps fire the double-tap gesture (and the second tap is
+     * never passed to Lua); when not armed, two quick taps are just two taps.
+     * (AOD lock arms double tap implicitly — it is the unlock gesture.)
+     */
+    var doubleTapArmed: (() -> Boolean)? = null
+
+    /**
+     * Returns true when single taps should additionally be HELD for the
+     * double-tap window before being passed to Lua, so the FIRST tap of a
+     * double tap never reaches the watchface either. Costs ~300ms of tap
+     * latency — user-controlled, since it makes tap-heavy faces (stopwatches)
+     * sluggish; when off, the first tap of a double tap reaches the face.
+     */
+    var holdTapForDoubleTap: (() -> Boolean)? = null
+
     // RTOS mode 1: when true all gestures and touches are blocked (watchface only mode)
     var rtosActive: Boolean = false
     // RTOS mode 2: gestures work but long press must not fire haptic (interferes with password)
@@ -71,6 +88,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     var rtosQsOverlayVisible: (() -> Boolean)? = null
 
     private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
+    private val doubleTapSlop = ViewConfiguration.get(ctx).scaledDoubleTapSlop
+    private val doubleTapTimeout = ViewConfiguration.getDoubleTapTimeout().toLong()
     private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
     private val directionRatio = 1.5f
 
@@ -80,6 +99,9 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private var isDragging = false
     private var dragDirection: SwipeDirection? = null
     private var lastTapTime = 0L
+    private var lastTapX = 0f
+    private var lastTapY = 0f
+    private var pendingLuaTap: Runnable? = null
 
     private val longPressHandler = Handler(Looper.getMainLooper())
     private var longPressRunnable: Runnable? = null
@@ -249,26 +271,61 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         parent?.requestDisallowInterceptTouchEvent(true)
     }
 
+    /** True when the bare watchface is the front surface (no app list / overlay). */
+    private fun watchfaceVisible(): Boolean = !appListOpen &&
+        qsOverlayActive?.invoke() != true &&
+        notificationOverlayActive?.invoke() != true &&
+        widgetOverlayActive?.invoke() != true
+
     private fun handleTap(ev: MotionEvent) {
-        if (ev.actionMasked == MotionEvent.ACTION_UP) {
-            val now = System.currentTimeMillis()
-            val isDoubleTap = now - lastTapTime < 300L
-            lastTapTime = now
-            if (isDoubleTap) {
-                // Double tap: only execute on watchface (no overlay, no applist).
-                // When AOD-locked, always fires (to allow unlocking).
-                val watchfaceVisible = !appListOpen &&
-                    qsOverlayActive?.invoke() != true &&
-                    notificationOverlayActive?.invoke() != true &&
-                    widgetOverlayActive?.invoke() != true
-                if (GestureLockManager.isAodLocked || watchfaceVisible) {
-                    doubleTapListener?.invoke()
-                }
-            } else if (!GestureLockManager.isAodLocked && !rtosActive) {
-                // Single tap: pass to Lua unless AOD-locked or RTOS active
-                LuaBridge.passTouch(ev.x, ev.y, ev.action)
+        if (ev.actionMasked != MotionEvent.ACTION_UP) return
+        val now = System.currentTimeMillis()
+        // AOD lock always arms double tap — it is the unlock gesture.
+        val armed = GestureLockManager.isAodLocked || doubleTapArmed?.invoke() != false
+        // A double tap needs proximity, not just timing: two taps on opposite
+        // screen edges are two separate taps, no matter how quick.
+        val dx = ev.x - lastTapX
+        val dy = ev.y - lastTapY
+        val isDoubleTap = armed && now - lastTapTime < doubleTapTimeout &&
+            dx * dx + dy * dy <= (doubleTapSlop * doubleTapSlop).toFloat()
+        if (isDoubleTap) {
+            lastTapTime = 0L                     // a third tap starts a fresh sequence
+            cancelPendingLuaTap()                // first tap must not reach the watchface
+            // Double tap only executes on the bare watchface (or AOD-locked, to unlock).
+            if (GestureLockManager.isAodLocked || watchfaceVisible()) {
+                doubleTapListener?.invoke()
             }
+            return
         }
+        lastTapTime = now; lastTapX = ev.x; lastTapY = ev.y
+        if (GestureLockManager.isAodLocked || rtosActive) return
+        // Taps belong to the watchface only when it is the front surface — a tap
+        // on app-list / overlay empty space must never fall through to Lua.
+        if (!watchfaceVisible()) return
+        if (armed && holdTapForDoubleTap?.invoke() == true) {
+            // Hold the tap for the double-tap window; a second tap cancels it so
+            // an intercepted double press never also fires the watchface tap.
+            val x = ev.x; val y = ev.y; val action = ev.action
+            val r = Runnable {
+                pendingLuaTap = null
+                LuaBridge.passTouch(x, y, action)
+            }
+            pendingLuaTap = r
+            longPressHandler.postDelayed(r, doubleTapTimeout)
+        } else {
+            LuaBridge.passTouch(ev.x, ev.y, ev.action)
+        }
+    }
+
+    private fun cancelPendingLuaTap() {
+        pendingLuaTap?.let { longPressHandler.removeCallbacks(it) }
+        pendingLuaTap = null
+    }
+
+    override fun onDetachedFromWindow() {
+        cancelPendingLuaTap()
+        cancelLongPressGesture()
+        super.onDetachedFromWindow()
     }
 
     private fun reset() {

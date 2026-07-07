@@ -40,6 +40,13 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             }
         }
 
+        // Block first tap while waiting for a double tap
+        val switchDoubleTapHold = view.findViewById<MaterialSwitch>(R.id.switchDoubleTapHold)
+        switchDoubleTapHold.isChecked = prefs.getBoolean("double_tap_hold_taps", false)
+        switchDoubleTapHold.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean("double_tap_hold_taps", checked).apply()
+        }
+
         // Long press
         val tvLongPress = view.findViewById<TextView>(R.id.tvLongPress)
         fun refreshLongPress() {
