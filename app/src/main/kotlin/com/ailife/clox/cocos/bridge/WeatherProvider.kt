@@ -158,8 +158,9 @@ sealed class WeatherProvider {
         if (WeatherPrefs.autoLanguage(ctx)) Locale.getDefault().language.lowercase(Locale.US)
         else "en"
 
+    // 6 days: {wf0d*}..{wf5d*} — today + 5 ahead (WM serves all six)
     protected fun emptyHourly() = List(12) { WeatherResult.HourlyItem(0f, "", 0) }
-    protected fun emptyDaily()  = List(5)  { WeatherResult.DailyItem(0f, 0f, 0f, "", 0) }
+    protected fun emptyDaily()  = List(6)  { WeatherResult.DailyItem(0f, 0f, 0f, "", 0) }
 
     // ── MET.no ───────────────────────────────────────────────────────────────
 
@@ -193,23 +194,25 @@ sealed class WeatherProvider {
                 symbolCode = curData.getJSONObject("next_6_hours").getJSONObject("summary").getString("symbol_code")
             }
 
-            // Sunrise/sunset via v3 API
+            // Sunrise/sunset via v3 API. No `offset` query param: its "+" was
+            // sent unencoded (server saw " 08:00" → error), and the response
+            // times carry their own offset anyway — which Instant.parse can't
+            // read (it wants ISO_INSTANT/Z), so both ends were broken and the
+            // 06:00/18:00 defaults always won. OffsetDateTime handles the
+            // "+HH:MM"-suffixed times the API returns.
             val today = LocalDate.now()
             val zone  = ZoneId.systemDefault()
-            val offset = zone.rules.getOffset(Instant.now())
-            val totalH = offset.totalSeconds / 3600
-            val offsetStr = "%+03d:00".format(totalH)
             val sunUrl = "https://api.met.no/weatherapi/sunrise/3.0/sun" +
-                "?lat=%.4f&lon=%.4f&date=%s&offset=%s".format(lat, lon, today, offsetStr)
+                "?lat=%.4f&lon=%.4f&date=%s".format(lat, lon, today)
             var sunrise = "06:00"; var sunset = "18:00"
             try {
                 val sunRoot = JSONObject(fetchJson(sunUrl, ua))
                 val props = sunRoot.getJSONObject("properties")
                 val fmt = DateTimeFormatter.ofPattern("HH:mm")
-                sunrise = Instant.parse(props.getJSONObject("sunrise").getString("time"))
-                    .atZone(zone).toLocalTime().format(fmt)
-                sunset = Instant.parse(props.getJSONObject("sunset").getString("time"))
-                    .atZone(zone).toLocalTime().format(fmt)
+                sunrise = java.time.OffsetDateTime.parse(props.getJSONObject("sunrise").getString("time"))
+                    .atZoneSameInstant(zone).toLocalTime().format(fmt)
+                sunset = java.time.OffsetDateTime.parse(props.getJSONObject("sunset").getString("time"))
+                    .atZoneSameInstant(zone).toLocalTime().format(fmt)
             } catch (_: Exception) {}
 
             val daytime = isDaytime(sunrise, sunset)
@@ -227,7 +230,7 @@ sealed class WeatherProvider {
                 hourly += WeatherResult.HourlyItem(eTemp, symText(eSym), mapMetNoSymbol(eSym, true))
             }
 
-            // 5-day forecast: group by date, min/max from instant temps
+            // 6-day forecast: group by date, min/max from instant temps
             val daily = buildMetNoDailyForecast(timeseries, today)
 
             val high = daily.firstOrNull()?.high ?: currentTemp
@@ -248,7 +251,7 @@ sealed class WeatherProvider {
             for (i in 0 until ts.length()) {
                 val entry = ts.getJSONObject(i)
                 val date = Instant.parse(entry.getString("time")).atZone(zone).toLocalDate()
-                if (date < today || date >= today.plusDays(5)) continue
+                if (date < today || date >= today.plusDays(6)) continue
                 val agg = map.getOrPut(date) { DayAgg() }
                 val t = entry.getJSONObject("data").getJSONObject("instant").getJSONObject("details").getDouble("air_temperature").toFloat()
                 if (t < agg.min) agg.min = t; if (t > agg.max) agg.max = t
@@ -262,7 +265,31 @@ sealed class WeatherProvider {
             }
         }
 
-        private fun symText(sym: String) = sym.split("_")[0].replace("heavy", "heavy ").replace("light", "light ").capitalize(Locale.US)
+        // met.no symbol bases are glued-together words ("partlycloudy",
+        // "lightrainshowersandthunder") — WM shows spaced text ("Partly
+        // cloudy"). Greedy longest-prefix tokenisation over the known parts.
+        private val SYM_TOKENS = listOf(
+            "showers", "partly", "cloudy", "thunder", "clear", "heavy", "light",
+            "sleet", "storm", "rain", "snow", "fair", "fog", "sky", "and"
+        )
+        private fun symText(sym: String): String {
+            var rest = sym.split("_")[0]
+            val words = mutableListOf<String>()
+            var glue = StringBuilder()
+            while (rest.isNotEmpty()) {
+                val tok = SYM_TOKENS.firstOrNull { rest.startsWith(it) }
+                if (tok != null) {
+                    if (glue.isNotEmpty()) { words += glue.toString(); glue = StringBuilder() }
+                    words += tok
+                    rest = rest.substring(tok.length)
+                } else {
+                    glue.append(rest[0])
+                    rest = rest.substring(1)
+                }
+            }
+            if (glue.isNotEmpty()) words += glue.toString()
+            return words.joinToString(" ").replaceFirstChar { it.uppercase(Locale.US) }
+        }
 
         private fun mapMetNoSymbol(sym: String, day: Boolean): Int {
             val base = sym.split("_")[0]
@@ -324,7 +351,7 @@ sealed class WeatherProvider {
                 WeatherResult.HourlyItem(hTemps.getDouble(i).toFloat(), wmoText(ctx, code), mapWmo(code))
             }
 
-            val days = (0 until minOf(high5.length(), 5)).map { i ->
+            val days = (0 until minOf(high5.length(), 6)).map { i ->
                 val dCode = wmo5.getInt(i)
                 val avg = ((high5.getDouble(i) + low5.getDouble(i)) / 2).toFloat()
                 WeatherResult.DailyItem(avg, high5.getDouble(i).toFloat(), low5.getDouble(i).toFloat(), wmoText(ctx, dCode), mapWmo(dCode))
@@ -413,7 +440,7 @@ sealed class WeatherProvider {
                 )
             }
 
-            val daily = (0 until minOf(fdays.length(), 5)).map { i ->
+            val daily = (0 until minOf(fdays.length(), 6)).map { i ->
                 val d = fdays.getJSONObject(i).getJSONObject("day")
                 val max = d.getDouble("maxtemp_c").toFloat()
                 val min = d.getDouble("mintemp_c").toFloat()
@@ -492,7 +519,7 @@ sealed class WeatherProvider {
                 WeatherResult.HourlyItem(h.getDouble("temp").toFloat(), hw.getString("description").replaceFirstChar { it.uppercase() }, mapOwmCode(hw.getInt("id")))
             }
 
-            val days = (0 until minOf(daily.length(), 5)).map { i ->
+            val days = (0 until minOf(daily.length(), 6)).map { i ->
                 val d = daily.getJSONObject(i)
                 val max = d.getJSONObject("temp").getDouble("max").toFloat()
                 val min = d.getJSONObject("temp").getDouble("min").toFloat()
@@ -567,9 +594,9 @@ sealed class WeatherProvider {
                 }
             }
 
-            // 3-day forecast (pad to 5 with empty)
+            // 3-day forecast (pad to 6 with empty)
             val daily = mutableListOf<WeatherResult.DailyItem>()
-            for (di in 0 until minOf(weather.length(), 5)) {
+            for (di in 0 until minOf(weather.length(), 6)) {
                 val d = weather.getJSONObject(di)
                 val max = d.getString("maxtempC").toFloat()
                 val min = d.getString("mintempC").toFloat()
@@ -579,7 +606,7 @@ sealed class WeatherProvider {
                 val dText = dh.getJSONObject(dh.length() / 2).getJSONArray("weatherDesc").getJSONObject(0).optString("value", "")
                 daily += WeatherResult.DailyItem(avg, max, min, dText, mapWttrCode(dCode))
             }
-            while (daily.size < 5) daily += WeatherResult.DailyItem(0f, 0f, 0f, "", 0)
+            while (daily.size < 6) daily += WeatherResult.DailyItem(0f, 0f, 0f, "", 0)
 
             // Moon phase from wttr.in astronomy
             val moonIllum = astro.optString("moon_illumination", "0").toDoubleOrNull() ?: 0.0

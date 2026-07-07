@@ -51,6 +51,39 @@ end
 
 local function h12of(h23) local h = h23 % 12; if h == 0 then h = 12 end return h end
 
+-- number → English words for the spelled-out time tags ({dht}/{dmat}/{dsat}…).
+-- WM writes compounds with a space: 46 → "forty six".
+local ONES = { [0]="zero","one","two","three","four","five","six","seven","eight","nine",
+               "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen",
+               "seventeen","eighteen","nineteen" }
+local TENS = { [2]="twenty",[3]="thirty",[4]="forty",[5]="fifty" }
+local function numWord(n)
+    n = floor(n)
+    if n < 0 then n = 0 end
+    if n < 20 then return ONES[n] end
+    local t, o = floor(n / 10), n % 10
+    if o == 0 then return TENS[t] or "" end
+    return (TENS[t] or "") .. " " .. ONES[o]
+end
+
+-- WM/UL word-clock split for minutes/seconds (UL WatchSkin ground truth):
+--   0     → "o'" / "clock"        1–9  → "o'" / "three"
+--   10–19 → "eleven" / ""         20+  → "forty" / "six" ("" on exact tens)
+local function timeWordParts(n)
+    if n == 0 then return "o'", "clock" end
+    if n < 10 then return "o'", ONES[n] end
+    if n < 20 then return ONES[n], "" end
+    local o = n % 10
+    return TENS[floor(n / 10)] or "", (o == 0) and "" or ONES[o]
+end
+-- full form: "o'clock" / "o'three" (no space after o'), "eleven", "forty six"
+local function timeWordFull(n)
+    local a, b = timeWordParts(n)
+    if a == "o'" then return a .. b end
+    if b == "" then return a end
+    return a .. " " .. b
+end
+
 -- "HH:MM"(:SS) clock string → fraction of the day (0..1); 0 when absent or
 -- unparseable. Byte walk, no patterns (runtime path). Used by {wsrp}/{wssp}.
 local function dayFrac(hm)
@@ -93,20 +126,21 @@ def("ms", {
 })
 
 -- stopwatch — shared state in wf_stopwatch, driven by the sw_start_stop /
--- sw_reset tap actions. Values match UL WatchSkin: swh/swm/sws/swss/swsss
--- are plain NUMBERS (UL stopped zero-padding them); the tsw* variants are
--- the zero-padded strings faces embed in text. While stopped the values
--- don't change, so the ms recompute is diffed away.
+-- sw_reset tap actions. WM renders swh/swm/sws/swss/swsss as ZERO-PADDED
+-- strings ("00","02","68","689" — screenshot-confirmed vs WatchMaker
+-- 2026-07-07; an earlier note claimed UL-style plain numbers). The tsw*
+-- variants are UL-only aliases (WM leaves them empty) and stay padded too.
+-- While stopped the values don't change, so the ms recompute is diffed away.
 local SW = require "wf_stopwatch"
 local function swms(c) return SW.durationMs(c.elapsed) end
 def("ms", {
     swr   = function()  return boolStr(SW.running) end,
     swsst = function(c) return floor(swms(c)) end,
-    swh   = function(c) return floor(swms(c) / 3600000) end,
-    swm   = function(c) return floor(swms(c) % 3600000 / 60000) end,
-    sws   = function(c) return floor(swms(c) % 60000 / 1000) end,
-    swss  = function(c) return floor(swms(c) % 1000 / 10) end,
-    swsss = function(c) return floor(swms(c) % 1000) end,
+    swh   = function(c) return z2(floor(swms(c) / 3600000)) end,
+    swm   = function(c) return z2(floor(swms(c) % 3600000 / 60000)) end,
+    sws   = function(c) return z2(floor(swms(c) % 60000 / 1000)) end,
+    swss  = function(c) return z2(floor(swms(c) % 1000 / 10)) end,
+    swsss = function(c) return fmt("%03d", floor(swms(c) % 1000)) end,
     tswh  = function(c) return z2(floor(swms(c) / 3600000)) end,
     tswm  = function(c) return z2(floor(swms(c) % 3600000 / 60000)) end,
     tsws  = function(c) return z2(floor(swms(c) % 60000 / 1000)) end,
@@ -127,6 +161,9 @@ def("second", {
     dsz  = function(c) return z2(c.t.sec) end,
     dst  = function(c) return floor(c.t.sec / 10) end,
     dso  = function(c) return c.t.sec % 10 end,
+    dsat = function(c) return timeWordFull(c.t.sec) end,
+    dstt = function(c) local a = timeWordParts(c.t.sec) return a end,
+    dsot = function(c) local _, b = timeWordParts(c.t.sec) return b end,
     drs  = function(c) return c.t.sec / 60 * 360 end,
     dtp  = function(c) return (c.t.hour * 3600 + c.t.min * 60 + c.t.sec) / 86400 end,
     depoch = function(c) return c:epoch() end,
@@ -138,6 +175,9 @@ def("minute", {
     dmz  = function(c) return z2(c.t.min) end,
     dmt  = function(c) return floor(c.t.min / 10) end,
     dmo  = function(c) return c.t.min % 10 end,
+    dmat = function(c) return timeWordFull(c.t.min) end,
+    dmtt = function(c) local a = timeWordParts(c.t.min) return a end,
+    dmot = function(c) local _, b = timeWordParts(c.t.min) return b end,
     drm  = function(c) return (c.t.min + c.t.sec / 60) / 60 * 360 end,
     drh  = function(c) return ((c.t.hour % 12) + c.t.min / 60 + c.t.sec / 3600) / 12 * 360 end,
     drh24 = function(c) return (c.t.hour + c.t.min / 60) / 24 * 360 end,
@@ -164,6 +204,19 @@ def("hour", {
     dh24to = function(c) local h = (c.t.hour == 0) and 24 or c.t.hour; return h % 10 end,
     dh23tt = function(c) return floor(c.t.hour / 10) end,
     dh23to = function(c) return c.t.hour % 10 end,
+    dht    = function(c) return numWord(h12of(c.t.hour)) end,
+    dh24t  = function(c) return numWord((c.t.hour == 0) and 24 or c.t.hour) end,
+    -- UTC offset as ±HHMM ("+0800"); minute math across the local/UTC day
+    -- boundary, clamping the month wrap to ±1 day.
+    dutcoff = function(c)
+        local lt, ut = c.t, c:utc()
+        local dayd = lt.day - ut.day
+        if dayd > 1 then dayd = -1 elseif dayd < -1 then dayd = 1 end
+        local diff = (lt.hour * 60 + lt.min) - (ut.hour * 60 + ut.min) + dayd * 1440
+        local sign = diff < 0 and "-" or "+"
+        local a = diff < 0 and -diff or diff
+        return sign .. z2(floor(a / 60)) .. z2(a % 60)
+    end,
     dhutc24  = function(c) return c:utc().hour end,
     dhutc24z = function(c) return z2(c:utc().hour) end,
     dhutc12  = function(c) return h12of(c:utc().hour) end,
@@ -193,7 +246,13 @@ def("day", {
     dy   = function(c) return fmt("%02d", c.t.year % 100) end,
     dyy  = function(c) return c.t.year end,
     dw   = function(c) return (tonumber(os.date("%W", c:epoch())) or 0) + 1 end,
-    dwm  = function(c) return floor((c.t.day - 1) / 7) + 1 end,
+    -- calendar week-of-month (WM): week 1 is the week containing the 1st,
+    -- weeks start on Sunday — NOT ceil(day/7) (2026-07-07 is week 2, the
+    -- old formula said 1).
+    dwm  = function(c)
+        local firstW = (c.t.wday - 1 - (c.t.day - 1)) % 7   -- weekday of the 1st, 0=Sun
+        return floor((c.t.day - 1 + firstW) / 7) + 1
+    end,
 })
 
 -- ── battery ──
@@ -208,6 +267,16 @@ def("battery", {
     bc   = function() return WF.battery.charging and "Charging" or "Discharging" end,
     bv   = function() return WF.battery.voltage or 0 end,
     bi   = function() return WF.battery.current or 0 end,
+    -- phone battery {pb*}: standalone watch has no companion phone, so WM
+    -- mirrors the local battery — match that instead of pinning 0.
+    pbl   = function() return floor(num(WF.battery.level)) end,
+    pblp  = function() return floor(num(WF.battery.level)) .. "%" end,
+    pbr   = function() return num(WF.battery.level) * 3.6 end,
+    pbtc  = function() return floor(num(WF.battery.temperature)) end,
+    pbtf  = function() return floor(num(WF.battery.temperature) * 9 / 5 + 32) end,
+    pbtcd = function() return floor(num(WF.battery.temperature)) .. "°C" end,
+    pbtfd = function() return floor(num(WF.battery.temperature) * 9 / 5 + 32) .. "°F" end,
+    pbc   = function() return WF.battery.charging and "Charging" or "Discharging" end,
 })
 
 -- ── weather (current conditions) ──
@@ -239,7 +308,9 @@ def("weather", {
     wwd  = function() return num(WF.weather.windDirection) end,
     wwdb = function() return bearing(num(WF.weather.windDirection), BEAR_8) end,
     wwdbb = function() return bearing(num(WF.weather.windDirection), BEAR_16) end,
-    wcl  = function() return floor(num(WF.weather.cloudiness)) end,
+    -- WM: cloud cover is a 0..1 FRACTION (0.42 = 42%), not the percent the
+    -- providers push — divide down (user-confirmed vs WatchMaker 2026-07-07)
+    wcl  = function() return num(WF.weather.cloudiness) / 100 end,
     wr   = function() return num(WF.weather.rainVolume) end,
     wisday = function() return boolStr(WF.weather.isDaytime) end,
     wsr  = function() return WF.weather.sunrise or "" end,
@@ -255,7 +326,12 @@ def("weather", {
         if f <= 1 then return floor(f * 10) % 10 end
         return floor(f)
     end,
-    wlu  = function() return WF.weather.lastUpdate or 0 end,
+    -- WM shows the last-update moment as a clock string, not epoch millis
+    wlu  = function()
+        local ms = num(WF.weather.lastUpdate)
+        if ms <= 0 then return "" end
+        return os.date("%H:%M:%S", floor(ms / 1000))
+    end,
 })
 
 -- ── health & activity ──
@@ -298,14 +374,17 @@ def("sensor_gyroscope", {
     sgz = function() return num(WF.sensor_gyroscope.z) end,
 })
 local function heading() return (num(WF.sensor_compass.azimuth) + 360) % 360 end
+-- WM formats (screenshot-confirmed 2026-07-07): {sct} is a ROUNDED integer
+-- (335, while {scr} keeps full precision), and the display combos put a
+-- space between degrees and bearing: "335° NW".
 def("sensor_compass", {
     scr  = function() return -heading() end,
-    sct  = function() return heading() end,
-    sctd = function() return fmt("%d°", floor(heading())) end,
+    sct  = function() return floor(heading() + 0.5) % 360 end,
+    sctd = function() return fmt("%d°", floor(heading() + 0.5) % 360) end,
     scb  = function() return bearing(heading(), BEAR_8) end,
     scbb = function() return bearing(heading(), BEAR_16) end,
-    sctdb  = function() return fmt("%d°", floor(heading())) .. bearing(heading(), BEAR_8) end,
-    sctdbb = function() return fmt("%d°", floor(heading())) .. bearing(heading(), BEAR_16) end,
+    sctdb  = function() return fmt("%d° ", floor(heading() + 0.5) % 360) .. bearing(heading(), BEAR_8) end,
+    sctdbb = function() return fmt("%d° ", floor(heading() + 0.5) % 360) .. bearing(heading(), BEAR_16) end,
 })
 def("sensor_barometer", {
     sprs = function() return num(WF.sensor_barometer.pressure) end,
@@ -314,16 +393,35 @@ def("sensor_barometer", {
 -- ── system & device ──
 def("static", {
     aos    = function() return WF.device.osType or "Android" end,
-    aosv   = function() return WF.device.apiLevel or 0 end,
+    -- WM's {aosv} is the Android RELEASE version ("15"), not the SDK int
+    aosv   = function() return WF.device.osVersion or WF.device.apiLevel or 0 end,
     aman   = function() return WF.device.manufacturer or "" end,
     amodel = function() return WF.device.deviceModel or "" end,
     aname  = function() return WF.device.productName or "" end,
     awname = function() return WF.device.deviceLabel or WF.device.deviceModel or "" end,
     around = function() return boolStr(WF.device.isRound) end,
     atyre  = function() return "false" end,
+    adimlo = function() return "false" end,
     alangcode = function() return WF.device.language or "" end,
-    alangfull = function() return WF.device.language or "" end,
+    alangreg  = function() return WF.device.langRegion or "" end,
+    alangfull = function() return WF.device.langFull or WF.device.language or "" end,
     areboot   = function() return WF.device.lastReboot or "" end,
+    ulver     = function() return WF.device.appVersion or "" end,
+})
+-- {abss}/{abssl} — time since bright mode; -1 while dim (WM/UL convention).
+-- Live values, so they sit in the ms bucket and read the renderer's dim state.
+local DIM = require "wf_dimstate"
+def("ms", {
+    abss  = function(c)
+        local s = DIM.brightFor(c.elapsed)
+        return s and floor(s * 1000) or -1
+    end,
+    abssl = function(c)
+        local s = DIM.brightFor(c.elapsed)
+        if not s then return -1 end
+        if s > 30 then return 30 end
+        return floor(s * 1000) / 1000
+    end,
 })
 -- abright tracks AOD state, which arrives on the settings push — the old
 -- STATIC classification meant it never updated after load.
@@ -348,7 +446,16 @@ def("location", {
 -- ── memory & storage (bytes → GB strings) ──
 local GB = 1073741824
 local function gb1(bytes) return fmt("%.1f", num(bytes) / GB) end
+local function pct1(part, total)
+    total = num(total)
+    if total <= 0 then return "0" end
+    return fmt("%.1f", num(part) / total * 100)
+end
 def("storage", {
+    amup  = function() return pct1(WF.storage.usedRam, WF.storage.totalRam) end,
+    amfp  = function() return pct1(num(WF.storage.totalRam) - num(WF.storage.usedRam), WF.storage.totalRam) end,
+    adsup = function() return pct1(WF.storage.usedStorage, WF.storage.totalStorage) end,
+    adsfp = function() return pct1(num(WF.storage.totalStorage) - num(WF.storage.usedStorage), WF.storage.totalStorage) end,
     amu  = function() return gb1(WF.storage.usedRam) end,
     amuf = function() return gb1(WF.storage.usedRam) .. " GB" end,
     amt  = function() return gb1(WF.storage.totalRam) end,
@@ -517,7 +624,13 @@ local FAMILIES = {
             th = function(d) return floor(num(d.high)) end,
             tl = function(d) return floor(num(d.low)) end,
             ct = function(d) return d.conditionText or "" end,
-            ci = function(d) return tostring(d.conditionIcon or "") end,
+            -- OWM-style icon code like {wci}: zero-padded numeral + suffix
+            -- (WM emits "03d"/"10d", never the bare int; days are always "d")
+            ci = function(d)
+                local n = num(d.conditionIcon)
+                if n <= 0 then return "" end
+                return fmt("%02d", n) .. "d"
+            end,
         }
         local pick = PICK[field]
         if not pick then return nil end
@@ -536,7 +649,13 @@ local FAMILIES = {
             t  = function(h) return floor(num(h.temp)) end,
             h  = function(h) return floor(num(h.hourOfDay)) end,
             ct = function(h) return h.conditionText or "" end,
-            ci = function(h) return tostring(h.conditionIcon or "") end,
+            -- zero-padded icon code; day/night suffix from the slot's hour
+            ci = function(h)
+                local n = num(h.conditionIcon)
+                if n <= 0 then return "" end
+                local hh = floor(num(h.hourOfDay))
+                return fmt("%02d", n) .. ((hh >= 6 and hh < 18) and "d" or "n")
+            end,
         }
         local pick = PICK[field]
         if not pick then return nil end

@@ -40,6 +40,22 @@ function WFExpr.unescape(str)
                :gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&amp;", "&"))
 end
 
+-- ── display formatting for numbers landing in TEXT ────────────────────────────
+-- WM renders numeric tag values with ~6 significant digits and no trailing
+-- ".0" on whole numbers (drh → "263", drss → "238.062"); Lua's tostring gives
+-- "263.0" and full-precision tails ("107.72797190389"). Applied wherever a
+-- tag value becomes display text — never on the numeric attribute path
+-- (rotation/pct_complete keep full precision).
+function WFExpr.fmtnum(v)
+    if type(v) ~= "number" then
+        return v == nil and "" or tostring(v)
+    end
+    if v % 1 == 0 and v >= -9007199254740992 and v <= 9007199254740992 then
+        return string.format("%.0f", v)
+    end
+    return string.format("%.6g", v)
+end
+
 -- ── expression detection (ported verbatim from the old wf_tags heuristics) ────
 -- Applied to the raw string with every {tag} replaced by "0", which mirrors
 -- the old substitute-then-sniff pipeline closely enough: tags resolve to plain
@@ -110,7 +126,10 @@ local function templateSrc(segs)
     if #segs == 1 and segs[1].tag then return tagRef(segs[1].tag) end
     local parts = {}
     for _, s in ipairs(segs) do
-        parts[#parts + 1] = s.lit and string.format("%q", s.lit) or tagRef(s.tag)
+        -- __wn = WFExpr.fmtnum: numbers concatenated into text render
+        -- WM-style ("258", not "258.0"/full-precision tails)
+        parts[#parts + 1] = s.lit and string.format("%q", s.lit)
+            or ("__wn(" .. tagRef(s.tag) .. ")")
     end
     return table.concat(parts, " .. ")
 end
@@ -221,6 +240,8 @@ local function ensureHelpers(sandbox)
         elseif v == "false" then return false end
         return v
     end)
+    -- WM-style number display for template concats (see templateSrc)
+    sandbox:expose("__wn", WFExpr.fmtnum)
 end
 
 local function compileChunk(sandbox, src, label, quiet)

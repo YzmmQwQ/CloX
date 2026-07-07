@@ -19,7 +19,9 @@ object DeviceInfoHelper {
             @Suppress("DEPRECATION")
             ctx.resources.configuration.locale
         }
-        val lang = locale.language + (if (locale.country.isNotEmpty()) "_${locale.country}" else "")
+        // WM splits locale into {alangcode}="en" / {alangreg}="US" / {alangfull}="English"
+        val langFull = locale.getDisplayLanguage(locale)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
 
         val deviceLabel = Settings.Global.getString(ctx.contentResolver, "device_name")
             ?: Settings.Secure.getString(ctx.contentResolver, "bluetooth_name")
@@ -34,7 +36,10 @@ object DeviceInfoHelper {
 
         return JSONObject().apply {
             put("apiLevel",    Build.VERSION.SDK_INT)
-            put("language",    lang)
+            put("osVersion",   Build.VERSION.RELEASE)   // {aosv}: "15", not the SDK int
+            put("language",    locale.language)
+            put("langRegion",  locale.country)
+            put("langFull",    langFull)
             put("deviceLabel", deviceLabel)
             put("deviceModel", Build.MODEL)
             put("manufacturer", Build.MANUFACTURER)

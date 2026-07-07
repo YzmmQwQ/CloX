@@ -2537,6 +2537,7 @@ end
 function WFRender:tick(t, subsec, elapsed, ticks)
     local e = self.engine
     if not e then return end
+    require("wf_dimstate").tick(elapsed)
     e:setClock(t, subsec, elapsed)
     if ticks.day    then e:fire("day")    end
     if ticks.hour   then e:fire("hour")   end
@@ -2548,6 +2549,7 @@ end
 function WFRender:setDim(dim)
     if self.dim == dim then return end
     self.dim = dim
+    require("wf_dimstate").setDim(dim)
     for _, rec in ipairs(self.recs) do
         rec.holder:setVisible(visibleIn(rec.L.display, dim))
     end

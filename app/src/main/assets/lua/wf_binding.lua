@@ -71,7 +71,8 @@ function WFSetterBinding:apply()
     if self.kind == "num" then
         v = tonumber(v) or self.default
     elseif self.kind == "text" then
-        v = v == nil and "" or tostring(v)
+        -- WM-style number display (see WFExpr.fmtnum): "263", not "263.0"
+        v = require("wf_expr").fmtnum(v)
     end
     if v == self.last then return end
     self.last = v

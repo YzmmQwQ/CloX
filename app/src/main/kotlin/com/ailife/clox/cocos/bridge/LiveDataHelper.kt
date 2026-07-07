@@ -196,10 +196,10 @@ object LiveDataHelper {
         val offsetMin = offsetMs / 60_000
         val offsetHrs = offsetMin / 60
         val offsetMinsRem = Math.abs(offsetMin % 60)
-        val offsetStr = "%+03d:%02d".format(offsetHrs, offsetMinsRem)
-        val shortName = try {
-            tz.toZoneId().getDisplayName(java.time.format.TextStyle.SHORT, Locale.US)
-        } catch (_: Exception) { tz.id }
+        // WM formats: {tzNo} without a leading zero ("+8:00", "-7:00"), and
+        // {tzNl} is the last segment of the zone ID ("US/Pacific" → "Pacific")
+        val offsetStr = "%+d:%02d".format(offsetHrs, offsetMinsRem)
+        val shortName = tz.id.substringAfterLast('/').replace('_', ' ')
         return JSONObject().apply {
             put("locationShort",    shortName)
             put("locationLong",     tz.id)

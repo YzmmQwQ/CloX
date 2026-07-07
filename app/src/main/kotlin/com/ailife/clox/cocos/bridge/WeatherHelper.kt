@@ -19,7 +19,7 @@ object WeatherHelper {
             }
         }
         val daily = JSONArray().apply {
-            repeat(5) {
+            repeat(6) {
                 put(JSONObject().apply {
                     put("avgTemp", 0); put("high", 0); put("low", 0)
                     put("conditionText", ""); put("conditionIcon", 0)
