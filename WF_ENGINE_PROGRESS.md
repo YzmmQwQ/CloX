@@ -479,3 +479,21 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   and/or — plain paths/colors stay on the template), exprSrc compiles with
   runtime fallback to the substituted template (UL evaluates every attribute
   as code). Verified: TU highlight in theme blue, battery dot colors live.
+- 2026-07-07: UL evalText parity for tagged TEXT attrs — every one now
+  QUIETLY attempts an expression compile (prose with tags fails silently and
+  stays a template; compileChunk grew a `quiet` flag). Runtime keeps UL's
+  guard: a NUMBER result is discarded when the substituted text is itself
+  purely numeric (zero-padded "07" must not render "7"); false/nil results
+  fall back to the template. Fixes "{wws}*1.6" wind-speed arithmetic
+  (rendered literally — the heuristics only recognised ternaries/calls).
+  Inherits UL's quirks knowingly: "{dd}-{dm}" evaluates to arithmetic.
+- 2026-07-07: multi-value attributes — compileChunk retries as an
+  assignment (`local __a = <src>`) when the paren form fails: UL's bare
+  `return <src>` compiles comma-separated lists (cond_value="{nc}, {pws} >=
+  0.86 and 1 or …") and its single assignment keeps the FIRST value.
+- 2026-07-07 tag fixes: {pws} is a 0..1 FRACTION (UL wifiSignalStrength/100;
+  faces compare >= 0.86 — WM_TAGS.md's "%" row was wrong, corrected there).
+  {wci} emits the real OWM icon code — zero-padded bridge number + d/n
+  suffix from isDaytime (was the bare number "2", matching nothing). Faces
+  comparing only day codes (wf_333) show their fallback at night — face
+  bug, kept as-is per user.

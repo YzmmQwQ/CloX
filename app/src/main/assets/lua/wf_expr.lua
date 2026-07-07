@@ -223,7 +223,7 @@ local function ensureHelpers(sandbox)
     end)
 end
 
-local function compileChunk(sandbox, src, label)
+local function compileChunk(sandbox, src, label, quiet)
     ensureHelpers(sandbox)
     -- The closing paren goes on its OWN line: faces write trailing `--`
     -- comments in expressions ("GetCalX(18)-tweens.anim0--{dd}") and UL's
@@ -231,10 +231,21 @@ local function compileChunk(sandbox, src, label)
     -- On one line the comment would swallow our `)` → "')' expected".
     local fn, err = sandbox:compile("local V = ... return (" .. src .. "\n)", label)
     if not fn then
-        print("[WFExpr] compile failed (" .. tostring(label) .. "): " .. tostring(err)
-              .. " src=" .. src:sub(1, 120))
-        if WFExpr.onError then
-            WFExpr.onError(tostring(label), tostring(err) .. "\nsrc: " .. src:sub(1, 200))
+        -- Comma-separated multi-value attributes exist in the wild
+        -- (cond_value="{nc}, {pws} >= 0.86 and 1 or …") — UL's bare
+        -- `return <src>` compiles the value list and its single assignment
+        -- keeps the FIRST value. The paren form can't parse `(a, b)`;
+        -- retry as an assignment, which truncates identically.
+        local fn2 = sandbox:compile("local V = ... local __a = " .. src .. "\n return __a", label)
+        if fn2 then return fn2 end
+        -- `quiet` marks SPECULATIVE compiles (every tagged text attr tries an
+        -- expression form; prose like "Steps {sc}" legitimately fails)
+        if not quiet then
+            print("[WFExpr] compile failed (" .. tostring(label) .. "): " .. tostring(err)
+                  .. " src=" .. src:sub(1, 120))
+            if WFExpr.onError then
+                WFExpr.onError(tostring(label), tostring(err) .. "\nsrc: " .. src:sub(1, 200))
+            end
         end
     end
     return fn, err
@@ -372,31 +383,33 @@ function WFExpr.compile(raw, kind, engine, sandbox)
         fn = fn or compileChunk(sandbox, templateSrc(segs), "=wf_attr_num")
     else -- "text"
         local tpl = compileChunk(sandbox, templateSrc(segs), "=wf_attr_text")
-        -- Expression-shaped text, OR any text referencing a script variable —
-        -- UL compiles anything containing "var" as code: faces index script
-        -- tables right in the attribute (text="var_date1[{ddw0} +1]"), which
-        -- has no operator/call syntax for the heuristics. A false positive
-        -- still falls back to the substituted template at runtime.
-        if looksLikeExprText(probe) or #identDeps(probe, engine, {}, {}) > 0 then
-            local ex = compileChunk(sandbox, exprSrc(s), "=wf_attr_text_expr")
-            if ex then
-                identDeps(probe, engine, deps, seen)
-                for _, name in ipairs(deps) do engine:activate(name) end
-            end
-            if ex and tpl then
-                -- old evalText contract: run the expression; any failure falls
-                -- back to the substituted template string. pcall only — no
-                -- pattern work in this closure.
-                fn = function(V)
-                    local ok, res = pcall(ex, V)
-                    if ok and res ~= nil then return tostring(res) end
-                    return tpl(V)
+        -- UL's evalText ALWAYS tries the substituted text as Lua (loadstring
+        -- "return <text>") — that's how "{wws}*1.6" arithmetic, ternaries and
+        -- script-table indexing ("var_date1[{ddw0} +1]") all work. The
+        -- attempt is QUIET: prose with tags ("Steps {sc}") fails to compile
+        -- and simply stays a template. One UL guard survives at runtime: a
+        -- numeric expression result is DISCARDED when the substituted text is
+        -- itself purely numeric, so zero-padded "07" doesn't render as "7".
+        local ex = compileChunk(sandbox, exprSrc(s), "=wf_attr_text_expr", true)
+        if ex then
+            identDeps(probe, engine, deps, seen)
+            for _, name in ipairs(deps) do engine:activate(name) end
+        end
+        if ex and tpl then
+            fn = function(V)
+                local ok, res = pcall(ex, V)
+                if ok and res ~= nil and res ~= false then
+                    if type(res) == "number" then
+                        local t = tpl(V)
+                        if tonumber(t) then return t end   -- keep "07"
+                        return tostring(res)
+                    end
+                    return tostring(res)
                 end
-            else
-                fn = ex or tpl
+                return tpl(V)
             end
         else
-            fn = tpl
+            fn = ex or tpl
         end
     end
 

@@ -221,7 +221,17 @@ def("weather", {
     wtl  = function() return floor(num(WF.weather.lowTemp)) end,
     wtld = function() return floor(num(WF.weather.lowTemp)) .. "°" .. (WF.weather.tempUnit or "C") end,
     wct  = function() return WF.weather.conditionText or "" end,
-    wci  = function() return tostring(WF.weather.conditionIcon or "") end,
+    wci  = function()
+        -- WM's {wci} is the OWM icon CODE ("01d".."50n") that faces compare
+        -- with == "01d" etc; the bridge pushes the numeric part only
+        -- (1,2,3,4,9,10,11,13,50) — zero-pad and add the day/night suffix.
+        -- (Faces that compare ONLY day codes render their fallback at night;
+        -- that's the face's bug — UL never even updates wci past its static
+        -- "01d" stub.)
+        local n = num(WF.weather.conditionIcon)
+        if n <= 0 then return "" end
+        return fmt("%02d", n) .. (WF.weather.isDaytime == false and "n" or "d")
+    end,
     wh   = function() return floor(num(WF.weather.humidity)) end,
     whp  = function() return floor(num(WF.weather.humidity)) .. "%" end,
     wp   = function() return floor(num(WF.weather.pressure)) end,
@@ -358,7 +368,9 @@ def("network", {
     nc   = function() return boolStr(WF.network.wifiConnected or WF.network.dataConnected) end,
     ncc  = function() return boolStr(WF.network.dataConnected) end,
     pwc  = function() return boolStr(WF.network.wifiConnected) end,
-    pws  = function() return floor(num(WF.network.wifiSignal) / 4 * 100) end,
+    -- UL: pws is a 0..1 FRACTION (wifiSignalStrength/100), NOT the percent
+    -- WM_TAGS.md claims — faces compare `{pws} >= 0.86` for signal bars.
+    pws  = function() return num(WF.network.wifiSignal) / 4 end,
     nwip = function() return WF.network.wifiIp or "" end,
 })
 def("connectivity", {
