@@ -256,7 +256,16 @@ function WFScript.new(engine, sandbox, actionHandler)
 
     -- helpers visible to the script (installed on the raw sandbox env so the
     -- proxy read path finds them after the shadow store)
-    base.wm_tag = function(t) return eng:resolve(tostring(t or "")) end
+    -- Faces call wm_tag both ways: wm_tag('drss') and wm_tag('{c1t}') —
+    -- strip braces before resolving. Unknown tags return 0 (the engine's
+    -- unknown-attribute-tag rule / UL's nil-global substitution), never nil:
+    -- scripts feed the result straight into string.len()/comparisons.
+    base.wm_tag = function(t)
+        local name = tostring(t or ""):gsub("[{}]", "")
+        local v = eng:resolve(name)
+        if v == nil then return 0 end
+        return v
+    end
     base.wm_action = function(a)
         if type(a) == "string" and actionHandler then actionHandler(a) end
     end

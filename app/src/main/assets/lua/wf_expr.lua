@@ -182,33 +182,27 @@ local function exprSrc(raw)
     return table.concat(out)
 end
 
--- Bare identifiers the engine can resolve live (script variables like
--- var_img, or catalogue tags used without braces). They resolve through the
--- sandbox env proxy at eval time, but they must ALSO be dependencies — an
--- attribute like opacity="var_img == 1 and 100 or 0" has no {tag} at all, and
--- without this it would freeze as a constant at load. False positives (a tag
--- name inside a string literal) only cost a redundant bucket entry; the
--- value diff in the binding suppresses the apply.
+-- Bare identifiers attributes can reference live. By WatchMaker convention
+-- these are ONLY script variables (var_* — always that prefix, even when the
+-- script hasn't WRITTEN them yet: activation gives a neutral 0 and the first
+-- write publishes into the same tag) and dotted tween references
+-- (opacity="tweens.screen1"). Catalogue tags appear in attributes only in
+-- {braces} — matching them bare (knowsName) misclassified literal text
+-- containing tag-shaped words ("map bruj") as expressions and fired loud
+-- compile errors.
 local function identDeps(s, engine, into, seen)
-    if not engine or not engine.knowsName then return into end
-    -- dotted tween references first ("opacity=\"tweens.screen1\"") — the
-    -- plain ident scan below splits at the dot and would see only "tweens"
-    -- and "screen1", neither of which is a known name. The engine registers
+    if not engine then return into end
+    -- dotted tween references first — the plain ident scan below splits at
+    -- the dot and would see only "tweens"/"screen1". The engine registers
     -- the full dotted name (definePrefix "tweens.").
-    for id in s:gmatch("tweens%.[%a_][%w_]*") do
+    for id in s:gmatch("%f[%w_]tweens%.[%a_][%w_]*") do
         if not seen[id] then
             seen[id] = true
             into[#into + 1] = id
         end
     end
-    for id in s:gmatch("[%a_][%w_]*") do
-        -- var_* names are script variables by WatchMaker convention even when
-        -- the script hasn't WRITTEN them yet (e.g. only assigned inside a
-        -- function called later): register the dep now — activation gives a
-        -- neutral 0 and the script's first write publishes into the same tag,
-        -- firing this binding. Without this, a layer compiled before the
-        -- first write froze as literal text forever.
-        if not seen[id] and (engine:knowsName(id) or id:sub(1, 4) == "var_") then
+    for id in s:gmatch("%f[%w_]var_[%w_]*") do
+        if not seen[id] then
             seen[id] = true
             into[#into + 1] = id
         end
@@ -231,7 +225,11 @@ end
 
 local function compileChunk(sandbox, src, label)
     ensureHelpers(sandbox)
-    local fn, err = sandbox:compile("local V = ... return (" .. src .. ")", label)
+    -- The closing paren goes on its OWN line: faces write trailing `--`
+    -- comments in expressions ("GetCalX(18)-tweens.anim0--{dd}") and UL's
+    -- loadstring tolerates them because the comment ends at the line break.
+    -- On one line the comment would swallow our `)` → "')' expected".
+    local fn, err = sandbox:compile("local V = ... return (" .. src .. "\n)", label)
     if not fn then
         print("[WFExpr] compile failed (" .. tostring(label) .. "): " .. tostring(err)
               .. " src=" .. src:sub(1, 120))
@@ -351,7 +349,12 @@ function WFExpr.compile(raw, kind, engine, sandbox)
         fn = fn or compileChunk(sandbox, templateSrc(segs), "=wf_attr_num")
     else -- "text"
         local tpl = compileChunk(sandbox, templateSrc(segs), "=wf_attr_text")
-        if looksLikeExprText(probe) then
+        -- Expression-shaped text, OR any text referencing a script variable —
+        -- UL compiles anything containing "var" as code: faces index script
+        -- tables right in the attribute (text="var_date1[{ddw0} +1]"), which
+        -- has no operator/call syntax for the heuristics. A false positive
+        -- still falls back to the substituted template at runtime.
+        if looksLikeExprText(probe) or #identDeps(probe, engine, {}, {}) > 0 then
             local ex = compileChunk(sandbox, exprSrc(s), "=wf_attr_text_expr")
             if ex then
                 identDeps(probe, engine, deps, seen)

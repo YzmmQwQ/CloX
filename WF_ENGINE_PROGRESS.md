@@ -437,3 +437,37 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   (Segment/Radar/HSV/RGB/…) already emit premultiplied rgb (texture·v_color)
   and were correct. Verified on device: gradients respect texture alpha on
   images and baked text.
+
+## Multi-screen face fixes (2026-07-07, multi-pantalla-2)
+
+- **trailing `--` comments in expressions** (wf_expr): faces write
+  "GetCalX(18)-tweens.anim0--{dd}"; the compiled chunk now puts its closing
+  paren on its own line so the Lua comment can't swallow it (UL's loadstring
+  survives because the comment ends at the line break).
+- **bare identifiers are var_* ONLY** (wf_expr identDeps): matching any
+  engine-known name misclassified literal text ("map bruj" — "map" is a tag)
+  as an expression and fired the compile-error dialog. Now only
+  frontier-anchored var_* idents and dotted tweens.* references count —
+  the WatchMaker convention: layer-attribute variables always start var_.
+- **tagged text with var_ refs compiles as expression** (wf_expr): UL
+  compiles anything containing "var" as code — text="var_date1[{ddw0} +1]"
+  (script-table indexing) has no operator/call syntax for the text
+  heuristics and rendered as the substituted template. Runtime failure
+  still falls back to the template.
+- **wm_tag braces + nil** (wf_script): faces call wm_tag('{c1t}') — strip
+  braces before resolve; unknown tags return 0 (never nil — scripts feed
+  the result into string.len()).
+- **non-numeric opacity hides** (wf_render): page gating
+  "var_g==1 and 0 or var_l==1 and 100" evaluates FALSE on inactive pages;
+  UL coerces tonumber(op) or 0 → hidden. Our 100 default stacked every
+  page. Dynamic opacity now falls back to 0; a MISSING opacity attr stays
+  opaque (const-nil path never calls the setter).
+- **tap eligibility = UL exactly** (wf_render tapAt): eligible iff
+  (tonumber(evaluated opacity) or 0) ~= -1. Off-page zones gate with
+  "… or -1" (excluded); an ACTIVE page's zones often evaluate FALSE → 0 →
+  tappable (open calculator: "var_g==1 and 0 or var_j==0 and -1");
+  opacity-0 hot spots stay tappable; missing attr tappable. First attempt
+  excluded non-numeric results and broke in-page buttons.
+- Verified on device: menu opens correct pages (battery/weather), weather
+  day-table indexing renders (miercoles), calculator computes 7+8=15,
+  calendar script builds without errors.

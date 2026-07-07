@@ -2272,11 +2272,26 @@ end
 -- Canvas-space tap dispatch. (cx, cy) are 512-canvas coordinates (origin
 -- centre, cocos Y-up) — the scene converts from screen pixels. Returns true
 -- when a layer consumed the tap.
+-- UL's tap-eligibility rule: evaluateDrawable coerces opacity with
+-- `tonumber(op) or 0`, and WatchSkin:touch skips a zone only when that
+-- number is -1. So multi-screen faces gate off-page zones with expressions
+-- ending in `or -1`, while an ACTIVE page's zones often evaluate to FALSE
+-- ("var_g==1 and 0 or var_j==0 and -1" on the open calculator) → 0 →
+-- tappable. Opacity 0 hot spots are the norm; only -1 excludes.
+local function tapEligible(rec)
+    if rec.L.opacity == nil then return true end
+    local d = rec:desc("opacity", "num")
+    if d.const then return d.value ~= -1 end
+    local ok, v = pcall(d.fn, rec.engine.V)
+    v = (ok and tonumber(v)) or 0
+    return v ~= -1
+end
+
 function WFRender:tapAt(cx, cy)
     local world = self.stage:convertToWorldSpace(cc.p(cx, cy))
     local best, bestDist
     for _, rec in ipairs(self.taps) do
-        if chainVisible(rec.holder, self.stage) then
+        if chainVisible(rec.holder, self.stage) and tapEligible(rec) then
             local ok, lp = pcall(function() return rec.holder:convertToNodeSpace(world) end)
             if ok and lp then
                 local hw, hh = self:hitExtent(rec)
@@ -2329,7 +2344,12 @@ local function bindTransform(rec)
     rec:bindNum("rotation", 0, function(r, v) r.holder:setRotation(v) end)
     rec:bindNum("anim_scale_x", 100, function(r, v) r.holder:setScaleX(v / 100) end)
     rec:bindNum("anim_scale_y", 100, function(r, v) r.holder:setScaleY(v / 100) end)
-    rec:bindNum("opacity", 100, function(r, v)
+    -- A NON-NUMERIC opacity result hides the layer (UL: tonumber(op) or 0).
+    -- Multi-screen faces gate pages with "var_g==1 and 0 or var_l==1 and 100",
+    -- which evaluates to FALSE when the page is inactive — defaulting to 100
+    -- stacked every page on screen. A missing opacity attr stays opaque (the
+    -- const-nil path never calls the setter).
+    rec:bindNum("opacity", 0, function(r, v)
         r.holder:setOpacity(floor(clamp(v, 0, 100) * 2.55))
     end)
 end
