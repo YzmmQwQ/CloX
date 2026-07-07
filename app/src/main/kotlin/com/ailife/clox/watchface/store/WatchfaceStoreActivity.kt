@@ -213,23 +213,27 @@ class WatchfaceStoreActivity : AppCompatActivity() {
         }
     }
 
-    fun downloadWatchface(downloadUrl: String, fileName: String) {
-        lifecycleScope.launch {
-            try {
-                val destFile = withContext(Dispatchers.IO) {
-                    val tmp = File(cacheDir, "$fileName.watch")
+    suspend fun downloadWatchface(downloadUrl: String, fileName: String) {
+        try {
+            val destFile = withContext(Dispatchers.IO) {
+                // Unique temp file per download: concurrent downloads of the same
+                // face must not share a path, or one's delete() races the other's copyTo()
+                val tmp = File.createTempFile("wf_dl_", ".watch", cacheDir)
+                try {
                     URL(downloadUrl).openStream().use { i -> tmp.outputStream().use { i.copyTo(it) } }
-                    val dest = File(WatchfaceRepository.getWatchfaceDir(this@WatchfaceStoreActivity), tmp.name)
-                    tmp.copyTo(dest, overwrite = true).also { tmp.delete() }
+                    val dest = File(WatchfaceRepository.getWatchfaceDir(this@WatchfaceStoreActivity), "$fileName.watch")
+                    tmp.copyTo(dest, overwrite = true)
+                } finally {
+                    tmp.delete()
                 }
-                WatchfacePrefs.setActivePath(this@WatchfaceStoreActivity, destFile.absolutePath)
-                Toast.makeText(this@WatchfaceStoreActivity,
-                    getString(R.string.wf_store_download_done), Toast.LENGTH_SHORT).show()
-                reload()
-            } catch (e: Exception) {
-                Log.e(TAG, "Download failed", e)
-                throw e  // re-throw so bottom sheet shows error
             }
+            WatchfacePrefs.setActivePath(this@WatchfaceStoreActivity, destFile.absolutePath)
+            Toast.makeText(this@WatchfaceStoreActivity,
+                getString(R.string.wf_store_download_done), Toast.LENGTH_SHORT).show()
+            reload()
+        } catch (e: Exception) {
+            Log.e(TAG, "Download failed", e)
+            throw e  // suspend fun: propagates to the bottom sheet's try/catch
         }
     }
 
@@ -311,7 +315,7 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
         fun show(
             fm: FragmentManager, item: StoreItem,
             description: String, downloadUrl: String, uploadDate: String,
-            onDownload: (String, String) -> Unit,
+            onDownload: suspend (String, String) -> Unit,
         ) = StoreDetailBottomSheet().apply {
             this.onDownload = onDownload
             arguments = Bundle().apply {
@@ -325,7 +329,7 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
-    var onDownload: ((String, String) -> Unit)? = null
+    var onDownload: (suspend (String, String) -> Unit)? = null
 
     override fun onCreateView(inf: LayoutInflater, c: ViewGroup?, s: Bundle?) =
         inf.inflate(R.layout.bottom_sheet_store_detail, c, false)
