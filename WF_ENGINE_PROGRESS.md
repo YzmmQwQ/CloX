@@ -240,8 +240,9 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   trim at 64 tiles) and pushes a "map" category {file, zoom, tx, ty}; the
   layer matches tx/ty and textures the sprite scaled to width/height ×
   map_scale%. lat/lon may be dynamic tags (tile re-requested only when the
-  tile actually changes). No GPS {alat}/{alon} tags yet — authored coords
-  work. Verified on device (mv-test.watch): testsrc2 mp4 animating in-scene
+  tile actually changes). {alat}/{alon} tags carry real coordinates since
+  2026-07-08 (see below); authored coords also work. Verified on device
+  (mv-test.watch): testsrc2 mp4 animating in-scene
   + Eiffel Tower tile at z15 under a live seconds clock.
 - 2026-07-07: bitmap-font text must ALWAYS be uppercased (UL rule:
   createWithBMFont(fnt, text:upper()) everywhere) — BM atlases usually carry
@@ -497,3 +498,23 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   suffix from isDaytime (was the bare number "2", matching nothing). Faces
   comparing only day codes (wf_333) show their fallback at night — face
   bug, kept as-is per user.
+- 2026-07-08: location tag family wired — the "location" bridge category now
+  carries latitude/longitude (WeatherPrefs primary coords, manual or
+  IP-resolved) and elevation (new location_elevation pref: manual row in
+  Settings → Location, auto-resolved from the keyless open-meteo elevation
+  API on GPS fix / auto-location moves >0.005° / once at bridge start).
+  Tags per WM_TAGS.md: {alat}/{alon} decimal, {alatd}/{alond} absolute
+  degrees 1-decimal, {alatdd}/{alondd} with hemisphere ("25.0°N"), {aalt}
+  meters, {aloc} primary place name (CloX extra, not a WM tag). {aw3w*} = ""
+  (what3words is a proprietary API; blank beats the unknown-tag 0).
+- 2026-07-08: full WM_TAGS.md audit — every catalogue tag now resolves
+  (verified by running the 280-name list through WFTagDefs.lookup in a
+  standalone lua harness; wmformat/WM_TAGS.md is the ground truth, linked
+  from agents.md). Added: {d24h} (real 12/24h system setting via the
+  "system" push, refreshes on configuration change), {ncs} (cellular signal,
+  0..1 fraction = dataSignal/4 like {pws}), {wml} (weather location name),
+  {cNbr}/{cNbp}/{cNer}/{cNep} (event begin/end as 12h-dial rotation 0-360 /
+  percent-of-day 0-100, computed from beginTimeMs/endTimeMs — UL only ever
+  declares these as 0). Apple-health activity tags with no data source on
+  this hardware ({hae}/{ham}/{has}/{hfc}/{htae}/{htam}/{htas}) are documented
+  static-0 stubs, matching the {pb*} no-companion-phone precedent.

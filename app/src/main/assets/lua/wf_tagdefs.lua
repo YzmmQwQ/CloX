@@ -282,6 +282,7 @@ def("battery", {
 -- ── weather (current conditions) ──
 def("weather", {
     wl   = function() return WF.weather.locationName or "" end,
+    wml  = function() return WF.weather.locationName or "" end,   -- manual weather location
     wt   = function() return floor(num(WF.weather.currentTemp)) end,
     wm   = function() return WF.weather.tempUnit or "C" end,
     wtd  = function() return floor(num(WF.weather.currentTemp)) .. "°" .. (WF.weather.tempUnit or "C") end,
@@ -433,6 +434,7 @@ def("system", {
     abrt   = function() return (WF.system or {}).brightness or 0 end,
     alowpw = function() return boolStr((WF.system or {}).lowPowerMode) end,
     adark  = function() return boolStr((WF.system or {}).darkMode) end,
+    d24h   = function() return boolStr((WF.system or {}).is24h) end,
 })
 
 -- location — primary coordinates + elevation (manual, IP-resolved, or the
@@ -462,6 +464,20 @@ def("location", {
     aw3w1 = function() return "" end,
     aw3w2 = function() return "" end,
     aw3w3 = function() return "" end,
+})
+
+-- Apple-health-style activity tags with NO data source on this platform
+-- (HealthHelper carries steps / heart rate / SpO2 only): exercise minutes,
+-- calories, stand hours, flights climbed + their targets. Pinned to 0 so
+-- faces render a sane value instead of the unknown-tag warning.
+def("static", {
+    hae  = function() return 0 end,
+    ham  = function() return 0 end,
+    has  = function() return 0 end,
+    hfc  = function() return 0 end,
+    htae = function() return 0 end,
+    htam = function() return 0 end,
+    htas = function() return 0 end,
 })
 
 -- ── memory & storage (bytes → GB strings) ──
@@ -499,6 +515,8 @@ def("network", {
     -- UL: pws is a 0..1 FRACTION (wifiSignalStrength/100), NOT the percent
     -- WM_TAGS.md claims — faces compare `{pws} >= 0.86` for signal bars.
     pws  = function() return num(WF.network.wifiSignal) / 4 end,
+    -- cellular signal, same 0..1 fraction convention (dataSignal is 0..4 bars)
+    ncs  = function() return num(WF.network.dataSignal) / 4 end,
     nwip = function() return WF.network.wifiIp or "" end,
 })
 def("connectivity", {
@@ -704,6 +722,19 @@ local FAMILIES = {
         local n, field = name:match("^c(%d+)(%a+)$")
         n = tonumber(n)
         if not n or n < 1 or n > 10 then return nil end
+        -- br/bp/er/ep: event begin/end as a 12h-dial rotation (0-360) and
+        -- percent of day (0-100) — undocumented in WM_TAGS.md; semantics from
+        -- the UL renderer's WatchSkinUtils comments (UL itself never fills them).
+        local function timeRot(ms)
+            if not ms or ms == 0 then return 0 end
+            local t = os.date("*t", floor(ms / 1000))
+            return ((t.hour % 12) + t.min / 60) / 12 * 360
+        end
+        local function timePct(ms)
+            if not ms or ms == 0 then return 0 end
+            local t = os.date("*t", floor(ms / 1000))
+            return (t.hour * 60 + t.min) / 1440 * 100
+        end
         local PICK = {
             ex  = function(ev) return boolStr(ev.exists) end,
             t   = function(ev) return ev.title or "" end,
@@ -716,6 +747,10 @@ local FAMILIES = {
             ad  = function(ev) return boolStr(ev.allDay) end,
             cal = function(ev) return ev.calendar or "" end,
             i   = function(ev) return ev.id or "" end,
+            br  = function(ev) return timeRot(ev.beginTimeMs) end,
+            bp  = function(ev) return timePct(ev.beginTimeMs) end,
+            er  = function(ev) return timeRot(ev.endTimeMs) end,
+            ep  = function(ev) return timePct(ev.endTimeMs) end,
         }
         local pick = PICK[field]
         if not pick then return nil end

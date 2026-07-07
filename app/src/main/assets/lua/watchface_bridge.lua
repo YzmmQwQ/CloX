@@ -92,7 +92,7 @@ WF = {
         zoom = 1.0, xOffset = 0, yOffset = 0,
         fullscreen = 0, frameRate = 60, aodEnabled = false,
     },
-    system   = { volume = 0, brightness = 128, darkMode = false, lowPowerMode = false },
+    system   = { volume = 0, brightness = 128, darkMode = false, lowPowerMode = false, is24h = false },
     location = { names = { "", "", "", "", "" }, timezones = { "", "", "", "" },
                  latitude = 0, longitude = 0, elevation = 0 },
     timezones = { tz1 = emptyTz(), tz2 = emptyTz(), tz3 = emptyTz() },

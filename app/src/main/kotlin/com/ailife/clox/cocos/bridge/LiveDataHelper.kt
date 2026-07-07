@@ -174,6 +174,9 @@ object LiveDataHelper {
             put("brightness",   brightness)
             put("darkMode",     isDarkMode)
             put("lowPowerMode", isLowPower)
+            // {d24h} tag; system push refreshes on ACTION_CONFIGURATION_CHANGED,
+            // which fires when the user flips the 12/24h format setting
+            put("is24h",        android.text.format.DateFormat.is24HourFormat(ctx))
         }
     }
 
