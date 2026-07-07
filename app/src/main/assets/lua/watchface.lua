@@ -377,10 +377,8 @@ function WatchfaceScene:wireBridge()
 
     -- explicit lifecycle commands (watchface_bridge.lua §ANDROID → LUA). These
     -- only queue a load; the extract-cache side effects below touch no GL state.
-    WatchfaceBridge.onChange("cmd_setActive", function(data)
-        self._failedPath = nil   -- explicit command: allow a retry
-        self:requestLoad(data and data.path)
-    end)
+    -- (Path switching lives in the "settings" handler above — a pref change
+    -- pushes watchfacePath; there is no separate set-active command.)
     WatchfaceBridge.onChange("cmd_reload", function()
         extractSourcePath = nil   -- force re-extract
         self._failedPath = nil

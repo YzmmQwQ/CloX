@@ -455,12 +455,11 @@ class WatchfaceBridgeManager(
     }
 
     // ── Java → Lua: watchface lifecycle commands ──────────────────────────────
-
-    /** Tell the Lua watchface engine to load a different watchface. */
-    fun setActiveWatchface(path: String) {
-        expectFaceLoad("set active watchface")
-        queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnSetActive", path) }
-    }
+    // Path switching is NOT here: a watchface_path pref change pushes a full
+    // settings snapshot (prefsListener → sendToLua "settings"), and the Lua
+    // scene reloads from data.watchfacePath. These commands cover only what the
+    // settings push can't — forcing a re-extract / clearing the extract cache
+    // for the SAME path.
 
     /** Tell the Lua watchface engine to destroy and reload the current watchface. */
     fun reloadWatchface() {

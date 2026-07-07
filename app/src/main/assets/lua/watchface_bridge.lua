@@ -24,10 +24,10 @@
 --   WatchfaceBridge.tapAction(shortcut)  -- trigger a watchface shortcut on Android
 --
 -- ── ANDROID → LUA COMMANDS (Java calls these, engine responds via onChange) ──
---   WatchfaceOnSetActive(path)   -- Java tells Lua to load a new watchface
 --   WatchfaceOnReload()          -- Java tells Lua to reload the current watchface
 --   WatchfaceOnReset()           -- Java tells Lua to clear storage and reload
---   Use WatchfaceBridge.onChange("cmd_setActive"|"cmd_reload"|"cmd_reset", fn)
+--   Use WatchfaceBridge.onChange("cmd_reload"|"cmd_reset", fn)
+--   (Path switching has no command — a settings push carries watchfacePath.)
 --
 -- ── DATA CATEGORIES & FIELDS ─────────────────────────────────────────────────
 --   device:       apiLevel, language, deviceLabel, deviceModel, manufacturer,
@@ -239,12 +239,6 @@ end
 -- ── Android → Lua: watchface lifecycle commands ───────────────────────────────
 -- Java calls these globals via callLuaFunction on the GL thread.
 -- Watchface engines should listen with WatchfaceBridge.onChange("cmd_*", fn).
-
-function WatchfaceOnSetActive(path)
-    WF.cmd_setActive = { path = path }
-    local h = WatchfaceBridge._handlers["cmd_setActive"]
-    if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_setActive) end end
-end
 
 function WatchfaceOnReload()
     WF.cmd_reload = {}
