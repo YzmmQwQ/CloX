@@ -13,6 +13,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.WeatherPrefs
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -106,6 +108,34 @@ class LocationSettingsFragment : BaseSettingsFragment() {
             }
         }
 
+        // Elevation (meters) — manual entry; auto-location and the GPS button
+        // overwrite it from the open-meteo elevation API.
+        val tvElevation = view.findViewById<TextView>(R.id.tvLocationElevation)
+        fun refreshElevation() {
+            val v = prefs.getString(WeatherPrefs.KEY_ELEVATION, "") ?: ""
+            tvElevation.text = if (v.isBlank()) getString(R.string.pref_location_elevation_summary)
+                               else getString(R.string.pref_location_elevation_format, v)
+        }
+        refreshElevation()
+        view.findViewById<View>(R.id.rowLocationElevation).setOnClickListener {
+            showTextInputDialog(getString(R.string.pref_location_elevation_title),
+                prefs.getString(WeatherPrefs.KEY_ELEVATION, "") ?: "",
+                hint = getString(R.string.location_elevation_hint),
+                inputType = coordInputType
+            ) { v ->
+                if (v.isBlank()) {
+                    prefs.edit().remove(WeatherPrefs.KEY_ELEVATION).apply()
+                    refreshElevation()
+                } else if (v.toDoubleOrNull() == null) {
+                    Toast.makeText(requireContext(), R.string.pref_location_elevation_invalid, Toast.LENGTH_SHORT).show()
+                } else {
+                    prefs.edit().putString(WeatherPrefs.KEY_ELEVATION, v).apply()
+                    refreshElevation()
+                }
+            }
+        }
+        refreshElevationRow = ::refreshElevation
+
         // GPS button
         tvLocationGps.text = getString(R.string.pref_location_gps_summary)
         view.findViewById<View>(R.id.rowLocationGps).setOnClickListener {
@@ -190,11 +220,20 @@ class LocationSettingsFragment : BaseSettingsFragment() {
         })
     }
 
+    private var refreshElevationRow: (() -> Unit)? = null
+
     private fun applyGpsResult(lat: Double, lon: Double) {
         val ctx = requireContext()
         WeatherPrefs.savePrimaryLocation(ctx, lat, lon, WeatherPrefs.city(ctx))
         tvLocationLat.text = "%.6f".format(lat)
         tvLocationLon.text = "%.6f".format(lon)
         Toast.makeText(ctx, "%.4f, %.4f".format(lat, lon), Toast.LENGTH_SHORT).show()
+        // Resolve the elevation for the new fix (open-meteo, keyless)
+        viewLifecycleOwner.lifecycleScope.launch {
+            com.ailife.clox.cocos.bridge.ElevationApi.fetch(lat, lon)?.let {
+                WeatherPrefs.saveElevation(ctx, it)
+                refreshElevationRow?.invoke()
+            }
+        }
     }
 }

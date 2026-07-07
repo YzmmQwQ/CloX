@@ -435,12 +435,33 @@ def("system", {
     adark  = function() return boolStr((WF.system or {}).darkMode) end,
 })
 
--- location (the old snapshot pinned these to 0; kept until the bridge carries
--- real coordinates)
+-- location — primary coordinates + elevation (manual, IP-resolved, or the
+-- open-meteo elevation API) and the place name, pushed on the "location"
+-- category. names[1] is the primary city (location_name_1).
+-- Formats per WM_TAGS.md: alatd/alond = absolute degrees, 1 decimal ("51.5");
+-- alatdd/alondd add the hemisphere ("51.5°N" / "0.1°E").
+local function absDeg1(v) return fmt("%.1f", math.abs(num(v))) end
 def("location", {
-    alat = function() return 0 end,
-    alon = function() return 0 end,
-    aalt = function() return 0 end,
+    alat = function() return (WF.location or {}).latitude or 0 end,
+    alon = function() return (WF.location or {}).longitude or 0 end,
+    alatd  = function() return absDeg1((WF.location or {}).latitude) end,
+    alond  = function() return absDeg1((WF.location or {}).longitude) end,
+    alatdd = function()
+        local v = num((WF.location or {}).latitude)
+        return absDeg1(v) .. "°" .. (v >= 0 and "N" or "S")
+    end,
+    alondd = function()
+        local v = num((WF.location or {}).longitude)
+        return absDeg1(v) .. "°" .. (v >= 0 and "E" or "W")
+    end,
+    aalt = function() return (WF.location or {}).elevation or 0 end,
+    aloc = function() return ((WF.location or {}).names or {})[1] or "" end,
+    -- what3words addresses need the proprietary w3w API (no offline mapping);
+    -- resolve to empty strings rather than the unknown-tag 0
+    aw3w  = function() return "" end,
+    aw3w1 = function() return "" end,
+    aw3w2 = function() return "" end,
+    aw3w3 = function() return "" end,
 })
 
 -- ── memory & storage (bytes → GB strings) ──

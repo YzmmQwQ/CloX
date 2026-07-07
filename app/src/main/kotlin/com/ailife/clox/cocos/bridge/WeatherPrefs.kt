@@ -16,6 +16,7 @@ object WeatherPrefs {
     // Location — primary
     const val KEY_LAT               = "location_lat"
     const val KEY_LON               = "location_lon"
+    const val KEY_ELEVATION         = "location_elevation"   // meters; feeds the {aalt} tag
     // Primary city name uses the same key as LiveDataHelper location_name_1
     const val KEY_CITY              = "location_name_1"
     const val KEY_AUTO_UPDATE_LOC   = "location_auto_update"   // refresh coords via IP on every fetch
@@ -36,6 +37,12 @@ object WeatherPrefs {
     // Stored as String so EditTextPreference in LocationSettingsFragment works without conversion.
     fun lat(ctx: Context)             = prefs(ctx).getString(KEY_LAT, null)?.toDoubleOrNull() ?: 0.0
     fun lon(ctx: Context)             = prefs(ctx).getString(KEY_LON, null)?.toDoubleOrNull() ?: 0.0
+    fun elevation(ctx: Context)       = prefs(ctx).getString(KEY_ELEVATION, null)?.toDoubleOrNull() ?: 0.0
+    fun hasElevation(ctx: Context)    = !prefs(ctx).getString(KEY_ELEVATION, null).isNullOrBlank()
+    fun saveElevation(ctx: Context, meters: Double) {
+        // Locale.US: a comma decimal separator would break toDoubleOrNull on read
+        prefs(ctx).edit().putString(KEY_ELEVATION, "%.1f".format(java.util.Locale.US, meters)).apply()
+    }
     fun city(ctx: Context)            = prefs(ctx).getString(KEY_CITY, "") ?: ""
     fun autoUpdateLocation(ctx: Context) = prefs(ctx).getBoolean(KEY_AUTO_UPDATE_LOC, true)
 

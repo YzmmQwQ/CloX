@@ -142,6 +142,11 @@ object LiveDataHelper {
         return JSONObject().apply {
             put("names",     org.json.JSONArray(names))
             put("timezones", org.json.JSONArray(zones))
+            // Coordinates + elevation of the primary location (manual or
+            // IP/API-resolved), shared with weather — feed the alat/alon/aalt tags.
+            put("latitude",  WeatherPrefs.lat(ctx))
+            put("longitude", WeatherPrefs.lon(ctx))
+            put("elevation", WeatherPrefs.elevation(ctx))
         }
     }
 

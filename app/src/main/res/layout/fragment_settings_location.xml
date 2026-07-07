@@ -90,6 +90,27 @@
                         android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
 
+                <!-- Elevation -->
+                <LinearLayout android:id="@+id/rowLocationElevation"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp"
+                    android:clickable="true" android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_elevation_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:id="@+id/tvLocationElevation"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_location_elevation_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_edit" app:tint="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+
                 <!-- GPS button -->
                 <LinearLayout android:id="@+id/rowLocationGps"
                     android:layout_width="match_parent" android:layout_height="wrap_content"

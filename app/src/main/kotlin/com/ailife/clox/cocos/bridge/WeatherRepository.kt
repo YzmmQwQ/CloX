@@ -60,9 +60,19 @@ object WeatherRepository {
         if (WeatherPrefs.autoUpdateLocation(ctx)) {
             val loc = LocationByIp.fetch()
             if (loc != null) {
+                // Elevation only re-resolves when the position actually moved
+                // (or none is stored yet) — no point re-querying every refresh.
+                val moved = kotlin.math.abs(loc.first - lat) > 0.005 ||
+                            kotlin.math.abs(loc.second - lon) > 0.005
                 lat = loc.first; lon = loc.second
                 WeatherPrefs.savePrimaryLocation(ctx, lat, lon, loc.third.ifEmpty { WeatherPrefs.city(ctx) })
                 Log.d(TAG, "Auto-location updated: $lat, $lon (${loc.third})")
+                if (moved || !WeatherPrefs.hasElevation(ctx)) {
+                    ElevationApi.fetch(lat, lon)?.let { elev ->
+                        WeatherPrefs.saveElevation(ctx, elev)
+                        Log.d(TAG, "Elevation updated: ${elev}m")
+                    }
+                }
             } else {
                 Log.w(TAG, "IP geolocation returned null, using stored coords lat=$lat lon=$lon")
             }

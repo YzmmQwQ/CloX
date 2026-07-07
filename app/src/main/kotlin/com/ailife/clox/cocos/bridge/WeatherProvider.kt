@@ -640,6 +640,28 @@ sealed class WeatherProvider {
     }
 }
 
+// ── Elevation helper (open-meteo, no API key) ─────────────────────────────────
+
+object ElevationApi {
+    private const val UA = "CloX/1.0 (Android Smartwatch)"
+
+    /** Terrain elevation in meters for the given coordinates, or null on failure. */
+    suspend fun fetch(lat: Double, lon: Double): Double? = withContext(Dispatchers.IO) {
+        try {
+            val url = "https://api.open-meteo.com/v1/elevation?latitude=%.4f&longitude=%.4f"
+                .format(Locale.US, lat, lon)
+            val conn = URL(url).openConnection() as HttpURLConnection
+            val json = try {
+                conn.setRequestProperty("User-Agent", UA)
+                conn.connectTimeout = 8_000; conn.readTimeout = 8_000
+                JSONObject(conn.inputStream.bufferedReader().readText())
+            } finally { conn.disconnect() }
+            // Response shape: {"elevation":[38.0]}
+            json.optJSONArray("elevation")?.optDouble(0)?.takeIf { !it.isNaN() }
+        } catch (_: Exception) { null }
+    }
+}
+
 // ── IP-based location helper ──────────────────────────────────────────────────
 
 object LocationByIp {

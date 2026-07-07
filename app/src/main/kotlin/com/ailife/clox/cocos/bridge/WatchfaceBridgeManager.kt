@@ -83,9 +83,12 @@ class WatchfaceBridgeManager(
         }
     }
 
-    // Keys that belong to the "location" Lua category (names + timezone offsets)
+    // Keys that belong to the "location" Lua category (names + timezone offsets
+    // + primary coordinates, which auto-location rewrites on weather fetches)
     private val locationKeys = (1..5).map { "location_name_$it" }.toSet() +
-                               (1..4).map { "location_timezone_$it" }.toSet()
+                               (1..4).map { "location_timezone_$it" }.toSet() +
+                               setOf(WeatherPrefs.KEY_LAT, WeatherPrefs.KEY_LON,
+                                     WeatherPrefs.KEY_ELEVATION)
 
     // Keys that belong to the "settings" Lua category (watchface display settings)
     private val watchfaceSettingsKeys = setOf(
@@ -257,6 +260,22 @@ class WatchfaceBridgeManager(
         // wf_loaded will ever arrive.
         startRendererWatch("startup", null)
         WeatherRepository.initialize(ctx)   // load cache so Lua gets data before first network fetch
+        // Resolve elevation once at startup when auto-location is on and none is
+        // stored yet — the weather cycle only re-resolves it when the position
+        // moves, and never runs at all with weather disabled. The pref write
+        // lands in locationKeys, so the location snapshot re-pushes itself.
+        scope.launch {
+            if (WeatherPrefs.autoUpdateLocation(ctx) && !WeatherPrefs.hasElevation(ctx)) {
+                val lat = WeatherPrefs.lat(ctx)
+                val lon = WeatherPrefs.lon(ctx)
+                if (lat != 0.0 || lon != 0.0) {
+                    ElevationApi.fetch(lat, lon)?.let { elev ->
+                        WeatherPrefs.saveElevation(ctx, elev)
+                        Log.d(TAG, "Startup elevation resolved: ${elev}m")
+                    }
+                }
+            }
+        }
         subscribeToLiveData()
         startPeriodicUpdates()
         if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {

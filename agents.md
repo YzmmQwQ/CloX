@@ -101,6 +101,19 @@ Any swipe dismisses active overlay before any other routing runs (`handleSwipeEn
 
 ---
 
+## External reference projects — ALWAYS consult for watchface-format work
+
+| Project | Path | What it is |
+|---|---|---|
+| **wmformat** | [/home/ailife/Documents/wmformat](/home/ailife/Documents/wmformat) | WatchMaker `.watch` format documentation: `WM_TAGS.md` (the authoritative {tag} catalogue — check here BEFORE guessing any tag's meaning/format), `WM_FORMAT_1.0.md`/`2.0.md`, `WM_EFFECTS.md`, `WM_TAP_ACTIONS.md`, the original UL Lua renderer (`UL lua renderer/`), example faces (`examplewf/`), shaders, tag resources (`tagsres/`) |
+| **wftools** | [/home/ailife/Documents/AndroidStudioProjects/wftools](/home/ailife/Documents/AndroidStudioProjects/wftools) | Watchface tools app: downloads/decrypts/extracts/edits faces in multiple formats (HSC/HiWatch, WatchMaker, Facer, Clockology, WFF); has its own `AGENTS.md`, format parsers under `app/`, and decompiled references under `decompiled/` |
+
+Any work on the Lua WF engine (`wf_*.lua`), tag semantics, `.watch` parsing, or
+format conversion should check these projects first — they are the ground truth
+for WatchMaker parity.
+
+---
+
 ## Build commands
 
 ```bash

@@ -93,7 +93,8 @@ WF = {
         fullscreen = 0, frameRate = 60, aodEnabled = false,
     },
     system   = { volume = 0, brightness = 128, darkMode = false, lowPowerMode = false },
-    location = { names = { "", "", "", "", "" }, timezones = { "", "", "", "" } },
+    location = { names = { "", "", "", "", "" }, timezones = { "", "", "", "" },
+                 latitude = 0, longitude = 0, elevation = 0 },
     timezones = { tz1 = emptyTz(), tz2 = emptyTz(), tz3 = emptyTz() },
     battery  = { level = 0, charging = false, temperature = 0.0, voltage = 0.0, current = 0.0 },
     network  = {
