@@ -38,6 +38,70 @@ end
 -- rename, exit, getenv, tmpname) stays out.
 local OS_KEYS = { "time", "date", "clock", "difftime" }
 
+-- string.format compat: faces target WatchMaker's LuaJIT/Lua 5.1, where an
+-- integer conversion accepts any number ("%02d" with 6.8 prints "06" via the
+-- C cast). Lua 5.4 raises "number has no integer representation" instead,
+-- which silently kicks the whole attribute back to its template fallback —
+-- the face renders the raw expression source. Truncate the numeric argument
+-- of every integer conversion toward zero (the cast behaviour) first.
+--
+-- format() runs inside per-frame attribute expressions, so the hot path must
+-- stay pattern-free: the format string is scanned ONCE with a plain byte walk
+-- and the integer-conversion argument positions are memoised per face (the
+-- cache lives in the wrapper closure and dies with the sandbox).
+local sformat, sbyte = string.format, string.byte
+local floor, ceil = math.floor, math.ceil
+local FMT_FLAG = { [45]=true, [43]=true, [32]=true, [35]=true, [48]=true } -- - + space # 0
+local INT_CONV = { [100]=true, [105]=true, [117]=true, [111]=true,        -- d i u o
+                   [120]=true, [88]=true,  [99]=true }                    -- x X c
+-- Argument positions of the integer conversions in fmt, or false when none.
+local function scanIntArgs(fmt)
+    local out, ai = nil, 0
+    local i, n = 1, #fmt
+    while i <= n do
+        if sbyte(fmt, i) ~= 37 then                    -- '%'
+            i = i + 1
+        elseif sbyte(fmt, i + 1) == 37 then            -- literal %%
+            i = i + 2
+        else
+            local j = i + 1
+            while FMT_FLAG[sbyte(fmt, j)] do j = j + 1 end
+            local b = sbyte(fmt, j)
+            while b and b >= 48 and b <= 57 do j = j + 1; b = sbyte(fmt, j) end
+            if b == 46 then                            -- '.' precision
+                j = j + 1; b = sbyte(fmt, j)
+                while b and b >= 48 and b <= 57 do j = j + 1; b = sbyte(fmt, j) end
+            end
+            if not b then break end                    -- malformed: sformat reports it
+            ai = ai + 1
+            if INT_CONV[b] then
+                out = out or {}
+                out[#out + 1] = ai
+            end
+            i = j + 1
+        end
+    end
+    return out or false
+end
+local function newWmFormat()
+    local cache = {}
+    return function(fmt, ...)
+        if type(fmt) ~= "string" then return sformat(fmt, ...) end
+        local idx = cache[fmt]
+        if idx == nil then idx = scanIntArgs(fmt); cache[fmt] = idx end
+        if not idx then return sformat(fmt, ...) end
+        local n = select("#", ...)
+        local args = { ... }
+        for k = 1, #idx do
+            local v = tonumber(args[idx[k]])
+            if v and v % 1 ~= 0 then
+                args[idx[k]] = v >= 0 and floor(v) or ceil(v)
+            end
+        end
+        return sformat(fmt, table.unpack(args, 1, n))
+    end
+end
+
 function WFSandbox.new()
     local self = setmetatable({}, WFSandbox)
 
@@ -55,6 +119,7 @@ function WFSandbox.new()
         table  = copyLib(table),
         os     = copyLib(os, OS_KEYS),
     }
+    env.string.format = newWmFormat()   -- 5.1-style integer conversions (see above)
     env._G = env          -- self-reference stays inside the box
     self._env = env
     return self

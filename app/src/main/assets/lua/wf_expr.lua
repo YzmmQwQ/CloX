@@ -242,6 +242,8 @@ local function ensureHelpers(sandbox)
     end)
     -- WM-style number display for template concats (see templateSrc)
     sandbox:expose("__wn", WFExpr.fmtnum)
+    -- first-of-value-list truncation for the comma-list retry (see compileChunk)
+    sandbox:expose("__wsel", select)
 end
 
 local function compileChunk(sandbox, src, label, quiet)
@@ -255,9 +257,14 @@ local function compileChunk(sandbox, src, label, quiet)
         -- Comma-separated multi-value attributes exist in the wild
         -- (cond_value="{nc}, {pws} >= 0.86 and 1 or …") — UL's bare
         -- `return <src>` compiles the value list and its single assignment
-        -- keeps the FIRST value. The paren form can't parse `(a, b)`;
-        -- retry as an assignment, which truncates identically.
-        local fn2 = sandbox:compile("local V = ... local __a = " .. src .. "\n return __a", label)
+        -- keeps the FIRST value. The paren form can't parse `(a, b)`; retry
+        -- inside a select() arg list, whose outer parens truncate to the
+        -- first value identically. An assignment retry ("local __a = <src>")
+        -- would ALSO accept statement sequences — "{dd} {dnnnn}" splices to
+        -- "__wb(V.dd) __wb(V.dnnnn)", which parses as an assignment plus a
+        -- discarded call statement and rendered just the first tag; inside
+        -- an arg list it stays the syntax error it should be.
+        local fn2 = sandbox:compile("local V = ... return (__wsel(1, " .. src .. "\n))", label)
         if fn2 then return fn2 end
         -- `quiet` marks SPECULATIVE compiles (every tagged text attr tries an
         -- expression form; prose like "Steps {sc}" legitimately fails)
