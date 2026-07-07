@@ -471,3 +471,11 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
 - Verified on device: menu opens correct pages (battery/weather), weather
   day-table indexing renders (miercoles), calculator computes 7+8=15,
   calendar script builds without errors.
+- 2026-07-07: tagged "sub" attrs (colors/paths) get an EXPRESSION form —
+  wf_297's day-of-week highlight writes color="({ddw0} == 0 or {ddw0} == 6)
+  and 'FF0000' or '{ucolor}'", which the template-only sub path rendered as
+  literal text → hex parse failed → white box hiding the white day label.
+  When the substituted probe passes the strict text heuristic (comparisons +
+  and/or — plain paths/colors stay on the template), exprSrc compiles with
+  runtime fallback to the substituted template (UL evaluates every attribute
+  as code). Verified: TU highlight in theme blue, battery dot colors live.

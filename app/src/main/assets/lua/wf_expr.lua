@@ -337,7 +337,30 @@ function WFExpr.compile(raw, kind, engine, sandbox)
 
     local fn
     if kind == "sub" then
-        fn = compileChunk(sandbox, templateSrc(segs), "=wf_attr_sub")
+        local tpl = compileChunk(sandbox, templateSrc(segs), "=wf_attr_sub")
+        -- Colors are frequently tagged TERNARIES — UL evaluates any attribute
+        -- as code: color="({ddw0} == 0 or {ddw0} == 6) and 'FF0000' or
+        -- '{ucolor}'" (weekend highlight). The strict text heuristic keeps
+        -- plain paths/colors on the template; runtime failure falls back to
+        -- the substituted template like the text path.
+        if looksLikeExprText(probe) then
+            local ex = compileChunk(sandbox, exprSrc(s), "=wf_attr_sub_expr")
+            if ex then
+                identDeps(probe, engine, deps, seen)
+                for _, name in ipairs(deps) do engine:activate(name) end
+            end
+            if ex and tpl then
+                fn = function(V)
+                    local ok, res = pcall(ex, V)
+                    if ok and res ~= nil then return tostring(res) end
+                    return tpl(V)
+                end
+            else
+                fn = ex or tpl
+            end
+        else
+            fn = tpl
+        end
     elseif kind == "num" then
         if looksLikeExprNum(probe) then
             fn = compileChunk(sandbox, exprSrc(s), "=wf_attr_num")
