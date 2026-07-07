@@ -191,6 +191,16 @@ end
 -- value diff in the binding suppresses the apply.
 local function identDeps(s, engine, into, seen)
     if not engine or not engine.knowsName then return into end
+    -- dotted tween references first ("opacity=\"tweens.screen1\"") — the
+    -- plain ident scan below splits at the dot and would see only "tweens"
+    -- and "screen1", neither of which is a known name. The engine registers
+    -- the full dotted name (definePrefix "tweens.").
+    for id in s:gmatch("tweens%.[%a_][%w_]*") do
+        if not seen[id] then
+            seen[id] = true
+            into[#into + 1] = id
+        end
+    end
     for id in s:gmatch("[%a_][%w_]*") do
         -- var_* names are script variables by WatchMaker convention even when
         -- the script hasn't WRITTEN them yet (e.g. only assigned inside a

@@ -112,6 +112,15 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   copied (we default 100).
 - Headless smoke harness: scratchpad/wf_harness.lua (9-layer face incl. both
   progress axes, ccw gradient ring, dim flips, aspect/text-scale asserts) — passes.
+- 2026-07-07: dotted tween references in attributes ("double time" bug).
+  Faces gate layers with opacity="tweens.screen1" (script inits screen1=100
+  screen2=0, taps crossfade) — identDeps split the ident at the dot ("tweens"
+  unknown, "screen1" no var_ prefix) and looksLikeExprNum doesn't classify a
+  single dotted name, so the opacity compiled to NOTHING and both the 12h and
+  24h time layers rendered at full opacity. identDeps now scans for
+  tweens%.NAME dotted references first and registers the full dotted dep
+  (engine's "tweens." definePrefix resolves it). Unit-tested (init state +
+  crossfade toggle) and verified on device: single time display.
 - 2026-07-07: attribute COMPILE failures now surface in the error dialog
   (WFExpr.onError hook → WatchfaceBridge.reportError, wired per load by
   wf_render next to WFBinding.onError; first error per face load, dedup via
