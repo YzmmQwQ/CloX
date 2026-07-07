@@ -412,6 +412,7 @@ function WFRender.new(stage)
     self.taps   = {}          -- tappable recs (tap_action / image_tap frames)
     self.dimRedraws = {}      -- static composites that must re-run on dim flip
     self.videos = {}          -- MediaPlayer widgets (stopped on dim/switch)
+    self.retained = {}        -- retained off-graph nodes (stencil RT/labels)
     self._mapRecs = {}        -- map layers fed by the "map" bridge pushes
     self.dim    = false
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
@@ -435,9 +436,11 @@ function WFRender:clear()
     -- Stop video decoders BEFORE the nodes are released (MediaCodec +
     -- AudioTrack must never outlive the face — see the audio hygiene rule).
     for _, mp in ipairs(self.videos or {}) do pcall(function() mp:stop() end) end
+    -- Off-graph nodes retained for stencil masks die with the face.
+    for _, obj in ipairs(self.retained or {}) do pcall(function() obj:release() end) end
     if self.stage then self.stage:removeAllChildren() end
     self.recs, self.taps, self.dimRedraws = {}, {}, {}
-    self.videos, self._mapRecs = {}, {}
+    self.videos, self._mapRecs, self.retained = {}, {}, {}
     self._colorIdx = 0
     self.engine, self.sandbox, self.script = nil, nil, nil
     self.needFrame, self.needSecond = false, false
@@ -494,6 +497,10 @@ local function parseXml(xml)
     return watch, themes, layers
 end
 
+-- alignment → cocos anchor point (used for the main visual and effect copies)
+local ALIGN_AP = { cc=cc.p(.5,.5), tl=cc.p(0,1), tc=cc.p(.5,1), tr=cc.p(1,1),
+                   cl=cc.p(0,.5), cr=cc.p(1,.5), bl=cc.p(0,0), bc=cc.p(.5,0), br=cc.p(1,0) }
+
 -- ── visibility (display = b / d / bd) ─────────────────────────────────────────
 
 local function visibleIn(display, dim)
@@ -519,6 +526,99 @@ local function bindTint(rec, sp)
         end, { { "color", "sub" }, { "color_dim", "sub" } })
     else
         rec:bindSub("color", function(_, v) sp:setColor(c3b(v)) end)
+    end
+end
+
+-- ── layer effects (WM_EFFECTS.md §1–2): shadow / outline / glow ───────────────
+-- Shared by the text and shape builders (the docs' support matrix). Effects are
+-- offset copies of the layer's visual placed behind it in the same holder (UL
+-- parity — they inherit transform/opacity/visibility). Copy COUNT is fixed at
+-- build time (a dynamic o_size/w_distance keeps its initial ring/copy count);
+-- colors, opacities and offsets stay live through composites.
+--   opts.makeCopy(z)             → new effect node parented at local z-order z
+--   opts.paint(node, hex, op)    → color a copy (op is 0..100)
+--   opts.baseX/baseY             → the visual's rest position inside the holder
+--   opts.nativeOutline(c4b, px)  → optional hard-stroke fast path (TTF labels)
+local function bindEffects(rec, opts)
+    local L = rec.L
+    local paint = opts.paint
+    local bx, by = opts.baseX or 0, opts.baseY or 0
+
+    if L.outline == "Glow" then
+        -- rings of 8 copies at 45° steps; UL: ring r sits at 2*r px up to
+        -- o_size. Rings are capped for the watch GPU — the step widens so the
+        -- halo keeps the authored o_size spread.
+        local size  = math.max(1, rec:evalNum("o_size", 10))
+        local rings = math.ceil(size / 2)
+        local step  = 2
+        if rings > 8 then rings = 8; step = size / rings end
+        local glows = {}
+        for ring = 1, rings do
+            for a = 0, 7 do
+                glows[#glows + 1] = { node = opts.makeCopy(-2),
+                    ox = ring * step * cos(rad(a * 45)),
+                    oy = ring * step * sin(rad(a * 45)), ring = ring }
+            end
+        end
+        rec:use("o_color", "sub"); rec:use("o_opacity", "num")
+        rec:composite(function(r)
+            local col = r:evalSub("o_color", "ffffff")
+            local op  = clamp(r:evalNum("o_opacity", 100), 0, 100)
+            for _, g in ipairs(glows) do
+                g.node:setPosition(bx + g.ox, by + g.oy)
+                paint(g.node, col, (op / rings) * (1 - (g.ring - 1) / rings))
+            end
+        end, { { "o_color", "sub" }, { "o_opacity", "num" } })
+    elseif L.outline == "Outline" then
+        if opts.nativeOutline then
+            rec:use("o_color", "sub"); rec:use("o_size", "num"); rec:use("o_opacity", "num")
+            rec:composite(function(r)
+                opts.nativeOutline(c4b(r:evalSub("o_color", "ffffff"),
+                                       clamp(r:evalNum("o_opacity", 100), 0, 100)),
+                                   math.max(1, floor(r:evalNum("o_size", 4))))
+            end, { { "o_color", "sub" }, { "o_size", "num" }, { "o_opacity", "num" } })
+        else
+            -- hard stroke as 8 copies pushed out o_size in every direction
+            -- (UL's shape outline; also the fallback for non-TTF text)
+            local ring = {}
+            for a = 0, 7 do ring[a + 1] = opts.makeCopy(-2) end
+            rec:use("o_color", "sub"); rec:use("o_size", "num"); rec:use("o_opacity", "num")
+            rec:composite(function(r)
+                local col  = r:evalSub("o_color", "ffffff")
+                local op   = clamp(r:evalNum("o_opacity", 100), 0, 100)
+                local size = r:evalNum("o_size", 4)
+                for a = 0, 7 do
+                    ring[a + 1]:setPosition(bx + size * cos(rad(a * 45)),
+                                            by + size * sin(rad(a * 45)))
+                    paint(ring[a + 1], col, op)
+                end
+            end, { { "o_color", "sub" }, { "o_size", "num" }, { "o_opacity", "num" } })
+        end
+    end
+
+    if L.shadow == "Drop" or L.shadow == "Flat" then
+        -- w_angle is the light direction; the shadow goes opposite. Drop = one
+        -- copy at w_distance, Flat = stacked copies at 1..floor(w_distance).
+        local n = L.shadow == "Drop" and 1
+                  or math.max(0, floor(rec:evalNum("w_distance", 5)))
+        local shadows = {}
+        for i = 1, n do shadows[i] = opts.makeCopy(-1) end
+        if n > 0 then
+            rec:use("w_color", "sub"); rec:use("w_distance", "num")
+            rec:use("w_angle", "num"); rec:use("w_opacity", "num")
+            rec:composite(function(r)
+                local col  = r:evalSub("w_color", "000000")
+                local op   = clamp(r:evalNum("w_opacity", 100), 0, 100)
+                local ang  = rad(r:evalNum("w_angle", 135))
+                local dist = r:evalNum("w_distance", 5)
+                for i, s in ipairs(shadows) do
+                    local d = L.shadow == "Drop" and dist or i
+                    s:setPosition(bx - d * cos(ang), by - d * sin(ang))
+                    paint(s, col, op)
+                end
+            end, { { "w_color", "sub" }, { "w_distance", "num" },
+                   { "w_angle", "num" }, { "w_opacity", "num" } })
+        end
     end
 end
 
@@ -593,7 +693,10 @@ function Builders.text(self, rec)
         end
         if not lab and font ~= "" then
             local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
+            if fileExists(ttf) then
+                lab = cc.Label:createWithTTF(str, ttf, fontPx(size))
+                if lab then rec.isTTF = true end
+            end
         end
         if not lab then lab = cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size)) end
         return lab
@@ -616,7 +719,86 @@ function Builders.text(self, rec)
         local perLine = (ch > 0 and ch / lines) or size
         rec.bsx = 1.6 * size / perLine; rec.bsy = rec.bsx
     end
-    rec:bindText("text", function(_, v) lab:setString(caseOf(v)) end)
+    if L.stencil == "y" or L.stencil == "Y" then
+        -- WM_EFFECTS §6: the glyphs become a see-through cutout — everything
+        -- behind the layer is hidden except through the text-shaped holes.
+        -- A Label can't be an alpha-threshold stencil directly (the alpha-test
+        -- program doesn't reach its internal commands, so glyph QUADS punch
+        -- rectangles). Like UL: bake the glyphs into a RenderTexture and use
+        -- that sprite as the mask of an inverted ClippingNode; a FULL-CANVAS
+        -- plate of the layer color draws where the glyphs are not.
+        local RTS = 512
+        local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+        lab:setAnchorPoint(ap)
+        lab:setScale(rec.bsx, rec.bsy)       -- bake base scale into the mask
+        lab:setPosition(RTS / 2, RTS / 2)
+        local rt = cc.RenderTexture:create(RTS, RTS)
+        -- neither is in the scene graph — keep them alive until face switch
+        lab:retain(); rt:retain()
+        self.retained[#self.retained + 1] = lab
+        self.retained[#self.retained + 1] = rt
+        rec.bsx, rec.bsy = 1, 1              -- the clip node itself stays unscaled
+        local function renderMask()
+            rt:beginWithClear(0, 0, 0, 0)
+            lab:visit()
+            rt:endToLua()
+        end
+        local mask = cc.Sprite:createWithTexture(rt:getSprite():getTexture())
+        mask:setFlippedY(true)               -- RT textures are y-flipped
+        local clip = cc.ClippingNode:create()
+        clip:setInverted(true)
+        clip:setAlphaThreshold(0.05)
+        clip:setStencil(mask)
+        local plate = cc.DrawNode:create()
+        plate:setCascadeOpacityEnabled(true)
+        clip:addChild(plate)
+        rec.visual = clip
+        -- plate rect = the 512 canvas mapped into holder space (the holder
+        -- sits at the authored x/y)
+        local hx, hy = num(L.x, 0), Y_SIGN * num(L.y, 0)
+        local function redrawPlate(r)
+            plate:clear()
+            plate:drawSolidRect(cc.p(-256 - hx, -256 - hy),
+                                cc.p(256 - hx, 256 - hy),
+                                c4f(r:evalSub(colAttr(r), "ffffff"), 100))
+        end
+        rec:bindText("text", function(_, v)
+            lab:setString(caseOf(v))
+            renderMask()
+        end)
+        renderMask()
+        rec:use("color", "sub"); rec:use("color_dim", "sub")
+        rec:dimComposite(redrawPlate, { { "color", "sub" }, { "color_dim", "sub" } })
+        return
+    end
+
+    -- effect copies: labels mirroring lab's string, behind it in the holder
+    local fx = {}
+    local function addFx(z)
+        local c = makeLabel(caseOf(rec:evalText("text", "")))
+        c:setHorizontalAlignment(cc.TEXT_ALIGNMENT_CENTER)
+        local ap = L.alignment and ALIGN_AP[L.alignment]
+        if ap then c:setAnchorPoint(ap) end
+        c:setScaleX(rec.bsx); c:setScaleY(rec.bsy)
+        c:setCascadeOpacityEnabled(true)
+        rec.holder:addChild(c, z)
+        fx[#fx + 1] = c
+        return c
+    end
+    bindEffects(rec, {
+        makeCopy = addFx,
+        paint = function(n, hex, op)
+            n:setColor(c3b(hex)); n:setOpacity(floor(op * 2.55))
+        end,
+        nativeOutline = rec.isTTF
+            and function(col, px) lab:enableOutline(col, px) end or nil,
+    })
+
+    rec:bindText("text", function(_, v)
+        local s = caseOf(v)
+        lab:setString(s)
+        for i = 1, #fx do fx[i]:setString(s) end
+    end)
     -- colour follows dim mode (color_dim); alpha stays 100 — layer opacity is
     -- applied once, via the holder (baking it here would square it)
     rec:use("color", "sub"); rec:use("color_dim", "sub")
@@ -659,6 +841,20 @@ function Builders.shape(self, rec)
             local cs = sp:getContentSize()
             setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
             bindTint(rec, sp)
+            bindEffects(rec, {
+                makeCopy = function(z)
+                    local c = cc.Sprite:create(shapeImg)
+                    local ap = L.alignment and ALIGN_AP[L.alignment]
+                    if ap then c:setAnchorPoint(ap) end
+                    c:setScaleX(rec.bsx); c:setScaleY(rec.bsy)
+                    c:setCascadeOpacityEnabled(true)
+                    rec.holder:addChild(c, z)
+                    return c
+                end,
+                paint = function(n, hex, op)
+                    n:setColor(c3b(hex)); n:setOpacity(floor(op * 2.55))
+                end,
+            })
             return
         end
     end
@@ -668,18 +864,35 @@ function Builders.shape(self, rec)
     local w, h = num(L.width, 50), num(L.height, 50)
     rec.shapeW, rec.shapeH = w, h
     local shp = (L.shape or "Square"):lower()
+    local function drawPrim(node, col)
+        node:clear()
+        if shp == "circle" then
+            node:drawSolidCircle(cc.p(0, 0), w / 2, 0, 48, 1, h / w, col)
+        elseif SHAPE_PTS[shp] then
+            fillShapePts(node, w, h, SHAPE_PTS[shp], col)
+        else   -- Square / default
+            node:drawSolidRect(cc.p(-w / 2, -h / 2), cc.p(w / 2, h / 2), col)
+        end
+    end
     rec:use("color", "sub"); rec:use("color_dim", "sub")
     rec:dimComposite(function(r)
-        dn:clear()
-        local col = c4f(r:evalSub(colAttr(r), "ffffff"), 100)
-        if shp == "circle" then
-            dn:drawSolidCircle(cc.p(0, 0), w / 2, 0, 48, 1, h / w, col)
-        elseif SHAPE_PTS[shp] then
-            fillShapePts(dn, w, h, SHAPE_PTS[shp], col)
-        else   -- Square / default
-            dn:drawSolidRect(cc.p(-w / 2, -h / 2), cc.p(w / 2, h / 2), col)
-        end
+        drawPrim(dn, c4f(r:evalSub(colAttr(r), "ffffff"), 100))
     end, { { "color", "sub" }, { "color_dim", "sub" } })
+    -- effect copies redraw the primitive; load() shifts the main visual by the
+    -- anchor offset (rec.shapeW path), so copies bake the same shift into
+    -- their base position. Effect opacity rides the vertex alpha — DrawNode
+    -- copies are repainted only when an effect attribute changes.
+    local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+    bindEffects(rec, {
+        baseX = (0.5 - ap.x) * w, baseY = (0.5 - ap.y) * h,
+        makeCopy = function(z)
+            local c = cc.DrawNode:create()
+            c:setCascadeOpacityEnabled(true)
+            rec.holder:addChild(c, z)
+            return c
+        end,
+        paint = function(n, hex, op) drawPrim(n, c4f(hex, op)) end,
+    })
 end
 
 function Builders.rounded(self, rec)
@@ -1980,15 +2193,13 @@ function WFRender:load(xml, baseDir)
         if rec.visual then
             rec.visual:setCascadeOpacityEnabled(true)
             local al = L.alignment
-            local AP = { cc=cc.p(.5,.5), tl=cc.p(0,1), tc=cc.p(.5,1), tr=cc.p(1,1),
-                         cl=cc.p(0,.5), cr=cc.p(1,.5), bl=cc.p(0,0), bc=cc.p(.5,0), br=cc.p(1,0) }
-            local ap = (al and AP[al]) or cc.p(.5, .5)
+            local ap = (al and ALIGN_AP[al]) or cc.p(.5, .5)
             if rec.shapeW then
                 -- DrawNode shapes draw centred; shift them so `ap` maps to the
                 -- anchor point. Lets shape hands pivot at their base (e.g. bc).
                 rec.visual:setPosition((0.5 - ap.x) * rec.shapeW, (0.5 - ap.y) * rec.shapeH)
-            elseif al and al ~= "" and AP[al] then
-                rec.visual:setAnchorPoint(AP[al])
+            elseif al and al ~= "" and ALIGN_AP[al] then
+                rec.visual:setAnchorPoint(ALIGN_AP[al])
             end
             rec.visual:setScaleX(rec.bsx); rec.visual:setScaleY(rec.bsy)
             holder:addChild(rec.visual)
