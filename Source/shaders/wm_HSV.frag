@@ -37,10 +37,14 @@ vec3 hsv2rgb(vec3 c)
 void main()
 {
     vec4 color = texture(u_tex0, v_texCoord) * v_color;
-    vec3 hsv = rgb2hsv(color.rgb);
+    // premultiplied: un-premultiply before the HSV math (the value shift is
+    // not linear in alpha), re-premultiply after so transparent texels stay
+    // transparent
+    vec3 straight = color.a > 0.0 ? color.rgb / color.a : vec3(0.0);
+    vec3 hsv = rgb2hsv(straight);
     hsv.x += u_1 / 100.0;
     hsv.y = clamp(hsv.y + u_2 / 100.0, 0.0, 1.0);
     hsv.z = clamp(hsv.z + u_3 / 100.0, 0.0, 1.0);
     vec3 rgb = hsv2rgb(hsv);
-    FragColor = vec4(rgb, color.a);
+    FragColor = vec4(rgb * color.a, color.a);
 }

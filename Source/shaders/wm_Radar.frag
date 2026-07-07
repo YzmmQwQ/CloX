@@ -40,10 +40,10 @@ void main()
         float pctUniform2 = distTop / angleCover;
         float pctUniform3 = 1.0 - pctUniform2;
         float mixOpacity = pctUniform2 * u_3 + pctUniform3 * u_2;
-        FragColor = vec4(color.rgb, color.a * mixOpacity / 100.0);
+        FragColor = color * (mixOpacity / 100.0);   // premultiplied: fade rgb with alpha
     }
     else
     {
-        FragColor = vec4(color.rgb, color.a * u_3 / 100.0);
+        FragColor = color * (u_3 / 100.0);   // premultiplied: fade rgb with alpha
     }
 }

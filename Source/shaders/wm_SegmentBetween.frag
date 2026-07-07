@@ -38,10 +38,10 @@ void main()
         (u_2 < u_1 && isBetween(angle, u_1, 360.0)) ||
         (u_2 < u_1 && isBetween(angle, 0.0, u_2)))
     {
-        FragColor = vec4(color.rgb, color.a * u_3 / 100.0);
+        FragColor = color * (u_3 / 100.0);   // premultiplied: fade rgb with alpha
     }
     else
     {
-        FragColor = vec4(color.rgb, color.a * u_4 / 100.0);
+        FragColor = color * (u_4 / 100.0);   // premultiplied: fade rgb with alpha
     }
 }

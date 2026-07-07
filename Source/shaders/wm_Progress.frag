@@ -27,10 +27,10 @@ void main()
     yNew = 1.0 - clamp(yNew, 0.0, 1.0);
     if (yNew <= u_1 / 100.0)
     {
-        FragColor = vec4(color.rgb, color.a * u_3 / 100.0);
+        FragColor = color * (u_3 / 100.0);   // premultiplied: fade rgb with alpha
     }
     else
     {
-        FragColor = vec4(color.rgb, color.a * u_4 / 100.0);
+        FragColor = color * (u_4 / 100.0);   // premultiplied: fade rgb with alpha
     }
 }

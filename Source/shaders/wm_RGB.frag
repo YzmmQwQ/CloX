@@ -19,8 +19,8 @@ layout(location = SV_Target0) out vec4 FragColor;
 void main()
 {
     vec4 color = texture(u_tex0, v_texCoord) * v_color;
-    color.r = clamp(color.r + u_1 / 100.0, 0.0, 1.0);
-    color.g = clamp(color.g + u_2 / 100.0, 0.0, 1.0);
-    color.b = clamp(color.b + u_3 / 100.0, 0.0, 1.0);
+    // premultiplied: shift scales with alpha so transparent texels stay
+    // transparent (straight-alpha clamp(c+s,0,1) re-premultiplied by a)
+    color.rgb = clamp(color.rgb + vec3(u_1, u_2, u_3) / 100.0 * color.a, 0.0, color.a);
     FragColor = color;
 }
