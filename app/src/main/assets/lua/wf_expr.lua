@@ -304,6 +304,24 @@ function WFExpr.compile(raw, kind, engine, sandbox)
             end
             return { const = true, value = s }
         else -- "sub"
+            -- Colors/paths are usually plain literals, but UL evaluates ANY
+            -- attribute referencing script variables as code — faces write
+            -- color="var_col_time[var_i_t]" for tap-to-cycle color schemes.
+            -- A known bare identifier makes it an expression; runtime failure
+            -- falls back to the literal string, like the text path.
+            local ideps = identDeps(s, engine, {}, {})
+            if #ideps > 0 then
+                local fn = compileChunk(sandbox, s, "=wf_attr_sub_const")
+                if fn then
+                    for _, name in ipairs(ideps) do engine:activate(name) end
+                    local lit = s
+                    return { const = false, deps = ideps, fn = function(V)
+                        local ok, res = pcall(fn, V)
+                        if ok and res ~= nil then return tostring(res) end
+                        return lit
+                    end }
+                end
+            end
             return { const = true, value = s }
         end
     end
