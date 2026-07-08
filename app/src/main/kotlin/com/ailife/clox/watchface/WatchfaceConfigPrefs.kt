@@ -62,8 +62,12 @@ object WatchfaceConfigPrefs {
 
     private fun prefs(ctx: Context) = PreferenceManager.getDefaultSharedPreferences(ctx)
 
-    private fun hash(path: String): String = Integer.toHexString(path.hashCode())
-    private fun key(path: String, field: String) = "$PREFIX${hash(path)}_$field"
+    // Namespaced by the face's CONTENT identity (zip central-directory CRCs,
+    // cached by size+mtime — see WatchfaceIdentity), so config survives the
+    // .watch being moved or renamed. Legacy path-hash namespaces migrate on
+    // first resolve.
+    private fun key(ctx: Context, path: String, field: String) =
+        "$PREFIX${WatchfaceIdentity.idFor(ctx, path)}_$field"
     private fun gkey(field: String) = "$GDEF_PREFIX$field"
 
     /** True for any per-face OR global-default config key (triggers a settings re-push). */
@@ -76,18 +80,18 @@ object WatchfaceConfigPrefs {
 
     // ── group "use default" flags ──────────────────────────────────────────────
     fun useDefaultAlign(ctx: Context, path: String): Boolean =
-        prefs(ctx).getBoolean(key(path, "use_def_align"), true)
+        prefs(ctx).getBoolean(key(ctx, path, "use_def_align"), true)
     fun useDefaultBehavior(ctx: Context, path: String): Boolean =
-        prefs(ctx).getBoolean(key(path, "use_def_behavior"), true)
+        prefs(ctx).getBoolean(key(ctx, path, "use_def_behavior"), true)
     fun useDefaultFrameRate(ctx: Context, path: String): Boolean =
-        prefs(ctx).getBoolean(key(path, "use_def_frame"), true)
+        prefs(ctx).getBoolean(key(ctx, path, "use_def_frame"), true)
 
     fun setUseDefaultAlign(ctx: Context, path: String, v: Boolean) =
-        prefs(ctx).edit().putBoolean(key(path, "use_def_align"), v).apply()
+        prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_align"), v).apply()
     fun setUseDefaultBehavior(ctx: Context, path: String, v: Boolean) =
-        prefs(ctx).edit().putBoolean(key(path, "use_def_behavior"), v).apply()
+        prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_behavior"), v).apply()
     fun setUseDefaultFrameRate(ctx: Context, path: String, v: Boolean) =
-        prefs(ctx).edit().putBoolean(key(path, "use_def_frame"), v).apply()
+        prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_frame"), v).apply()
 
     // ── effective getters (per-face override OR app-wide default) ───────────────
     // These are what the live engine and overlays read.
@@ -122,38 +126,38 @@ object WatchfaceConfigPrefs {
 
     // ── per-face raw getters/setters ────────────────────────────────────────────
     fun rawAlignMode(ctx: Context, path: String): String =
-        prefs(ctx).getString(key(path, "align_mode"), DEF_ALIGN_MODE) ?: DEF_ALIGN_MODE
-    fun rawSizeX(ctx: Context, path: String): Float = prefs(ctx).getFloat(key(path, "size_x"), DEF_SIZE)
-    fun rawSizeY(ctx: Context, path: String): Float = prefs(ctx).getFloat(key(path, "size_y"), DEF_SIZE)
-    fun rawXOffset(ctx: Context, path: String): Int = prefs(ctx).getInt(key(path, "x_offset"), DEF_OFFSET)
-    fun rawYOffset(ctx: Context, path: String): Int = prefs(ctx).getInt(key(path, "y_offset"), DEF_OFFSET)
-    fun rawAllowSound(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "allow_sound"), DEF_ALLOW_SOUND)
-    fun rawAllowVibrate(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "allow_vibrate"), DEF_ALLOW_VIBRATE)
-    fun rawAllowSensors(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "allow_sensors"), DEF_ALLOW_SENSORS)
-    fun rawAllowWeather(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "allow_weather"), DEF_ALLOW_WEATHER)
-    fun rawAllowHealth(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "allow_health"), DEF_ALLOW_HEALTH)
-    fun rawAllowTap(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "allow_tap"), DEF_ALLOW_TAP)
-    fun rawMaxFps(ctx: Context, path: String): Int = prefs(ctx).getInt(key(path, "max_fps"), DEF_MAX_FPS)
-    fun rawUnlimited(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(path, "unlimited"), DEF_UNLIMITED)
+        prefs(ctx).getString(key(ctx, path, "align_mode"), DEF_ALIGN_MODE) ?: DEF_ALIGN_MODE
+    fun rawSizeX(ctx: Context, path: String): Float = prefs(ctx).getFloat(key(ctx, path, "size_x"), DEF_SIZE)
+    fun rawSizeY(ctx: Context, path: String): Float = prefs(ctx).getFloat(key(ctx, path, "size_y"), DEF_SIZE)
+    fun rawXOffset(ctx: Context, path: String): Int = prefs(ctx).getInt(key(ctx, path, "x_offset"), DEF_OFFSET)
+    fun rawYOffset(ctx: Context, path: String): Int = prefs(ctx).getInt(key(ctx, path, "y_offset"), DEF_OFFSET)
+    fun rawAllowSound(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_sound"), DEF_ALLOW_SOUND)
+    fun rawAllowVibrate(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_vibrate"), DEF_ALLOW_VIBRATE)
+    fun rawAllowSensors(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_sensors"), DEF_ALLOW_SENSORS)
+    fun rawAllowWeather(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_weather"), DEF_ALLOW_WEATHER)
+    fun rawAllowHealth(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_health"), DEF_ALLOW_HEALTH)
+    fun rawAllowTap(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_tap"), DEF_ALLOW_TAP)
+    fun rawMaxFps(ctx: Context, path: String): Int = prefs(ctx).getInt(key(ctx, path, "max_fps"), DEF_MAX_FPS)
+    fun rawUnlimited(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "unlimited"), DEF_UNLIMITED)
 
     fun setAlignMode(ctx: Context, path: String, v: String) =
-        prefs(ctx).edit().putString(key(path, "align_mode"), v).apply()
+        prefs(ctx).edit().putString(key(ctx, path, "align_mode"), v).apply()
     fun setSizeX(ctx: Context, path: String, v: Float) =
-        prefs(ctx).edit().putFloat(key(path, "size_x"), v.coerceIn(MIN_SIZE, MAX_SIZE)).apply()
+        prefs(ctx).edit().putFloat(key(ctx, path, "size_x"), v.coerceIn(MIN_SIZE, MAX_SIZE)).apply()
     fun setSizeY(ctx: Context, path: String, v: Float) =
-        prefs(ctx).edit().putFloat(key(path, "size_y"), v.coerceIn(MIN_SIZE, MAX_SIZE)).apply()
+        prefs(ctx).edit().putFloat(key(ctx, path, "size_y"), v.coerceIn(MIN_SIZE, MAX_SIZE)).apply()
     fun setXOffset(ctx: Context, path: String, v: Int) =
-        prefs(ctx).edit().putInt(key(path, "x_offset"), v.coerceIn(-OFFSET_RANGE, OFFSET_RANGE)).apply()
+        prefs(ctx).edit().putInt(key(ctx, path, "x_offset"), v.coerceIn(-OFFSET_RANGE, OFFSET_RANGE)).apply()
     fun setYOffset(ctx: Context, path: String, v: Int) =
-        prefs(ctx).edit().putInt(key(path, "y_offset"), v.coerceIn(-OFFSET_RANGE, OFFSET_RANGE)).apply()
-    fun setAllowSound(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "allow_sound"), v).apply()
-    fun setAllowVibrate(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "allow_vibrate"), v).apply()
-    fun setAllowSensors(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "allow_sensors"), v).apply()
-    fun setAllowWeather(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "allow_weather"), v).apply()
-    fun setAllowHealth(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "allow_health"), v).apply()
-    fun setAllowTap(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "allow_tap"), v).apply()
-    fun setMaxFps(ctx: Context, path: String, v: Int) = prefs(ctx).edit().putInt(key(path, "max_fps"), v).apply()
-    fun setUnlimited(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(path, "unlimited"), v).apply()
+        prefs(ctx).edit().putInt(key(ctx, path, "y_offset"), v.coerceIn(-OFFSET_RANGE, OFFSET_RANGE)).apply()
+    fun setAllowSound(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_sound"), v).apply()
+    fun setAllowVibrate(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_vibrate"), v).apply()
+    fun setAllowSensors(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_sensors"), v).apply()
+    fun setAllowWeather(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_weather"), v).apply()
+    fun setAllowHealth(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_health"), v).apply()
+    fun setAllowTap(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_tap"), v).apply()
+    fun setMaxFps(ctx: Context, path: String, v: Int) = prefs(ctx).edit().putInt(key(ctx, path, "max_fps"), v).apply()
+    fun setUnlimited(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "unlimited"), v).apply()
 
     // ── app-wide default getters/setters (edited in Settings) ───────────────────
     fun gdefAlignMode(ctx: Context): String = prefs(ctx).getString(gkey("align_mode"), DEF_ALIGN_MODE) ?: DEF_ALIGN_MODE
@@ -228,22 +232,22 @@ object WatchfaceConfigPrefs {
     /** Restore a face's ALIGNMENT group to defaults (used by the "reset" button). */
     fun resetAlignment(ctx: Context, path: String) {
         prefs(ctx).edit()
-            .remove(key(path, "align_mode")).remove(key(path, "size_x")).remove(key(path, "size_y"))
-            .remove(key(path, "x_offset")).remove(key(path, "y_offset"))
+            .remove(key(ctx, path, "align_mode")).remove(key(ctx, path, "size_x")).remove(key(ctx, path, "size_y"))
+            .remove(key(ctx, path, "x_offset")).remove(key(ctx, path, "y_offset"))
             .apply()
     }
 
     /** Restore ALL of a face's config to defaults. */
     fun reset(ctx: Context, path: String) {
         prefs(ctx).edit()
-            .remove(key(path, "align_mode")).remove(key(path, "size_x")).remove(key(path, "size_y"))
-            .remove(key(path, "x_offset")).remove(key(path, "y_offset"))
-            .remove(key(path, "allow_sound")).remove(key(path, "allow_vibrate"))
-            .remove(key(path, "allow_sensors")).remove(key(path, "allow_weather"))
-            .remove(key(path, "allow_health")).remove(key(path, "allow_tap"))
-            .remove(key(path, "max_fps")).remove(key(path, "unlimited"))
-            .remove(key(path, "use_def_align")).remove(key(path, "use_def_behavior"))
-            .remove(key(path, "use_def_frame"))
+            .remove(key(ctx, path, "align_mode")).remove(key(ctx, path, "size_x")).remove(key(ctx, path, "size_y"))
+            .remove(key(ctx, path, "x_offset")).remove(key(ctx, path, "y_offset"))
+            .remove(key(ctx, path, "allow_sound")).remove(key(ctx, path, "allow_vibrate"))
+            .remove(key(ctx, path, "allow_sensors")).remove(key(ctx, path, "allow_weather"))
+            .remove(key(ctx, path, "allow_health")).remove(key(ctx, path, "allow_tap"))
+            .remove(key(ctx, path, "max_fps")).remove(key(ctx, path, "unlimited"))
+            .remove(key(ctx, path, "use_def_align")).remove(key(ctx, path, "use_def_behavior"))
+            .remove(key(ctx, path, "use_def_frame"))
             .apply()
     }
 }
