@@ -465,8 +465,24 @@ function WFRender:clear()
     -- Stop video decoders BEFORE the nodes are released (MediaCodec +
     -- AudioTrack must never outlive the face — see the audio hygiene rule).
     for _, mp in ipairs(self.videos or {}) do pcall(function() mp:stop() end) end
-    -- Off-graph nodes retained for stencil masks die with the face.
-    for _, obj in ipairs(self.retained or {}) do pcall(function() obj:release() end) end
+    -- Off-graph nodes retained for stencil masks / baked layers die with the
+    -- face — but a RenderTexture's begin() enqueues a CallbackCommand bound to
+    -- `this` (onBegin) that the renderer only flushes at the END of the current
+    -- frame. On a mid-frame face switch a rebake may have queued that command
+    -- earlier this frame; releasing the RT synchronously here frees it before
+    -- the flush, so the queued onBegin runs on a dangling RT → GLThread SIGSEGV
+    -- in Director::getMatrix. Defer the release by one frame (next scheduler
+    -- tick, which runs before the next render) so every queued command flushes
+    -- on a still-live RT first.
+    local dying = self.retained or {}
+    if #dying > 0 then
+        local sched = cc.Director:getInstance():getScheduler()
+        local entry
+        entry = sched:scheduleScriptFunc(function()
+            sched:unscheduleScriptEntry(entry)
+            for _, obj in ipairs(dying) do pcall(function() obj:release() end) end
+        end, 0, false)
+    end
     if self.stage then self.stage:removeAllChildren() end
     self.recs, self.taps, self.dimRedraws = {}, {}, {}
     self.videos, self._mapRecs, self.retained = {}, {}, {}
@@ -824,7 +840,11 @@ function Builders.image_gif(self, rec)
     local cs = sp:getContentSize()
     setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
-    -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener
+    -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener.
+    -- Because it drives the sprite through a closure (not a {tag} descriptor),
+    -- recHasFastDep can't see it — flag the rec so flattenStatics never bakes
+    -- this animating layer into a static RT (it would freeze on frame 1).
+    rec._perFrame = true
     rec.lastFrame = -1
     self.engine:listen("ms", function(clock)
         local fi = floor(clock.elapsed / rec.delay) % #frames + 1
@@ -2455,6 +2475,7 @@ local function recFlattenable(rec, fast)
     if rec.type == "group" or rec.type == "video" then return false end
     if L.shader and L.shader ~= "" then return false end       -- shader may read time/uniforms
     if rec:isTapZone() then return false end                   -- must stay hit-testable
+    if rec._perFrame then return false end                     -- self-animating (gif): steps outside the descriptor system
     if recHasFastDep(rec, fast) then return false end
     return true
 end
