@@ -476,6 +476,14 @@ function WatchfaceScene:wireBridge()
         self._failedPath = nil
         self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
+    -- App backgrounding: flush the current face's variables to disk now, so a
+    -- kill while backgrounded doesn't lose them (onExit only fires on a real
+    -- scene teardown, not a plain background).
+    WatchfaceBridge.onChange("cmd_savevars", function()
+        if self._renderer and self._renderer.script and self._renderer.script.saveVars then
+            pcall(function() self._renderer.script:saveVars() end)
+        end
+    end)
     -- "Clear persistent storage" from the config dialog: delete the current
     -- face's variable backup + wipe its live vars, then reload (fresh state).
     WatchfaceBridge.onChange("cmd_clearvars", function()

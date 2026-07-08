@@ -1256,6 +1256,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Keep rendering while the watchface config dialog is up top so its live
         // preview isn't frozen — see WatchfaceConfigActivity.isActive.
         if (!com.ailife.clox.watchface.config.WatchfaceConfigActivity.isActive) {
+            // Flush the face's script variables to disk BEFORE pausing GL — a plain
+            // background (no scene teardown) may be followed by a process kill, and
+            // the GL thread still services its event queue while paused.
+            (CocosManager.getGlView() as? android.opengl.GLSurfaceView)?.queueEvent {
+                runCatching { com.ailife.clox.cocos.LuaBridge.callLuaFunction("WatchfaceOnSaveVars", "") }
+            }
             CocosManager.onPause()
         }
         aodManager.onPause()

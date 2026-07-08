@@ -243,6 +243,15 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         return row
     }
 
+    /** Reload the current face (re-setting the same path is a no-op, so use the
+     *  explicit reload command). Closes the dialog so the loading placeholder shows. */
+    private fun requestReload() {
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+            .putLong(com.ailife.clox.cocos.bridge.WatchfaceBridgeManager.KEY_RELOAD,
+                     android.os.SystemClock.elapsedRealtime()).apply()
+        finish()
+    }
+
     // ── tab row toggling the flipper (icon-only tabs) ─────────────────────────
     private fun tabRow(flip: ViewFlipper, icons: List<Pair<Int, Int>>): View {
         val group = MaterialButtonToggleGroup(this).apply {
@@ -430,11 +439,20 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         // Persisted script-variable backup size (reported by the Lua engine).
         val stored = if (WatchfaceStats.storageBytes >= 0) formatBytes(WatchfaceStats.storageBytes.toLong()) else "—"
         page.addChild(infoRow(getString(R.string.wfcfg_info_storage), stored))
-        page.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+
+        // Maintenance actions: reload the current face, clear its persisted vars.
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        actions.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.wfcfg_reload)
+            setTextColor(Color.WHITE)
+            setOnClickListener { requestReload() }
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        actions.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             text = getString(R.string.wfcfg_info_clear)
             setTextColor(Color.WHITE)
             setOnClickListener { confirmClearVars() }
-        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(8) })
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(8) })
+        page.addView(actions, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = dp(8) })
         return page
     }
 

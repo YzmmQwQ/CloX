@@ -99,6 +99,7 @@ class WatchfaceBridgeManager(
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when {
             key == KEY_CLEAR_VARS -> clearWatchfaceVars()
+            key == KEY_RELOAD -> reloadWatchface()
             key == SensorsPrefs.KEY_CALENDAR -> {
                 if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {
                     scope.launch {
@@ -671,5 +672,9 @@ class WatchfaceBridgeManager(
         // Pref nonce the config dialog writes to request clearing the active
         // face's persisted variables + reload (see prefsListener/clearWatchfaceVars).
         const val KEY_CLEAR_VARS = "wf_clear_vars_nonce"
+
+        // Pref nonce the config dialog writes to force-reload the current face
+        // (re-setting the same watchface_path is a no-op — the engine skips it).
+        const val KEY_RELOAD = "wf_reload_nonce"
     }
 }

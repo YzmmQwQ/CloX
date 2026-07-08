@@ -281,3 +281,11 @@ function WatchfaceOnClearVars()
     local h = WatchfaceBridge._handlers["cmd_clearvars"]
     if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_clearvars) end end
 end
+
+-- Java tells Lua to flush the current face's variables to disk now (app going
+-- to background — the process may be killed before onExit/clear can run).
+function WatchfaceOnSaveVars()
+    WF.cmd_savevars = {}
+    local h = WatchfaceBridge._handlers["cmd_savevars"]
+    if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_savevars) end end
+end

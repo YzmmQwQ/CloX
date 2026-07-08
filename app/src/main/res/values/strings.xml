@@ -389,6 +389,7 @@
     <string name="wfcfg_defaults_title">Default watch face settings</string>
     <string name="wfcfg_done">Done</string>
     <string name="wfcfg_change">Change</string>
+    <string name="wfcfg_reload">Reload</string>
     <string name="wfcfg_tab_alignment">Alignment</string>
     <string name="wfcfg_tab_behavior">Behavior</string>
     <string name="wfcfg_tab_framerate">Frame rate</string>
