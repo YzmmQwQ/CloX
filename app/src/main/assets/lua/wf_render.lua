@@ -480,8 +480,12 @@ function WFRender:attachListeners()
     if self._bakeListener then disp:removeEventListener(self._bakeListener) end
     if self._ctxListener then disp:removeEventListener(self._ctxListener) end
     self._bakeListener = cc.EventListenerCustom:create("director_after_update",
-        function() self:_serviceBakes() end)
+        function()
+            self._afterUpdateSeen = true   -- liveness beacon for the tick watchdog
+            self:_serviceBakes()
+        end)
     disp:addEventListenerWithFixedPriority(self._bakeListener, 1)
+    self._afterUpdateSeen = true
     self._ctxListener = cc.EventListenerCustom:create("event_renderer_recreated",
         function() self._needCtxRestore = true end)
     disp:addEventListenerWithFixedPriority(self._ctxListener, 1)
@@ -3098,19 +3102,24 @@ function WFRender:tick(t, subsec, elapsed, ticks)
     -- missed (listener dead / event not dispatched that frame — whatever the
     -- cause, a baked run would stay stale or black forever). Drain here and
     -- leave a loud trace so the failing leg is identifiable from logcat.
-    if #self._dirtyBakes > 0 then
-        print("[WFRender] bake watchdog: " .. #self._dirtyBakes ..
-              " stale mark(s) missed by after-update — draining in tick")
-        -- A missed after-update means the dispatcher may have been wiped, and
-        -- the renderer-recreated listener died WITH it. Any EGL context
-        -- recreation during that dead window was missed: rebakes would keep
-        -- "succeeding" into dead-context FBOs (valid texture pointer, healthy
-        -- log, black pixels — permanently). Re-register both listeners and
-        -- force one full RT restore pass to cover the blind spot.
+    -- Marks pending at tick time are NOT proof the listener is dead: touch
+    -- input runs on the GL thread BETWEEN frames (queueEvent), so a tap that
+    -- marks rebakes lands after frame N's after-update and is seen here at
+    -- tick N+1 — this frame's after-update will drain it normally. The real
+    -- liveness signal is the beacon: after-update fires EVERY frame, so if it
+    -- hasn't fired since the previous tick, the dispatcher lost the listener —
+    -- and the renderer-recreated listener died WITH it. Any EGL recreation in
+    -- that dead window was missed: rebakes keep "succeeding" into dead-context
+    -- FBOs (valid texture pointer, healthy log, black pixels — permanently).
+    -- Re-register both listeners and force one full RT restore pass.
+    if not self._afterUpdateSeen and (#self._dirtyBakes > 0 or self._needCtxRestore) then
+        print("[WFRender] bake watchdog: after-update listener dead (" ..
+              #self._dirtyBakes .. " mark(s) pending) — re-attaching and restoring")
         self:attachListeners()
         self._needCtxRestore = true
         self:_serviceBakes()
     end
+    self._afterUpdateSeen = false
     require("wf_dimstate").tick(elapsed)
     e:setClock(t, subsec, elapsed)
     if ticks.day    then e:fire("day")    end

@@ -65,6 +65,17 @@ local function extractWatchface(watchPath)
     if not watchPath or watchPath == false or watchPath == "" then return nil end
     local dest = cc.FileUtils:getInstance():getWritablePath() .. "wf_active/"
     if watchPath == extractSourcePath and extractDir then return extractDir end
+    -- Every face extracts into this SAME directory, and the texture cache keys
+    -- by absolute path: whatever it holds for wf_active/ paths is about to
+    -- describe DIFFERENT files (or none). Stale entries poison later loads via
+    -- cache hits (cross-face name collisions), and after an EGL context loss
+    -- reloadAllTextures() re-reads these paths from whichever face is on disk
+    -- THEN — killing the entries for good (observed live: black sprites/labels
+    -- on every previously-loaded face until the process dies). Purge the whole
+    -- cache before the files change: the outgoing face's nodes keep their own
+    -- texture refs until released, and the incoming face re-reads from disk.
+    cc.Director:getInstance():getTextureCache():removeAllTextures()
+    cc.Director:getInstance():purgeCachedData()   -- font atlases + sprite frames (same path collisions)
     axRemoveDir(dest)
     if not axUnzipToDir(watchPath, dest) then
         print("[Watchface] axUnzipToDir failed: " .. tostring(watchPath))
