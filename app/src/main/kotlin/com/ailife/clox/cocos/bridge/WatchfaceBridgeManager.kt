@@ -52,6 +52,9 @@ class WatchfaceBridgeManager(
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val sensorHelper = SensorHelper(ctx)
 
+    // Guards the single-live-manager invariant (see start()/stop()).
+    private var started = false
+
     /** Set to true by Lua when the active watchface declares it uses weather data. */
     @Volatile private var watchfaceWantsWeather = false
 
@@ -237,6 +240,23 @@ class WatchfaceBridgeManager(
     }
 
     fun start() {
+        // Enforce the single-live-manager invariant the rest of this class
+        // assumes. Activity recreation with the reused GL view (returning home,
+        // config changes, AOD wake) spins up a NEW manager while the OLD one may
+        // still be alive — the "create-before-destroy interleave" noted below.
+        // If the old instance's stop() is ever skipped or delayed, its coroutine
+        // scope is never cancelled and its 5s storage/alarm poll loop (plus every
+        // listener/receiver/observer/sensor it registered) keeps running forever.
+        // Orphaned managers accumulate across the process lifetime; each extra
+        // poller fires sendToLua -> callLuaFunction -> lua_pcallk on the GL thread,
+        // so after enough recreations the bridge floods and the device heats up on
+        // EVERY face. Proactively tear down any predecessor here, and make a
+        // duplicate start() on this same instance a no-op.
+        if (started) return
+        started = true
+        active?.let { if (it !== this) it.stop() }
+        active = this
+
         // Push the full snapshot only once Lua signals it is ready (wf_lua_ready,
         // fired at the end of the scene's onEnter). Pushing eagerly here would
         // queue WatchfaceBridgeDispatch onto the GL thread before the dispatcher /
@@ -308,6 +328,8 @@ class WatchfaceBridgeManager(
     }
 
     fun stop() {
+        started = false
+        if (active === this) active = null
         // Only clear the global hooks if they are still OURS — a stale stop()
         // from a destroyed-after-recreation instance must not disconnect the
         // live manager.
@@ -665,6 +687,11 @@ class WatchfaceBridgeManager(
 
     companion object {
         private const val TAG = "WatchfaceBridgeMgr"
+
+        // The one manager whose scope/listeners/pollers are currently live. A new
+        // start() evicts whatever was here; a matching stop() clears it. There must
+        // only ever be one — duplicates leak pollers that flood the GL thread.
+        @Volatile private var active: WatchfaceBridgeManager? = null
 
         // Generous: a cold start needs GL init + asset extraction + face build.
         private const val WATCHDOG_MS = 15_000L
