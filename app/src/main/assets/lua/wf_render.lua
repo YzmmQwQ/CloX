@@ -440,7 +440,119 @@ function WFRender.new(stage)
     self.theme  = { ucolor = "ffffff", ucolor2 = "ffffff", ucolor3 = "ffffff" }
     self.bgColor = "000000"
     self.onNeedFrame = nil    -- scene hook: frame-loop need changed after load
+    -- Baked-run RT captures must NOT run mid-update: an event handler firing
+    -- later in the same scheduler pass can destroy/mutate nodes whose draw
+    -- commands the capture already queued (calendar/text_curved rebuilds,
+    -- label RT reallocs) → the renderer flushes commands on freed objects at
+    -- end of frame (GLThread SIGSEGV). Instead, rebakes only mark themselves
+    -- dirty; ONE listener on the director's after-update event (fires after
+    -- every scheduled callback, before visit/render) performs each pending
+    -- bake exactly once per frame against settled state.
+    self._dirtyBakes = {}
+    -- Android EGL context loss (app switch): VolatileTextureMgr reloads
+    -- file-backed textures but RenderTexture CONTENTS are gone — every baked
+    -- run / label RT / stencil mask shows garbage. Builders register their RT
+    -- re-render closures in _ctxRestore; the recreated event flags a restore,
+    -- performed at the next after-update pass (never mid-recreation).
+    self._ctxRestore = {}
+    self._needCtxRestore = false
+    self:attachListeners()
+    -- Deferred-release rows: see deferRelease().
+    self._deathRow, self._deathGrave = {}, {}
     return self
+end
+
+-- Register the renderer-lifetime listeners. Idempotent, and re-run on EVERY
+-- face load: if anything ever kills a listener (scene exit/re-enter, a future
+-- dispatcher reset), the next load restores it instead of leaving bakes
+-- permanently unserviced (black runs). The tick watchdog covers the window
+-- in between.
+-- NOTE: EventDispatcher:addCustomEventListener is an auto-binding whose
+-- std::function arg ASSERTS from Lua — use the manual EventListenerCustom
+-- binding + fixed-priority registration instead.
+function WFRender:attachListeners()
+    -- Unconditional remove+re-add: a director reset/restart wipes the
+    -- dispatcher while the Lua fields still hold the orphaned listeners, so a
+    -- presence check on self._* can NEVER detect the wipe (observed live: the
+    -- watchdog draining every frame because after-update stopped arriving).
+    -- removeEventListener is a safe no-op when the listener isn't registered.
+    local disp = cc.Director:getInstance():getEventDispatcher()
+    if self._bakeListener then disp:removeEventListener(self._bakeListener) end
+    if self._ctxListener then disp:removeEventListener(self._ctxListener) end
+    self._bakeListener = cc.EventListenerCustom:create("director_after_update",
+        function() self:_serviceBakes() end)
+    disp:addEventListenerWithFixedPriority(self._bakeListener, 1)
+    self._ctxListener = cc.EventListenerCustom:create("event_renderer_recreated",
+        function() self._needCtxRestore = true end)
+    disp:addEventListenerWithFixedPriority(self._ctxListener, 1)
+end
+
+-- Detach the after-update listener (activity teardown — a recreated scene
+-- builds a fresh renderer; without this the old closure leaks and keeps firing).
+function WFRender:shutdown()
+    local disp = cc.Director:getInstance():getEventDispatcher()
+    if self._bakeListener then
+        disp:removeEventListener(self._bakeListener)
+        self._bakeListener = nil
+    end
+    if self._ctxListener then
+        disp:removeEventListener(self._ctxListener)
+        self._ctxListener = nil
+    end
+end
+
+-- Queue a run rebake for the end of the current update pass. Deduped: several
+-- events (minute + var publishes + dim repaint) marking the same run in one
+-- frame cost a single capture, taken after ALL of them applied.
+function WFRender:markBakeDirty(bake)
+    local d = self._dirtyBakes
+    for i = 1, #d do if d[i] == bake then return end end
+    d[#d + 1] = bake
+end
+
+function WFRender:_serviceBakes()
+    if self._needCtxRestore then
+        self._needCtxRestore = false
+        -- Build order = members (label RTs, stencil masks) before flatten
+        -- runs, so run captures see restored member content. Run entries just
+        -- mark the dirty set, drained below in this same pass.
+        for _, fn in ipairs(self._ctxRestore) do
+            local ok, err = pcall(fn)
+            if not ok then print("[WFRender] ctx restore error: " .. tostring(err)) end
+        end
+        print("[WFRender] context restore: " .. #self._ctxRestore .. " RT re-render(s)")
+    end
+    local d = self._dirtyBakes
+    if #d == 0 then return end
+    self._dirtyBakes = {}
+    for _, bake in ipairs(d) do
+        local ok, err = pcall(bake)
+        if not ok then print("[WFRender] rebake error: " .. tostring(err)) end
+    end
+end
+
+-- Release a render-graph object SAFELY. A RenderTexture bake enqueues commands
+-- (onBegin/onEnd callbacks, the visited children's draw commands) that the
+-- renderer only flushes at the END of the frame; releasing any such object
+-- synchronously frees it before the flush → GLThread SIGSEGV. Two-phase row →
+-- grave → release guarantees at least one full render flush between the last
+-- possible queued reference and the free.
+function WFRender:deferRelease(obj)
+    self._deathRow[#self._deathRow + 1] = obj
+    if self._deathTimer then return end
+    local sched = cc.Director:getInstance():getScheduler()
+    self._deathTimer = sched:scheduleScriptFunc(function() self:_pumpDeathRow() end, 0, false)
+end
+
+function WFRender:_pumpDeathRow()
+    local grave = self._deathGrave
+    self._deathGrave, self._deathRow = self._deathRow, {}
+    for _, o in ipairs(grave) do pcall(function() o:release() end) end
+    if #self._deathGrave == 0 and #self._deathRow == 0 and self._deathTimer then
+        local sched = cc.Director:getInstance():getScheduler()
+        sched:unscheduleScriptEntry(self._deathTimer)
+        self._deathTimer = nil
+    end
 end
 
 function WFRender:clear()
@@ -471,19 +583,14 @@ function WFRender:clear()
     -- frame. On a mid-frame face switch a rebake may have queued that command
     -- earlier this frame; releasing the RT synchronously here frees it before
     -- the flush, so the queued onBegin runs on a dangling RT → GLThread SIGSEGV
-    -- in Director::getMatrix. Defer the release by one frame (next scheduler
-    -- tick, which runs before the next render) so every queued command flushes
-    -- on a still-live RT first.
-    local dying = self.retained or {}
-    if #dying > 0 then
-        local sched = cc.Director:getInstance():getScheduler()
-        local entry
-        entry = sched:scheduleScriptFunc(function()
-            sched:unscheduleScriptEntry(entry)
-            for _, obj in ipairs(dying) do pcall(function() obj:release() end) end
-        end, 0, false)
-    end
+    -- in Director::getMatrix. deferRelease() holds them across a full render
+    -- flush so every queued command runs on a still-live object first.
+    for _, obj in ipairs(self.retained or {}) do self:deferRelease(obj) end
+    -- Pending run rebakes belong to the outgoing face — they must never fire
+    -- against its (now dying) RTs/groups after the switch.
+    self._dirtyBakes = {}
     if self.stage then self.stage:removeAllChildren() end
+    self._ctxRestore, self._needCtxRestore = {}, false
     self.recs, self.taps, self.dimRedraws = {}, {}, {}
     self.videos, self._mapRecs, self.retained = {}, {}, {}
     self._colorIdx = 0
@@ -776,9 +883,19 @@ local function bakedSprite(self, node, getSize)
         local w, h = getSize()
         w = math.max(2, math.ceil(w)); h = math.max(2, math.ceil(h))
         if not rt or w > rw or h > rh or (rw - w) > 8 or (rh - h) > 8 then
-            if rt then pcall(function() rt:release() end) end
-            rw, rh = w, h
-            rt = cc.RenderTexture:create(rw, rh)
+            local nrt = cc.RenderTexture:create(w, h)
+            if not nrt then
+                -- keep the old RT and its last-baked content (degraded, alive)
+                print("[WFRender] bakedSprite: RT create failed (" .. w .. "x" .. h .. ")")
+                return
+            end
+            -- The outgrown RT may have begin/end commands queued by an earlier
+            -- rebake THIS frame (two events can fire one binding twice per
+            -- frame) — a synchronous release() frees it before the renderer
+            -- flushes those commands (GLThread SIGSEGV). Defer instead; the
+            -- retained slot is overwritten below so clear() won't touch it.
+            if rt then self:deferRelease(rt) end
+            rt, rw, rh = nrt, w, h
             rt:retain()
             self.retained[rtSlot] = rt
         end
@@ -791,6 +908,18 @@ local function bakedSprite(self, node, getSize)
         sp:setFlippedY(true)             -- RT textures are y-flipped
     end
     rebake()
+    -- EGL context loss: the RT's backend names belong to the dead context —
+    -- swap in a FRESH RT before re-rendering (see the run-RT restore note).
+    self._ctxRestore[#self._ctxRestore + 1] = function()
+        if rt then
+            local nrt = cc.RenderTexture:create(rw, rh)
+            if not nrt then rt = nil; return end   -- old stays retained; next rebake retries
+            self:deferRelease(rt)
+            rt = nrt
+            rt:retain(); self.retained[rtSlot] = rt
+        end
+        rebake()
+    end
     return sp, rebake
 end
 
@@ -844,7 +973,7 @@ function Builders.image_gif(self, rec)
     -- Because it drives the sprite through a closure (not a {tag} descriptor),
     -- recHasFastDep can't see it — flag the rec so flattenStatics never bakes
     -- this animating layer into a static RT (it would freeze on frame 1).
-    rec._perFrame = true
+    rec._noFlatten = true
     rec.lastFrame = -1
     self.engine:listen("ms", function(clock)
         local fi = floor(clock.elapsed / rec.delay) % #frames + 1
@@ -915,6 +1044,7 @@ function Builders.text(self, rec)
         lab:retain(); rt:retain()
         self.retained[#self.retained + 1] = lab
         self.retained[#self.retained + 1] = rt
+        local rtSlot = #self.retained
         rec.bsx, rec.bsy = 1, 1              -- the clip node itself stays unscaled
         local function renderMask()
             rt:beginWithClear(0, 0, 0, 0)
@@ -927,6 +1057,11 @@ function Builders.text(self, rec)
         clip:setInverted(true)
         clip:setAlphaThreshold(0.05)
         clip:setStencil(mask)
+        -- Never bake a ClippingNode into a run RT: the RT has no stencil
+        -- attachment (the cutout renders wrong), and the clip enqueues its
+        -- StencilStateManager's MEMBER CustomCommand whose callbacks capture
+        -- the manager — a queued command surviving the node is a GLThread UAF.
+        rec._noFlatten = true
         local plate = cc.DrawNode:create()
         plate:setCascadeOpacityEnabled(true)
         clip:addChild(plate)
@@ -945,6 +1080,17 @@ function Builders.text(self, rec)
             renderMask()
         end)
         renderMask()
+        -- EGL context loss: recreate the mask RT (dead backend names), re-point
+        -- the clip's stencil sprite at the new texture, re-render the glyphs.
+        self._ctxRestore[#self._ctxRestore + 1] = function()
+            local nrt = cc.RenderTexture:create(RTS, RTS)
+            if not nrt then return end
+            self:deferRelease(rt)
+            rt = nrt
+            rt:retain(); self.retained[rtSlot] = rt
+            mask:setTexture(rt:getSprite():getTexture())
+            renderMask()
+        end
         rec:use("color", "sub"); rec:use("color_dim", "sub")
         rec:dimComposite(redrawPlate, { { "color", "sub" }, { "color_dim", "sub" } })
         return
@@ -1422,6 +1568,9 @@ function Builders.map(self, rec)
     local sp = cc.Sprite:create()
     if not sp then return end
     rec.visual = sp
+    -- tile arrives via a bridge push (no {tag} descriptor) — a baked run would
+    -- never see the update and the map would freeze on the first tile
+    rec._noFlatten = true
     local w, h = num(L.width, 256), num(L.height, 256)
     local zoom = clamp(floor(num(L.map_zoom, 15)), 1, 19)
     local mscale = num(L.map_scale, 100) / 100
@@ -1508,6 +1657,9 @@ function Builders.series(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
+    -- scrolls via a raw engine:listen(cfg.ev) closure (no {tag} descriptor) —
+    -- invisible to the flatten dependency scan, so a baked run would freeze it
+    rec._noFlatten = true
     local sname = L.series or "dm"
     local cfg = SERIES_CFG[sname] or { n = 7, ev = "minute" }
     local vertical = (L.orientation or "v") ~= "h"
@@ -1582,6 +1734,11 @@ function Builders.calendar(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
+    -- rebuild() (raw "day" listener) destroys and recreates every child label;
+    -- inside a baked run the day flip would free nodes whose draw commands a
+    -- same-frame rebake already queued (GLThread UAF), and the dependency scan
+    -- can't see the listener anyway (frozen grid)
+    rec._noFlatten = true
     local marginX = num(L.margin_x, 5)
     local marginY = num(L.margin_y, 5)
     local size = math.max(1, floor(num(L.text_size, 10)))
@@ -2151,6 +2308,10 @@ function Builders.text_curved(self, rec)
     rec.visual = node
     local radius = num(L.radius, 200)
     local size = math.max(1, floor(num(L.text_size, 30)))
+    -- container node reports a zero box (glyphs are children) — declare the
+    -- arc's real extents for tap sizing AND the flatten canvas bound
+    rec.hitW = 2 * (radius + 2 * size)
+    rec.hitH = rec.hitW
     local font = L.font or ""
     local up = (L.curve_dir or "Up") ~= "Down"
     local isBM = font:sub(1, 3) == "bm:"
@@ -2434,18 +2595,31 @@ end
 -- weather/…) and on dim flips; a layer with a per-frame (ms/second) dep is never
 -- merged. Multi-screen faces come out right for free: their page gate is a slow
 -- dep (var_pantalla), so a page switch just re-bakes with the new visibility.
--- Every run is pcall-guarded — any failure falls back to normal drawing.
+-- Every run is pcall-guarded, and nothing leaves the stage until the run's RT
+-- exists — any failure falls back to normal drawing.
+--
+-- SAFETY CONTRACT (the crash class this design exists to avoid): an RT capture
+-- enqueues render commands that only flush at END of frame, so (a) captures
+-- run ONLY from the director's after-update hook (markBakeDirty), never
+-- mid-update where a later event could free queued nodes; (b) RTs / off-graph
+-- groups are released ONLY through deferRelease(); (c) layers that update
+-- outside the descriptor system, or that carry a ClippingNode, set
+-- rec._noFlatten in their builder.
 
 local FLATTEN_MIN    = 2       -- fewer layers than this: not worth an RT
 local FLATTEN_MAX_PX = 2048    -- skip pathological run bounds
 
 -- Tag names that change every rendered frame (or ~every frame): a layer that
--- reads any of them cannot be baked.
+-- reads any of them cannot be baked. Sensor streams (accelerometer/gyro/
+-- compass tags under sensor_* events) push at frame-ish rate — baking a layer
+-- that reads them turns every push into a full run re-capture AND stutters
+-- the motion; treat them as animation too.
 local function fastTagSet(engine)
     local fast = {}
-    for _, evn in ipairs({ "ms", "second" }) do
-        local ev = engine.events[evn]
-        if ev then for _, t in ipairs(ev.tags) do fast[t.name] = true end end
+    for evn, ev in pairs(engine.events) do
+        if evn == "ms" or evn == "second" or evn:sub(1, 7) == "sensor_" then
+            for _, t in ipairs(ev.tags) do fast[t.name] = true end
+        end
     end
     return fast
 end
@@ -2454,7 +2628,12 @@ local function recHasFastDep(rec, fast)
     if (tonumber(rec.L.gyro) or 0) ~= 0 then return true end   -- sensor-driven position
     for _, d in pairs(rec._descs) do
         if type(d) == "table" and not d.const and d.deps then
-            for _, t in ipairs(d.deps) do if fast[t] then return true end end
+            for _, t in ipairs(d.deps) do
+                -- tweens.* publish every frame while a script tween runs
+                -- (beat pulses, screen slides) — that IS animation, even
+                -- though the tag lives outside the ms/second events.
+                if fast[t] or t:sub(1, 7) == "tweens." then return true end
+            end
         end
     end
     return false
@@ -2475,7 +2654,7 @@ local function recFlattenable(rec, fast)
     if rec.type == "group" or rec.type == "video" then return false end
     if L.shader and L.shader ~= "" then return false end       -- shader may read time/uniforms
     if rec:isTapZone() then return false end                   -- must stay hit-testable
-    if rec._perFrame then return false end                     -- self-animating (gif): steps outside the descriptor system
+    if rec._noFlatten then return false end                    -- self-updating outside the descriptor system, or a ClippingNode
     if recHasFastDep(rec, fast) then return false end
     return true
 end
@@ -2495,35 +2674,56 @@ local function runSlowDeps(run, fast)
     return list
 end
 
--- Design half-reach that covers every flattenable holder's drawn content, so a
--- single square RT centred on the design origin captures any run without
--- clipping. Holder AABB is useless (container contentSize is 0); use the
--- VISUAL's box (displayed size) + the holder's offset, diagonal for rotation.
-local function designCanvas(runs)
-    local reach = 1
-    for _, run in ipairs(runs) do
-        for _, rec in ipairs(run) do
-            local v = rec.visual
-            local w, h = 0, 0
-            if v then local b = v:getBoundingBox(); w, h = b.width, b.height end
-            local hs = math.max(rec.holder:getScaleX(), rec.holder:getScaleY(), 1)
-            local half = 0.5 * math.sqrt(w * w + h * h) * hs
-            reach = math.max(reach,
-                math.abs(rec.holder:getPositionX()) + half,
-                math.abs(rec.holder:getPositionY()) + half)
+-- Square canvas (side, centred on the design origin) covering ONE run's drawn
+-- content without clipping. Node AABBs alone are NOT enough: DrawNode layers
+-- (shape/ring/chart) and container visuals (curved-text glyphs are children)
+-- report a zero box — use hitExtent (shapeW / contentSize×baseScale / declared
+-- width+height) radially, plus the visual's box (anchor offsets, rotation-safe
+-- via the radial norm), scaled by the holder, offset by the holder position.
+-- Floor at the design half-diagonal so anything drawn within the 512 canvas is
+-- covered even when a layer under-reports its extents (the pre-per-run shared
+-- canvas gave the same guarantee).
+local DESIGN_HALF_DIAG = math.ceil(512 * math.sqrt(2) / 2)   -- 363
+local function runCanvas(self, run)
+    local reach = DESIGN_HALF_DIAG
+    for _, rec in ipairs(run) do
+        local hw, hh = 0, 0
+        local ok, w, h = pcall(function() return self:hitExtent(rec) end)
+        if ok and w then hw, hh = w, h or w end
+        local rl = math.sqrt(hw * hw + hh * hh)
+        local v = rec.visual
+        if v then
+            local b = v:getBoundingBox()
+            local mx = math.max(math.abs(b.x), math.abs(b.x + b.width))
+            local my = math.max(math.abs(b.y), math.abs(b.y + b.height))
+            rl = math.max(rl, math.sqrt(mx * mx + my * my))
         end
+        local hs = math.max(rec.holder:getScaleX(), rec.holder:getScaleY(), 1)
+        reach = math.max(reach,
+            math.abs(rec.holder:getPositionX()) + rl * hs,
+            math.abs(rec.holder:getPositionY()) + rl * hs)
     end
-    return math.min(FLATTEN_MAX_PX, math.ceil(reach * 2) + 4)
+    return math.ceil(reach * 2) + 16      -- pad swallows effect-copy offsets
 end
 
 -- Bake one run (holders currently on stage, in z order) into a cached RT sprite.
--- All runs share `canvas`: a square whose centre is the design origin, so the
--- baked sprite sits at stage-local (0,0) and inherits the stage transform.
+-- `canvas` is a square whose centre is the design origin, so the baked sprite
+-- sits at stage-local (0,0) and inherits the stage transform. Everything that
+-- can fail (RT allocation) happens BEFORE any holder leaves the stage, so a
+-- failure leaves the run rendering normally.
 function WFRender:bakeRun(run, zLo, fast, canvas)
     local stage = self.stage
+    local rt = cc.RenderTexture:create(canvas, canvas)
+    if not rt then
+        print("[WFRender] bakeRun: RT create failed (" .. canvas .. "px) — run left live")
+        return false
+    end
+    local rtSlot = #self.retained + 1
+    rt:retain(); self.retained[rtSlot] = rt
     -- Off-graph container: design origin (0,0) maps to the RT centre.
     local grp = cc.Node:create()
     grp:setPosition(canvas / 2, canvas / 2)
+    grp:retain(); self.retained[#self.retained + 1] = grp
     for _, rec in ipairs(run) do
         rec.holder:retain()
         rec.holder:removeFromParent()
@@ -2531,31 +2731,88 @@ function WFRender:bakeRun(run, zLo, fast, canvas)
         rec.holder:release()
         rec._flattened = true
     end
-    grp:retain(); self.retained[#self.retained + 1] = grp
 
-    local rt = cc.RenderTexture:create(canvas, canvas)
-    rt:retain(); self.retained[#self.retained + 1] = rt
     local sp = cc.Sprite:create()
     local function rebake()
+        if not rt then return end
         rt:beginWithClear(0, 0, 0, 0)
         grp:visit()
         rt:endToLua()
         sp:setTexture(rt:getSprite():getTexture())
         sp:setTextureRect(cc.rect(0, 0, canvas, canvas))
         sp:setFlippedY(true)                    -- RT textures are y-flipped
+        local vis = 0
+        for _, rec in ipairs(run) do if rec.holder:isVisible() then vis = vis + 1 end end
+        print(string.format("[WFRender] bake exec z%d: %d/%d holders visible, tex=%s grpVis=%s",
+            zLo, vis, #run, tostring(rt:getSprite():getTexture()), tostring(grp:isVisible())))
+        -- Debug: `touch files/dump_rt` (run-as) saves every run capture as a
+        -- PNG in the writable path for pixel-level inspection.
+        if fileExists(cc.FileUtils:getInstance():getWritablePath() .. "dump_rt") then
+            rt:saveToFile("bake_z" .. zLo .. ".png", true)
+            for _, mrec in ipairs(run) do
+                local v = mrec.visual
+                if mrec.type == "text" and v then
+                    local bf = v.getBlendFunc and v:getBlendFunc() or nil
+                    local tc = v.getTextColor and v:getTextColor() or nil
+                    print(string.format(
+                        "[WFRender]   dump z%d %d:text dispOp=%s ownOp=%s holderOp=%s blend=%s/%s textA=%s",
+                        zLo, mrec.index,
+                        tostring(v.getDisplayedOpacity and v:getDisplayedOpacity()),
+                        tostring(v:getOpacity()), tostring(mrec.holder:getOpacity()),
+                        tostring(bf and bf.src), tostring(bf and bf.dst),
+                        tostring(tc and tc.a)))
+                end
+            end
+        end
+        if vis == 0 then
+            -- all-hidden capture = black sprite: name each member's gate so the
+            -- mechanism is identifiable from one logcat line per layer
+            for _, rec in ipairs(run) do
+                print(string.format("[WFRender]   z%d gate %d:%s disp=%s op=%s holderVis=%s",
+                    zLo, rec.index, tostring(rec.type), tostring(rec._dispVis),
+                    tostring(rec._opVis), tostring(rec.holder:isVisible())))
+            end
+        end
     end
-    rebake()
     sp:setPosition(0, 0)                         -- design origin = stage-local origin
     stage:addChild(sp, zLo)
 
-    -- Re-bake on any slow dep (page switch, minute/hour tick, battery, weather…)
-    -- and on dim flips. Registered AFTER the members' own bindings, so members
-    -- update first, then we re-capture.
+    -- NEVER capture mid-update: another event later in the same scheduler pass
+    -- can destroy/mutate member nodes whose queued draw commands would then
+    -- dangle at the end-of-frame flush (text_curved/chart rebuilds — GLThread
+    -- SIGSEGV). Mark dirty instead; the after-update listener performs one
+    -- capture per frame against settled state — including this initial one,
+    -- later this same frame.
+    local function requestBake() self:markBakeDirty(rebake) end
+    requestBake()
+    -- EGL context loss: the RT's backend texture/FBO names belong to the DEAD
+    -- context — re-rendering into the old object only works when the new
+    -- context reuses the same names (that's the unreliability). RECREATE the
+    -- RT, then re-capture.
+    self._ctxRestore[#self._ctxRestore + 1] = function()
+        local nrt = cc.RenderTexture:create(canvas, canvas)
+        if nrt then
+            if rt then self:deferRelease(rt) end
+            rt = nrt
+            rt:retain(); self.retained[rtSlot] = rt   -- replaces the old slot: no double release
+            requestBake()
+        else
+            -- old (stale) RT stays in retained for face-clear release; baking
+            -- into a dead-context FBO is what crashes drivers, so just no-op
+            rt = nil
+            print("[WFRender] ctx restore: run RT recreate failed (" .. canvas .. "px)")
+        end
+    end
+
+    -- Re-bake on any slow dep (page switch, minute/hour tick, battery,
+    -- weather…) and on dim flips. The dirty set dedups the dim case (repaint
+    -- fires the binding AND dimRedraws marks it) to a single capture, taken
+    -- after the static color_dim members redrew.
     local deps = runSlowDeps(run, fast)
     if #deps > 0 then
-        self.engine:bind(WFCompositeBinding.new(run[1], function() rebake() end), deps)
+        self.engine:bind(WFCompositeBinding.new(run[1], requestBake), deps)
     end
-    self.dimRedraws[#self.dimRedraws + 1] = rebake
+    self.dimRedraws[#self.dimRedraws + 1] = requestBake
     return true
 end
 
@@ -2590,18 +2847,31 @@ function WFRender:flattenStatics()
         end
     end
 
-    local canvas = designCanvas(runs)
-    local baked, merged, cand = 0, 0, 0
+    local baked, merged, cand, skipped = 0, 0, 0, 0
     for _, run in ipairs(runs) do
         if #run >= FLATTEN_MIN then
             cand = cand + 1
-            local ok, res = pcall(function() return self:bakeRun(run, zOf[run[1]], fast, canvas) end)
-            if ok and res then baked = baked + 1; merged = merged + #run
-            elseif not ok then print("[WFRender] bakeRun error: " .. tostring(res)) end
+            -- Size the RT to THIS run; a run whose bounds exceed the cap is
+            -- skipped outright (clamping would clip its content, and a watch
+            -- GPU can't afford stray 2048² RGBA allocations).
+            local canvas = runCanvas(self, run)
+            if canvas > FLATTEN_MAX_PX then
+                skipped = skipped + 1
+                print(string.format("[WFRender] flatten: run of %d layers skipped (%dpx > %dpx cap)",
+                    #run, canvas, FLATTEN_MAX_PX))
+            else
+                local members = {}
+                for _, rec in ipairs(run) do members[#members + 1] = rec.index .. ":" .. tostring(rec.type) end
+                print(string.format("[WFRender] flatten run z%d canvas=%d [%s]",
+                    zOf[run[1]], canvas, table.concat(members, " ")))
+                local ok, res = pcall(function() return self:bakeRun(run, zOf[run[1]], fast, canvas) end)
+                if ok and res then baked = baked + 1; merged = merged + #run
+                elseif not ok then print("[WFRender] bakeRun error: " .. tostring(res)) end
+            end
         end
     end
-    print(string.format("[WFRender] flatten: %d/%d run(s) baked (%d candidate runs total), %d layers merged",
-        baked, cand, #runs, merged))
+    print(string.format("[WFRender] flatten: %d/%d run(s) baked (%d candidate runs total, %d oversize-skipped), %d layers merged",
+        baked, cand, #runs, skipped, merged))
 end
 
 -- xml: watch.xml content. baseDir: extract dir ending in "/" (has images/ etc).
@@ -2610,6 +2880,7 @@ function WFRender:load(xml, baseDir)
     -- keeps its accumulated time across the switch (UL: one global stopwatch)
     if self.engine then WFStopwatch.rebase(self.engine.clock.elapsed) end
     self:clear()
+    self:attachListeners()
     self.base = baseDir
     local watch, themes, layers = parseXml(xml)
     self.watch = watch
@@ -2756,7 +3027,16 @@ function WFRender:load(xml, baseDir)
     print(string.format("[WFRender] loaded %d layers (%d bindings, frame=%s sec=%s), theme=%s",
         #self.recs, nBind, tostring(self.needFrame), tostring(self.needSecond),
         tostring(self.theme.ucolor)))
-    pcall(function() self:flattenStatics() end)
+    -- Kill switch: RT captures misbehave on some devices/drivers (observed on
+    -- the crDroid GSI test phone: sporadic black bakes at any canvas size,
+    -- healthy engine, valid texture). `touch files/no_flatten` (run-as) turns
+    -- the whole flatten system off — every layer renders live; the opacity
+    -- cull still applies. Delete the file to re-enable.
+    if fileExists(cc.FileUtils:getInstance():getWritablePath() .. "no_flatten") then
+        print("[WFRender] flatten disabled by no_flatten flag — all layers live")
+    else
+        pcall(function() self:flattenStatics() end)
+    end
     return true
 end
 
@@ -2813,6 +3093,24 @@ end
 function WFRender:tick(t, subsec, elapsed, ticks)
     local e = self.engine
     if not e then return end
+    -- Watchdog: the after-update listener drains _dirtyBakes at the end of
+    -- EVERY frame, so any mark still pending when the next tick starts was
+    -- missed (listener dead / event not dispatched that frame — whatever the
+    -- cause, a baked run would stay stale or black forever). Drain here and
+    -- leave a loud trace so the failing leg is identifiable from logcat.
+    if #self._dirtyBakes > 0 then
+        print("[WFRender] bake watchdog: " .. #self._dirtyBakes ..
+              " stale mark(s) missed by after-update — draining in tick")
+        -- A missed after-update means the dispatcher may have been wiped, and
+        -- the renderer-recreated listener died WITH it. Any EGL context
+        -- recreation during that dead window was missed: rebakes would keep
+        -- "succeeding" into dead-context FBOs (valid texture pointer, healthy
+        -- log, black pixels — permanently). Re-register both listeners and
+        -- force one full RT restore pass to cover the blind spot.
+        self:attachListeners()
+        self._needCtxRestore = true
+        self:_serviceBakes()
+    end
     require("wf_dimstate").tick(elapsed)
     e:setClock(t, subsec, elapsed)
     if ticks.day    then e:fire("day")    end

@@ -37,6 +37,15 @@ object CocosManager {
             // of re-initializing the native engine.
             Log.i(TAG, "Reusing live AxmolGLSurfaceView across activity recreation")
             (existing.parent as? ViewGroup)?.removeView(existing)
+            // removeView delivers surfaceDestroyed synchronously; the caller's
+            // addView on the new window delivers surfaceCreated/Changed once
+            // that window draws, and GLSurfaceView rebinds its EGL surface to
+            // it. No blind visibility cycling: a posted GONE destroys the
+            // surface and nothing guarantees the paired VISIBLE ever lands
+            // (observed live: no SurfaceView layer left in SurfaceFlinger,
+            // engine rendering into the void). Just make sure a stray GONE
+            // from any earlier state can't suppress the new surface.
+            existing.visibility = android.view.View.VISIBLE
             hostActivity = activity
             return existing
         }
@@ -77,7 +86,19 @@ object CocosManager {
     @Volatile private var paused = false
     fun isPaused() = paused
 
-    fun onResume()  { paused = false; glView?.onResume() }
+    fun onResume() {
+        paused = false
+        glView?.let { v ->
+            // Reconcile, don't fire-and-forget: whatever state a previous
+            // window dance left behind, a resumed host needs the view VISIBLE
+            // (a GONE SurfaceView has no compositor layer at all).
+            if (v.visibility != android.view.View.VISIBLE) {
+                Log.w(TAG, "onResume: GL view was ${v.visibility} — restoring VISIBLE")
+                v.visibility = android.view.View.VISIBLE
+            }
+            v.onResume()
+        }
+    }
     fun onPause()   { paused = true; glView?.onPause() }
 
     /**
@@ -90,7 +111,14 @@ object CocosManager {
      */
     fun onDestroy(activity: Activity) {
         if (hostActivity === activity) {
-            glView = null
+            // The native engine can only init once per process, so the view is
+            // once-per-process too: NULLING it here forced the next activity
+            // create down the restartProcess path (Runtime.exit — which also
+            // discards queued pref apply() writes, reverting a just-picked
+            // face). Keep the view; detach it from the dying window so the
+            // next host's init() can re-parent it.
+            Log.i(TAG, "onDestroy from the hosting activity — detaching GL view, keeping it for the next host")
+            glView?.let { (it.parent as? ViewGroup)?.removeView(it) }
             hostActivity = null
         } else if (glView != null) {
             Log.i(TAG, "onDestroy from a stale activity instance — keeping the live GL view")

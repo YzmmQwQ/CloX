@@ -16,8 +16,12 @@ object WatchfacePrefs {
         PreferenceManager.getDefaultSharedPreferences(ctx).getString(KEY_ACTIVE_PATH, null)
 
     fun setActivePath(ctx: Context, path: String) {
+        // commit(), not apply(): a face switch can be followed within
+        // milliseconds by a process restart (engine recovery path), and
+        // Runtime.exit() discards queued apply() writes — the freshly picked
+        // face silently reverts to the previous one on relaunch.
         PreferenceManager.getDefaultSharedPreferences(ctx)
-            .edit().putString(KEY_ACTIVE_PATH, path).apply()
+            .edit().putString(KEY_ACTIVE_PATH, path).commit()
     }
 
     fun getPinned(ctx: Context): Set<String> =

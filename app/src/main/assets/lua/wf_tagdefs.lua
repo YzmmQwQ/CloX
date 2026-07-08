@@ -167,6 +167,11 @@ def("second", {
     drs  = function(c) return c.t.sec / 60 * 360 end,
     dtp  = function(c) return (c.t.hour * 3600 + c.t.min * 60 + c.t.sec) / 86400 end,
     depoch = function(c) return c:epoch() end,
+    -- drm/drh fold seconds into their formulas (gliding hands), so they are
+    -- second-event tags: they must recompute per second AND count as a fast
+    -- dep so hand layers are never flattened into a static run.
+    drm  = function(c) return (c.t.min + c.t.sec / 60) / 60 * 360 end,
+    drh  = function(c) return ((c.t.hour % 12) + c.t.min / 60 + c.t.sec / 3600) / 12 * 360 end,
 })
 
 -- minute
@@ -178,8 +183,6 @@ def("minute", {
     dmat = function(c) return timeWordFull(c.t.min) end,
     dmtt = function(c) local a = timeWordParts(c.t.min) return a end,
     dmot = function(c) local _, b = timeWordParts(c.t.min) return b end,
-    drm  = function(c) return (c.t.min + c.t.sec / 60) / 60 * 360 end,
-    drh  = function(c) return ((c.t.hour % 12) + c.t.min / 60 + c.t.sec / 3600) / 12 * 360 end,
     drh24 = function(c) return (c.t.hour + c.t.min / 60) / 24 * 360 end,
     da   = function(c) return (c.t.hour < 12) and "AM" or "PM" end,
     dz   = function(c) return os.date("%Z", c:epoch()) end,

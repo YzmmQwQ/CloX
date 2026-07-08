@@ -169,6 +169,11 @@ function WatchfaceScene:onExit()
     if self._renderer and self._renderer.script and self._renderer.script.saveVars then
         pcall(function() self._renderer.script:saveVars() end)
     end
+    -- Detach the renderer's after-update bake listener — a recreated scene
+    -- builds a fresh renderer and the stale closure must not keep firing.
+    if self._renderer and self._renderer.shutdown then
+        pcall(function() self._renderer:shutdown() end)
+    end
     -- release any async sensor streams the face had running
     self:applyFeatures({ weather = false, health = {}, sensor = {} })
 end
