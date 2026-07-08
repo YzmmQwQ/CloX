@@ -51,18 +51,21 @@ class WatchfaceLoadingOverlay @JvmOverloads constructor(
      * screen, so the placeholder didn't match what loads under it.
      */
     private fun applyCanvasBounds() {
-        // show() runs before the first layout pass on two paths — fresh-engine
-        // home startup (onViewCreated) and the selector handoff (created, shown,
-        // then the activity finishes synchronously, so no layout ever runs while
-        // visible). width/height are 0 then; falling back to 0 would leave the
-        // preview at its match_parent default, stretched full-bleed over the
-        // whole portrait window. The overlay is always MATCH_PARENT of the
-        // fullscreen content area, so the display size is the eventual size.
-        val dm = resources.displayMetrics
-        val w = if (width > 0) width else dm.widthPixels
-        val h = if (height > 0) height else dm.heightPixels
+        // Size the rect off the WINDOW bounds, not this view's laid-out size or
+        // displayMetrics. Lua renders the face against director:getWinSize() —
+        // the full GL surface (the whole window). displayMetrics is reduced by
+        // the navigation bar (480x458 vs the 480x480 window on this ROM), so
+        // using it drew the preview ~one nav-bar smaller and offset. The window
+        // bounds equal the GL surface in every case, and are available before
+        // this view's first layout pass — which show() runs before on the
+        // fresh-engine and selector-handoff paths.
+        val (w, h) = windowSize()
         if (w == 0 || h == 0) return
         val r = WatchfaceConfigPrefs.canvasRect(context, canvasPath, w, h)
+        val dm = resources.displayMetrics
+        android.util.Log.i("WFLoadingBounds",
+            "view=${width}x${height} dm=${dm.widthPixels}x${dm.heightPixels} " +
+            "win=${w}x${h} rect=$r")
         val lp = previewView.layoutParams as LayoutParams
         if (lp.width != r.width() || lp.height != r.height() ||
             lp.leftMargin != r.left || lp.topMargin != r.top) {
@@ -78,6 +81,19 @@ class WatchfaceLoadingOverlay @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         applyCanvasBounds()
+    }
+
+    /** The window (GL surface) size in pixels — the reference Lua renders against. */
+    private fun windowSize(): Pair<Int, Int> {
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val b = wm.currentWindowMetrics.bounds
+            b.width() to b.height()
+        } else {
+            val p = android.graphics.Point()
+            @Suppress("DEPRECATION") wm.defaultDisplay.getRealSize(p)
+            p.x to p.y
+        }
     }
 
     private fun sticksAnimatable() = sticksView.drawable as? android.graphics.drawable.Animatable

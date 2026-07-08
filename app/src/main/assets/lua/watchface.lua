@@ -177,6 +177,9 @@ function WatchfaceScene:applyStageTransform()
     self._stage:setScale(base * (tonumber(s.zoom) or 1.0))
     self._stage:setPosition(self._W / 2 + (tonumber(s.xOffset) or 0),
                             self._H / 2 - (tonumber(s.yOffset) or 0))
+    print(string.format("[WFStage] winSize=%.0fx%.0f base=%.4f zoom=%s side=%.1f",
+        self._W, self._H, base, tostring(s.zoom or 1.0),
+        math.min(self._W, self._H) * (tonumber(s.zoom) or 1.0)))
 end
 
 -- Cap the render rate: 1 FPS in AOD, otherwise the per-face max (default 25,

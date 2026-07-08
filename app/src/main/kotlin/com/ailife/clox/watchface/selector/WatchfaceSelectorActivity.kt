@@ -71,8 +71,8 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         // the 512 canvas to the SMALLER screen dimension, centred (watchface.lua
         // applyStageTransform) — full-bleed on the square watch screen, black bars
         // on the longer axis of a portrait/landscape screen.
-        overlaySquareSize = minOf(resources.displayMetrics.widthPixels,
-                                  resources.displayMetrics.heightPixels)
+        val (winW, winH) = windowSize()
+        overlaySquareSize = minOf(winW, winH)
         snapshotOverlay.layoutParams = FrameLayout.LayoutParams(overlaySquareSize, overlaySquareSize).apply {
             gravity = Gravity.CENTER
         }
@@ -322,8 +322,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
      * but scaled per-axis so a future stretched canvas keeps working).
      */
     private fun applyCanvasTransform(view: View, activePath: String?) {
-        val screenW = resources.displayMetrics.widthPixels
-        val screenH = resources.displayMetrics.heightPixels
+        val (screenW, screenH) = windowSize()
         val canvas = WatchfaceConfigPrefs.canvasRect(this, activePath, screenW, screenH)
         view.translationX = canvas.exactCenterX() - screenW / 2f
         view.translationY = canvas.exactCenterY() - screenH / 2f
@@ -346,8 +345,9 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             return
         }
 
-        val screenW = resources.displayMetrics.widthPixels.toFloat()
-        val screenH = resources.displayMetrics.heightPixels.toFloat()
+        val (winW, winH) = windowSize()
+        val screenW = winW.toFloat()
+        val screenH = winH.toFloat()
         // Uniform scale: the overlay is a square (overlaySquareSize × overlaySquareSize)
         // representing the watchface square. Scale by height ratio so the square maps
         // exactly to the card's square preview — no aspect-ratio distortion.
@@ -405,8 +405,9 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             return
         }
 
-        val screenW = resources.displayMetrics.widthPixels.toFloat()
-        val screenH = resources.displayMetrics.heightPixels.toFloat()
+        val (winW, winH) = windowSize()
+        val screenW = winW.toFloat()
+        val screenH = winH.toFloat()
         val cardBounds = Rect()
         previewImageView.getGlobalVisibleRect(cardBounds)
 
@@ -650,6 +651,25 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun dpToPx(dp: Int) = (dp * resources.displayMetrics.density).toInt()
+
+    /**
+     * The window (GL surface) size in pixels — the reference the watchface
+     * renders against (watchface.lua director:getWinSize). NOT displayMetrics,
+     * which is reduced by the navigation bar (480x458 vs the 480x480 window on
+     * this ROM); sizing the snapshot square off that drew it ~one nav-bar
+     * smaller and offset from the live face. Matches WatchfaceLoadingOverlay.
+     */
+    private fun windowSize(): Pair<Int, Int> {
+        val wm = getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val b = wm.currentWindowMetrics.bounds
+            b.width() to b.height()
+        } else {
+            val p = android.graphics.Point()
+            @Suppress("DEPRECATION") wm.defaultDisplay.getRealSize(p)
+            p.x to p.y
+        }
+    }
 
     companion object {
         fun start(ctx: Context) {
