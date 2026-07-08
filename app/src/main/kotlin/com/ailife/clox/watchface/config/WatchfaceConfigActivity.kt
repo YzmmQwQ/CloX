@@ -435,6 +435,37 @@ class WatchfaceConfigActivity : AppCompatActivity() {
             setTextColor(0xFF999999.toInt()); textSize = 12f
             setPadding(0, dp(10), 0, 0)
         })
+
+        // ── layer-merge optimization ──────────────────────────────────────────
+        // The stat line reflects the LIVE engine (reported after each build);
+        // toggling forces a reload of the active face, so refresh it shortly
+        // after while the new numbers arrive.
+        val stat = TextView(this).apply {
+            setTextColor(0xFF999999.toInt()); textSize = 11f
+            setPadding(0, 0, 0, dp(4))
+        }
+        fun refreshStat() {
+            stat.text = when {
+                !getOptimize() -> getString(R.string.wfcfg_optimize_stat_off)
+                WatchfaceStats.mergedLayers > 0 -> getString(
+                    R.string.wfcfg_optimize_stat, WatchfaceStats.mergedLayers,
+                    WatchfaceStats.layerCount.coerceAtLeast(WatchfaceStats.mergedLayers),
+                    WatchfaceStats.mergedRuns)
+                WatchfaceStats.mergedLayers == 0 -> getString(R.string.wfcfg_optimize_stat_none)
+                else -> "—"
+            }
+        }
+        refreshStat()
+        page.addChild(switchRow(R.string.wfcfg_optimize, R.string.wfcfg_optimize_summary,
+                                getOptimize(), editable) { v ->
+            setOptimize(v)
+            // the pref write pushes a settings snapshot → the engine rebuilds →
+            // fresh merged counts land asynchronously
+            stat.postDelayed({ refreshStat() }, 1500)
+            stat.postDelayed({ refreshStat() }, 4000)
+            refreshStat()
+        })
+        page.addChild(stat)
         return page
     }
 
@@ -707,6 +738,8 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     private fun setMaxFps(v: Int) = if (editingDefaults) cfg.setGdefMaxFps(this, v) else cfg.setMaxFps(this, cfgPath, v)
     private fun getUnlimited() = if (editingDefaults) cfg.gdefUnlimited(this) else cfg.unlimited(this, cfgPath)
     private fun setUnlimited(v: Boolean) = if (editingDefaults) cfg.setGdefUnlimited(this, v) else cfg.setUnlimited(this, cfgPath, v)
+    private fun getOptimize() = if (editingDefaults) cfg.gdefOptimize(this) else cfg.optimize(this, cfgPath)
+    private fun setOptimize(v: Boolean) = if (editingDefaults) cfg.setGdefOptimize(this, v) else cfg.setOptimize(this, cfgPath, v)
 
     // small helper: add a full-width child to a LinearLayout
     private fun LinearLayout.addChild(v: View) =

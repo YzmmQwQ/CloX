@@ -54,9 +54,10 @@ object WatchfaceConfigPrefs {
     const val DEF_ALLOW_HEALTH = true
     const val DEF_ALLOW_TAP = true
 
-    // ── frame rate ─────────────────────────────────────────────────────────────
+    // ── frame rate / performance ────────────────────────────────────────────────
     const val DEF_MAX_FPS = 25
     const val DEF_UNLIMITED = false
+    const val DEF_OPTIMIZE = true      // merge runs of static layers into cached textures
     /** FPS choices offered in the dialog (paired with the "unlimited" flag). */
     val FPS_CHOICES = intArrayOf(15, 25, 60)
 
@@ -123,6 +124,8 @@ object WatchfaceConfigPrefs {
         if (useDefaultFrameRate(ctx, path)) gdefMaxFps(ctx) else rawMaxFps(ctx, path)
     fun unlimited(ctx: Context, path: String): Boolean =
         if (useDefaultFrameRate(ctx, path)) gdefUnlimited(ctx) else rawUnlimited(ctx, path)
+    fun optimize(ctx: Context, path: String): Boolean =
+        if (useDefaultFrameRate(ctx, path)) gdefOptimize(ctx) else rawOptimize(ctx, path)
 
     // ── per-face raw getters/setters ────────────────────────────────────────────
     fun rawAlignMode(ctx: Context, path: String): String =
@@ -139,6 +142,7 @@ object WatchfaceConfigPrefs {
     fun rawAllowTap(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "allow_tap"), DEF_ALLOW_TAP)
     fun rawMaxFps(ctx: Context, path: String): Int = prefs(ctx).getInt(key(ctx, path, "max_fps"), DEF_MAX_FPS)
     fun rawUnlimited(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "unlimited"), DEF_UNLIMITED)
+    fun rawOptimize(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "optimize"), DEF_OPTIMIZE)
 
     fun setAlignMode(ctx: Context, path: String, v: String) =
         prefs(ctx).edit().putString(key(ctx, path, "align_mode"), v).apply()
@@ -158,6 +162,7 @@ object WatchfaceConfigPrefs {
     fun setAllowTap(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "allow_tap"), v).apply()
     fun setMaxFps(ctx: Context, path: String, v: Int) = prefs(ctx).edit().putInt(key(ctx, path, "max_fps"), v).apply()
     fun setUnlimited(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "unlimited"), v).apply()
+    fun setOptimize(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "optimize"), v).apply()
 
     // ── app-wide default getters/setters (edited in Settings) ───────────────────
     fun gdefAlignMode(ctx: Context): String = prefs(ctx).getString(gkey("align_mode"), DEF_ALIGN_MODE) ?: DEF_ALIGN_MODE
@@ -173,6 +178,7 @@ object WatchfaceConfigPrefs {
     fun gdefAllowTap(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("allow_tap"), DEF_ALLOW_TAP)
     fun gdefMaxFps(ctx: Context): Int = prefs(ctx).getInt(gkey("max_fps"), DEF_MAX_FPS)
     fun gdefUnlimited(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("unlimited"), DEF_UNLIMITED)
+    fun gdefOptimize(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("optimize"), DEF_OPTIMIZE)
 
     fun setGdefAlignMode(ctx: Context, v: String) = prefs(ctx).edit().putString(gkey("align_mode"), v).apply()
     fun setGdefSizeX(ctx: Context, v: Float) = prefs(ctx).edit().putFloat(gkey("size_x"), v.coerceIn(MIN_SIZE, MAX_SIZE)).apply()
@@ -187,6 +193,7 @@ object WatchfaceConfigPrefs {
     fun setGdefAllowTap(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("allow_tap"), v).apply()
     fun setGdefMaxFps(ctx: Context, v: Int) = prefs(ctx).edit().putInt(gkey("max_fps"), v).apply()
     fun setGdefUnlimited(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("unlimited"), v).apply()
+    fun setGdefOptimize(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("optimize"), v).apply()
 
     // ── stage deform math (Kotlin mirror of watchface.lua applyStageTransform) ──
     /**
@@ -246,6 +253,7 @@ object WatchfaceConfigPrefs {
             .remove(key(ctx, path, "allow_sensors")).remove(key(ctx, path, "allow_weather"))
             .remove(key(ctx, path, "allow_health")).remove(key(ctx, path, "allow_tap"))
             .remove(key(ctx, path, "max_fps")).remove(key(ctx, path, "unlimited"))
+            .remove(key(ctx, path, "optimize"))
             .remove(key(ctx, path, "use_def_align")).remove(key(ctx, path, "use_def_behavior"))
             .remove(key(ctx, path, "use_def_frame"))
             .apply()

@@ -2886,6 +2886,7 @@ function WFRender:flattenStatics()
     end
     print(string.format("[WFRender] flatten: %d/%d run(s) baked (%d candidate runs total, %d oversize-skipped), %d layers merged",
         baked, cand, #runs, skipped, merged))
+    self._flatMerged, self._flatRuns = merged, baked
 end
 
 -- xml: watch.xml content. baseDir: extract dir ending in "/" (has images/ etc).
@@ -3059,12 +3060,14 @@ function WFRender:load(xml, baseDir)
     print(string.format("[WFRender] loaded %d layers (%d bindings, frame=%s sec=%s), theme=%s",
         #self.recs, nBind, tostring(self.needFrame), tostring(self.needSecond),
         tostring(self.theme.ucolor)))
-    -- Kill switch: RT captures misbehave on some devices/drivers (observed on
-    -- the crDroid GSI test phone: sporadic black bakes at any canvas size,
-    -- healthy engine, valid texture). `touch files/no_flatten` (run-as) turns
-    -- the whole flatten system off — every layer renders live; the opacity
-    -- cull still applies. Delete the file to re-enable.
-    if fileExists(cc.FileUtils:getInstance():getWritablePath() .. "no_flatten") then
+    -- Layer-merge optimization is a per-face config toggle (settings push:
+    -- optimizeLayers, default on). `touch files/no_flatten` (run-as) remains as
+    -- a device-wide debug kill switch. Disabled either way: every layer renders
+    -- live; the opacity cull still applies.
+    self._flatMerged, self._flatRuns = 0, 0
+    if WF and WF.settings and WF.settings.optimizeLayers == false then
+        print("[WFRender] flatten disabled by face config — all layers live")
+    elseif fileExists(cc.FileUtils:getInstance():getWritablePath() .. "no_flatten") then
         print("[WFRender] flatten disabled by no_flatten flag — all layers live")
     else
         pcall(function() self:flattenStatics() end)

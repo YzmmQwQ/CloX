@@ -221,10 +221,15 @@ function WatchfaceBridge.setSensorEnabled(sensor, enabled)
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setSensorEnabled", sensor = sensor, enabled = enabled }))
 end
 
--- Report the loaded face's layer count to Android (Information tab statistics).
-function WatchfaceBridge.reportLayerCount(count)
+-- Report the loaded face's layer count to Android (Information tab statistics),
+-- plus the flatten-optimization result: layers merged into cached run textures
+-- and how many textures they baked into (config dialog performance tab).
+function WatchfaceBridge.reportLayerCount(count, merged, runs)
     if not json then return end
-    Bridge.sendToAndroid("wf_action", json.encode({ action = "reportLayerCount", count = count }))
+    Bridge.sendToAndroid("wf_action", json.encode({
+        action = "reportLayerCount", count = count,
+        merged = merged or 0, runs = runs or 0,
+    }))
 end
 
 -- Report the persisted-variable backup size (bytes) for the loaded face.

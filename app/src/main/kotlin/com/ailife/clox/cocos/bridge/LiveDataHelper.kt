@@ -135,6 +135,7 @@ object LiveDataHelper {
             put("fullscreen",      prefs.getInt("watchface_fullscreen", 0))
             put("maxFps",          cfg.maxFps(ctx, cfgPath))
             put("maxFpsUnlimited", cfg.unlimited(ctx, cfgPath))
+            put("optimizeLayers",  cfg.optimize(ctx, cfgPath))
             put("aodEnabled",      prefs.getBoolean("watchface_aod_enabled", false))
             // Per-face behaviour toggles enforced Lua-side.
             put("allowSound",      cfg.allowSound(ctx, cfgPath))

@@ -19,6 +19,19 @@ object WatchfaceStats {
         layerCountPath = path
     }
 
+    /** Layers merged into cached textures by the flatten optimization (-1 = not reported). */
+    @Volatile var mergedLayers: Int = -1
+        private set
+
+    /** Number of cached run textures the merged layers were baked into. */
+    @Volatile var mergedRuns: Int = 0
+        private set
+
+    fun setMerged(merged: Int, runs: Int) {
+        mergedLayers = merged
+        mergedRuns = runs
+    }
+
     /** Persisted script-variable backup size in bytes (-1 = not yet reported). */
     @Volatile var storageBytes: Int = -1
         private set

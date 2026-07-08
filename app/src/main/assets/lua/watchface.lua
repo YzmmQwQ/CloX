@@ -312,7 +312,8 @@ function WatchfaceScene:afterLoad()
     self:restartClock()
     self:applyFrameRate()
     if self._renderer and self._renderer.recs and WatchfaceBridge.reportLayerCount then
-        WatchfaceBridge.reportLayerCount(#self._renderer.recs)
+        WatchfaceBridge.reportLayerCount(#self._renderer.recs,
+            self._renderer._flatMerged or 0, self._renderer._flatRuns or 0)
     end
     -- Persisted-variable backup size on disk (config Info tab "Data stored").
     if self._renderer and self._renderer.script and self._renderer.script.persistedSize
@@ -463,6 +464,15 @@ function WatchfaceScene:wireBridge()
         if data.aodEnabled ~= nil then
             self._renderer:setDim(data.aodEnabled and true or false)
         end
+        -- The layer-merge toggle only takes effect at build time: when it flips
+        -- for the face already on screen, force the (otherwise same-path) load
+        -- through so the config dialog previews it live.
+        local optimize = data.optimizeLayers ~= false
+        if self._optimizeApplied ~= nil and self._optimizeApplied ~= optimize
+           and data.watchfacePath == self._currentPath then
+            self._currentPath = nil   -- else syncWatchface skips the reload (same path)
+        end
+        self._optimizeApplied = optimize
         -- Loading is deferred to the scheduler pump (GL-safe); the transform and
         -- frame-rate touch no GL resources, so apply them immediately for a
         -- responsive zoom/AOD change.

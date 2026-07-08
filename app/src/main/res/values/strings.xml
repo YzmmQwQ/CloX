@@ -428,6 +428,11 @@
     <string name="wfcfg_fps_value">%1$d FPS</string>
     <string name="wfcfg_fps_unlimited">Unlimited</string>
     <string name="wfcfg_aod_hint">Ambient (AOD) is always capped at 1 FPS to save power.</string>
+    <string name="wfcfg_optimize">Optimize rendering</string>
+    <string name="wfcfg_optimize_summary">Merge static layers into cached textures (faster, less power)</string>
+    <string name="wfcfg_optimize_stat">%1$d of %2$d layers merged into %3$d cached texture(s)</string>
+    <string name="wfcfg_optimize_stat_none">No layers merged on this face</string>
+    <string name="wfcfg_optimize_stat_off">Optimization disabled — all layers render live</string>
     <string name="wfcfg_info_layers">Layers</string>
     <string name="wfcfg_info_size">Watch face size</string>
     <string name="wfcfg_info_storage">Data stored</string>

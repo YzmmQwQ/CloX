@@ -571,10 +571,15 @@ class WatchfaceBridgeManager(
                     json.optString("sensor"),
                     json.optBoolean("enabled")
                 ) { sensor, data -> sendToLua("sensor_$sensor", data) }
-                "reportLayerCount" -> com.ailife.clox.watchface.WatchfaceStats.setLayerCount(
-                    json.optInt("count", -1),
-                    PreferenceManager.getDefaultSharedPreferences(ctx).getString("watchface_path", null)
-                )
+                "reportLayerCount" -> {
+                    com.ailife.clox.watchface.WatchfaceStats.setLayerCount(
+                        json.optInt("count", -1),
+                        PreferenceManager.getDefaultSharedPreferences(ctx).getString("watchface_path", null)
+                    )
+                    com.ailife.clox.watchface.WatchfaceStats.setMerged(
+                        json.optInt("merged", -1), json.optInt("runs", 0)
+                    )
+                }
                 "reportStorage" -> com.ailife.clox.watchface.WatchfaceStats.setStorageBytes(
                     json.optInt("bytes", 0)
                 )
