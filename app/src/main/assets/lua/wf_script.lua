@@ -285,6 +285,7 @@ function WFScript.new(engine, sandbox, actionHandler)
     -- wm_sfx re-initialise it; the few-ms open cost is nothing next to a
     -- permanently awake SoC.
     base.wm_sfx = function(s)
+        if WF and WF.settings and WF.settings.allowSound == false then return end
         local dir = self.base
         if not dir then return end
         local path = dir .. "sfx/" .. tostring(s) .. ".mp3"
@@ -315,6 +316,7 @@ function WFScript.new(engine, sandbox, actionHandler)
     end
     -- UL semantics (WatchSkinUtils.wm_vibrate): duration in ms, repeat ignored
     base.wm_vibrate = function(durationMs)
+        if WF and WF.settings and WF.settings.allowVibrate == false then return end
         local ok = pcall(function()
             cc.Device:vibrate((tonumber(durationMs) or 100) / 1000)
         end)

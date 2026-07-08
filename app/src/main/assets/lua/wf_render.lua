@@ -1336,8 +1336,22 @@ function Builders.video(self, rec)
     mp:setKeepAspectRatioEnabled(false)   -- WM stretches to width×height
     mp:setFileName(path)
     mp:setLooping(true)
+    -- Mute the video's audio track when "allow sound" is off (the face keeps
+    -- animating, silently). setVolume is a CloX addition to Axmol's MediaPlayer.
+    if mp.setVolume then
+        mp:setVolume((WF.settings and WF.settings.allowSound == false) and 0.0 or 1.0)
+    end
     mp:play()
     self.videos[#self.videos + 1] = mp
+end
+
+-- Re-apply the current "allow sound" setting to every playing video (live toggle
+-- from the config dialog). No-op if the native setVolume binding is unavailable.
+function WFRender:applyVideoVolume()
+    local vol = (WF.settings and WF.settings.allowSound == false) and 0.0 or 1.0
+    for _, mp in ipairs(self.videos or {}) do
+        if mp.setVolume then pcall(function() mp:setVolume(vol) end) end
+    end
 end
 
 -- One OSM tile centred on lat/lon (UL behaviour: single tile texture scaled
@@ -2212,7 +2226,12 @@ function WFRender:runAction(action)
         WFStopwatch.reset()
         self.engine:fire("ms")
     elseif WatchfaceBridge and WatchfaceBridge.tapAction then
-        WatchfaceBridge.tapAction(action)
+        -- "Allow tap action" gates only actions that invoke Android (app launch,
+        -- URL, media keys…). The face-internal actions above (script:, color
+        -- switch, stopwatch) are unaffected — they're the face's own logic.
+        if not (WF.settings and WF.settings.allowTap == false) then
+            WatchfaceBridge.tapAction(action)
+        end
     end
 end
 

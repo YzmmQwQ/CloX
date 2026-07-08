@@ -533,6 +533,10 @@ class WatchfaceBridgeManager(
                     json.optString("sensor"),
                     json.optBoolean("enabled")
                 ) { sensor, data -> sendToLua("sensor_$sensor", data) }
+                "reportLayerCount" -> com.ailife.clox.watchface.WatchfaceStats.setLayerCount(
+                    json.optInt("count", -1),
+                    PreferenceManager.getDefaultSharedPreferences(ctx).getString("watchface_path", null)
+                )
                 "requestMapTile" -> {
                     val lat = json.optDouble("lat", 0.0)
                     val lon = json.optDouble("lon", 0.0)

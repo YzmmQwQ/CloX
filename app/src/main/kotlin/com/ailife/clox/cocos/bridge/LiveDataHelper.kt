@@ -125,13 +125,24 @@ object LiveDataHelper {
         val cfg = com.ailife.clox.watchface.WatchfaceConfigPrefs
         return JSONObject().apply {
             if (path.isNullOrEmpty()) put("watchfacePath", false) else put("watchfacePath", path)
-            put("zoom",            cfg.scale(ctx, cfgPath).toDouble())
+            // Stage alignment / deform — Lua derives per-axis scaleX/scaleY from
+            // alignMode + sizeX/sizeY + the window size (see effectiveSizes).
+            put("alignMode",       cfg.alignMode(ctx, cfgPath))
+            put("sizeX",           cfg.sizeX(ctx, cfgPath).toDouble())
+            put("sizeY",           cfg.sizeY(ctx, cfgPath).toDouble())
             put("xOffset",         cfg.xOffset(ctx, cfgPath))
             put("yOffset",         cfg.yOffset(ctx, cfgPath))
             put("fullscreen",      prefs.getInt("watchface_fullscreen", 0))
             put("maxFps",          cfg.maxFps(ctx, cfgPath))
             put("maxFpsUnlimited", cfg.unlimited(ctx, cfgPath))
             put("aodEnabled",      prefs.getBoolean("watchface_aod_enabled", false))
+            // Per-face behaviour toggles enforced Lua-side.
+            put("allowSound",      cfg.allowSound(ctx, cfgPath))
+            put("allowVibrate",    cfg.allowVibrate(ctx, cfgPath))
+            put("allowSensors",    cfg.allowSensors(ctx, cfgPath))
+            put("allowWeather",    cfg.allowWeather(ctx, cfgPath))
+            put("allowHealth",     cfg.allowHealth(ctx, cfgPath))
+            put("allowTap",        cfg.allowTap(ctx, cfgPath))
         }
     }
 

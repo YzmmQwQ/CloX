@@ -5,11 +5,14 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.View.MeasureSpec
+import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -23,41 +26,58 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.ShapeAppearanceModel
+import com.ailife.clox.R
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.watchface.WatchfaceConfigPrefs
 import com.ailife.clox.watchface.WatchfacePrefs
+import com.ailife.clox.watchface.WatchfaceStats
 import java.io.File
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * Per-watchface configuration dialog. Two pages: Position (scale + X/Y offset)
- * and Frame rate (max FPS). Every change writes straight to [WatchfaceConfigPrefs]
- * for the active face, which re-pushes the settings snapshot to the Lua engine —
- * so the watchface behind this translucent panel updates live.
+ * Watch-face configuration panel. Two modes, same builders:
+ *  - PER-FACE (default): four tabs — Alignment, Behavior, Frame rate, Information.
+ *    The first three carry a "use app default" switch; when set, the group follows
+ *    the app-wide defaults and its controls are disabled.
+ *  - DEFAULTS ([EXTRA_DEFAULTS]): edits the app-wide defaults (Settings entry) —
+ *    the three editable groups only, no use-default switches, no Information tab.
  *
- * A watch screen has no room for a fixed header/footer alongside scrollable content,
- * so the whole panel scrolls as one unit when it doesn't fit.
- *
- * [isActive] tells [com.ailife.clox.MainActivity] to keep the Cocos GL view rendering
- * while this dialog is up — otherwise the launcher's normal onPause behavior (pausing
- * rendering whenever something else comes to front) would freeze the watchface and
- * defeat the live preview.
+ * Every change writes straight to [WatchfaceConfigPrefs], which re-pushes the
+ * settings snapshot to the Lua engine — so the face behind this translucent panel
+ * updates live. The whole panel scrolls as one unit on a small screen.
  */
 class WatchfaceConfigActivity : AppCompatActivity() {
 
     private lateinit var cfgPath: String
+    private val editingDefaults: Boolean get() = intent.getBooleanExtra(EXTRA_DEFAULTS, false)
+    private val cfg = WatchfaceConfigPrefs
 
     companion object {
+        const val EXTRA_DEFAULTS = "edit_defaults"
+
         @Volatile var isActive: Boolean = false
             private set
 
+        /** Per-face config for the active face (live preview over the watchface). */
         fun start(ctx: Context) {
             isActive = true
             ctx.startActivity(Intent(ctx, WatchfaceConfigActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+        }
+
+        /** App-wide defaults editor (from Settings). */
+        fun startDefaults(ctx: Context) {
+            isActive = true
+            ctx.startActivity(Intent(ctx, WatchfaceConfigActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra(EXTRA_DEFAULTS, true)
             })
         }
     }
@@ -96,9 +116,6 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         if (hasFocus) hideSystemBars()
     }
 
-    // This dialog sits on top of MainActivity, which is always fullscreen (see
-    // MainActivity.hideSystemBars) — without re-hiding the bars on our own window,
-    // taking focus here lets the status/nav bars reappear over the whole screen.
     private fun hideSystemBars() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -114,7 +131,6 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     // ── root scrim + bottom panel ─────────────────────────────────────────────
     private fun buildRoot(activePath: String?): View {
         val root = FrameLayout(this)
-        // Tap outside the panel dismisses.
         root.setOnClickListener { finish() }
 
         val card = MaterialCardView(this).apply {
@@ -125,52 +141,64 @@ class WatchfaceConfigActivity : AppCompatActivity() {
             setCardBackgroundColor(0xD91A1A1A.toInt())
             cardElevation = dp(8).toFloat()
             strokeWidth = 0
-            isClickable = true   // swallow taps so they don't dismiss
+            isClickable = true
         }
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(16), dp(20), dp(20))
         }
-        content.addView(title(faceLabel(activePath)))
+        content.addView(title(
+            if (editingDefaults) getString(R.string.wfcfg_defaults_title) else faceLabel(activePath)
+        ))
 
         val flipper = ViewFlipper(this)
-        content.addView(tabRow(flipper), LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+        val labels: List<String>
+        val pages: List<View>
+        if (editingDefaults) {
+            labels = listOf(
+                getString(R.string.wfcfg_tab_alignment),
+                getString(R.string.wfcfg_tab_behavior),
+                getString(R.string.wfcfg_tab_framerate)
+            )
+            pages = listOf(alignmentPage(), behaviorPage(), frameRatePage())
+        } else {
+            labels = listOf(
+                getString(R.string.wfcfg_tab_alignment),
+                getString(R.string.wfcfg_tab_behavior),
+                getString(R.string.wfcfg_tab_framerate),
+                getString(R.string.wfcfg_tab_info)
+            )
+            pages = listOf(alignmentPage(), behaviorPage(), frameRatePage(), infoPage(activePath))
+        }
+        content.addView(tabRow(flipper, labels), LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             topMargin = dp(4)
         })
-
-        val pageLp = FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-        flipper.addView(positionPage(), pageLp)
-        flipper.addView(frameRatePage(), FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        pages.forEach { flipper.addView(it, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
         content.addView(flipper, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             topMargin = dp(8)
         })
 
         content.addView(MaterialButton(this).apply {
-            text = "Done"
+            text = getString(R.string.wfcfg_done)
             setOnClickListener { finish() }
         }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = dp(12) })
 
-        // A watch screen has no room for a fixed header/footer, so the whole
-        // panel — title, tabs, pages and Done button — scrolls as one unit
-        // whenever it doesn't fit the window.
         val maxCardHeight = realScreenSize().y
         val scroll = MaxHeightScrollView(this, maxCardHeight).apply {
             isVerticalScrollBarEnabled = false
         }
         scroll.addView(content, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
         card.addView(scroll, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        root.addChild(card)
+        root.addView(card)
         (card.layoutParams as FrameLayout.LayoutParams).apply {
             width = MATCH_PARENT; height = WRAP_CONTENT; gravity = Gravity.BOTTOM
         }
-
         return root
     }
 
     private fun faceLabel(activePath: String?): String =
-        if (activePath.isNullOrEmpty()) "Default watch face"
+        if (activePath.isNullOrEmpty()) getString(R.string.wfcfg_title_default)
         else File(activePath).nameWithoutExtension
 
     private fun title(text: String) = TextView(this).apply {
@@ -181,18 +209,19 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     }
 
     // ── tab row toggling the flipper ──────────────────────────────────────────
-    private fun tabRow(flipper: ViewFlipper): View {
+    private fun tabRow(flipper: ViewFlipper, labels: List<String>): View {
         val group = MaterialButtonToggleGroup(this).apply {
             isSingleSelection = true
             isSelectionRequired = true
         }
-        val labels = listOf("Position", "Frame rate")
         val buttons = labels.map { label ->
             MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 id = View.generateViewId()
                 text = label
                 isCheckable = true
                 setTextColor(Color.WHITE)
+                textSize = 12f
+                insetTop = 0; insetBottom = 0
             }
         }
         buttons.forEach { group.addView(it, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)) }
@@ -205,38 +234,67 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         return group
     }
 
-    // ── page 1: scale + offsets ───────────────────────────────────────────────
-    private fun positionPage(): View {
+    // ── page 1: alignment (deform + offsets) ──────────────────────────────────
+    private fun alignmentPage(): View {
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
-        // Scale: 0.5..2.0 across 100 steps
-        val cfg = WatchfaceConfigPrefs
-        val scaleRange = cfg.MAX_SCALE - cfg.MIN_SCALE
-        val scale0 = cfg.scale(this, cfgPath)
-        page.addChild(labeledSlider(
-            "Scale", 100, (((scale0 - cfg.MIN_SCALE) / scaleRange) * 100).roundToInt(),
-            fmt = { p -> String.format("%.2f×", cfg.MIN_SCALE + scaleRange * p / 100f) },
-            onChange = { p -> cfg.setScale(this, cfgPath, cfg.MIN_SCALE + scaleRange * p / 100f) }
-        ))
+        val useDefault = !editingDefaults && cfg.useDefaultAlign(this, cfgPath)
+        if (!editingDefaults) {
+            page.addChild(useDefaultSwitch(useDefault) { checked ->
+                cfg.setUseDefaultAlign(this, cfgPath, checked); recreate()
+            })
+        }
+        val editable = editingDefaults || !useDefault
 
-        val r = cfg.OFFSET_RANGE
-        page.addChild(labeledSlider(
-            "Horizontal offset", 2 * r, cfg.xOffset(this, cfgPath) + r,
-            fmt = { p -> "${p - r} px" },
-            onChange = { p -> cfg.setXOffset(this, cfgPath, p - r) }
-        ))
-        page.addChild(labeledSlider(
-            "Vertical offset", 2 * r, cfg.yOffset(this, cfgPath) + r,
-            fmt = { p -> "${p - r} px" },
-            onChange = { p -> cfg.setYOffset(this, cfgPath, p - r) }
-        ))
+        // Alignment mode selector
+        val modes = listOf(
+            WatchfaceConfigPrefs.ALIGN_VERTICAL to R.string.wfcfg_align_vertical,
+            WatchfaceConfigPrefs.ALIGN_HORIZONTAL to R.string.wfcfg_align_horizontal,
+            WatchfaceConfigPrefs.ALIGN_STRETCH to R.string.wfcfg_align_stretch,
+            WatchfaceConfigPrefs.ALIGN_CUSTOM to R.string.wfcfg_align_custom
+        )
+        val curMode = getAlignMode()
+        val modeGroup = MaterialButtonToggleGroup(this).apply {
+            isSingleSelection = true; isSelectionRequired = true
+        }
+        val modeButtons = modes.map { (_, labelRes) ->
+            MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                id = View.generateViewId(); text = getString(labelRes); isCheckable = true
+                setTextColor(Color.WHITE); textSize = 11f; insetTop = 0; insetBottom = 0
+            }
+        }
+        modeButtons.forEach { modeGroup.addView(it, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)) }
+        modeGroup.check(modeButtons[modes.indexOfFirst { it.first == curMode }.coerceAtLeast(0)].id)
+        modeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val idx = modeButtons.indexOfFirst { it.id == checkedId }
+            if (idx >= 0) { setAlignMode(modes[idx].first); recreate() }
+        }
+        page.addChild(modeGroup)
+
+        // Width / Height size sliders — only meaningful in custom mode
+        val custom = curMode == WatchfaceConfigPrefs.ALIGN_CUSTOM
+        page.addChild(sizeSlider(getString(R.string.wfcfg_width), getSizeX(), editable && custom) { setSizeX(it) })
+        page.addChild(sizeSlider(getString(R.string.wfcfg_height), getSizeY(), editable && custom) { setSizeY(it) })
+
+        // Offsets (all modes)
+        val r = WatchfaceConfigPrefs.OFFSET_RANGE
+        page.addChild(offsetSlider(getString(R.string.wfcfg_h_offset), getXOffset(), r, editable) { setXOffset(it) })
+        page.addChild(offsetSlider(getString(R.string.wfcfg_v_offset), getYOffset(), r, editable) { setYOffset(it) })
 
         page.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-            text = "Reset position"
+            text = getString(R.string.wfcfg_reset_alignment)
+            isEnabled = editable
             setOnClickListener {
-                cfg.setScale(this@WatchfaceConfigActivity, cfgPath, cfg.DEF_SCALE)
-                cfg.setXOffset(this@WatchfaceConfigActivity, cfgPath, cfg.DEF_OFFSET)
-                cfg.setYOffset(this@WatchfaceConfigActivity, cfgPath, cfg.DEF_OFFSET)
+                if (editingDefaults) {
+                    cfg.setGdefAlignMode(this@WatchfaceConfigActivity, WatchfaceConfigPrefs.DEF_ALIGN_MODE)
+                    cfg.setGdefSizeX(this@WatchfaceConfigActivity, WatchfaceConfigPrefs.DEF_SIZE)
+                    cfg.setGdefSizeY(this@WatchfaceConfigActivity, WatchfaceConfigPrefs.DEF_SIZE)
+                    cfg.setGdefXOffset(this@WatchfaceConfigActivity, WatchfaceConfigPrefs.DEF_OFFSET)
+                    cfg.setGdefYOffset(this@WatchfaceConfigActivity, WatchfaceConfigPrefs.DEF_OFFSET)
+                } else {
+                    cfg.resetAlignment(this@WatchfaceConfigActivity, cfgPath)
+                }
                 recreate()
             }
         }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(8) })
@@ -244,99 +302,262 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         return page
     }
 
-    private fun labeledSlider(
-        label: String, max: Int, initial: Int,
-        fmt: (Int) -> String, onChange: (Int) -> Unit
-    ): View {
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, dp(8))
+    // ── page 2: behavior toggles ──────────────────────────────────────────────
+    private fun behaviorPage(): View {
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val useDefault = !editingDefaults && cfg.useDefaultBehavior(this, cfgPath)
+        if (!editingDefaults) {
+            page.addChild(useDefaultSwitch(useDefault) { checked ->
+                cfg.setUseDefaultBehavior(this, cfgPath, checked); recreate()
+            })
         }
-        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val name = TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f }
-        val valueText = TextView(this).apply {
-            text = fmt(initial); setTextColor(0xFF82ABD1.toInt()); textSize = 14f
-            gravity = Gravity.END
-        }
-        header.addView(name, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
-        header.addView(valueText, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
-        box.addView(header, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        val editable = editingDefaults || !useDefault
 
-        val initialClamped = initial.coerceIn(0, max)
-        val slider = Slider(this).apply {
-            valueFrom = 0f
-            valueTo = max.toFloat()
-            stepSize = 1f
-            value = initialClamped.toFloat()
-            addOnChangeListener { _, v, _ ->
-                val p = v.roundToInt()
-                valueText.text = fmt(p)
-                onChange(p)
-            }
-        }
-        box.addView(slider, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        return box
+        page.addChild(switchRow(R.string.wfcfg_allow_sound, R.string.wfcfg_allow_sound_summary, getAllowSound(), editable) { setAllowSound(it) })
+        page.addChild(switchRow(R.string.wfcfg_allow_vibrate, R.string.wfcfg_allow_vibrate_summary, getAllowVibrate(), editable) { setAllowVibrate(it) })
+        page.addChild(switchRow(R.string.wfcfg_allow_sensors, R.string.wfcfg_allow_sensors_summary, getAllowSensors(), editable) { setAllowSensors(it) })
+        page.addChild(switchRow(R.string.wfcfg_allow_weather, R.string.wfcfg_allow_weather_summary, getAllowWeather(), editable) { setAllowWeather(it) })
+        page.addChild(switchRow(R.string.wfcfg_allow_health, R.string.wfcfg_allow_health_summary, getAllowHealth(), editable) { setAllowHealth(it) })
+        page.addChild(switchRow(R.string.wfcfg_allow_tap, R.string.wfcfg_allow_tap_summary, getAllowTap(), editable) { setAllowTap(it) })
+        return page
     }
 
-    // ── page 2: max FPS ───────────────────────────────────────────────────────
+    // ── page 3: frame rate ────────────────────────────────────────────────────
     private fun frameRatePage(): View {
-        val page = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, dp(8))
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val useDefault = !editingDefaults && cfg.useDefaultFrameRate(this, cfgPath)
+        if (!editingDefaults) {
+            page.addChild(useDefaultSwitch(useDefault) { checked ->
+                cfg.setUseDefaultFrameRate(this, cfgPath, checked); recreate()
+            })
         }
-        val cfg = WatchfaceConfigPrefs
-        val unlimited = cfg.unlimited(this, cfgPath)
-        val current = cfg.maxFps(this, cfgPath)
+        val editable = editingDefaults || !useDefault
 
+        val unlimited = getUnlimited()
+        val current = getMaxFps()
         val group = MaterialButtonToggleGroup(this).apply {
-            orientation = LinearLayout.VERTICAL
-            isSingleSelection = true
-            isSelectionRequired = true
+            orientation = LinearLayout.VERTICAL; isSingleSelection = true; isSelectionRequired = true
         }
-        val options = cfg.FPS_CHOICES.map { "$it FPS" } + "Unlimited"
+        val options = cfg.FPS_CHOICES.map { getString(R.string.wfcfg_fps_value, it) } + getString(R.string.wfcfg_fps_unlimited)
         val buttons = options.map { label ->
             MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                id = View.generateViewId()
-                text = label
-                isCheckable = true
-                setTextColor(Color.WHITE)
+                id = View.generateViewId(); text = label; isCheckable = true
+                setTextColor(Color.WHITE); isEnabled = editable
             }
         }
         buttons.forEach { group.addView(it, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
-
         val selIdx = when {
             unlimited -> cfg.FPS_CHOICES.size
             cfg.FPS_CHOICES.indexOf(current) >= 0 -> cfg.FPS_CHOICES.indexOf(current)
             else -> cfg.FPS_CHOICES.indexOf(cfg.DEF_MAX_FPS).coerceAtLeast(0)
         }
         group.check(buttons[selIdx].id)
-
         group.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             val idx = buttons.indexOfFirst { it.id == checkedId }
-            if (idx == cfg.FPS_CHOICES.size) {
-                cfg.setUnlimited(this, cfgPath, true)
-            } else if (idx in cfg.FPS_CHOICES.indices) {
-                cfg.setMaxFps(this, cfgPath, cfg.FPS_CHOICES[idx])
-                cfg.setUnlimited(this, cfgPath, false)
-            }
+            if (idx == cfg.FPS_CHOICES.size) setUnlimited(true)
+            else if (idx in cfg.FPS_CHOICES.indices) { setMaxFps(cfg.FPS_CHOICES[idx]); setUnlimited(false) }
         }
         page.addView(group, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
         page.addView(TextView(this).apply {
-            text = "Ambient (AOD) is always capped at 1 FPS to save power."
-            setTextColor(0xFF999999.toInt())
-            textSize = 12f
+            text = getString(R.string.wfcfg_aod_hint)
+            setTextColor(0xFF999999.toInt()); textSize = 12f
             setPadding(0, dp(10), 0, 0)
         })
         return page
     }
 
+    // ── page 4: information ───────────────────────────────────────────────────
+    private fun infoPage(activePath: String?): View {
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8))
+        }
+        // Layer count (reported by the Lua engine on load, for the active face).
+        val layers = if (WatchfaceStats.layerCount >= 0) WatchfaceStats.layerCount.toString() else "—"
+        page.addChild(infoRow(getString(R.string.wfcfg_info_layers), layers))
+
+        // Watch face package size on disk.
+        val sizeText = activePath?.let { p ->
+            val f = File(p)
+            if (f.isFile) formatBytes(f.length()) else null
+        } ?: "—"
+        page.addChild(infoRow(getString(R.string.wfcfg_info_size), sizeText))
+
+        // Reserved statistics.
+        page.addChild(infoRow(getString(R.string.wfcfg_info_storage), getString(R.string.wfcfg_info_reserved)))
+        page.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.wfcfg_info_clear)
+            isEnabled = false   // reserved
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(8) })
+        return page
+    }
+
+    private fun formatBytes(b: Long): String = when {
+        b >= 1_048_576 -> String.format(Locale.US, "%.1f MB", b / 1_048_576.0)
+        b >= 1024 -> String.format(Locale.US, "%.1f KB", b / 1024.0)
+        else -> "$b B"
+    }
+
+    // ── reusable control builders ─────────────────────────────────────────────
+    private fun useDefaultSwitch(checked: Boolean, onChange: (Boolean) -> Unit): View {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, dp(8))
+        }
+        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        labels.addView(TextView(this).apply {
+            text = getString(R.string.wfcfg_use_default); setTextColor(Color.WHITE); textSize = 14f
+        })
+        labels.addView(TextView(this).apply {
+            text = getString(R.string.wfcfg_use_default_summary); setTextColor(0xFF999999.toInt()); textSize = 11f
+        })
+        box.addView(labels, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        box.addView(MaterialSwitch(this).apply {
+            isChecked = checked
+            setOnCheckedChangeListener { _, v -> onChange(v) }
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        return box
+    }
+
+    /** Float size slider (0.5..2.0), with a precise-input button in the header. */
+    private fun sizeSlider(label: String, initial: Float, enabled: Boolean, onChange: (Float) -> Unit): View =
+        labeledSlider(label, WatchfaceConfigPrefs.MIN_SIZE, WatchfaceConfigPrefs.MAX_SIZE, 0.01f,
+            initial.coerceIn(WatchfaceConfigPrefs.MIN_SIZE, WatchfaceConfigPrefs.MAX_SIZE), enabled,
+            fmt = { String.format(Locale.US, "%.2f×", it) },
+            parse = { it.toFloatOrNull() },
+            onChange = onChange)
+
+    /** Integer offset slider (±range px). */
+    private fun offsetSlider(label: String, initial: Int, range: Int, enabled: Boolean, onChange: (Int) -> Unit): View =
+        labeledSlider(label, -range.toFloat(), range.toFloat(), 1f, initial.toFloat().coerceIn(-range.toFloat(), range.toFloat()), enabled,
+            fmt = { "${it.roundToInt()} px" },
+            parse = { it.toFloatOrNull() },
+            onChange = { onChange(it.roundToInt()) })
+
+    private fun labeledSlider(
+        label: String, from: Float, to: Float, step: Float, initial: Float, enabled: Boolean,
+        fmt: (Float) -> String, parse: (String) -> Float?, onChange: (Float) -> Unit
+    ): View {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8))
+        }
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val name = TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f }
+        val valueText = TextView(this).apply {
+            text = fmt(initial); setTextColor(0xFF82ABD1.toInt()); textSize = 14f; gravity = Gravity.END
+        }
+        header.addView(name, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        header.addView(valueText, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+
+        val slider = Slider(this).apply {
+            valueFrom = from; valueTo = to; stepSize = step
+            value = initial.coerceIn(from, to)
+            isEnabled = enabled
+        }
+        // Precise-input button above the slider (opens a numeric entry dialog).
+        val editBtn = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.wfcfg_precise_set); textSize = 11f; isEnabled = enabled
+            insetTop = 0; insetBottom = 0; minWidth = 0; minimumWidth = 0
+            setOnClickListener {
+                promptValue(label, fmt(slider.value), parse) { v ->
+                    val clamped = v.coerceIn(from, to)
+                    slider.value = clamped
+                    valueText.text = fmt(clamped)
+                    onChange(clamped)
+                }
+            }
+        }
+        header.addView(editBtn, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(8) })
+        box.addView(header, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+
+        slider.addOnChangeListener { _, v, fromUser ->
+            valueText.text = fmt(v)
+            if (fromUser) onChange(v)
+        }
+        box.addView(slider, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        return box
+    }
+
+    private fun promptValue(label: String, current: String, parse: (String) -> Float?, apply: (Float) -> Unit) {
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
+            setText(current.filter { it.isDigit() || it == '.' || it == '-' })
+            setSelection(text.length)
+        }
+        val pad = dp(20)
+        val wrap = FrameLayout(this).apply { setPadding(pad, dp(8), pad, 0); addView(input) }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(label)
+            .setView(wrap)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                parse(input.text.toString().trim())?.let { apply(it) }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun switchRow(labelRes: Int, summaryRes: Int, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit): View {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(8), 0, dp(8)); isEnabled = enabled; alpha = if (enabled) 1f else 0.5f
+        }
+        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        labels.addView(TextView(this).apply { text = getString(labelRes); setTextColor(Color.WHITE); textSize = 14f })
+        labels.addView(TextView(this).apply { text = getString(summaryRes); setTextColor(0xFF999999.toInt()); textSize = 11f })
+        box.addView(labels, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        box.addView(MaterialSwitch(this).apply {
+            isChecked = checked; isEnabled = enabled
+            setOnCheckedChangeListener { _, v -> onChange(v) }
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        return box
+    }
+
+    private fun infoRow(label: String, value: String): View {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(10), 0, dp(10))
+        }
+        box.addView(TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f },
+            LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        box.addView(TextView(this).apply { text = value; setTextColor(0xFF82ABD1.toInt()); textSize = 14f },
+            LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        return box
+    }
+
+    // ── mode-aware accessors (per-face effective/raw, or global defaults) ──────
+    private fun getAlignMode() = if (editingDefaults) cfg.gdefAlignMode(this) else cfg.alignMode(this, cfgPath)
+    private fun setAlignMode(v: String) = if (editingDefaults) cfg.setGdefAlignMode(this, v) else cfg.setAlignMode(this, cfgPath, v)
+    private fun getSizeX() = if (editingDefaults) cfg.gdefSizeX(this) else cfg.sizeX(this, cfgPath)
+    private fun setSizeX(v: Float) = if (editingDefaults) cfg.setGdefSizeX(this, v) else cfg.setSizeX(this, cfgPath, v)
+    private fun getSizeY() = if (editingDefaults) cfg.gdefSizeY(this) else cfg.sizeY(this, cfgPath)
+    private fun setSizeY(v: Float) = if (editingDefaults) cfg.setGdefSizeY(this, v) else cfg.setSizeY(this, cfgPath, v)
+    private fun getXOffset() = if (editingDefaults) cfg.gdefXOffset(this) else cfg.xOffset(this, cfgPath)
+    private fun setXOffset(v: Int) = if (editingDefaults) cfg.setGdefXOffset(this, v) else cfg.setXOffset(this, cfgPath, v)
+    private fun getYOffset() = if (editingDefaults) cfg.gdefYOffset(this) else cfg.yOffset(this, cfgPath)
+    private fun setYOffset(v: Int) = if (editingDefaults) cfg.setGdefYOffset(this, v) else cfg.setYOffset(this, cfgPath, v)
+
+    private fun getAllowSound() = if (editingDefaults) cfg.gdefAllowSound(this) else cfg.allowSound(this, cfgPath)
+    private fun setAllowSound(v: Boolean) = if (editingDefaults) cfg.setGdefAllowSound(this, v) else cfg.setAllowSound(this, cfgPath, v)
+    private fun getAllowVibrate() = if (editingDefaults) cfg.gdefAllowVibrate(this) else cfg.allowVibrate(this, cfgPath)
+    private fun setAllowVibrate(v: Boolean) = if (editingDefaults) cfg.setGdefAllowVibrate(this, v) else cfg.setAllowVibrate(this, cfgPath, v)
+    private fun getAllowSensors() = if (editingDefaults) cfg.gdefAllowSensors(this) else cfg.allowSensors(this, cfgPath)
+    private fun setAllowSensors(v: Boolean) = if (editingDefaults) cfg.setGdefAllowSensors(this, v) else cfg.setAllowSensors(this, cfgPath, v)
+    private fun getAllowWeather() = if (editingDefaults) cfg.gdefAllowWeather(this) else cfg.allowWeather(this, cfgPath)
+    private fun setAllowWeather(v: Boolean) = if (editingDefaults) cfg.setGdefAllowWeather(this, v) else cfg.setAllowWeather(this, cfgPath, v)
+    private fun getAllowHealth() = if (editingDefaults) cfg.gdefAllowHealth(this) else cfg.allowHealth(this, cfgPath)
+    private fun setAllowHealth(v: Boolean) = if (editingDefaults) cfg.setGdefAllowHealth(this, v) else cfg.setAllowHealth(this, cfgPath, v)
+    private fun getAllowTap() = if (editingDefaults) cfg.gdefAllowTap(this) else cfg.allowTap(this, cfgPath)
+    private fun setAllowTap(v: Boolean) = if (editingDefaults) cfg.setGdefAllowTap(this, v) else cfg.setAllowTap(this, cfgPath, v)
+
+    private fun getMaxFps() = if (editingDefaults) cfg.gdefMaxFps(this) else cfg.maxFps(this, cfgPath)
+    private fun setMaxFps(v: Int) = if (editingDefaults) cfg.setGdefMaxFps(this, v) else cfg.setMaxFps(this, cfgPath, v)
+    private fun getUnlimited() = if (editingDefaults) cfg.gdefUnlimited(this) else cfg.unlimited(this, cfgPath)
+    private fun setUnlimited(v: Boolean) = if (editingDefaults) cfg.setGdefUnlimited(this, v) else cfg.setUnlimited(this, cfgPath, v)
+
     // small helper: add a full-width child to a LinearLayout
     private fun LinearLayout.addChild(v: View) =
         addView(v, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-    private fun FrameLayout.addChild(v: View) =
-        addView(v, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
 }
 
 /** A ScrollView that never grows past [maxHeightPx], so callers can reserve screen space. */

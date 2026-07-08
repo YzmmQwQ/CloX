@@ -89,8 +89,11 @@ WF = {
     },
     settings = {
         watchfacePath = false,  -- false = not yet received; engine must gate loading on this
-        zoom = 1.0, xOffset = 0, yOffset = 0,
+        alignMode = "vertical", sizeX = 1.0, sizeY = 1.0, xOffset = 0, yOffset = 0,
         fullscreen = 0, frameRate = 60, aodEnabled = false,
+        -- behaviour toggles (enforced Lua-side); mirror WatchfaceConfigPrefs defaults
+        allowSound = false, allowVibrate = true, allowSensors = true,
+        allowWeather = true, allowHealth = true, allowTap = true,
     },
     system   = { volume = 0, brightness = 128, darkMode = false, lowPowerMode = false, is24h = false },
     location = { names = { "", "", "", "", "" }, timezones = { "", "", "", "" },
@@ -216,6 +219,12 @@ end
 function WatchfaceBridge.setSensorEnabled(sensor, enabled)
     if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({ action = "setSensorEnabled", sensor = sensor, enabled = enabled }))
+end
+
+-- Report the loaded face's layer count to Android (Information tab statistics).
+function WatchfaceBridge.reportLayerCount(count)
+    if not json then return end
+    Bridge.sendToAndroid("wf_action", json.encode({ action = "reportLayerCount", count = count }))
 end
 
 -- ── Lua → Android: watchface shortcut ────────────────────────────────────────

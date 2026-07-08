@@ -149,7 +149,7 @@ function WatchfaceScene:onEnter()
     WatchfaceOnBridgeRestart = function()
         self._activeFeatures = { weather = false, health = {}, sensor = {} }
         if self._renderer and self._renderer.features then
-            self:applyFeatures(self._renderer.features)
+            self:applyFeatures(self:maskedFeatures())
         end
         Bridge.sendToAndroid("wf_lua_ready", "")
     end
@@ -171,15 +171,30 @@ end
 -- Apply zoom / pan settings and the 512→screen scale to the stage. Scale fits
 -- the smaller screen dimension (never overflows), then the per-face zoom/offset
 -- nudge for pixel-perfect placement. Positive yOffset moves the face down.
+-- Per-axis size multipliers for an alignment mode (Lua mirror of Kotlin
+-- WatchfaceConfigPrefs.effectiveSizes — keep the two in lockstep). Reference is
+-- the VERTICAL dimension: at size 1 the canvas fills the height.
+local function effectiveSizes(mode, sx, sy, W, H)
+    if H == 0 then return sx, sy end
+    local minRatio = math.min(W, H) / H
+    if mode == "vertical" then return 1.0, 1.0
+    elseif mode == "horizontal" then return minRatio, minRatio
+    elseif mode == "stretch" then return W / H, 1.0
+    else return sx, sy end                       -- custom
+end
+
 function WatchfaceScene:applyStageTransform()
     local s = WF.settings or {}
-    local base = math.min(self._W, self._H) / CANVAS
-    self._stage:setScale(base * (tonumber(s.zoom) or 1.0))
+    local mode = s.alignMode or "vertical"
+    local mx, my = effectiveSizes(mode, tonumber(s.sizeX) or 1.0, tonumber(s.sizeY) or 1.0,
+                                  self._W, self._H)
+    local base = self._H / CANVAS                 -- size 1 fills the vertical dimension
+    self._stage:setScaleX(base * mx)
+    self._stage:setScaleY(base * my)
     self._stage:setPosition(self._W / 2 + (tonumber(s.xOffset) or 0),
                             self._H / 2 - (tonumber(s.yOffset) or 0))
-    print(string.format("[WFStage] winSize=%.0fx%.0f base=%.4f zoom=%s side=%.1f",
-        self._W, self._H, base, tostring(s.zoom or 1.0),
-        math.min(self._W, self._H) * (tonumber(s.zoom) or 1.0)))
+    print(string.format("[WFStage] win=%.0fx%.0f mode=%s mx=%.3f my=%.3f base=%.4f",
+        self._W, self._H, tostring(mode), mx, my, base))
 end
 
 -- Cap the render rate: 1 FPS in AOD, otherwise the per-face max (default 25,
@@ -223,6 +238,33 @@ function WatchfaceScene:applyFeatures(f)
     self._activeFeatures = f
 end
 
+-- Mask the face's declared features by the per-face "allow" toggles so the user
+-- can suppress sensors / weather / health without editing the face. (sound,
+-- vibrate, tap and video are gated at their own call sites in the renderer/script.)
+function WatchfaceScene:maskedFeatures()
+    local f = (self._renderer and self._renderer.features)
+              or { weather = false, health = {}, sensor = {} }
+    local s = WF.settings or {}
+    local allowSensors = s.allowSensors ~= false
+    local allowWeather = s.allowWeather ~= false
+    local allowHealth  = s.allowHealth  ~= false
+    local h, sn = f.health or {}, f.sensor or {}
+    return {
+        weather = allowWeather and (f.weather or false),
+        health = {
+            steps     = allowHealth and (h.steps or false),
+            heartRate = allowHealth and (h.heartRate or false),
+            spo2      = allowHealth and (h.spo2 or false),
+        },
+        sensor = {
+            accelerometer = allowSensors and (sn.accelerometer or false),
+            gyroscope     = allowSensors and (sn.gyroscope or false),
+            compass       = allowSensors and (sn.compass or false),
+            barometer     = allowSensors and (sn.barometer or false),
+        },
+    }
+end
+
 -- Start (or restart) the clock driver for the loaded face. A face with any
 -- sub-second work (ms tags, on_millisecond, live tweens) runs the per-frame
 -- scheduler for smooth motion; otherwise a 1s poll drives the boundaries and
@@ -245,9 +287,12 @@ end
 -- Common post-load wiring: stage transform, feature toggles, clock driver, FPS.
 function WatchfaceScene:afterLoad()
     self:applyStageTransform()
-    self:applyFeatures(self._renderer.features)
+    self:applyFeatures(self:maskedFeatures())
     self:restartClock()
     self:applyFrameRate()
+    if self._renderer and self._renderer.recs and WatchfaceBridge.reportLayerCount then
+        WatchfaceBridge.reportLayerCount(#self._renderer.recs)
+    end
     -- a tap script scheduling the first tween can flip the frame-loop need
     -- while the per-frame scheduler is suspended — restart the driver then
     self._renderer.onNeedFrame = function() self:restartClock() end
@@ -398,6 +443,12 @@ function WatchfaceScene:wireBridge()
         self:requestLoad(data.watchfacePath)
         self:applyStageTransform()
         self:applyFrameRate()
+        -- Behaviour toggles can change live (config dialog) — re-mask the face's
+        -- features so allow-sensors/weather/health take effect without a reload.
+        if self._renderer then
+            self:applyFeatures(self:maskedFeatures())
+            if self._renderer.applyVideoVolume then self._renderer:applyVideoVolume() end
+        end
     end)
 
     -- explicit lifecycle commands (watchface_bridge.lua §ANDROID → LUA). These
@@ -427,10 +478,11 @@ function WatchfaceScene:onTouch(x, y, action)
     if self._currentPath == nil then return end -- nothing loaded yet (cold-start wait)
     local glY = self._H - y                     -- android Y-down → cocos Y-up
     local sx, sy = self._stage:getPosition()
-    local sc = self._stage:getScale()
-    if not sc or sc == 0 then return end
-    local cx = (x - sx) / sc
-    local cy = (glY - sy) / sc
+    local scx = self._stage:getScaleX()         -- stage may be deformed (scaleX ≠ scaleY)
+    local scy = self._stage:getScaleY()
+    if not scx or scx == 0 or not scy or scy == 0 then return end
+    local cx = (x - sx) / scx
+    local cy = (glY - sy) / scy
     print(string.format("[Watchface] tap screen(%.0f,%.0f) canvas(%.1f,%.1f)", x, y, cx, cy))
     self._renderer:tapAt(cx, cy)
 end

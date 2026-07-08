@@ -54,6 +54,11 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
             })
         }
 
+        // Open app-wide default watch-face settings (alignment/behavior/frame rate)
+        view.findViewById<View>(R.id.cardWfDefaults).setOnClickListener {
+            com.ailife.clox.watchface.config.WatchfaceConfigActivity.startDefaults(requireContext())
+        }
+
         // Selector mode picker
         val tvSelectorMode = view.findViewById<TextView>(R.id.tvWfSelectorMode)
         fun refreshSelectorMode() {
