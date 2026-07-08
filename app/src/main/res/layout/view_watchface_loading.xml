@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Merged into WatchfaceLoadingOverlay (FrameLayout). Shown over the Axmol
-     surface while a watchface loads: its preview stretched full-bleed, a scrim
-     for contrast, and the animated app-icon indicator with a loading label. -->
+     surface while a watchface loads: its preview stretched over the render
+     canvas (a centred square, resized in code to min(w,h)), a scrim for
+     contrast, and the animated app-icon indicator with a loading label. -->
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
 
     <ImageView
         android:id="@+id/wfLoadingPreview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_gravity="center"
         android:scaleType="fitXY"
-        android:background="@color/clox_bg"
         android:importantForAccessibility="no" />
 
     <View

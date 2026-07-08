@@ -8,6 +8,7 @@ import android.view.animation.PathInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import com.ailife.clox.R
+import com.ailife.clox.watchface.WatchfaceConfigPrefs
 
 /**
  * Full-screen placeholder shown over the Axmol surface while a watchface
@@ -31,10 +32,52 @@ class WatchfaceLoadingOverlay @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.view_watchface_loading, this, true)
         previewView = findViewById(R.id.wfLoadingPreview)
         sticksView = findViewById(R.id.wfLoadingSticks)
+        // The preview covers only the canvas square; the root keeps the rest of
+        // the window opaque over the stale GL frame.
+        setBackgroundResource(R.color.clox_bg)
         visibility = GONE
         // Never intercept input — system gestures stay with GestureInterceptorLayout.
         isClickable = false
         isFocusable = false
+    }
+
+    // Face path of the pending load — keys the per-face alignment config.
+    private var canvasPath: String? = null
+
+    /**
+     * The preview must cover exactly the watchface render canvas — the
+     * face's aligned square (WatchfaceConfigPrefs.canvasRect), not the full
+     * window: full-bleed stretched the square face over the whole portrait
+     * screen, so the placeholder didn't match what loads under it.
+     */
+    private fun applyCanvasBounds() {
+        // show() runs before the first layout pass on two paths — fresh-engine
+        // home startup (onViewCreated) and the selector handoff (created, shown,
+        // then the activity finishes synchronously, so no layout ever runs while
+        // visible). width/height are 0 then; falling back to 0 would leave the
+        // preview at its match_parent default, stretched full-bleed over the
+        // whole portrait window. The overlay is always MATCH_PARENT of the
+        // fullscreen content area, so the display size is the eventual size.
+        val dm = resources.displayMetrics
+        val w = if (width > 0) width else dm.widthPixels
+        val h = if (height > 0) height else dm.heightPixels
+        if (w == 0 || h == 0) return
+        val r = WatchfaceConfigPrefs.canvasRect(context, canvasPath, w, h)
+        val lp = previewView.layoutParams as LayoutParams
+        if (lp.width != r.width() || lp.height != r.height() ||
+            lp.leftMargin != r.left || lp.topMargin != r.top) {
+            lp.gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            lp.width = r.width()
+            lp.height = r.height()
+            lp.leftMargin = r.left
+            lp.topMargin = r.top
+            previewView.layoutParams = lp
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        applyCanvasBounds()
     }
 
     private fun sticksAnimatable() = sticksView.drawable as? android.graphics.drawable.Animatable
@@ -47,9 +90,11 @@ class WatchfaceLoadingOverlay @JvmOverloads constructor(
      * screen as a stuck semi-transparent overlay. Only hide() fades; by then
      * the load is finished and the main thread is idle.
      */
-    fun show(preview: Bitmap?) {
+    fun show(preview: Bitmap?, activePath: String?) {
         removeCallbacks(safetyHide)
         animate().cancel()
+        canvasPath = activePath
+        applyCanvasBounds()
         previewView.setImageBitmap(preview)
         alpha = 1f
         visibility = VISIBLE

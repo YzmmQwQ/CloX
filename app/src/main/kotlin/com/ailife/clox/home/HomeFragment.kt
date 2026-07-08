@@ -77,7 +77,7 @@ class HomeFragment : Fragment() {
         val ctx = context ?: return
         val path = WatchfacePrefs.getActivePath(ctx)
         val cached = path?.let { WatchfaceRepository.getPreviewCached(it) }
-        overlay.show(cached)
+        overlay.show(cached, path)
         if (cached == null && path != null) {
             viewLifecycleOwner.lifecycleScope.launch {
                 WatchfaceRepository.loadPreview(File(path))?.let { overlay.setPreview(it) }

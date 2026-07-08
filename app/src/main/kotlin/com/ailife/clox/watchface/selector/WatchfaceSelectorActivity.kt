@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.watchface.WatchfaceConfigPrefs
 import com.ailife.clox.watchface.WatchfaceItem
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
@@ -41,7 +42,7 @@ import kotlin.math.abs
 class WatchfaceSelectorActivity : AppCompatActivity() {
 
     private lateinit var snapshotOverlay: ImageView
-    private var overlaySquareSize = 0   // screenH — the watchface's square render dimension
+    private var overlaySquareSize = 0   // min(screenW, screenH) — the watchface's square render dimension
     private var mode = WatchfacePrefs.SelectorMode.PAGER
 
     // Pager mode (RecyclerView + custom fling)
@@ -66,11 +67,12 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
         snapshotOverlay = findViewById(R.id.snapshotOverlay)
 
-        // Make overlay square (screenH × screenH) so it matches the watchface's
-        // fit-to-height render area. On portrait it extends past screen edges (clipped
-        // by the window, same as the watchface itself). On landscape it's narrower
-        // than the screen, leaving black bars on the sides — matching watchface render.
-        overlaySquareSize = resources.displayMetrics.heightPixels
+        // Make overlay square match the watchface's render canvas: the stage fits
+        // the 512 canvas to the SMALLER screen dimension, centred (watchface.lua
+        // applyStageTransform) — full-bleed on the square watch screen, black bars
+        // on the longer axis of a portrait/landscape screen.
+        overlaySquareSize = minOf(resources.displayMetrics.widthPixels,
+                                  resources.displayMetrics.heightPixels)
         snapshotOverlay.layoutParams = FrameLayout.LayoutParams(overlaySquareSize, overlaySquareSize).apply {
             gravity = Gravity.CENTER
         }
@@ -96,6 +98,9 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         val snapshot = WatchfaceSnapshot.consume()
         if (snapshot != null) {
             snapshotOverlay.setImageBitmap(snapshot)
+            // Cover the face exactly as it renders: the overlay square starts on
+            // the active face's aligned canvas rect (zoom/offset config applied).
+            applyCanvasTransform(snapshotOverlay, WatchfacePrefs.getActivePath(this))
             snapshotOverlay.visibility = View.VISIBLE
             snapshotOverlay.alpha = 1f
         }
@@ -311,6 +316,21 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
     // ── Open/close animations ─────────────────────────────────────────────────
 
+    /**
+     * Set translation/scale so the centred overlay square sits exactly on the
+     * face's render canvas (WatchfaceConfigPrefs.canvasRect — square today,
+     * but scaled per-axis so a future stretched canvas keeps working).
+     */
+    private fun applyCanvasTransform(view: View, activePath: String?) {
+        val screenW = resources.displayMetrics.widthPixels
+        val screenH = resources.displayMetrics.heightPixels
+        val canvas = WatchfaceConfigPrefs.canvasRect(this, activePath, screenW, screenH)
+        view.translationX = canvas.exactCenterX() - screenW / 2f
+        view.translationY = canvas.exactCenterY() - screenH / 2f
+        view.scaleX = canvas.width() / overlaySquareSize.toFloat()
+        view.scaleY = canvas.height() / overlaySquareSize.toFloat()
+    }
+
     /** Close-animation reversed: overlay shrinks from fullscreen down to the active card position. */
     private fun animateOpenToCard(previewView: ImageView?) {
         val overlay = snapshotOverlay
@@ -371,7 +391,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             )
             loadingOverlay = it
         }
-        overlay.show(preview)
+        overlay.show(preview, path)
         WatchfacePrefs.setActivePath(this, path)
         finishWithNoAnim()
     }
@@ -403,12 +423,19 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
 
+        // Zoom up to the SELECTED face's canvas rect (its own zoom/offset
+        // alignment), so the expanded preview sits exactly where the face will
+        // render and the loading placeholder takes over seamlessly.
+        val canvas = WatchfaceConfigPrefs.canvasRect(this, item.absolutePath,
+                                                     screenW.toInt(), screenH.toInt())
         // A plain withEndAction is not enough — it is skipped when the animation
         // is cancelled (activity destroyed mid-zoom), which would silently drop
         // the selection; onAnimationEnd fires on cancel too.
         overlay.animate()
-            .translationX(0f).translationY(0f)
-            .scaleX(1f).scaleY(1f)
+            .translationX(canvas.exactCenterX() - screenW / 2f)
+            .translationY(canvas.exactCenterY() - screenH / 2f)
+            .scaleX(canvas.width() / overlaySquareSize.toFloat())
+            .scaleY(canvas.height() / overlaySquareSize.toFloat())
             .setDuration(300)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .setListener(object : android.animation.AnimatorListenerAdapter() {

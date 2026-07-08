@@ -51,6 +51,27 @@ object WatchfaceConfigPrefs {
     fun unlimited(ctx: Context, path: String): Boolean =
         prefs(ctx).getBoolean(key(path, "unlimited"), DEF_UNLIMITED)
 
+    /**
+     * The on-screen rect of the watchface render canvas inside a (w × h)
+     * window — the Kotlin mirror of watchface.lua applyStageTransform: the 512
+     * canvas fits the SMALLER dimension centred, scaled by the face's
+     * configured zoom, then nudged by its offsets (positive yOffset moves the
+     * face down). Overlays that must line up with the live face (selector zoom
+     * animation, loading placeholder) position their preview on this rect.
+     *
+     * Currently always square (no canvas deforming yet), but callers must NOT
+     * assume that: treat width and height independently (scaleX/scaleY, fitXY)
+     * so a stretched canvas — e.g. bottom bound extended to the screen edge —
+     * only ever changes this function.
+     */
+    fun canvasRect(ctx: Context, activePath: String?, w: Int, h: Int): android.graphics.Rect {
+        val path = pathFor(activePath)
+        val side = Math.round(minOf(w, h) * scale(ctx, path))
+        val left = w / 2 + xOffset(ctx, path) - side / 2
+        val top = h / 2 + yOffset(ctx, path) - side / 2
+        return android.graphics.Rect(left, top, left + side, top + side)
+    }
+
     // ── setters ───────────────────────────────────────────────────────────────
     fun setScale(ctx: Context, path: String, v: Float) =
         prefs(ctx).edit().putFloat(key(path, "scale"), v.coerceIn(MIN_SCALE, MAX_SCALE)).apply()
