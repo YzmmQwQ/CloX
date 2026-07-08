@@ -29,6 +29,19 @@ object TapActionHandler {
 
     data class ActionDef(val key: String, val displayNameRes: Int)
 
+    /**
+     * Outcome of [handle], so the caller (which owns a window) can surface the
+     * right UI. Most actions just complete; the two failure modes need a dialog.
+     */
+    sealed class Result {
+        /** Action was carried out, or it was not one of ours — nothing to surface. */
+        object Handled : Result()
+        /** A recognised configurable action that has no app mapped yet — offer to configure it. */
+        data class NotConfigured(val def: ActionDef) : Result()
+        /** The target activity could not be launched (app uninstalled/disabled, or no handler). */
+        data class LaunchFailed(val appLabel: String?) : Result()
+    }
+
     /** Ordered list of user-configurable named actions. */
     val CONFIGURABLE_ACTIONS = listOf(
         ActionDef("tap_launcher",    R.string.tap_launcher_home),
@@ -60,30 +73,34 @@ object TapActionHandler {
     )
 
     /**
-     * Main entry point. Returns true if the action was handled (even if no app is configured
-     * for a known shortcut — prevents unknown-action fallthrough).
+     * Main entry point. Returns a [Result] describing what happened so the caller can
+     * surface a dialog for the two user-facing failure modes (no app mapped, or the
+     * mapped app can't be launched). A blank/unrecognised action is [Result.Handled]
+     * (nothing to do) — this preserves the old "swallow unknown actions" behaviour.
      */
-    fun handle(ctx: Context, action: String): Boolean {
-        if (action.isBlank()) return false
-        return handleBuiltin(ctx, action) || handleConfigured(ctx, action)
+    fun handle(ctx: Context, action: String): Result {
+        if (action.isBlank()) return Result.Handled
+        handleBuiltin(ctx, action)?.let { return it }
+        return handleConfigured(ctx, action)
     }
 
     // ── Built-in actions ──────────────────────────────────────────────────────
 
-    private fun handleBuiltin(ctx: Context, action: String): Boolean = when {
+    /** Returns null when [action] is not a built-in (fall through to configured actions). */
+    private fun handleBuiltin(ctx: Context, action: String): Result? = when {
         action == "vol_up" -> {
             audioManager(ctx).adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
-            true
+            Result.Handled
         }
         action == "vol_down" -> {
             audioManager(ctx).adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
-            true
+            Result.Handled
         }
-        action == "media_play_pause" -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE); true }
-        action == "media_play"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PLAY);       true }
-        action == "media_pause"      -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PAUSE);      true }
-        action == "media_next"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_NEXT);       true }
-        action == "media_prev"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PREVIOUS);   true }
+        action == "media_play_pause" -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE); Result.Handled }
+        action == "media_play"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PLAY);       Result.Handled }
+        action == "media_pause"      -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PAUSE);      Result.Handled }
+        action == "media_next"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_NEXT);       Result.Handled }
+        action == "media_prev"       -> { dispatchMediaKey(ctx, KeyEvent.KEYCODE_MEDIA_PREVIOUS);   Result.Handled }
         action.startsWith("set_alarm_") -> setAlarm(ctx, action.removePrefix("set_alarm_"))
         // System-settings shortcuts (symbolic — the OS resolves the concrete screen).
         action == "open_settings"  -> startIntentSafely(ctx, Intent(Settings.ACTION_SETTINGS))
@@ -97,12 +114,12 @@ object TapActionHandler {
         // Deep link / URL launched via ACTION_VIEW, e.g. "w_link:app://open.my.app"
         // or "w_link:https://example.com". Mirrors WFF <Launch target="app://…"/>.
         action.startsWith("w_link:") -> launchLink(ctx, action.removePrefix("w_link:"))
-        else -> false
+        else -> null
     }
 
-    private fun launchLink(ctx: Context, uri: String): Boolean {
+    private fun launchLink(ctx: Context, uri: String): Result {
         val target = uri.trim()
-        if (target.isEmpty()) return false
+        if (target.isEmpty()) return Result.Handled   // malformed spec — nothing to launch
         return startIntentSafely(ctx, Intent(Intent.ACTION_VIEW, Uri.parse(target)))
     }
 
@@ -112,12 +129,12 @@ object TapActionHandler {
      * fields (a leading display label, if present, is ignored):
      *   "label`pkg`activity" | "pkg`activity" | "pkg"
      */
-    private fun launchAppSpec(ctx: Context, spec: String): Boolean {
+    private fun launchAppSpec(ctx: Context, spec: String): Result {
         val fields = spec.split("`").map { it.trim() }.filter { it.isNotEmpty() }
         val intent = when (fields.size) {
-            0 -> return false
+            0 -> return Result.Handled   // empty spec — malformed, nothing to launch
             1 -> ctx.packageManager.getLaunchIntentForPackage(fields[0])
-                ?: run { Log.w(TAG, "w_app: no launch intent for ${fields[0]}"); return false }
+                ?: run { Log.w(TAG, "w_app: no launch intent for ${fields[0]}"); return Result.LaunchFailed(null) }
             else -> {
                 // Last two fields are package + activity; earlier fields are the label.
                 val pkg = fields[fields.size - 2]
@@ -128,20 +145,20 @@ object TapActionHandler {
         return startIntentSafely(ctx, intent)
     }
 
-    private fun startIntentSafely(ctx: Context, intent: Intent?): Boolean {
-        if (intent == null) return false
+    private fun startIntentSafely(ctx: Context, intent: Intent?): Result {
+        if (intent == null) return Result.LaunchFailed(null)
         return try {
             ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
+            Result.Handled
         } catch (e: Exception) {
             Log.e(TAG, "startActivity failed: $intent", e)
-            false
+            Result.LaunchFailed(null)
         }
     }
 
-    private fun setAlarm(ctx: Context, timeStr: String): Boolean {
+    private fun setAlarm(ctx: Context, timeStr: String): Result {
         val parts = timeStr.split(":")
-        if (parts.size != 2) return false
+        if (parts.size != 2) return Result.Handled   // malformed time — ignore
         return try {
             ctx.startActivity(Intent(AlarmClock.ACTION_SET_ALARM).apply {
                 putExtra(AlarmClock.EXTRA_HOUR,    parts[0].toInt())
@@ -149,39 +166,39 @@ object TapActionHandler {
                 putExtra(AlarmClock.EXTRA_SKIP_UI, false)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
-            true
+            Result.Handled
         } catch (e: Exception) {
             Log.e(TAG, "set_alarm failed: $timeStr", e)
-            false
+            Result.LaunchFailed(null)
         }
     }
 
     // ── Configurable actions ──────────────────────────────────────────────────
 
-    private fun handleConfigured(ctx: Context, action: String): Boolean {
-        val isKnown = CONFIGURABLE_ACTIONS.any { it.key == action }
-        val component = getComponent(ctx, action)
+    private fun handleConfigured(ctx: Context, action: String): Result {
+        val def = CONFIGURABLE_ACTIONS.firstOrNull { it.key == action }
+            ?: return Result.Handled        // not a recognised action key — nothing to do
 
-        if (!isKnown) return false          // not a recognised action key
+        val component = getComponent(ctx, action)
         if (component.isNullOrBlank()) {
-            Log.d(TAG, "Action '$action' known but not configured — ignored")
-            return true                     // known action, just nothing mapped — swallow it
+            Log.d(TAG, "Action '$action' known but not configured — prompting to configure")
+            return Result.NotConfigured(def)   // known action, no app mapped — offer to set one
         }
 
         val parts = component.split("/", limit = 2)
         if (parts.size < 2) {
             Log.e(TAG, "Bad component format for '$action': $component")
-            return true
+            return Result.LaunchFailed(getMappedAppLabel(ctx, action))
         }
         return try {
             ctx.startActivity(Intent().apply {
                 this.component = ComponentName(parts[0], parts[1])
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
-            true
+            Result.Handled
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch '$action' → $component", e)
-            true
+            Result.LaunchFailed(getMappedAppLabel(ctx, action))
         }
     }
 

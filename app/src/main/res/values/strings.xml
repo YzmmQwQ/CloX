@@ -174,6 +174,13 @@
     <string name="pref_tap_builtin_desc">These are always handled directly — no configuration needed:\nvol_up · vol_down · media_play_pause · media_next · media_prev\nmedia_play · media_pause · set_alarm_HH:MM</string>
     <string name="pref_tap_not_configured">Not configured — tap to set</string>
     <string name="pref_tap_clear">Clear</string>
+    <!-- Tap-action runtime error dialogs -->
+    <string name="tap_action_not_configured_title">Action not set up</string>
+    <string name="tap_action_not_configured_msg">No app is assigned to \"%1$s\" yet. Configure it to use this shortcut.</string>
+    <string name="tap_action_configure_now">Configure now</string>
+    <string name="tap_action_launch_failed_title">Can\'t open app</string>
+    <string name="tap_action_launch_failed_msg">\"%1$s\" couldn\'t be opened. It may have been uninstalled or disabled.</string>
+    <string name="tap_action_launch_failed_msg_generic">This shortcut couldn\'t be opened. The app may have been uninstalled or disabled.</string>
 
     <!-- ── Weather ──────────────────────────────────────────────────────── -->
     <string name="pref_weather_title">Weather</string>

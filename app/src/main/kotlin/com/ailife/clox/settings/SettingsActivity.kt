@@ -1,5 +1,7 @@
 package com.ailife.clox.settings
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -11,6 +13,7 @@ import androidx.preference.PreferenceFragmentCompat
 import com.ailife.clox.R
 import com.ailife.clox.databinding.ActivitySettingsBinding
 import com.ailife.clox.settings.fragments.RootSettingsFragment
+import com.ailife.clox.settings.fragments.TapActionsSettingsFragment
 import com.ailife.clox.update.OtaManager
 
 class SettingsActivity : AppCompatActivity(),
@@ -40,6 +43,12 @@ class SettingsActivity : AppCompatActivity(),
                 replace(R.id.settingsContainer, RootSettingsFragment(), "root")
             }
             OtaManager(this).checkUpdate(silent = true)
+
+            // Deep link: open straight to a specific screen (e.g. from the tap-action
+            // "Configure now" error dialog), pushing it above root so Up returns here.
+            if (intent?.getStringExtra(EXTRA_OPEN_FRAGMENT) == FRAGMENT_TAP_ACTIONS) {
+                openTapActions()
+            }
         }
 
         supportFragmentManager.addOnBackStackChangedListener {
@@ -80,5 +89,31 @@ class SettingsActivity : AppCompatActivity(),
         }
         finish()
         return true
+    }
+
+    private fun openTapActions() {
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            setCustomAnimations(
+                R.animator.settings_frag_enter,
+                R.animator.settings_frag_exit,
+                R.animator.settings_frag_pop_enter,
+                R.animator.settings_frag_pop_exit
+            )
+            replace(R.id.settingsContainer, TapActionsSettingsFragment())
+            addToBackStack("nav_tap_actions")
+        }
+        title = getString(R.string.pref_tap_title)
+    }
+
+    companion object {
+        private const val EXTRA_OPEN_FRAGMENT = "clox.settings.open_fragment"
+        const val FRAGMENT_TAP_ACTIONS = "tap_actions"
+
+        /** Intent that opens Settings directly on the Tap Actions editor. */
+        fun tapActionsIntent(ctx: Context): Intent =
+            Intent(ctx, SettingsActivity::class.java)
+                .putExtra(EXTRA_OPEN_FRAGMENT, FRAGMENT_TAP_ACTIONS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 }

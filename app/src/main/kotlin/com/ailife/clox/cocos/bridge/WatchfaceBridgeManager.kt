@@ -545,7 +545,11 @@ class WatchfaceBridgeManager(
                     val shortcut = json.optString("shortcut")
                     // Must run on main thread — startActivity and AudioManager require it
                     android.os.Handler(Looper.getMainLooper()).post {
-                        TapActionHandler.handle(ctx, shortcut)
+                        when (val result = TapActionHandler.handle(ctx, shortcut)) {
+                            is TapActionHandler.Result.NotConfigured -> showTapNotConfiguredDialog(result.def)
+                            is TapActionHandler.Result.LaunchFailed  -> showTapLaunchFailedDialog(result.appLabel)
+                            TapActionHandler.Result.Handled          -> { /* nothing to surface */ }
+                        }
                     }
                 }
                 "setWeatherEnabled" -> {
@@ -612,6 +616,50 @@ class WatchfaceBridgeManager(
                 .show()
         } catch (e: Exception) {
             Log.e(TAG, "showLuaErrorDialog failed", e)
+        }
+    }
+
+    /**
+     * A tapped shortcut maps to a recognised action that has no app assigned yet.
+     * Offer a shortcut to the Tap Actions editor so the user can pick one now.
+     */
+    private fun showTapNotConfiguredDialog(def: TapActionHandler.ActionDef) {
+        try {
+            val name = ctx.getString(def.displayNameRes)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+                .setTitle(com.ailife.clox.R.string.tap_action_not_configured_title)
+                .setMessage(ctx.getString(com.ailife.clox.R.string.tap_action_not_configured_msg, name))
+                .setPositiveButton(com.ailife.clox.R.string.tap_action_configure_now) { _, _ ->
+                    try {
+                        ctx.startActivity(com.ailife.clox.settings.SettingsActivity.tapActionsIntent(ctx))
+                    } catch (e: Exception) {
+                        Log.e(TAG, "open tap actions settings failed", e)
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        } catch (e: Exception) {
+            Log.e(TAG, "showTapNotConfiguredDialog failed", e)
+        }
+    }
+
+    /**
+     * A tapped shortcut's target activity couldn't be launched (app uninstalled/
+     * disabled, or no handler). Surface it instead of failing silently.
+     */
+    private fun showTapLaunchFailedDialog(appLabel: String?) {
+        try {
+            val message = if (appLabel.isNullOrBlank())
+                ctx.getString(com.ailife.clox.R.string.tap_action_launch_failed_msg_generic)
+            else
+                ctx.getString(com.ailife.clox.R.string.tap_action_launch_failed_msg, appLabel)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+                .setTitle(com.ailife.clox.R.string.tap_action_launch_failed_title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        } catch (e: Exception) {
+            Log.e(TAG, "showTapLaunchFailedDialog failed", e)
         }
     }
 
