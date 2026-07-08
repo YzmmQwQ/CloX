@@ -54,9 +54,18 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
             })
         }
 
-        // Open app-wide default watch-face settings (alignment/behavior/frame rate)
+        // Open app-wide default watch-face settings — route through MainActivity's
+        // close-overlays helper (same as the per-face config row above) so any open
+        // overlay is dismissed and home is brought forward before the editor opens.
         view.findViewById<View>(R.id.cardWfDefaults).setOnClickListener {
-            com.ailife.clox.watchface.config.WatchfaceConfigActivity.startDefaults(requireContext())
+            val ctx = requireContext()
+            ctx.startActivity(Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                setPackage(ctx.packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                putExtra(com.ailife.clox.MainActivity.EXTRA_CLOSE_OVERLAYS, true)
+                putExtra(com.ailife.clox.MainActivity.EXTRA_OPEN_WATCHFACE_DEFAULTS, true)
+            })
         }
 
         // Selector mode picker

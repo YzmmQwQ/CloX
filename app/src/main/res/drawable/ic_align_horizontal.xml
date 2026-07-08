@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Horizontal double-arrow = the authentic Material "height" glyph
+     (ic_align_height) rotated 90°. Static rotation via RotateDrawable at its
+     default level (fromDegrees == toDegrees). No hand-written path data. -->
+<rotate xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_align_height"
+    android:fromDegrees="90"
+    android:toDegrees="90"
+    android:pivotX="50%"
+    android:pivotY="50%" />

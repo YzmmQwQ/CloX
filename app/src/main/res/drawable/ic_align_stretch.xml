@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stretch (both axes) = the vertical double-arrow overlaid with its 90°
+     rotation, forming a 4-way arrow. Composes the authentic Material "height"
+     glyph via layer-list + RotateDrawable — no hand-written path data. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_align_height" />
+    <item android:drawable="@drawable/ic_align_horizontal" />
+</layer-list>

@@ -67,6 +67,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // onNewIntent) even from a plain background/foreground cycle on memory-constrained
         // watches — a second, separately-fired intent has no way to wait for that.
         const val EXTRA_OPEN_WATCHFACE_CONFIG = "com.ailife.clox.EXTRA_OPEN_WATCHFACE_CONFIG"
+        // Like EXTRA_OPEN_WATCHFACE_CONFIG but opens the app-wide defaults editor
+        // (Settings > Watch Faces > Default Watch Face Settings) after the reset.
+        const val EXTRA_OPEN_WATCHFACE_DEFAULTS = "com.ailife.clox.EXTRA_OPEN_WATCHFACE_DEFAULTS"
     }
 
     override fun showDialog(pTitle: String, pMessage: String) {}
@@ -344,6 +347,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         resetToWatchface()
         if (intent.getBooleanExtra(EXTRA_OPEN_WATCHFACE_CONFIG, false)) {
             com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(this)
+        } else if (intent.getBooleanExtra(EXTRA_OPEN_WATCHFACE_DEFAULTS, false)) {
+            com.ailife.clox.watchface.config.WatchfaceConfigActivity.startDefaults(this)
         }
     }
 

@@ -57,9 +57,12 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     private lateinit var cfgPath: String
     private val editingDefaults: Boolean get() = intent.getBooleanExtra(EXTRA_DEFAULTS, false)
     private val cfg = WatchfaceConfigPrefs
+    private var selectedTab = 0
+    private var flipper: ViewFlipper? = null
 
     companion object {
         const val EXTRA_DEFAULTS = "edit_defaults"
+        private const val KEY_TAB = "sel_tab"
 
         @Volatile var isActive: Boolean = false
             private set
@@ -106,9 +109,17 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Preserve the selected tab across recreate() (a "use default" toggle) —
+        // otherwise the flipper would snap back to the first page.
+        selectedTab = savedInstanceState?.getInt(KEY_TAB, 0) ?: 0
         val active = WatchfacePrefs.getActivePath(this)
         cfgPath = WatchfaceConfigPrefs.pathFor(active)
         setContentView(buildRoot(active))
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_TAB, flipper?.displayedChild ?: selectedTab)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -148,34 +159,38 @@ class WatchfaceConfigActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(16), dp(20), dp(20))
         }
-        content.addView(title(
-            if (editingDefaults) getString(R.string.wfcfg_defaults_title) else faceLabel(activePath)
-        ))
+        content.addView(titleRow(activePath))
 
-        val flipper = ViewFlipper(this)
-        val labels: List<String>
+        val flip = ViewFlipper(this)
+        flipper = flip
+        // Tabs are icon-only — text was ellipsised to "…" in the narrow 3/4-way
+        // toggle group. Icons: aspect-ratio (alignment), toggles (behavior),
+        // speed (frame rate), info.
+        val icons: List<Pair<Int, Int>>   // icon res, content-description res
         val pages: List<View>
         if (editingDefaults) {
-            labels = listOf(
-                getString(R.string.wfcfg_tab_alignment),
-                getString(R.string.wfcfg_tab_behavior),
-                getString(R.string.wfcfg_tab_framerate)
+            icons = listOf(
+                R.drawable.ic_aspect_ratio to R.string.wfcfg_tab_alignment,
+                R.drawable.ic_toggle_on to R.string.wfcfg_tab_behavior,
+                R.drawable.ic_speed to R.string.wfcfg_tab_framerate
             )
             pages = listOf(alignmentPage(), behaviorPage(), frameRatePage())
         } else {
-            labels = listOf(
-                getString(R.string.wfcfg_tab_alignment),
-                getString(R.string.wfcfg_tab_behavior),
-                getString(R.string.wfcfg_tab_framerate),
-                getString(R.string.wfcfg_tab_info)
+            icons = listOf(
+                R.drawable.ic_aspect_ratio to R.string.wfcfg_tab_alignment,
+                R.drawable.ic_toggle_on to R.string.wfcfg_tab_behavior,
+                R.drawable.ic_speed to R.string.wfcfg_tab_framerate,
+                R.drawable.ic_info to R.string.wfcfg_tab_info
             )
             pages = listOf(alignmentPage(), behaviorPage(), frameRatePage(), infoPage(activePath))
         }
-        content.addView(tabRow(flipper, labels), LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+        selectedTab = selectedTab.coerceIn(0, pages.size - 1)
+        content.addView(tabRow(flip, icons), LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             topMargin = dp(4)
         })
-        pages.forEach { flipper.addView(it, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
-        content.addView(flipper, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
+        pages.forEach { flip.addView(it, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
+        flip.displayedChild = selectedTab
+        content.addView(flip, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             topMargin = dp(8)
         })
 
@@ -201,35 +216,58 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         if (activePath.isNullOrEmpty()) getString(R.string.wfcfg_title_default)
         else File(activePath).nameWithoutExtension
 
-    private fun title(text: String) = TextView(this).apply {
-        this.text = text
-        setTextColor(Color.WHITE)
-        textSize = 18f
-        setPadding(0, 0, 0, dp(8))
+    /** First row: watch-face name, with a "Change" button (per-face mode) that
+     *  closes the dialog and opens the selector. */
+    private fun titleRow(activePath: String?): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(8))
+        }
+        row.addView(TextView(this).apply {
+            text = if (editingDefaults) getString(R.string.wfcfg_defaults_title) else faceLabel(activePath)
+            setTextColor(Color.WHITE); textSize = 18f
+        }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+
+        if (!editingDefaults) {
+            row.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                text = getString(R.string.wfcfg_change); textSize = 12f
+                setTextColor(Color.WHITE); insetTop = 0; insetBottom = 0
+                setOnClickListener {
+                    startActivity(Intent(this@WatchfaceConfigActivity,
+                        com.ailife.clox.watchface.selector.WatchfaceSelectorActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    finish()
+                }
+            }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(8) })
+        }
+        return row
     }
 
-    // ── tab row toggling the flipper ──────────────────────────────────────────
-    private fun tabRow(flipper: ViewFlipper, labels: List<String>): View {
+    // ── tab row toggling the flipper (icon-only tabs) ─────────────────────────
+    private fun tabRow(flip: ViewFlipper, icons: List<Pair<Int, Int>>): View {
         val group = MaterialButtonToggleGroup(this).apply {
             isSingleSelection = true
             isSelectionRequired = true
         }
-        val buttons = labels.map { label ->
+        val buttons = icons.map { (iconRes, descRes) ->
             MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 id = View.generateViewId()
-                text = label
+                text = ""
+                setIconResource(iconRes)
+                iconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
+                iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+                iconPadding = 0
+                contentDescription = getString(descRes)
                 isCheckable = true
-                setTextColor(Color.WHITE)
-                textSize = 12f
                 insetTop = 0; insetBottom = 0
             }
         }
         buttons.forEach { group.addView(it, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)) }
-        group.check(buttons[0].id)
+        group.check(buttons[selectedTab.coerceIn(0, buttons.size - 1)].id)
         group.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             val idx = buttons.indexOfFirst { it.id == checkedId }
-            if (idx >= 0) flipper.displayedChild = idx
+            if (idx >= 0) { selectedTab = idx; flip.displayedChild = idx }
         }
         return group
     }
@@ -246,21 +284,26 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         }
         val editable = editingDefaults || !useDefault
 
-        // Alignment mode selector
+        // Alignment mode selector — icon-only (Material icons: vertical arrows =
+        // fill height, fit-screen = fit, horizontal arrows = stretch, sliders = custom).
         val modes = listOf(
-            WatchfaceConfigPrefs.ALIGN_VERTICAL to R.string.wfcfg_align_vertical,
-            WatchfaceConfigPrefs.ALIGN_HORIZONTAL to R.string.wfcfg_align_horizontal,
-            WatchfaceConfigPrefs.ALIGN_STRETCH to R.string.wfcfg_align_stretch,
-            WatchfaceConfigPrefs.ALIGN_CUSTOM to R.string.wfcfg_align_custom
+            Triple(WatchfaceConfigPrefs.ALIGN_VERTICAL, R.drawable.ic_align_height, R.string.wfcfg_align_vertical),
+            Triple(WatchfaceConfigPrefs.ALIGN_HORIZONTAL, R.drawable.ic_align_horizontal, R.string.wfcfg_align_horizontal),
+            Triple(WatchfaceConfigPrefs.ALIGN_STRETCH, R.drawable.ic_align_stretch, R.string.wfcfg_align_stretch),
+            Triple(WatchfaceConfigPrefs.ALIGN_CUSTOM, R.drawable.ic_tune, R.string.wfcfg_align_custom)
         )
         val curMode = getAlignMode()
         val modeGroup = MaterialButtonToggleGroup(this).apply {
             isSingleSelection = true; isSelectionRequired = true
         }
-        val modeButtons = modes.map { (_, labelRes) ->
+        val modeButtons = modes.map { (_, iconRes, labelRes) ->
             MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                id = View.generateViewId(); text = getString(labelRes); isCheckable = true
-                setTextColor(Color.WHITE); textSize = 11f; insetTop = 0; insetBottom = 0
+                id = View.generateViewId(); text = ""; isCheckable = true
+                setIconResource(iconRes)
+                iconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
+                iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START; iconPadding = 0
+                contentDescription = getString(labelRes)
+                insetTop = 0; insetBottom = 0
             }
         }
         modeButtons.forEach { modeGroup.addView(it, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)) }
@@ -445,39 +488,94 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         }
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val name = TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f }
+        // Tapping the value opens the precise numeric-entry dialog.
         val valueText = TextView(this).apply {
             text = fmt(initial); setTextColor(0xFF82ABD1.toInt()); textSize = 14f; gravity = Gravity.END
+            isEnabled = enabled
+            if (enabled) {
+                setBackgroundResource(resolveAttr(android.R.attr.selectableItemBackground))
+                setPadding(dp(6), dp(2), dp(6), dp(2))
+            }
         }
         header.addView(name, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
         header.addView(valueText, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        box.addView(header, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
         val slider = Slider(this).apply {
             valueFrom = from; valueTo = to; stepSize = step
             value = initial.coerceIn(from, to)
             isEnabled = enabled
         }
-        // Precise-input button above the slider (opens a numeric entry dialog).
-        val editBtn = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-            text = getString(R.string.wfcfg_precise_set); textSize = 11f; isEnabled = enabled
-            insetTop = 0; insetBottom = 0; minWidth = 0; minimumWidth = 0
-            setOnClickListener {
-                promptValue(label, fmt(slider.value), parse) { v ->
-                    val clamped = v.coerceIn(from, to)
-                    slider.value = clamped
-                    valueText.text = fmt(clamped)
-                    onChange(clamped)
-                }
-            }
-        }
-        header.addView(editBtn, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = dp(8) })
-        box.addView(header, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-
         slider.addOnChangeListener { _, v, fromUser ->
             valueText.text = fmt(v)
             if (fromUser) onChange(v)
         }
-        box.addView(slider, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        // Commit a value from any source (dialog, ± buttons): clamp, snap to the
+        // slider, refresh the label, notify. Setting slider.value fires the change
+        // listener with fromUser=false (so it won't double-call onChange).
+        fun commit(v: Float) {
+            val c = v.coerceIn(from, to)
+            slider.value = c
+            valueText.text = fmt(c)
+            onChange(c)
+        }
+        valueText.setOnClickListener {
+            if (enabled) promptValue(label, fmt(slider.value), parse) { commit(it) }
+        }
+
+        // Row: [−]  slider  [+]  — step buttons with press-and-hold auto-repeat.
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        row.addView(stepButton("−", enabled) { commit(slider.value - step) })
+        row.addView(slider, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        row.addView(stepButton("+", enabled) { commit(slider.value + step) })
+        box.addView(row, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         return box
+    }
+
+    /**
+     * Small square repeat button: fires [onStep] on press, then auto-repeats with
+     * mild acceleration while held (long-press to keep adjusting), stopping on release.
+     */
+    private fun stepButton(label: String, enabled: Boolean, onStep: () -> Unit): View {
+        val btn = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = label; textSize = 18f; isEnabled = enabled
+            insetTop = 0; insetBottom = 0; minWidth = dp(44); minimumWidth = dp(44)
+            setPadding(0, 0, 0, 0)
+            setTextColor(Color.WHITE)
+        }
+        if (enabled) {
+            val handler = android.os.Handler(mainLooper)
+            var delay = 400L
+            val repeat = object : Runnable {
+                override fun run() {
+                    onStep()
+                    delay = (delay * 0.8f).toLong().coerceAtLeast(40L)  // accelerate
+                    handler.postDelayed(this, delay)
+                }
+            }
+            btn.setOnTouchListener { v, e ->
+                when (e.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        onStep(); delay = 400L
+                        handler.postDelayed(repeat, delay)
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        handler.removeCallbacks(repeat)
+                        if (e.actionMasked == android.view.MotionEvent.ACTION_UP) v.performClick()
+                    }
+                }
+                true
+            }
+        }
+        return btn.apply {
+            layoutParams = LinearLayout.LayoutParams(dp(44), WRAP_CONTENT)
+        }
+    }
+
+    private fun resolveAttr(attr: Int): Int {
+        val tv = android.util.TypedValue()
+        theme.resolveAttribute(attr, tv, true)
+        return tv.resourceId
     }
 
     private fun promptValue(label: String, current: String, parse: (String) -> Float?, apply: (Float) -> Unit) {
