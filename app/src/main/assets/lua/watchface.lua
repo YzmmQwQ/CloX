@@ -231,6 +231,15 @@ function WatchfaceScene:applyFrameRate()
     else
         fps = tonumber(s.maxFps) or tonumber(s.frameRate) or 25
     end
+    -- A face with no sub-second work (needFrame false) never changes between
+    -- clock-poll ticks, but with RENDERMODE_CONTINUOUSLY the GL thread still
+    -- redraws the whole scene every interval. Clamp such faces to the poll
+    -- rate: 2 FPS keeps a seconds display ticking promptly, 1 FPS suffices
+    -- when nothing faster than the minute/sensors changes.
+    local r = self._renderer
+    if r and not r.needFrame then
+        fps = math.min(fps, r.needSecond and 2 or 1)
+    end
     fps = math.max(1, math.min(fps, 60))
     cc.Director:getInstance():setAnimationInterval(1.0 / fps)
 end
@@ -296,6 +305,7 @@ function WatchfaceScene:restartClock()
     if self._clockTimer then sched:unscheduleScriptEntry(self._clockTimer); self._clockTimer = nil end
     self._lastSec, self._lastMin, self._lastHour, self._lastDay = -1, -1, -1, -1
     self._subsec = 0
+    self._tickCount = 0   -- re-arm the [WFTick] driver-started log
     if self._renderer.needFrame then
         self._frameTimer = sched:scheduleScriptFunc(function()
             self:tick(cc.Director:getInstance():getDeltaTime())
@@ -321,8 +331,12 @@ function WatchfaceScene:afterLoad()
         WatchfaceBridge.reportStorage(self._renderer.script:persistedSize())
     end
     -- a tap script scheduling the first tween can flip the frame-loop need
-    -- while the per-frame scheduler is suspended — restart the driver then
-    self._renderer.onNeedFrame = function() self:restartClock() end
+    -- while the per-frame scheduler is suspended — restart the driver and
+    -- lift/restore the cadence FPS clamp then
+    self._renderer.onNeedFrame = function()
+        self:restartClock()
+        self:applyFrameRate()
+    end
 end
 
 -- ── loading ───────────────────────────────────────────────────────────────────
@@ -551,6 +565,15 @@ end
 
 function WatchfaceScene:tick(dt)
     local t = os.date("*t")
+    -- clock-driver liveness: one line when a driver starts ticking, then a
+    -- rare heartbeat. A frozen face with no [WFTick] after restartClock means
+    -- the scheduler is starved (see the _AX_DEBUG delta clamp in Director.cpp,
+    -- raised 0.2s→2s for the 1 FPS static-face cadence — 2026-07-09).
+    self._tickCount = (self._tickCount or 0) + 1
+    if self._tickCount == 1 or self._tickCount % 3600 == 0 then
+        print(string.format("[WFTick] n=%d dt=%.2f sec=%d frameTimer=%s clockTimer=%s",
+            self._tickCount, dt, t.sec, tostring(self._frameTimer), tostring(self._clockTimer)))
+    end
     -- phase-lock the sub-second clock to real seconds for clean hand ticks
     if t.sec ~= self._lastSec then
         self._subsec = 0

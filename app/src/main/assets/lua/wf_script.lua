@@ -517,47 +517,73 @@ function WFScript:runSnippet(src, label)
     if src:find("{", 1, true) then src = spliceTags(src) end
     local ok, err = self.sandbox:run(src, label or "=wf_tap")
     if not ok then self:reportError("Tap script failed", err) end
+    -- the snippet may have defined on_millisecond/on_second after load —
+    -- attach the drivers and let the scene re-derive the render cadence
+    -- (the hook no-ops when nothing flipped)
+    self:ensureFastListeners()
+    if self._needFrameChanged then self._needFrameChanged() end
     return ok
 end
 
 -- ── engine wiring ─────────────────────────────────────────────────────────────
+
+-- callbacks run guarded so a broken face surfaces the error dialog
+-- (once per callback per face load) instead of dying in the engine's
+-- listener pcall with only a logcat line
+function WFScript:guarded(name, cb, ...)
+    local ok, err = pcall(cb, ...)
+    if not ok then self:reportError("Script " .. name .. " failed", err, true) end
+end
+
+-- Attach the ms / second drivers ONLY when the script actually has work for
+-- them: eventActive("ms")/("second") is bucket-non-empty, so a hollow listener
+-- registered "just in case" flips needFrame/needSecond and forces every face —
+-- scripted or not — onto the per-frame render path at full FPS. Idempotent;
+-- re-run whenever the need may have appeared (first tween, tap snippet
+-- defining on_millisecond/on_second). Listeners can't be detached, so a face
+-- stays on the fast path once it genuinely used it (until the next load).
+function WFScript:ensureFastListeners()
+    local eng, vars = self.engine, self.vars
+    if not self._msAttached and (vars.on_millisecond ~= nil or next(self.tweens) ~= nil) then
+        self._msAttached = true
+        eng:listen("ms", function(clock)
+            -- tween driver first so on_millisecond sees this frame's tween values
+            if next(self.tweens) ~= nil then
+                self:guarded("tween", self.stepTweens, self, clock)
+            end
+            local cb = vars.on_millisecond
+            if cb then
+                local last = self._lastMsElapsed
+                self._lastMsElapsed = clock.elapsed
+                self:guarded("on_millisecond", cb, last and (clock.elapsed - last) or 0)
+            end
+        end)
+    end
+    if not self._secAttached and vars.on_second ~= nil then
+        self._secAttached = true
+        eng:listen("second", function(clock)
+            local cb = vars.on_second
+            if cb then self:guarded("on_second", cb, clock.t.min, clock.t.sec) end
+        end)
+    end
+end
 
 -- Register the on_* callbacks and the tween driver as event listeners. Called
 -- by the renderer after the script ran (callbacks exist in the shadow store).
 function WFScript:attach()
     local eng, vars = self.engine, self.vars
 
-    -- callbacks run guarded so a broken face surfaces the error dialog
-    -- (once per callback per face load) instead of dying in the engine's
-    -- listener pcall with only a logcat line
-    local function guarded(name, cb, ...)
-        local ok, err = pcall(cb, ...)
-        if not ok then self:reportError("Script " .. name .. " failed", err, true) end
-    end
-
-    eng:listen("ms", function(clock)
-        -- tween driver first so on_millisecond sees this frame's tween values
-        if next(self.tweens) ~= nil then
-            guarded("tween", self.stepTweens, self, clock)
-        end
-        local cb = vars.on_millisecond
-        if cb then
-            local last = self._lastMsElapsed
-            self._lastMsElapsed = clock.elapsed
-            guarded("on_millisecond", cb, last and (clock.elapsed - last) or 0)
-        end
-    end)
-    eng:listen("second", function(clock)
-        local cb = vars.on_second
-        if cb then guarded("on_second", cb, clock.t.min, clock.t.sec) end
-    end)
+    self:ensureFastListeners()
+    -- minute/hour buckets don't drive the render cadence, so these stay
+    -- unconditional — which also picks up an on_minute/on_hour a tap snippet
+    -- defines after load.
     eng:listen("minute", function()
         local cb = vars.on_minute
-        if cb then guarded("on_minute", cb) end
+        if cb then self:guarded("on_minute", cb) end
     end)
     eng:listen("hour", function()
         local cb = vars.on_hour
-        if cb then guarded("on_hour", cb) end
+        if cb then self:guarded("on_hour", cb) end
     end)
 end
 
@@ -637,7 +663,10 @@ function WFScript:scheduleTween(t, delay)
         start  = self.engine.clock.elapsed,
     }
     if delay <= 0 then self:publishTween(name, from) end
-    if wasIdle and self._needFrameChanged then self._needFrameChanged() end
+    if wasIdle then
+        self:ensureFastListeners()   -- ms driver attaches on the first tween
+        if self._needFrameChanged then self._needFrameChanged() end
+    end
 end
 
 -- Accepts BOTH forms real faces use:

@@ -3084,6 +3084,20 @@ function WFRender:load(xml, baseDir)
     print(string.format("[WFRender] loaded %d layers (%d bindings, frame=%s sec=%s), theme=%s",
         #self.recs, nBind, tostring(self.needFrame), tostring(self.needSecond),
         tostring(self.theme.ucolor)))
+    -- needFrame/needSecond forensics: name what sits in the fast buckets, so a
+    -- face that "should be static" but renders hot can be diagnosed from logcat.
+    for _, evName in ipairs({ "ms", "second" }) do
+        local ev = self.engine.events[evName]
+        if ev and not ev:isEmpty() then
+            local names = {}
+            for _, tg in ipairs(ev.tags) do names[#names + 1] = tg.name end
+            print(string.format("[WFRender] fast bucket '%s': tags=[%s] listeners=%d",
+                evName, table.concat(names, ","), #ev.listeners))
+        end
+    end
+    if self.script and self.script.needsFrame and self.script:needsFrame() then
+        print("[WFRender] script:needsFrame()=true (on_millisecond or live tween)")
+    end
     -- Layer-merge optimization is a per-face config toggle (settings push:
     -- optimizeLayers, default on). `touch files/no_flatten` (run-as) remains as
     -- a device-wide debug kill switch. Disabled either way: every layer renders

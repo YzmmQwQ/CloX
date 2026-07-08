@@ -106,6 +106,16 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private val longPressHandler = Handler(Looper.getMainLooper())
     private var longPressRunnable: Runnable? = null
 
+    // Every window touch passes through here (root interceptor). While the
+    // user interacts — and shortly after, so release animations finish — the
+    // GL face must render at full rate: gesture feedback, overlay open/close
+    // animations and blur backdrop captures all composite against it, and the
+    // idle 1 FPS throttle makes them stutter. Cheap enough to call per event.
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        dev.axmol.lib.AxmolRenderer.boostFrames(3f)
+        return super.dispatchTouchEvent(ev)
+    }
+
     // ── Path A: child consumed DOWN, we intercept on MOVE ────────────────────
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {

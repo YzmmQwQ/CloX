@@ -714,6 +714,10 @@ class WatchfaceBridgeManager(
         val glView = CocosManager.getGlView() as? GLSurfaceView
         if (glView != null) {
             glView.queueEvent(block)
+            // wake the render thread out of its FPS-throttle wait so dispatches
+            // (face switch, settings push) don't stall a frame interval — up to
+            // 1s at the static-face cadence
+            dev.axmol.lib.AxmolRenderer.kickFrame()
         } else {
             Log.w(TAG, "queueOnGL skipped — GL view not ready")
         }

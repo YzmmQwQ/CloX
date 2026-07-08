@@ -28,6 +28,9 @@ object LuaBridge {
                 Log.w(TAG, "Native library not loaded — touch dropped")
             }
         }
+        // wake the render thread out of its FPS-throttle wait — at the 1 FPS
+        // static-face cadence a queued touch would otherwise wait up to 1s
+        dev.axmol.lib.AxmolRenderer.kickFrame()
     }
 
     // Called from native (JNI) → Kotlin/Android
