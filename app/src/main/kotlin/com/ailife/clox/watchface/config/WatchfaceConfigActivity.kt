@@ -611,6 +611,12 @@ class WatchfaceConfigActivity : AppCompatActivity() {
             setPadding(0, dp(10), 0, 0)
         })
 
+        // ── dynamic FPS ───────────────────────────────────────────────────────
+        // the pref write triggers the bridge listener: RenderPolicy reload +
+        // settings push, so the live face reacts without a reload
+        page.addChild(switchRow(R.string.wfcfg_dynamic_fps, R.string.wfcfg_dynamic_fps_summary,
+                                getDynamicFps(), editable) { setDynamicFps(it) })
+
         // ── layer-merge optimization ──────────────────────────────────────────
         // The stat line reflects the LIVE engine (reported after each build);
         // toggling forces a reload of the active face, so refresh it shortly
@@ -915,6 +921,8 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     private fun setUnlimited(v: Boolean) = if (editingDefaults) cfg.setGdefUnlimited(this, v) else cfg.setUnlimited(this, cfgPath, v)
     private fun getOptimize() = if (editingDefaults) cfg.gdefOptimize(this) else cfg.optimize(this, cfgPath)
     private fun setOptimize(v: Boolean) = if (editingDefaults) cfg.setGdefOptimize(this, v) else cfg.setOptimize(this, cfgPath, v)
+    private fun getDynamicFps() = if (editingDefaults) cfg.gdefDynamicFps(this) else cfg.dynamicFps(this, cfgPath)
+    private fun setDynamicFps(v: Boolean) = if (editingDefaults) cfg.setGdefDynamicFps(this, v) else cfg.setDynamicFps(this, cfgPath, v)
     private fun getColorMode() = if (editingDefaults) cfg.gdefColorMode(this) else cfg.colorMode(this, cfgPath)
     private fun setColorMode(v: String) = if (editingDefaults) cfg.setGdefColorMode(this, v) else cfg.setColorMode(this, cfgPath, v)
     private fun getColorValue() = if (editingDefaults) cfg.gdefColorValue(this) else cfg.colorValue(this, cfgPath)

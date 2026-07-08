@@ -435,6 +435,8 @@
     <string name="wfcfg_color_pick">Pick…</string>
     <string name="wfcfg_color_hex_hint">rrggbb</string>
     <string name="wfcfg_color_theme_hint">Uses the system Material You accent, like the launcher UI.</string>
+    <string name="wfcfg_dynamic_fps">Dynamic FPS</string>
+    <string name="wfcfg_dynamic_fps_summary">Idle face drops to 1 FPS, full rate while you interact; pauses under the opened app list</string>
     <string name="wfcfg_optimize">Optimize rendering</string>
     <string name="wfcfg_optimize_summary">Merge static layers into cached textures (faster, less power)</string>
     <string name="wfcfg_optimize_stat">%1$d of %2$d layers merged into %3$d cached texture(s)</string>

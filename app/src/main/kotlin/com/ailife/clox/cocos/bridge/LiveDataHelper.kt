@@ -135,6 +135,7 @@ object LiveDataHelper {
             put("fullscreen",      prefs.getInt("watchface_fullscreen", 0))
             put("maxFps",          cfg.maxFps(ctx, cfgPath))
             put("maxFpsUnlimited", cfg.unlimited(ctx, cfgPath))
+            put("dynamicFps",      cfg.dynamicFps(ctx, cfgPath))
             put("optimizeLayers",  cfg.optimize(ctx, cfgPath))
             // Accent override, resolved to a single hex here so Lua stays dumb:
             // "default" → false (face's own color), "theme" → the launcher's

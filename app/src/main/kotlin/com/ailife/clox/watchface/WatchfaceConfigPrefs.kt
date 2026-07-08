@@ -11,7 +11,7 @@ import androidx.preference.PreferenceManager
  * Three configuration GROUPS, each with a per-face "use default" flag:
  *   - alignment  (alignMode, sizeX, sizeY, xOffset, yOffset)
  *   - behaviour  (allowSound, allowVibrate, allowSensors, allowWeather, allowHealth, allowTap)
- *   - frameRate  (maxFps, unlimited)
+ *   - frameRate  (maxFps, unlimited, optimize, dynamicFps)
  * When a group's use-default flag is set (the default), the face reads the
  * APP-WIDE defaults ([gdef*] keys, editable in Settings) instead of its own
  * per-face values, so most faces never need individual tuning.
@@ -76,6 +76,7 @@ object WatchfaceConfigPrefs {
     const val DEF_MAX_FPS = 25
     const val DEF_UNLIMITED = false
     const val DEF_OPTIMIZE = true      // merge runs of static layers into cached textures
+    const val DEF_DYNAMIC_FPS = true   // idle 1-2 FPS clamp + touch boost + app-list cap
     /** FPS choices offered in the dialog (paired with the "unlimited" flag). */
     val FPS_CHOICES = intArrayOf(15, 25, 60)
 
@@ -148,6 +149,8 @@ object WatchfaceConfigPrefs {
         if (useDefaultFrameRate(ctx, path)) gdefUnlimited(ctx) else rawUnlimited(ctx, path)
     fun optimize(ctx: Context, path: String): Boolean =
         if (useDefaultFrameRate(ctx, path)) gdefOptimize(ctx) else rawOptimize(ctx, path)
+    fun dynamicFps(ctx: Context, path: String): Boolean =
+        if (useDefaultFrameRate(ctx, path)) gdefDynamicFps(ctx) else rawDynamicFps(ctx, path)
 
     fun colorMode(ctx: Context, path: String): String =
         if (useDefaultColor(ctx, path)) gdefColorMode(ctx) else rawColorMode(ctx, path)
@@ -170,6 +173,7 @@ object WatchfaceConfigPrefs {
     fun rawMaxFps(ctx: Context, path: String): Int = prefs(ctx).getInt(key(ctx, path, "max_fps"), DEF_MAX_FPS)
     fun rawUnlimited(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "unlimited"), DEF_UNLIMITED)
     fun rawOptimize(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "optimize"), DEF_OPTIMIZE)
+    fun rawDynamicFps(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "dynamic_fps"), DEF_DYNAMIC_FPS)
     fun rawColorMode(ctx: Context, path: String): String =
         prefs(ctx).getString(key(ctx, path, "color_mode"), DEF_COLOR_MODE) ?: DEF_COLOR_MODE
     fun rawColorValue(ctx: Context, path: String): String =
@@ -194,6 +198,7 @@ object WatchfaceConfigPrefs {
     fun setMaxFps(ctx: Context, path: String, v: Int) = prefs(ctx).edit().putInt(key(ctx, path, "max_fps"), v).apply()
     fun setUnlimited(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "unlimited"), v).apply()
     fun setOptimize(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "optimize"), v).apply()
+    fun setDynamicFps(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "dynamic_fps"), v).apply()
     fun setColorMode(ctx: Context, path: String, v: String) = prefs(ctx).edit().putString(key(ctx, path, "color_mode"), v).apply()
     fun setColorValue(ctx: Context, path: String, v: String) = prefs(ctx).edit().putString(key(ctx, path, "color_value"), v).apply()
 
@@ -212,6 +217,7 @@ object WatchfaceConfigPrefs {
     fun gdefMaxFps(ctx: Context): Int = prefs(ctx).getInt(gkey("max_fps"), DEF_MAX_FPS)
     fun gdefUnlimited(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("unlimited"), DEF_UNLIMITED)
     fun gdefOptimize(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("optimize"), DEF_OPTIMIZE)
+    fun gdefDynamicFps(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("dynamic_fps"), DEF_DYNAMIC_FPS)
     fun gdefColorMode(ctx: Context): String = prefs(ctx).getString(gkey("color_mode"), DEF_COLOR_MODE) ?: DEF_COLOR_MODE
     fun gdefColorValue(ctx: Context): String = prefs(ctx).getString(gkey("color_value"), DEF_COLOR_VALUE) ?: DEF_COLOR_VALUE
 
@@ -229,6 +235,7 @@ object WatchfaceConfigPrefs {
     fun setGdefMaxFps(ctx: Context, v: Int) = prefs(ctx).edit().putInt(gkey("max_fps"), v).apply()
     fun setGdefUnlimited(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("unlimited"), v).apply()
     fun setGdefOptimize(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("optimize"), v).apply()
+    fun setGdefDynamicFps(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("dynamic_fps"), v).apply()
     fun setGdefColorMode(ctx: Context, v: String) = prefs(ctx).edit().putString(gkey("color_mode"), v).apply()
     fun setGdefColorValue(ctx: Context, v: String) = prefs(ctx).edit().putString(gkey("color_value"), v).apply()
 
@@ -290,7 +297,7 @@ object WatchfaceConfigPrefs {
             .remove(key(ctx, path, "allow_sensors")).remove(key(ctx, path, "allow_weather"))
             .remove(key(ctx, path, "allow_health")).remove(key(ctx, path, "allow_tap"))
             .remove(key(ctx, path, "max_fps")).remove(key(ctx, path, "unlimited"))
-            .remove(key(ctx, path, "optimize"))
+            .remove(key(ctx, path, "optimize")).remove(key(ctx, path, "dynamic_fps"))
             .remove(key(ctx, path, "color_mode")).remove(key(ctx, path, "color_value"))
             .remove(key(ctx, path, "use_def_align")).remove(key(ctx, path, "use_def_behavior"))
             .remove(key(ctx, path, "use_def_frame")).remove(key(ctx, path, "use_def_color"))

@@ -111,8 +111,12 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     // GL face must render at full rate: gesture feedback, overlay open/close
     // animations and blur backdrop captures all composite against it, and the
     // idle 1 FPS throttle makes them stutter. Cheap enough to call per event.
+    // Only needed while dynamic FPS is throttling; without it the face already
+    // renders at its configured rate.
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        dev.axmol.lib.AxmolRenderer.boostFrames(3f)
+        if (com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
+            dev.axmol.lib.AxmolRenderer.boostFrames(3f)
+        }
         return super.dispatchTouchEvent(ev)
     }
 

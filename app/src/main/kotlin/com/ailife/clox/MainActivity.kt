@@ -242,10 +242,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListOpen = savedInstanceState.getBoolean("app_list_open", false)
         }
 
+        com.ailife.clox.cocos.RenderPolicy.load(this)
         gestureRoot.post {
             appListFragment?.view?.translationX = if (appListOpen) 0f else screenW
             appListFragment?.setActive(appListOpen)
             gestureRoot.appListOpen = appListOpen
+            // restored directly into the open state (no spring end listener runs)
+            dev.axmol.lib.AxmolRenderer.setForceLowFps(
+                appListOpen && com.ailife.clox.cocos.RenderPolicy.dynamicFps)
         }
 
         quickSettings = findViewById(R.id.quickSettingsOverlay)
@@ -1492,6 +1496,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     private fun closeAppList(velocity: Float = 0f) {
         appListOpen = false; gestureRoot.appListOpen = false
+        // face becomes visible the moment the close slide starts — lift the cap now
+        dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
         appListFragment?.setActive(false)
         springAppList(screenW, velocity)
         updateBackEnabled()
@@ -1508,6 +1514,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             // Recompute the watchface's transparent region each frame so the sliding
             // app list occludes it (see refreshAppListTransparentRegion).
             addUpdateListener { _, _, _ -> refreshAppListTransparentRegion() }
+            // Settled fully open: the opaque app list covers the face, so cap the
+            // invisible GL rendering at 1 FPS and leave the CPU/GPU to the list
+            // (dynamic FPS setting, default on).
+            addEndListener { _, canceled, _, _ ->
+                if (!canceled && appListOpen && com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
+                    dev.axmol.lib.AxmolRenderer.setForceLowFps(true)
+                }
+            }
         }
         appListSpring?.start()
     }

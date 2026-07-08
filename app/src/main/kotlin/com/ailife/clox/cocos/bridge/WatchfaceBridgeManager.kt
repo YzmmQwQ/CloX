@@ -117,6 +117,14 @@ class WatchfaceBridgeManager(
             }
             key in watchfaceSettingsKeys ||
                 com.ailife.clox.watchface.WatchfaceConfigPrefs.isConfigKey(key) -> {
+                // Re-resolve the cached dynamic-FPS policy: the effective value
+                // shifts on face switch, per-face override, use-default flip or
+                // a defaults-editor change — all of which land in this branch.
+                com.ailife.clox.cocos.RenderPolicy.load(ctx)
+                // now-off mid-session: drop a stale app-list 1 FPS cap
+                if (!com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
+                    dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
+                }
                 sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
                 // A face switch (selector / import / random) travels this path.
                 // If the renderer is gone the push above was dropped silently —

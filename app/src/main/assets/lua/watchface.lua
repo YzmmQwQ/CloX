@@ -235,9 +235,10 @@ function WatchfaceScene:applyFrameRate()
     -- clock-poll ticks, but with RENDERMODE_CONTINUOUSLY the GL thread still
     -- redraws the whole scene every interval. Clamp such faces to the poll
     -- rate: 2 FPS keeps a seconds display ticking promptly, 1 FPS suffices
-    -- when nothing faster than the minute/sensors changes.
+    -- when nothing faster than the minute/sensors changes. Gated by the
+    -- "Dynamic FPS" launcher setting (default on).
     local r = self._renderer
-    if r and not r.needFrame then
+    if s.dynamicFps ~= false and r and not r.needFrame then
         fps = math.min(fps, r.needSecond and 2 or 1)
     end
     fps = math.max(1, math.min(fps, 60))
