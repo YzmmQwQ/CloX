@@ -164,6 +164,11 @@ function WatchfaceScene:onExit()
     if self._frameTimer then sched:unscheduleScriptEntry(self._frameTimer); self._frameTimer = nil end
     if self._clockTimer then sched:unscheduleScriptEntry(self._clockTimer); self._clockTimer = nil end
     if self._loadTimer then sched:unscheduleScriptEntry(self._loadTimer); self._loadTimer = nil end
+    -- Back up the face's script variables before the scene is torn down (the
+    -- activity-destroy case; face-switch is saved in WFRender:clear).
+    if self._renderer and self._renderer.script and self._renderer.script.saveVars then
+        pcall(function() self._renderer.script:saveVars() end)
+    end
     -- release any async sensor streams the face had running
     self:applyFeatures({ weather = false, health = {}, sensor = {} })
 end
@@ -292,6 +297,11 @@ function WatchfaceScene:afterLoad()
     self:applyFrameRate()
     if self._renderer and self._renderer.recs and WatchfaceBridge.reportLayerCount then
         WatchfaceBridge.reportLayerCount(#self._renderer.recs)
+    end
+    -- Persisted-variable backup size on disk (config Info tab "Data stored").
+    if self._renderer and self._renderer.script and self._renderer.script.persistedSize
+       and WatchfaceBridge.reportStorage then
+        WatchfaceBridge.reportStorage(self._renderer.script:persistedSize())
     end
     -- a tap script scheduling the first tween can flip the frame-loop need
     -- while the per-frame scheduler is suspended — restart the driver then
@@ -464,6 +474,14 @@ function WatchfaceScene:wireBridge()
         axRemoveDir(cc.FileUtils:getInstance():getWritablePath() .. "wf_active/")
         extractSourcePath, extractDir = nil, nil
         self._failedPath = nil
+        self:requestLoad(WF.settings and WF.settings.watchfacePath)
+    end)
+    -- "Clear persistent storage" from the config dialog: delete the current
+    -- face's variable backup + wipe its live vars, then reload (fresh state).
+    WatchfaceBridge.onChange("cmd_clearvars", function()
+        if self._renderer and self._renderer.script and self._renderer.script.clearPersisted then
+            pcall(function() self._renderer.script:clearPersisted() end)
+        end
         self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
 end

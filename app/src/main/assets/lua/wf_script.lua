@@ -25,6 +25,11 @@
 
 local WFTagDefs = require "wf_tagdefs"
 
+-- cjson for persisting script variables. watchface_bridge.lua keeps `json` as a
+-- module local, so it is NOT a global here — require our own reference.
+local ok_json, json = pcall(require, "cjson")
+if not ok_json then json = nil end
+
 local WFScript = {}
 WFScript.__index = WFScript
 
@@ -389,6 +394,103 @@ function WFScript:load(baseDir)
     end
     self.hasScript = true
     return true
+end
+
+-- ── persistent script variables ───────────────────────────────────────────────
+-- The face's script variables (self.vars) are backed up to a per-face JSON file
+-- so state (counters, selected mode, offsets, …) survives a face switch or the
+-- activity being destroyed. Keyed by _persistKey = md5(xml + global script), set
+-- by wf_render on load — content-addressed, so identical faces share their store
+-- regardless of package path. Only primitives are persisted (functions/tables are
+-- transient). Restore runs BEFORE the script's top-level chunk, so a face that
+-- guards its defaults (`if x == nil then x = … end`) resumes where it left off.
+
+local function wfVarsDir()
+    return cc.FileUtils:getInstance():getWritablePath() .. "wf_vars/"
+end
+
+function WFScript:varsFile()
+    if not self._persistKey or self._persistKey == "" then return nil end
+    return wfVarsDir() .. self._persistKey .. ".json"
+end
+
+-- Only number / string / boolean survive serialization.
+function WFScript:serializeVars()
+    local out = {}
+    for k, v in pairs(self.vars) do
+        local t = type(v)
+        if t == "number" or t == "string" or t == "boolean" then out[k] = v end
+    end
+    return out
+end
+
+function WFScript:saveVars()
+    local path = self:varsFile()
+    local n = 0; for _ in pairs(self.vars) do n = n + 1 end
+    print(string.format("[WFPersist] saveVars key=%s vars=%d json=%s path=%s",
+        tostring(self._persistKey), n, tostring(json ~= nil), tostring(path)))
+    if not path or not json then return 0 end
+    local fu = cc.FileUtils:getInstance()
+    local data = self:serializeVars()
+    local sn = 0; for _ in pairs(data) do sn = sn + 1 end
+    print("[WFPersist] serializable=" .. sn)
+    if next(data) == nil then
+        if fu:isFileExist(path) then fu:removeFile(path) end   -- nothing to keep
+        return 0
+    end
+    local ok, enc = pcall(json.encode, data)
+    if not ok or type(enc) ~= "string" then
+        print("[WFPersist] encode failed: " .. tostring(enc)); return 0
+    end
+    if not fu:isDirectoryExist(wfVarsDir()) then fu:createDirectories(wfVarsDir()) end
+    local wok = fu:writeStringToFile(enc, path)
+    print(string.format("[WFPersist] wrote %d bytes -> %s (ok=%s)", #enc, path, tostring(wok)))
+    return #enc
+end
+
+function WFScript:restoreVars()
+    local path = self:varsFile()
+    if not path or not json then return end
+    local fu = cc.FileUtils:getInstance()
+    if not fu:isFileExist(path) then return end
+    local src = fu:getStringFromFile(path)
+    if not src or #src == 0 then return end
+    local ok, data = pcall(json.decode, src)
+    if not ok or type(data) ~= "table" then return end
+    for k, v in pairs(data) do
+        local t = type(v)
+        if t == "number" or t == "string" or t == "boolean" then
+            self.vars[k] = v
+            if not self.engine.extraDefs[k] then
+                self.engine:define(k, "static", function() return self.vars[k] end)
+            end
+            self.engine:publish(k, v)
+        end
+    end
+    print("[WFScript] restored " .. tostring(#src) .. " bytes of persisted vars")
+end
+
+-- Size on disk of the persisted backup (bytes), for the config Info tab.
+function WFScript:persistedSize()
+    local path = self:varsFile()
+    if not path then return 0 end
+    local fu = cc.FileUtils:getInstance()
+    if not fu:isFileExist(path) then return 0 end
+    local src = fu:getStringFromFile(path)
+    return src and #src or 0
+end
+
+-- Delete the backup AND wipe the in-memory vars (the caller reloads the face
+-- right after, so clearing the live table stops the reload's teardown from
+-- re-saving the values we just cleared). Clear in place — the sandbox proxy
+-- captured this exact table.
+function WFScript:clearPersisted()
+    local path = self:varsFile()
+    if path then
+        local fu = cc.FileUtils:getInstance()
+        if fu:isFileExist(path) then fu:removeFile(path) end
+    end
+    for k in pairs(self.vars) do self.vars[k] = nil end
 end
 
 -- Surface a script runtime failure in the Android error dialog (same pipeline

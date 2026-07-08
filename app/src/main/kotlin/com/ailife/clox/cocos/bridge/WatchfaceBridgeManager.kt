@@ -98,6 +98,7 @@ class WatchfaceBridgeManager(
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when {
+            key == KEY_CLEAR_VARS -> clearWatchfaceVars()
             key == SensorsPrefs.KEY_CALENDAR -> {
                 if (SensorsPrefs.calendarEnabled(ctx) && CalendarHelper.hasPermission(ctx)) {
                     scope.launch {
@@ -501,6 +502,16 @@ class WatchfaceBridgeManager(
         queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnReset", "") }
     }
 
+    /**
+     * Clear the current face's persisted script variables and reload it (fresh
+     * state), showing the loading placeholder. Triggered from the config dialog's
+     * Information tab via the [KEY_CLEAR_VARS] pref nonce.
+     */
+    fun clearWatchfaceVars() {
+        expectFaceLoad("clear watchface vars")
+        queueOnGL { LuaBridge.callLuaFunction("WatchfaceOnClearVars", "") }
+    }
+
     // ── Lua → Android: action handler ────────────────────────────────────────
 
     private fun handleWatchfaceAction(payload: String) {
@@ -536,6 +547,9 @@ class WatchfaceBridgeManager(
                 "reportLayerCount" -> com.ailife.clox.watchface.WatchfaceStats.setLayerCount(
                     json.optInt("count", -1),
                     PreferenceManager.getDefaultSharedPreferences(ctx).getString("watchface_path", null)
+                )
+                "reportStorage" -> com.ailife.clox.watchface.WatchfaceStats.setStorageBytes(
+                    json.optInt("bytes", 0)
                 )
                 "requestMapTile" -> {
                     val lat = json.optDouble("lat", 0.0)
@@ -653,5 +667,9 @@ class WatchfaceBridgeManager(
 
         // Generous: a cold start needs GL init + asset extraction + face build.
         private const val WATCHDOG_MS = 15_000L
+
+        // Pref nonce the config dialog writes to request clearing the active
+        // face's persisted variables + reload (see prefsListener/clearWatchfaceVars).
+        const val KEY_CLEAR_VARS = "wf_clear_vars_nonce"
     }
 }

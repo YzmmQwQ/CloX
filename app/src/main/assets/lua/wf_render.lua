@@ -422,6 +422,13 @@ function WFRender.new(stage)
 end
 
 function WFRender:clear()
+    -- Back up the outgoing face's script variables before its engine dies (face
+    -- switch). The activity-destroy case is saved in WatchfaceScene:onExit.
+    print("[WFPersist] clear() script=" .. tostring(self.script ~= nil))
+    if self.script and self.script.saveVars then
+        local sok, serr = pcall(function() self.script:saveVars() end)
+        if not sok then print("[WFPersist] saveVars error: " .. tostring(serr)) end
+    end
     -- Drop bridge listeners from the previous face, or stale closures would keep
     -- firing into a dead engine after a switch.
     if self._asyncHandlers and WatchfaceBridge and WatchfaceBridge.offChange then
@@ -2425,7 +2432,33 @@ function WFRender:load(xml, baseDir)
         end
     end
     self:publishTheme()
+    -- Persist key = md5(xml + global script). Content-addressed so a face keeps
+    -- its saved variables regardless of package path. Restore BEFORE the script
+    -- runs so it can resume prior state.
+    do
+        local scriptSrc = ""
+        local sp = baseDir .. "scripts/script.txt"
+        local fu = cc.FileUtils:getInstance()
+        if fu:isFileExist(sp) then scriptSrc = fu:getStringFromFile(sp) or "" end
+        -- getStringMD5Hash is a method binding — must be called with ':' so the
+        -- utils table is arg #1 (dot-calling passes the string as arg #1 → error).
+        local utils = (ax and ax.utils) or (cc and cc.utils)
+        if utils and utils.getStringMD5Hash then
+            local ok, key = pcall(function() return utils:getStringMD5Hash(xml .. scriptSrc) end)
+            self._persistKey = ok and key or nil
+        else
+            self._persistKey = nil
+        end
+        self.script._persistKey = self._persistKey
+        print("[WFPersist] load key=" .. tostring(self._persistKey) ..
+              " scriptBytes=" .. tostring(#scriptSrc))
+    end
     self.script:load(baseDir)
+    -- Restore persisted variables AFTER the script's top-level chunk runs, so a
+    -- face that assigns its variables unconditionally on load (`x = 0`) doesn't
+    -- clobber the saved state. Runs before layers compile, so bindings pick up
+    -- the restored values.
+    pcall(function() self.script:restoreVars() end)
     self.script:attach()
     self.script:onNeedFrameChanged(function()
         local was = self.needFrame

@@ -227,6 +227,12 @@ function WatchfaceBridge.reportLayerCount(count)
     Bridge.sendToAndroid("wf_action", json.encode({ action = "reportLayerCount", count = count }))
 end
 
+-- Report the persisted-variable backup size (bytes) for the loaded face.
+function WatchfaceBridge.reportStorage(bytes)
+    if not json then return end
+    Bridge.sendToAndroid("wf_action", json.encode({ action = "reportStorage", bytes = bytes }))
+end
+
 -- ── Lua → Android: watchface shortcut ────────────────────────────────────────
 
 function WatchfaceBridge.tapAction(shortcut)
@@ -267,4 +273,11 @@ function WatchfaceOnReset()
     WF.cmd_reset = {}
     local h = WatchfaceBridge._handlers["cmd_reset"]
     if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_reset) end end
+end
+
+-- Java tells Lua to clear the current face's persisted variables and reload.
+function WatchfaceOnClearVars()
+    WF.cmd_clearvars = {}
+    local h = WatchfaceBridge._handlers["cmd_clearvars"]
+    if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_clearvars) end end
 end

@@ -18,4 +18,12 @@ object WatchfaceStats {
         layerCount = count
         layerCountPath = path
     }
+
+    /** Persisted script-variable backup size in bytes (-1 = not yet reported). */
+    @Volatile var storageBytes: Int = -1
+        private set
+
+    fun setStorageBytes(bytes: Int) {
+        storageBytes = bytes
+    }
 }

@@ -427,13 +427,32 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         } ?: "—"
         page.addChild(infoRow(getString(R.string.wfcfg_info_size), sizeText))
 
-        // Reserved statistics.
-        page.addChild(infoRow(getString(R.string.wfcfg_info_storage), getString(R.string.wfcfg_info_reserved)))
+        // Persisted script-variable backup size (reported by the Lua engine).
+        val stored = if (WatchfaceStats.storageBytes >= 0) formatBytes(WatchfaceStats.storageBytes.toLong()) else "—"
+        page.addChild(infoRow(getString(R.string.wfcfg_info_storage), stored))
         page.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
             text = getString(R.string.wfcfg_info_clear)
-            isEnabled = false   // reserved
+            setTextColor(Color.WHITE)
+            setOnClickListener { confirmClearVars() }
         }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = dp(8) })
         return page
+    }
+
+    /** Confirm, then ask the engine to delete this face's persisted variables and
+     *  reload it. The dialog closes so the watchface + loading placeholder show. */
+    private fun confirmClearVars() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.wfcfg_clear_confirm_title)
+            .setMessage(R.string.wfcfg_clear_confirm_msg)
+            .setPositiveButton(R.string.wfcfg_info_clear) { _, _ ->
+                // A changing value (timestamp) so every clear fires the listener.
+                PreferenceManager.getDefaultSharedPreferences(this).edit()
+                    .putLong(com.ailife.clox.cocos.bridge.WatchfaceBridgeManager.KEY_CLEAR_VARS,
+                             android.os.SystemClock.elapsedRealtime()).apply()
+                finish()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun formatBytes(b: Long): String = when {
