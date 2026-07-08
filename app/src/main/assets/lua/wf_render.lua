@@ -2455,17 +2455,27 @@ function WFRender:colorSwitch(dir)
     if self.themes and #self.themes > 1 then
         self._themeIdx = ((self._themeIdx or 1) - 1 + dir) % #self.themes + 1
         self:setTheme(self._themeIdx)
+        -- persisted with the face's script vars (reserved key) so the chosen
+        -- theme survives face switches and app restarts
+        if self.script then self.script.vars.__theme_idx = self._themeIdx end
         return
     end
+    self:applyColorIdx((self._colorIdx or 0) + dir)
+    if self.script then self.script.vars.__color_idx = self._colorIdx end
+    print("[WFRender] color_switch → " .. self._colorIdx .. " (" .. self.theme.ucolor .. ")")
+end
+
+-- Apply a palette index (0 = face default) — shared by colorSwitch and the
+-- load-time restore of a persisted selection.
+function WFRender:applyColorIdx(idx)
     local n = #UCOLOR_MAP
-    self._colorIdx = ((self._colorIdx or 0) + dir) % (n + 1)   -- 0..n, 0 = default
+    self._colorIdx = idx % (n + 1)   -- 0..n, 0 = default
     local u = (self._colorIdx == 0)
         and ((self.watch and self.watch.ucolor_default) or "ffffff")
         or UCOLOR_MAP[self._colorIdx]
     self.theme = { ucolor = u, ucolor2 = self.theme.ucolor2, ucolor3 = self.theme.ucolor3 }
     self.engine:publish("ucolor", u)
     self.engine:publish("ucolor_b", u)
-    print("[WFRender] color_switch → " .. self._colorIdx .. " (" .. u .. ")")
 end
 
 function WFRender:dispatchTap(rec)
@@ -2881,8 +2891,11 @@ end
 -- xml: watch.xml content. baseDir: extract dir ending in "/" (has images/ etc).
 function WFRender:load(xml, baseDir)
     -- the new face's engine clock restarts elapsed at 0; a running stopwatch
-    -- keeps its accumulated time across the switch (UL: one global stopwatch)
-    if self.engine then WFStopwatch.rebase(self.engine.clock.elapsed) end
+    -- keeps its accumulated time across the switch (UL: one global stopwatch).
+    -- The very first load of a process instead restores the persisted state
+    -- (wall-clock anchored, so a running stopwatch kept counting while dead).
+    if self.engine then WFStopwatch.rebase(self.engine.clock.elapsed)
+    else WFStopwatch.restoreOnce(0) end
     self:clear()
     self:attachListeners()
     self.base = baseDir
@@ -2956,6 +2969,21 @@ function WFRender:load(xml, baseDir)
     -- clobber the saved state. Runs before layers compile, so bindings pick up
     -- the restored values.
     pcall(function() self.script:restoreVars() end)
+    -- Re-apply a persisted colour/theme selection. color_switch state lives on
+    -- the RENDERER (not in the face's own script variables), so it rides along
+    -- in the same per-face store under reserved __color_idx / __theme_idx keys
+    -- — written by colorSwitch, applied here before any layer compiles.
+    do
+        local v  = self.script.vars
+        local ti = tonumber(v.__theme_idx)
+        local ci = tonumber(v.__color_idx)
+        if ti and self.themes and #self.themes > 1 and self.themes[ti] then
+            self._themeIdx = ti
+            self:setTheme(ti)
+        elseif ci and ci > 0 then
+            self:applyColorIdx(ci)
+        end
+    end
     self.script:attach()
     self.script:onNeedFrameChanged(function()
         local was = self.needFrame
