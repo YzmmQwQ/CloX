@@ -294,7 +294,29 @@ function WFLayerRec.new(renderer, L, holder, key, index)
         type     = L.type,
         bsx = 1, bsy = 1,
         _descs   = {},
+        _dispVis = true,   -- display/dim gate (visibleIn)
+        _opVis   = true,   -- opacity gate (false once opacity hits 0)
     }, WFLayerRec)
+end
+
+-- A layer is a tap zone when it declares a tap_action or carries image_tap
+-- frames. Tap zones must stay in the render tree even at opacity 0 so the
+-- hit-test still finds them (chainVisible) — opacity-0 hot spots are tappable
+-- by design; see tapEligible.
+function WFLayerRec:isTapZone()
+    return (self.L.tap_action and self.L.tap_action ~= "") or self.tap ~= nil
+end
+
+-- Holder visibility = display/dim gate AND opacity gate. Culling an off-page
+-- (opacity 0) holder with setVisible(false) skips its whole subtree in
+-- visit/transform/draw; without it a multi-screen face pays full draw calls for
+-- every hidden page every frame — setOpacity(0) alone still renders the node
+-- (the GPU just blends it invisibly). Tap zones are exempt from the opacity
+-- gate so opacity-0 hot spots stay tappable.
+function WFLayerRec:applyVis()
+    local vis = self._dispVis ~= false
+    if vis and self._opVis == false and not self:isTapZone() then vis = false end
+    self.holder:setVisible(vis)
 end
 
 -- Compiled descriptor for an attribute (memoised; kind fixed per attr).
@@ -2377,6 +2399,8 @@ local function bindTransform(rec)
     -- const-nil path never calls the setter).
     rec:bindNum("opacity", 0, function(r, v)
         r.holder:setOpacity(floor(clamp(v, 0, 100) * 2.55))
+        r._opVis = v > 0
+        r:applyVis()
     end)
 end
 
@@ -2513,7 +2537,8 @@ function WFRender:load(xml, baseDir)
 
     -- Pass 3: visibility + tap-target index, now that holders are parented.
     for _, rec in ipairs(self.recs) do
-        rec.holder:setVisible(visibleIn(rec.L.display, self.dim))
+        rec._dispVis = visibleIn(rec.L.display, self.dim)
+        rec:applyVis()
         if (rec.L.tap_action and rec.L.tap_action ~= "") or rec.tap then
             self.taps[#self.taps + 1] = rec
         end
@@ -2603,7 +2628,8 @@ function WFRender:setDim(dim)
     self.dim = dim
     require("wf_dimstate").setDim(dim)
     for _, rec in ipairs(self.recs) do
-        rec.holder:setVisible(visibleIn(rec.L.display, dim))
+        rec._dispVis = visibleIn(rec.L.display, dim)
+        rec:applyVis()
     end
     -- dim-aware content repaints from live values; static color_dim layers
     -- aren't in any bucket, so re-run them explicitly
