@@ -468,12 +468,14 @@ function WatchfaceScene:wireBridge()
     WatchfaceBridge.onChange("cmd_reload", function()
         extractSourcePath = nil   -- force re-extract
         self._failedPath = nil
+        self._currentPath = nil   -- else syncWatchface skips the reload (same path)
         self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
     WatchfaceBridge.onChange("cmd_reset", function()
         axRemoveDir(cc.FileUtils:getInstance():getWritablePath() .. "wf_active/")
         extractSourcePath, extractDir = nil, nil
         self._failedPath = nil
+        self._currentPath = nil   -- else syncWatchface skips the reload (same path)
         self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
     -- App backgrounding: flush the current face's variables to disk now, so a
@@ -490,6 +492,7 @@ function WatchfaceScene:wireBridge()
         if self._renderer and self._renderer.script and self._renderer.script.clearPersisted then
             pcall(function() self._renderer.script:clearPersisted() end)
         end
+        self._currentPath = nil   -- else syncWatchface skips the reload (same path)
         self:requestLoad(WF.settings and WF.settings.watchfacePath)
     end)
 end

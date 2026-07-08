@@ -424,7 +424,7 @@
     <string name="wfcfg_info_layers">Layers</string>
     <string name="wfcfg_info_size">Watch face size</string>
     <string name="wfcfg_info_storage">Data stored</string>
-    <string name="wfcfg_info_clear">Clear persistent storage</string>
+    <string name="wfcfg_info_clear">Clear data</string>
     <string name="wfcfg_info_reserved">Reserved</string>
     <string name="wfcfg_clear_confirm_title">Clear stored data?</string>
     <string name="wfcfg_clear_confirm_msg">This deletes the saved variables for this watch face and reloads it. This can\'t be undone.</string>

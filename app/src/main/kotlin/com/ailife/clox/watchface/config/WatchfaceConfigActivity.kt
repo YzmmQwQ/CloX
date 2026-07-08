@@ -59,6 +59,7 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     private val cfg = WatchfaceConfigPrefs
     private var selectedTab = 0
     private var flipper: ViewFlipper? = null
+    private var pageSwitcher: ((Int) -> Unit)? = null   // lazily builds + shows a page
 
     companion object {
         const val EXTRA_DEFAULTS = "edit_defaults"
@@ -166,15 +167,18 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         // Tabs are icon-only — text was ellipsised to "…" in the narrow 3/4-way
         // toggle group. Icons: aspect-ratio (alignment), toggles (behavior),
         // speed (frame rate), info.
+        // Tabs are icon-only. Pages are built LAZILY — only the visible tab's page
+        // is created on open; the rest are built the first time their tab is shown.
+        // Building all four Material pages eagerly made the dialog take ~1s to open.
         val icons: List<Pair<Int, Int>>   // icon res, content-description res
-        val pages: List<View>
+        val builders: List<() -> View>
         if (editingDefaults) {
             icons = listOf(
                 R.drawable.ic_aspect_ratio to R.string.wfcfg_tab_alignment,
                 R.drawable.ic_toggle_on to R.string.wfcfg_tab_behavior,
                 R.drawable.ic_speed to R.string.wfcfg_tab_framerate
             )
-            pages = listOf(alignmentPage(), behaviorPage(), frameRatePage())
+            builders = listOf({ alignmentPage() }, { behaviorPage() }, { frameRatePage() })
         } else {
             icons = listOf(
                 R.drawable.ic_aspect_ratio to R.string.wfcfg_tab_alignment,
@@ -182,14 +186,28 @@ class WatchfaceConfigActivity : AppCompatActivity() {
                 R.drawable.ic_speed to R.string.wfcfg_tab_framerate,
                 R.drawable.ic_info to R.string.wfcfg_tab_info
             )
-            pages = listOf(alignmentPage(), behaviorPage(), frameRatePage(), infoPage(activePath))
+            builders = listOf({ alignmentPage() }, { behaviorPage() }, { frameRatePage() }, { infoPage(activePath) })
         }
-        selectedTab = selectedTab.coerceIn(0, pages.size - 1)
+        selectedTab = selectedTab.coerceIn(0, builders.size - 1)
+
+        val containers = builders.map { FrameLayout(this) }
+        val built = BooleanArray(builders.size)
+        fun showPage(idx: Int) {
+            if (!built[idx]) {
+                built[idx] = true
+                containers[idx].addView(builders[idx](), FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+            }
+            flip.displayedChild = idx
+        }
+        pageSwitcher = ::showPage
+        // Containers must be the flipper's children before tabRow's initial check()
+        // fires showPage (which sets displayedChild).
+        containers.forEach { flip.addView(it, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
+
         content.addView(tabRow(flip, icons), LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             topMargin = dp(4)
         })
-        pages.forEach { flip.addView(it, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
-        flip.displayedChild = selectedTab
+        showPage(selectedTab)
         content.addView(flip, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply {
             topMargin = dp(8)
         })
@@ -276,7 +294,7 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         group.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             val idx = buttons.indexOfFirst { it.id == checkedId }
-            if (idx >= 0) { selectedTab = idx; flip.displayedChild = idx }
+            if (idx >= 0) { selectedTab = idx; (pageSwitcher ?: { flip.displayedChild = it })(idx) }
         }
         return group
     }
