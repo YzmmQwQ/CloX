@@ -2406,6 +2406,183 @@ end
 
 -- ── load & build ──────────────────────────────────────────────────────────────
 
+-- ── static-layer flattening ────────────────────────────────────────────────────
+-- A run of consecutive frame-static layers is baked once into a cached
+-- RenderTexture and drawn as ONE sprite, so per frame only the dynamic layers
+-- (hands, live text) plus the composites are visited/drawn. The composite
+-- rebakes on the union of its layers' SLOW deps (minute/hour/day/vars/battery/
+-- weather/…) and on dim flips; a layer with a per-frame (ms/second) dep is never
+-- merged. Multi-screen faces come out right for free: their page gate is a slow
+-- dep (var_pantalla), so a page switch just re-bakes with the new visibility.
+-- Every run is pcall-guarded — any failure falls back to normal drawing.
+
+local FLATTEN_MIN    = 2       -- fewer layers than this: not worth an RT
+local FLATTEN_MAX_PX = 2048    -- skip pathological run bounds
+
+-- Tag names that change every rendered frame (or ~every frame): a layer that
+-- reads any of them cannot be baked.
+local function fastTagSet(engine)
+    local fast = {}
+    for _, evn in ipairs({ "ms", "second" }) do
+        local ev = engine.events[evn]
+        if ev then for _, t in ipairs(ev.tags) do fast[t.name] = true end end
+    end
+    return fast
+end
+
+local function recHasFastDep(rec, fast)
+    if (tonumber(rec.L.gyro) or 0) ~= 0 then return true end   -- sensor-driven position
+    for _, d in pairs(rec._descs) do
+        if type(d) == "table" and not d.const and d.deps then
+            for _, t in ipairs(d.deps) do if fast[t] then return true end end
+        end
+    end
+    return false
+end
+
+-- A layer is a direct stage child (vs. nested under a group holder) when it
+-- declares no parentId — Pass 2 parents those straight onto the stage. Can't
+-- compare holder:getParent() to stage: the Lua binding hands back a fresh
+-- wrapper each call, so identity never matches (that returned 0 flattenable).
+local function isStageChild(rec)
+    local pid = rec.L.parentId
+    return not (pid and pid ~= "")
+end
+
+local function recFlattenable(rec, fast)
+    local L = rec.L
+    if not rec.holder or not isStageChild(rec) then return false end
+    if rec.type == "group" or rec.type == "video" then return false end
+    if L.shader and L.shader ~= "" then return false end       -- shader may read time/uniforms
+    if rec:isTapZone() then return false end                   -- must stay hit-testable
+    if recHasFastDep(rec, fast) then return false end
+    return true
+end
+
+-- Union of a run's slow (non-fast) dependency tags — the events that re-bake it.
+local function runSlowDeps(run, fast)
+    local set, list = {}, {}
+    for _, rec in ipairs(run) do
+        for _, d in pairs(rec._descs) do
+            if type(d) == "table" and not d.const and d.deps then
+                for _, t in ipairs(d.deps) do
+                    if not fast[t] and not set[t] then set[t] = true; list[#list + 1] = t end
+                end
+            end
+        end
+    end
+    return list
+end
+
+-- Design half-reach that covers every flattenable holder's drawn content, so a
+-- single square RT centred on the design origin captures any run without
+-- clipping. Holder AABB is useless (container contentSize is 0); use the
+-- VISUAL's box (displayed size) + the holder's offset, diagonal for rotation.
+local function designCanvas(runs)
+    local reach = 1
+    for _, run in ipairs(runs) do
+        for _, rec in ipairs(run) do
+            local v = rec.visual
+            local w, h = 0, 0
+            if v then local b = v:getBoundingBox(); w, h = b.width, b.height end
+            local hs = math.max(rec.holder:getScaleX(), rec.holder:getScaleY(), 1)
+            local half = 0.5 * math.sqrt(w * w + h * h) * hs
+            reach = math.max(reach,
+                math.abs(rec.holder:getPositionX()) + half,
+                math.abs(rec.holder:getPositionY()) + half)
+        end
+    end
+    return math.min(FLATTEN_MAX_PX, math.ceil(reach * 2) + 4)
+end
+
+-- Bake one run (holders currently on stage, in z order) into a cached RT sprite.
+-- All runs share `canvas`: a square whose centre is the design origin, so the
+-- baked sprite sits at stage-local (0,0) and inherits the stage transform.
+function WFRender:bakeRun(run, zLo, fast, canvas)
+    local stage = self.stage
+    -- Off-graph container: design origin (0,0) maps to the RT centre.
+    local grp = cc.Node:create()
+    grp:setPosition(canvas / 2, canvas / 2)
+    for _, rec in ipairs(run) do
+        rec.holder:retain()
+        rec.holder:removeFromParent()
+        grp:addChild(rec.holder)
+        rec.holder:release()
+        rec._flattened = true
+    end
+    grp:retain(); self.retained[#self.retained + 1] = grp
+
+    local rt = cc.RenderTexture:create(canvas, canvas)
+    rt:retain(); self.retained[#self.retained + 1] = rt
+    local sp = cc.Sprite:create()
+    local function rebake()
+        rt:beginWithClear(0, 0, 0, 0)
+        grp:visit()
+        rt:endToLua()
+        sp:setTexture(rt:getSprite():getTexture())
+        sp:setTextureRect(cc.rect(0, 0, canvas, canvas))
+        sp:setFlippedY(true)                    -- RT textures are y-flipped
+    end
+    rebake()
+    sp:setPosition(0, 0)                         -- design origin = stage-local origin
+    stage:addChild(sp, zLo)
+
+    -- Re-bake on any slow dep (page switch, minute/hour tick, battery, weather…)
+    -- and on dim flips. Registered AFTER the members' own bindings, so members
+    -- update first, then we re-capture.
+    local deps = runSlowDeps(run, fast)
+    if #deps > 0 then
+        self.engine:bind(WFCompositeBinding.new(run[1], function() rebake() end), deps)
+    end
+    self.dimRedraws[#self.dimRedraws + 1] = rebake
+    return true
+end
+
+-- Post-load pass: merge runs of consecutive frame-static stage layers.
+function WFRender:flattenStatics()
+    local stage = self.stage
+    if not stage then return end
+    local fast = fastTagSet(self.engine)
+
+    -- Give every stage child an explicit z = document order, so a baked sprite
+    -- inserted at a run's start z keeps the exact layering (holders were added
+    -- at z 0 in order, i.e. insertion order).
+    local zOf = {}
+    for i, rec in ipairs(self.recs) do
+        if rec.holder and isStageChild(rec) then
+            rec.holder:setLocalZOrder(i)
+            zOf[rec] = i
+        end
+    end
+
+    -- Maximal runs of consecutive flattenable stage children (a dynamic/group/
+    -- tap/video layer between two statics breaks the run, preserving z-order).
+    local runs, cur = {}, nil
+    for _, rec in ipairs(self.recs) do
+        if rec.holder and isStageChild(rec) then
+            if recFlattenable(rec, fast) then
+                if not cur then cur = {}; runs[#runs + 1] = cur end
+                cur[#cur + 1] = rec
+            else
+                cur = nil
+            end
+        end
+    end
+
+    local canvas = designCanvas(runs)
+    local baked, merged, cand = 0, 0, 0
+    for _, run in ipairs(runs) do
+        if #run >= FLATTEN_MIN then
+            cand = cand + 1
+            local ok, res = pcall(function() return self:bakeRun(run, zOf[run[1]], fast, canvas) end)
+            if ok and res then baked = baked + 1; merged = merged + #run
+            elseif not ok then print("[WFRender] bakeRun error: " .. tostring(res)) end
+        end
+    end
+    print(string.format("[WFRender] flatten: %d/%d run(s) baked (%d candidate runs total), %d layers merged",
+        baked, cand, #runs, merged))
+end
+
 -- xml: watch.xml content. baseDir: extract dir ending in "/" (has images/ etc).
 function WFRender:load(xml, baseDir)
     -- the new face's engine clock restarts elapsed at 0; a running stopwatch
@@ -2558,6 +2735,7 @@ function WFRender:load(xml, baseDir)
     print(string.format("[WFRender] loaded %d layers (%d bindings, frame=%s sec=%s), theme=%s",
         #self.recs, nBind, tostring(self.needFrame), tostring(self.needSecond),
         tostring(self.theme.ucolor)))
+    pcall(function() self:flattenStatics() end)
     return true
 end
 
