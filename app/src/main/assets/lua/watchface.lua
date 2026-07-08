@@ -464,6 +464,11 @@ function WatchfaceScene:wireBridge()
         if data.aodEnabled ~= nil then
             self._renderer:setDim(data.aodEnabled and true or false)
         end
+        -- accent override is a plain {ucolor} publish — live, no reload
+        if self._renderer and self._renderer.setColorOverride then
+            self._renderer:setColorOverride(
+                type(data.colorOverride) == "string" and data.colorOverride or nil)
+        end
         -- The layer-merge toggle only takes effect at build time: when it flips
         -- for the face already on screen, force the (otherwise same-path) load
         -- through so the config dialog previews it live.

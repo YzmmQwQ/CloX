@@ -3,6 +3,7 @@ package com.ailife.clox.watchface.config
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -175,18 +176,20 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         if (editingDefaults) {
             icons = listOf(
                 R.drawable.ic_aspect_ratio to R.string.wfcfg_tab_alignment,
+                R.drawable.ic_palette to R.string.wfcfg_tab_color,
                 R.drawable.ic_toggle_on to R.string.wfcfg_tab_behavior,
                 R.drawable.ic_speed to R.string.wfcfg_tab_framerate
             )
-            builders = listOf({ alignmentPage() }, { behaviorPage() }, { frameRatePage() })
+            builders = listOf({ alignmentPage() }, { colorPage() }, { behaviorPage() }, { frameRatePage() })
         } else {
             icons = listOf(
                 R.drawable.ic_aspect_ratio to R.string.wfcfg_tab_alignment,
+                R.drawable.ic_palette to R.string.wfcfg_tab_color,
                 R.drawable.ic_toggle_on to R.string.wfcfg_tab_behavior,
                 R.drawable.ic_speed to R.string.wfcfg_tab_framerate,
                 R.drawable.ic_info to R.string.wfcfg_tab_info
             )
-            builders = listOf({ alignmentPage() }, { behaviorPage() }, { frameRatePage() }, { infoPage(activePath) })
+            builders = listOf({ alignmentPage() }, { colorPage() }, { behaviorPage() }, { frameRatePage() }, { infoPage(activePath) })
         }
         selectedTab = selectedTab.coerceIn(0, builders.size - 1)
 
@@ -390,6 +393,178 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         page.addChild(switchRow(R.string.wfcfg_allow_health, R.string.wfcfg_allow_health_summary, getAllowHealth(), editable) { setAllowHealth(it) })
         page.addChild(switchRow(R.string.wfcfg_allow_tap, R.string.wfcfg_allow_tap_summary, getAllowTap(), editable) { setAllowTap(it) })
         return page
+    }
+
+    // ── page: accent color ────────────────────────────────────────────────────
+    // Overrides the face's {ucolor} accent: face default, the launcher's
+    // Material You accent, or a fixed color from the preset grid / picker.
+    // Changes apply live (a {ucolor} publish engine-side — no reload).
+    private fun colorPage(): View {
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val useDefault = !editingDefaults && cfg.useDefaultColor(this, cfgPath)
+        if (!editingDefaults) {
+            page.addChild(useDefaultSwitch(useDefault) { checked ->
+                cfg.setUseDefaultColor(this, cfgPath, checked); recreate()
+            })
+        }
+        val editable = editingDefaults || !useDefault
+
+        val swatches = mutableListOf<Pair<String, MaterialCardView>>()
+        lateinit var refreshSwatches: () -> Unit
+
+        // mode selector
+        val modeIds = listOf(cfg.COLOR_DEFAULT, cfg.COLOR_THEME, cfg.COLOR_FIXED)
+        val modeLabels = listOf(R.string.wfcfg_color_default, R.string.wfcfg_color_theme, R.string.wfcfg_color_fixed)
+        val group = MaterialButtonToggleGroup(this).apply {
+            orientation = LinearLayout.VERTICAL; isSingleSelection = true; isSelectionRequired = true
+        }
+        val modeButtons = modeLabels.map { res ->
+            MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                id = View.generateViewId(); text = getString(res); isCheckable = true
+                setTextColor(Color.WHITE); isEnabled = editable
+            }
+        }
+        modeButtons.forEach { group.addView(it, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)) }
+        group.check(modeButtons[modeIds.indexOf(getColorMode()).coerceAtLeast(0)].id)
+        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val idx = modeButtons.indexOfFirst { it.id == checkedId }
+            if (idx >= 0) { setColorMode(modeIds[idx]); refreshSwatches() }
+        }
+        page.addView(group, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+
+        page.addView(TextView(this).apply {
+            text = getString(R.string.wfcfg_color_theme_hint)
+            setTextColor(0xFF999999.toInt()); textSize = 11f
+            setPadding(0, dp(6), 0, dp(6))
+        })
+
+        // preset swatch grid — tapping one selects it AND switches to "fixed"
+        val grid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val perRow = 5
+        cfg.COLOR_PRESETS.chunked(perRow).forEach { rowColors ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowColors.forEach { hex ->
+                val card = MaterialCardView(this).apply {
+                    radius = dp(20).toFloat()
+                    setCardBackgroundColor(Color.parseColor("#$hex"))
+                    setOnClickListener {
+                        if (!editable) return@setOnClickListener
+                        setColorValue(hex); setColorMode(cfg.COLOR_FIXED)
+                        group.check(modeButtons[modeIds.indexOf(cfg.COLOR_FIXED)].id)
+                        refreshSwatches()
+                    }
+                }
+                swatches += hex to card
+                row.addView(card, LinearLayout.LayoutParams(0, dp(40), 1f).apply {
+                    setMargins(dp(3), dp(3), dp(3), dp(3))
+                })
+            }
+            grid.addView(row, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        }
+        page.addChild(grid)
+
+        // current color + picker
+        val preview = View(this)
+        fun previewDrawable() = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.parseColor("#${getColorValue()}"))
+            setStroke(dp(1), 0x66FFFFFF)
+        }
+        val pickRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(8), 0, 0)
+        }
+        pickRow.addView(preview.apply { background = previewDrawable() },
+            LinearLayout.LayoutParams(dp(32), dp(32)))
+        val hexLabel = TextView(this).apply {
+            text = "#${getColorValue()}"; setTextColor(Color.WHITE); textSize = 13f
+            setPadding(dp(10), 0, 0, 0)
+        }
+        pickRow.addView(hexLabel, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        pickRow.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.wfcfg_color_pick); setTextColor(Color.WHITE)
+            isEnabled = editable
+            setOnClickListener {
+                showColorPicker(getColorValue()) { hex ->
+                    setColorValue(hex); setColorMode(cfg.COLOR_FIXED)
+                    group.check(modeButtons[modeIds.indexOf(cfg.COLOR_FIXED)].id)
+                    refreshSwatches()
+                }
+            }
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        page.addChild(pickRow)
+
+        refreshSwatches = {
+            val fixed = getColorMode() == cfg.COLOR_FIXED
+            val sel = getColorValue()
+            swatches.forEach { (hex, card) ->
+                card.strokeWidth = if (fixed && hex.equals(sel, true)) dp(3) else 0
+                card.strokeColor = Color.WHITE
+                card.alpha = if (editable) 1f else 0.5f
+            }
+            preview.background = previewDrawable()
+            hexLabel.text = "#${getColorValue()}"
+        }
+        refreshSwatches()
+        return page
+    }
+
+    /** Minimal RGB picker: preview + hex field + three sliders. */
+    private fun showColorPicker(initial: String, onPicked: (String) -> Unit) {
+        val start = try { Color.parseColor("#$initial") } catch (e: Exception) { Color.WHITE }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(12), dp(20), 0)
+        }
+        val preview = View(this)
+        var r = Color.red(start); var g = Color.green(start); var b = Color.blue(start)
+        fun hex() = String.format("%02x%02x%02x", r, g, b)
+        val hexEdit = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            hint = getString(R.string.wfcfg_color_hex_hint)
+            setText(hex())
+        }
+        fun refresh(fromSlider: Boolean) {
+            preview.background = GradientDrawable().apply {
+                setColor(Color.rgb(r, g, b)); cornerRadius = dp(6).toFloat()
+                setStroke(dp(1), 0x66FFFFFF)
+            }
+            if (fromSlider) { hexEdit.setText(hex()) }
+        }
+        val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        head.addView(preview, LinearLayout.LayoutParams(dp(48), dp(32)))
+        head.addView(hexEdit, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { marginStart = dp(12) })
+        box.addView(head, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        val sliders = listOf("R" to { v: Int -> r = v }, "G" to { v: Int -> g = v }, "B" to { v: Int -> b = v })
+        val channelInit = listOf(r, g, b)
+        sliders.forEachIndexed { i, (label, setter) ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            row.addView(TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 12f },
+                LinearLayout.LayoutParams(dp(16), WRAP_CONTENT))
+            row.addView(Slider(this).apply {
+                valueFrom = 0f; valueTo = 255f; stepSize = 1f; value = channelInit[i].toFloat()
+                addOnChangeListener { _, v, fromUser -> if (fromUser) { setter(v.toInt()); refresh(true) } }
+            }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            box.addView(row, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        }
+        hexEdit.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, c: Int, d: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, c: Int, d: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val t = s?.toString()?.trim()?.removePrefix("#") ?: return
+                if (t.length == 6) try {
+                    val c = Color.parseColor("#$t")
+                    r = Color.red(c); g = Color.green(c); b = Color.blue(c)
+                    refresh(false)
+                } catch (_: Exception) {}
+            }
+        })
+        refresh(false)
+        MaterialAlertDialogBuilder(this)
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ -> onPicked(hex()) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     // ── page 3: frame rate ────────────────────────────────────────────────────
@@ -740,6 +915,10 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     private fun setUnlimited(v: Boolean) = if (editingDefaults) cfg.setGdefUnlimited(this, v) else cfg.setUnlimited(this, cfgPath, v)
     private fun getOptimize() = if (editingDefaults) cfg.gdefOptimize(this) else cfg.optimize(this, cfgPath)
     private fun setOptimize(v: Boolean) = if (editingDefaults) cfg.setGdefOptimize(this, v) else cfg.setOptimize(this, cfgPath, v)
+    private fun getColorMode() = if (editingDefaults) cfg.gdefColorMode(this) else cfg.colorMode(this, cfgPath)
+    private fun setColorMode(v: String) = if (editingDefaults) cfg.setGdefColorMode(this, v) else cfg.setColorMode(this, cfgPath, v)
+    private fun getColorValue() = if (editingDefaults) cfg.gdefColorValue(this) else cfg.colorValue(this, cfgPath)
+    private fun setColorValue(v: String) = if (editingDefaults) cfg.setGdefColorValue(this, v) else cfg.setColorValue(this, cfgPath, v)
 
     // small helper: add a full-width child to a LinearLayout
     private fun LinearLayout.addChild(v: View) =

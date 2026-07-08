@@ -54,6 +54,24 @@ object WatchfaceConfigPrefs {
     const val DEF_ALLOW_HEALTH = true
     const val DEF_ALLOW_TAP = true
 
+    // ── accent color ────────────────────────────────────────────────────────────
+    // Overrides the face's {ucolor} accent. Modes: "default" (the face's own
+    // color / tap selection), "theme" (follow the launcher's Material You
+    // accent), "fixed" (a preset or picked hex stored in color_value).
+    const val COLOR_DEFAULT = "default"
+    const val COLOR_THEME = "theme"
+    const val COLOR_FIXED = "fixed"
+    const val DEF_COLOR_MODE = COLOR_DEFAULT
+    const val DEF_COLOR_VALUE = "2bade3"
+    /** Preset swatches offered in the Color tab (hex, no '#'). */
+    val COLOR_PRESETS = listOf(
+        "f44336", "e91e63", "9c27b0", "673ab7",
+        "3f51b5", "2196f3", "03a9f4", "00bcd4",
+        "009688", "4caf50", "8bc34a", "cddc39",
+        "ffeb3b", "ffc107", "ff9800", "ff5722",
+        "ffffff", "9e9e9e", "607d8b", "000000",
+    )
+
     // ── frame rate / performance ────────────────────────────────────────────────
     const val DEF_MAX_FPS = 25
     const val DEF_UNLIMITED = false
@@ -86,6 +104,8 @@ object WatchfaceConfigPrefs {
         prefs(ctx).getBoolean(key(ctx, path, "use_def_behavior"), true)
     fun useDefaultFrameRate(ctx: Context, path: String): Boolean =
         prefs(ctx).getBoolean(key(ctx, path, "use_def_frame"), true)
+    fun useDefaultColor(ctx: Context, path: String): Boolean =
+        prefs(ctx).getBoolean(key(ctx, path, "use_def_color"), true)
 
     fun setUseDefaultAlign(ctx: Context, path: String, v: Boolean) =
         prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_align"), v).apply()
@@ -93,6 +113,8 @@ object WatchfaceConfigPrefs {
         prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_behavior"), v).apply()
     fun setUseDefaultFrameRate(ctx: Context, path: String, v: Boolean) =
         prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_frame"), v).apply()
+    fun setUseDefaultColor(ctx: Context, path: String, v: Boolean) =
+        prefs(ctx).edit().putBoolean(key(ctx, path, "use_def_color"), v).apply()
 
     // ── effective getters (per-face override OR app-wide default) ───────────────
     // These are what the live engine and overlays read.
@@ -127,6 +149,11 @@ object WatchfaceConfigPrefs {
     fun optimize(ctx: Context, path: String): Boolean =
         if (useDefaultFrameRate(ctx, path)) gdefOptimize(ctx) else rawOptimize(ctx, path)
 
+    fun colorMode(ctx: Context, path: String): String =
+        if (useDefaultColor(ctx, path)) gdefColorMode(ctx) else rawColorMode(ctx, path)
+    fun colorValue(ctx: Context, path: String): String =
+        if (useDefaultColor(ctx, path)) gdefColorValue(ctx) else rawColorValue(ctx, path)
+
     // ── per-face raw getters/setters ────────────────────────────────────────────
     fun rawAlignMode(ctx: Context, path: String): String =
         prefs(ctx).getString(key(ctx, path, "align_mode"), DEF_ALIGN_MODE) ?: DEF_ALIGN_MODE
@@ -143,6 +170,10 @@ object WatchfaceConfigPrefs {
     fun rawMaxFps(ctx: Context, path: String): Int = prefs(ctx).getInt(key(ctx, path, "max_fps"), DEF_MAX_FPS)
     fun rawUnlimited(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "unlimited"), DEF_UNLIMITED)
     fun rawOptimize(ctx: Context, path: String): Boolean = prefs(ctx).getBoolean(key(ctx, path, "optimize"), DEF_OPTIMIZE)
+    fun rawColorMode(ctx: Context, path: String): String =
+        prefs(ctx).getString(key(ctx, path, "color_mode"), DEF_COLOR_MODE) ?: DEF_COLOR_MODE
+    fun rawColorValue(ctx: Context, path: String): String =
+        prefs(ctx).getString(key(ctx, path, "color_value"), DEF_COLOR_VALUE) ?: DEF_COLOR_VALUE
 
     fun setAlignMode(ctx: Context, path: String, v: String) =
         prefs(ctx).edit().putString(key(ctx, path, "align_mode"), v).apply()
@@ -163,6 +194,8 @@ object WatchfaceConfigPrefs {
     fun setMaxFps(ctx: Context, path: String, v: Int) = prefs(ctx).edit().putInt(key(ctx, path, "max_fps"), v).apply()
     fun setUnlimited(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "unlimited"), v).apply()
     fun setOptimize(ctx: Context, path: String, v: Boolean) = prefs(ctx).edit().putBoolean(key(ctx, path, "optimize"), v).apply()
+    fun setColorMode(ctx: Context, path: String, v: String) = prefs(ctx).edit().putString(key(ctx, path, "color_mode"), v).apply()
+    fun setColorValue(ctx: Context, path: String, v: String) = prefs(ctx).edit().putString(key(ctx, path, "color_value"), v).apply()
 
     // ── app-wide default getters/setters (edited in Settings) ───────────────────
     fun gdefAlignMode(ctx: Context): String = prefs(ctx).getString(gkey("align_mode"), DEF_ALIGN_MODE) ?: DEF_ALIGN_MODE
@@ -179,6 +212,8 @@ object WatchfaceConfigPrefs {
     fun gdefMaxFps(ctx: Context): Int = prefs(ctx).getInt(gkey("max_fps"), DEF_MAX_FPS)
     fun gdefUnlimited(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("unlimited"), DEF_UNLIMITED)
     fun gdefOptimize(ctx: Context): Boolean = prefs(ctx).getBoolean(gkey("optimize"), DEF_OPTIMIZE)
+    fun gdefColorMode(ctx: Context): String = prefs(ctx).getString(gkey("color_mode"), DEF_COLOR_MODE) ?: DEF_COLOR_MODE
+    fun gdefColorValue(ctx: Context): String = prefs(ctx).getString(gkey("color_value"), DEF_COLOR_VALUE) ?: DEF_COLOR_VALUE
 
     fun setGdefAlignMode(ctx: Context, v: String) = prefs(ctx).edit().putString(gkey("align_mode"), v).apply()
     fun setGdefSizeX(ctx: Context, v: Float) = prefs(ctx).edit().putFloat(gkey("size_x"), v.coerceIn(MIN_SIZE, MAX_SIZE)).apply()
@@ -194,6 +229,8 @@ object WatchfaceConfigPrefs {
     fun setGdefMaxFps(ctx: Context, v: Int) = prefs(ctx).edit().putInt(gkey("max_fps"), v).apply()
     fun setGdefUnlimited(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("unlimited"), v).apply()
     fun setGdefOptimize(ctx: Context, v: Boolean) = prefs(ctx).edit().putBoolean(gkey("optimize"), v).apply()
+    fun setGdefColorMode(ctx: Context, v: String) = prefs(ctx).edit().putString(gkey("color_mode"), v).apply()
+    fun setGdefColorValue(ctx: Context, v: String) = prefs(ctx).edit().putString(gkey("color_value"), v).apply()
 
     // ── stage deform math (Kotlin mirror of watchface.lua applyStageTransform) ──
     /**
@@ -254,8 +291,9 @@ object WatchfaceConfigPrefs {
             .remove(key(ctx, path, "allow_health")).remove(key(ctx, path, "allow_tap"))
             .remove(key(ctx, path, "max_fps")).remove(key(ctx, path, "unlimited"))
             .remove(key(ctx, path, "optimize"))
+            .remove(key(ctx, path, "color_mode")).remove(key(ctx, path, "color_value"))
             .remove(key(ctx, path, "use_def_align")).remove(key(ctx, path, "use_def_behavior"))
-            .remove(key(ctx, path, "use_def_frame"))
+            .remove(key(ctx, path, "use_def_frame")).remove(key(ctx, path, "use_def_color"))
             .apply()
     }
 }

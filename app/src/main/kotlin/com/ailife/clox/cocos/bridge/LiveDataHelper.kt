@@ -136,6 +136,14 @@ object LiveDataHelper {
             put("maxFps",          cfg.maxFps(ctx, cfgPath))
             put("maxFpsUnlimited", cfg.unlimited(ctx, cfgPath))
             put("optimizeLayers",  cfg.optimize(ctx, cfgPath))
+            // Accent override, resolved to a single hex here so Lua stays dumb:
+            // "default" → false (face's own color), "theme" → the launcher's
+            // Material You accent, "fixed" → the stored preset/picked value.
+            put("colorOverride", when (cfg.colorMode(ctx, cfgPath)) {
+                com.ailife.clox.watchface.WatchfaceConfigPrefs.COLOR_THEME -> themeAccentHex(ctx)
+                com.ailife.clox.watchface.WatchfaceConfigPrefs.COLOR_FIXED -> cfg.colorValue(ctx, cfgPath)
+                else -> false
+            })
             put("aodEnabled",      prefs.getBoolean("watchface_aod_enabled", false))
             // Per-face behaviour toggles enforced Lua-side.
             put("allowSound",      cfg.allowSound(ctx, cfgPath))
@@ -146,6 +154,17 @@ object LiveDataHelper {
             put("allowTap",        cfg.allowTap(ctx, cfgPath))
         }
     }
+
+    /**
+     * The launcher's accent as a "rrggbb" hex — the Material You dynamic
+     * palette on 12+ (the same family the launcher theme derives from),
+     * a fixed fallback below. Shade 200 matches accents in a dark UI, which
+     * is what most watch faces are.
+     */
+    fun themeAccentHex(ctx: Context): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            String.format("%06x", ctx.getColor(android.R.color.system_accent1_200) and 0xFFFFFF)
+        else com.ailife.clox.watchface.WatchfaceConfigPrefs.DEF_COLOR_VALUE
 
     fun locationSettingsJson(ctx: Context): JSONObject {
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)

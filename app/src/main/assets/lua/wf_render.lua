@@ -2478,6 +2478,26 @@ function WFRender:applyColorIdx(idx)
     self.engine:publish("ucolor_b", u)
 end
 
+-- Config-driven accent override (settings push: colorOverride = "rrggbb" hex
+-- resolved by Java from the preset/picker/Material-You theme, or false for
+-- the face's own color). Applying is just a {ucolor} publish, so dependent
+-- layers repaint and baked runs re-capture through their normal slow deps —
+-- no reload. Clearing falls back to the persisted tap selection / default.
+function WFRender:setColorOverride(hex)
+    if type(hex) ~= "string" or hex == "" then hex = nil
+    else hex = hex:gsub("^#", ""):lower() end
+    if hex == self._colorOverride then return end
+    self._colorOverride = hex
+    if not self.engine then return end
+    if hex then
+        self.theme = { ucolor = hex, ucolor2 = self.theme.ucolor2, ucolor3 = self.theme.ucolor3 }
+        self.engine:publish("ucolor", hex)
+        self.engine:publish("ucolor_b", hex)
+    else
+        self:applyColorIdx(self._colorIdx or 0)
+    end
+end
+
 function WFRender:dispatchTap(rec)
     print("[WFRender] tap layer '" .. tostring(rec.type) .. "' action=" ..
           tostring(rec.L.tap_action))
@@ -2984,6 +3004,10 @@ function WFRender:load(xml, baseDir)
         elseif ci and ci > 0 then
             self:applyColorIdx(ci)
         end
+        -- config accent override wins over the persisted tap selection
+        self._colorOverride = nil
+        local ov = WF and WF.settings and WF.settings.colorOverride
+        if type(ov) == "string" and ov ~= "" then self:setColorOverride(ov) end
     end
     self.script:attach()
     self.script:onNeedFrameChanged(function()
