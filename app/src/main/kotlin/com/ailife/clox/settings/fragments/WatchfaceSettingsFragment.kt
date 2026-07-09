@@ -72,14 +72,14 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
         val tvSelectorMode = view.findViewById<TextView>(R.id.tvWfSelectorMode)
         fun refreshSelectorMode() {
             tvSelectorMode.text = labelFor(selectorModeEntries, selectorModeValues,
-                prefs.getString("wf_selector_mode", "pager") ?: "pager")
+                prefs.getString(WatchfacePrefs.KEY_SELECTOR_MODE, "pager") ?: "pager")
         }
         refreshSelectorMode()
         view.findViewById<View>(R.id.rowWfSelectorMode).setOnClickListener {
             showListPicker(getString(R.string.pref_wf_selector_mode_title),
                 selectorModeEntries, selectorModeValues,
-                prefs.getString("wf_selector_mode", "pager") ?: "pager") { v, _ ->
-                prefs.edit().putString("wf_selector_mode", v).apply()
+                prefs.getString(WatchfacePrefs.KEY_SELECTOR_MODE, "pager") ?: "pager") { v, _ ->
+                prefs.edit().putString(WatchfacePrefs.KEY_SELECTOR_MODE, v).apply()
                 refreshSelectorMode()
             }
         }
@@ -88,14 +88,14 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
         val tvSortOrder = view.findViewById<TextView>(R.id.tvWfSortOrder)
         fun refreshSortOrder() {
             tvSortOrder.text = labelFor(sortEntries, sortValues,
-                prefs.getString("wf_sort_order", "name") ?: "name")
+                prefs.getString(WatchfacePrefs.KEY_SORT_ORDER, "name") ?: "name")
         }
         refreshSortOrder()
         view.findViewById<View>(R.id.rowWfSortOrder).setOnClickListener {
             showListPicker(getString(R.string.pref_wf_sort_title),
                 sortEntries, sortValues,
-                prefs.getString("wf_sort_order", "name") ?: "name") { v, _ ->
-                prefs.edit().putString("wf_sort_order", v).apply()
+                prefs.getString(WatchfacePrefs.KEY_SORT_ORDER, "name") ?: "name") { v, _ ->
+                prefs.edit().putString(WatchfacePrefs.KEY_SORT_ORDER, v).apply()
                 refreshSortOrder()
             }
         }
