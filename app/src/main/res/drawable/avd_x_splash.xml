@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash-icon variant of avd_x_loading, sized to the Android 12+ splash
+     spec: a 288x288 icon window with the graphic kept inside the central
+     ~2/3 safe circle (radius <= 96) so the system's circular mask never
+     clips it. Same four-stick circular wave (clockwise, quarter-cycle
+     offsets) as the watchface loader. Colours: white ">" pair (NE/SE),
+     blue "<" pair (SW/NW). -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="288dp"
+            android:height="288dp"
+            android:viewportWidth="288"
+            android:viewportHeight="288">
+            <!-- Center 144,144. Sticks: inner radius 20 -> outer radius 80
+                 (round caps add 8 -> effective 88, within the 96 safe zone). -->
+            <path
+                android:name="stickNE"
+                android:pathData="M 158.14,129.86 L 200.57,87.43"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="16"
+                android:strokeLineCap="round"
+                android:trimPathEnd="1" />
+            <path
+                android:name="stickSE"
+                android:pathData="M 158.14,158.14 L 200.57,200.57"
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="16"
+                android:strokeLineCap="round"
+                android:trimPathEnd="1" />
+            <path
+                android:name="stickSW"
+                android:pathData="M 129.86,158.14 L 87.43,200.57"
+                android:strokeColor="#82ABD1"
+                android:strokeWidth="16"
+                android:strokeLineCap="round"
+                android:trimPathEnd="1" />
+            <path
+                android:name="stickNW"
+                android:pathData="M 129.86,129.86 L 87.43,87.43"
+                android:strokeColor="#82ABD1"
+                android:strokeWidth="16"
+                android:strokeLineCap="round"
+                android:trimPathEnd="1" />
+        </vector>
+    </aapt:attr>
+
+    <!-- Clockwise wave: NE leads, each next corner lags a quarter cycle. -->
+    <target android:name="stickNE">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="1"
+                android:valueTo="0.45"
+                android:valueType="floatType"
+                android:duration="400"
+                android:startOffset="0"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="stickSE">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="1"
+                android:valueTo="0.45"
+                android:valueType="floatType"
+                android:duration="400"
+                android:startOffset="200"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="stickSW">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="1"
+                android:valueTo="0.45"
+                android:valueType="floatType"
+                android:duration="400"
+                android:startOffset="400"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="stickNW">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="1"
+                android:valueTo="0.45"
+                android:valueType="floatType"
+                android:duration="400"
+                android:startOffset="600"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+</animated-vector>

@@ -76,4 +76,51 @@
         android:alpha="0.85"
         android:importantForAccessibility="no" />
 
+    <!-- App-open splash: the animated app-icon X (same wave as the watchface
+         loader) with the CloX wordmark below. Faded out after launch. -->
+    <FrameLayout
+        android:id="@+id/appSplash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/clox_bg"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <FrameLayout
+                android:layout_width="88dp"
+                android:layout_height="88dp">
+
+                <com.ailife.clox.watchface.loading.SquircleIconView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <!-- AVD: reuses the watchface loader's circular-wave X -->
+                <ImageView
+                    android:id="@+id/appSplashSticks"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/avd_x_loading"
+                    android:importantForAccessibility="no" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/appSplashText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/app_name"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textColor="@color/on_dark_primary"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
+    </FrameLayout>
+
 </com.ailife.clox.gesture.GestureInterceptorLayout>

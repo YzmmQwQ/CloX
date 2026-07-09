@@ -39,6 +39,16 @@
         <item name="colorOutlineVariant">@color/m3_outline_variant</item>
     </style>
 
+    <!-- ── Cold-start splash — branded X on black so the launch window is
+         never blank black while MainActivity inflates + Axmol GL warms up.
+         Hands off to Theme.CloX once the first frame is ready. ── -->
+    <style name="Theme.CloX.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/avd_x_splash</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.CloX</item>
+    </style>
+
     <!-- ── Launcher / watchface screen — black, no system bars ── -->
     <style name="Theme.CloX" parent="Base.Theme.CloX">
         <item name="android:windowBackground">@android:color/black</item>

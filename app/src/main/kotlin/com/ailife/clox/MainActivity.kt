@@ -14,6 +14,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.view.KeyEvent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -182,7 +183,43 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         return android.graphics.Point(dm.widthPixels, dm.heightPixels)
     }
 
+    // App-open splash: the animated app-icon X (same circular-wave AVD as the
+    // watchface loader) with the CloX wordmark below, held briefly then faded
+    // out. Only on a fresh cold launch — skipped on activity recreate.
+    private fun setupSplash(savedInstanceState: Bundle?) {
+        val splash = findViewById<android.view.View>(R.id.appSplash)
+        if (savedInstanceState != null) {
+            splash.visibility = android.view.View.GONE
+            return
+        }
+        // Tint the wordmark's "X" brand-blue to echo the logo's blue sticks.
+        val label = findViewById<android.widget.TextView>(R.id.appSplashText)
+        val name = getString(R.string.app_name)
+        val xi = name.lastIndexOf('X')
+        if (xi >= 0) {
+            label.text = android.text.SpannableString(name).apply {
+                setSpan(android.text.style.ForegroundColorSpan(0xFF82ABD1.toInt()),
+                    xi, xi + 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        val sticks = findViewById<android.widget.ImageView>(R.id.appSplashSticks)
+        (sticks.drawable as? android.graphics.drawable.Animatable)?.start()
+        // Hold for ~one wave cycle, then fade out and remove.
+        splash.postDelayed({
+            splash.animate().alpha(0f).setDuration(350L)
+                .setInterpolator(android.view.animation.PathInterpolator(0.3f, 0f, 0.8f, 0.15f))
+                .withEndAction {
+                    (sticks.drawable as? android.graphics.drawable.Animatable)?.stop()
+                    splash.visibility = android.view.View.GONE
+                }.start()
+        }, 1100L)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Branded cold-start splash (X on black) via the system window, so the
+        // launch is never blank-black while the Activity + Axmol GL warm up.
+        // Hands off to the in-layout appSplash (X + CloX wordmark) below.
+        installSplashScreen()
         enableEdgeToEdge()
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
@@ -190,6 +227,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         setContentView(R.layout.activity_main)
 
         gestureRoot = findViewById(R.id.gestureRoot)
+        setupSplash(savedInstanceState)
 
         if (savedInstanceState == null) {
             // HomeFragment hosts the Axmol SurfaceView (Lua watchface)

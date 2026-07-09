@@ -95,6 +95,7 @@ dependencies {
     implementation 'com.github.Dimezis:BlurView:version-2.0.6'
     implementation 'androidx.activity:activity-ktx:1.13.0'
     implementation 'androidx.core:core-ktx:1.18.0'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.fragment:fragment-ktx:1.8.9'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
