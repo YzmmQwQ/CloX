@@ -431,7 +431,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemBars()
+        if (hasFocus) {
+            hideSystemBars()
+            // Window settled after a resume transition: re-assert the app-list
+            // 1 FPS cap that onResume lifted for the window-sync handshake.
+            if (appListOpen && com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
+                dev.axmol.lib.AxmolRenderer.setForceLowFps(true)
+            }
+        }
     }
 
     // Status bar is always hidden. The navigation bar follows the "nav_bar_mode" gesture
@@ -479,6 +486,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         wasStoppedSinceResume = false
         CocosManager.onResume()
         aodManager.onResume()
+        // The resume window sync (SurfaceSyncGroup) waits for a fresh frame from
+        // the GL SurfaceView; a 1 FPS-capped or idle-clamped face makes it hit
+        // its 1000 ms timeout and stall the first traversal for a full second
+        // (Choreographer "Skipped ~60 frames" on every resume with the app list
+        // open). Lift the cap and run boosted through the transition — the cap
+        // is re-asserted in onWindowFocusChanged once the window has settled.
+        dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
+        dev.axmol.lib.AxmolRenderer.boostFrames(1.5f)
         // A panel (notifications / QS / widgets) left open before the screen turned off should
         // not linger on resume — drop it instantly so we land on the watchface.
         if (overlayController.hasActiveOverlay()) overlayController.dismissActiveInstant()
