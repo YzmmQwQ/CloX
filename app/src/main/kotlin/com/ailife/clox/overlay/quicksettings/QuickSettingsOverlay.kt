@@ -260,6 +260,8 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val bgRes = if (solid) R.drawable.qs_btn_bg_solid else R.drawable.qs_btn_bg
         listOf(btnLauncherSettings, btnRecents, btnFlashlight, btnPower, btnSettings)
             .forEach { it.setBackgroundResource(bgRes) }
+        pageIndicator.setBackgroundResource(
+            if (solid) R.drawable.qs_page_indicator_bg_solid else R.drawable.qs_page_indicator_bg)
     }
 
     // Header taps: time → alarm app, date → calendar app, battery → battery settings

@@ -146,6 +146,7 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="4dp"
                 android:visibility="gone"
+                android:background="@drawable/qs_page_indicator_bg"
                 app:tabBackground="@drawable/qs_page_dot_selector"
                 app:tabGravity="center"
                 app:tabIndicatorHeight="0dp"

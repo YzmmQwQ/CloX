@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pill-shaped background for the QS page indicator. Uses the same
+     translucent-white fill (#33FFFFFF) as the QS bottom-bar buttons
+     (qs_btn_bg.xml) so it matches the rest of the panel chrome. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#33FFFFFF"/>
+    <corners android:radius="20dp"/>
+</shape>

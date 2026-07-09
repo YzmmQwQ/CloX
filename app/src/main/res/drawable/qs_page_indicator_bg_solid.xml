@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solid-mode pill background for the QS page indicator. Uses the same
+     ?attr/colorSurfaceVariant fill as the solid QS bottom-bar buttons
+     (qs_btn_bg_solid.xml) and inactive solid tiles. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorSurfaceVariant"/>
+    <corners android:radius="20dp"/>
+</shape>
