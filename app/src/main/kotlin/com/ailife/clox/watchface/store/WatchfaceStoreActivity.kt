@@ -76,6 +76,7 @@ class WatchfaceStoreActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         DynamicColors.applyToActivityIfAvailable(this)
+        com.ailife.clox.util.MonetBackport.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_watchface_store)
         WindowInsetsControllerCompat(window, window.decorView).apply {

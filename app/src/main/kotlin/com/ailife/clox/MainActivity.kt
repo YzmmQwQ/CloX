@@ -236,6 +236,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         installSplashScreen()
         enableEdgeToEdge()
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
+        com.ailife.clox.util.MonetBackport.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
         hideSystemBars()
         setContentView(R.layout.activity_main)
