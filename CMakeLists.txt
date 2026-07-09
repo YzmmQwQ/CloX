@@ -3,6 +3,15 @@ cmake_minimum_required(VERSION 3.22)
 set(APP_NAME clox)
 project(${APP_NAME})
 
+if(ANDROID)
+    # Android 15+ devices may use a 16 KB memory page size; ELF LOAD segments
+    # must be aligned to it (NDK 25 here still defaults to 4 KB). Set before
+    # add_subdirectory(axmol) so it also applies to axmol's own targets
+    # (e.g. the openal .so it builds from source).
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,max-page-size=16384")
+endif()
+
 set(_AX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/axmol")
 
 if(EXISTS "${_AX_ROOT}/CMakeLists.txt")
