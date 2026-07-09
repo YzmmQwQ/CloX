@@ -254,9 +254,10 @@ function WatchfaceBridge.openConfig()
 end
 
 -- Surface a Lua error (with traceback) to Android so it can be shown in a
--- visible dialog instead of failing silently. Android only displays it in debug
--- builds (WatchfaceBridgeManager action "luaError"); release builds keep the
--- graceful default-face fallback. `context` is a short label, `trace` the detail.
+-- visible dialog instead of failing silently. Shown in all builds by default
+-- (WatchfaceBridgeManager action "luaError"), unless the user has enabled the
+-- Debug settings "Ignore Lua errors" toggle. `context` is a short label, `trace`
+-- the detail.
 function WatchfaceBridge.reportError(context, trace)
     if not json then return end
     Bridge.sendToAndroid("wf_action", json.encode({

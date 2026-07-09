@@ -4,16 +4,20 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
+import com.ailife.clox.debug.WatchfaceBackupManager
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +26,10 @@ import kotlinx.coroutines.withContext
 
 class WatchfaceBatchImportActivity : AppCompatActivity() {
 
+    companion object {
+        private const val TAG = "WatchfaceBatchImport"
+    }
+
     private val REQ_FOLDER = 1001
     private val REQ_FILES = 1002
 
@@ -29,6 +37,15 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var btnPickFolder: MaterialButton
     private lateinit var btnPickFiles: MaterialButton
+    private lateinit var btnPickZip: MaterialButton
+    private lateinit var btnBackupAll: MaterialButton
+
+    private val pickZipLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importZip(uri)
+    }
+    private val backupAllLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        if (uri != null) backupAll(uri)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -46,6 +63,8 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         btnPickFolder = findViewById(R.id.btnPickFolder)
         btnPickFiles = findViewById(R.id.btnPickFiles)
+        btnPickZip = findViewById(R.id.btnPickZip)
+        btnBackupAll = findViewById(R.id.btnBackupAll)
 
         btnPickFolder.setOnClickListener {
             startActivityForResult(
@@ -62,6 +81,49 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
                 }, REQ_FILES
             )
         }
+
+        btnPickZip.setOnClickListener {
+            pickZipLauncher.launch(arrayOf("application/zip", "*/*"))
+        }
+
+        btnBackupAll.setOnClickListener {
+            backupAllLauncher.launch("clox_watchfaces_backup.zip")
+        }
+    }
+
+    private fun importZip(uri: Uri) {
+        setBusy(true, R.string.wf_import_progress)
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) { WatchfaceBackupManager.importZip(this@WatchfaceBatchImportActivity, uri) }
+            Log.i(TAG, "importZip from $uri: count=$count")
+            if (count > 0) onImportDone(count) else {
+                setBusy(false)
+                val msg = getString(R.string.wf_import_zip_failed)
+                tvStatus.text = msg
+                Toast.makeText(this@WatchfaceBatchImportActivity, msg, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun backupAll(uri: Uri) {
+        setBusy(true, R.string.wf_backup_progress)
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) { WatchfaceBackupManager.exportAll(this@WatchfaceBatchImportActivity, uri) }
+            Log.i(TAG, "backupAll to $uri: count=$count")
+            setBusy(false)
+            val msg = if (count >= 0) getString(R.string.wf_backup_done, count) else getString(R.string.wf_backup_failed)
+            tvStatus.text = msg
+            Toast.makeText(this@WatchfaceBatchImportActivity, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun setBusy(busy: Boolean, statusRes: Int? = null) {
+        progressBar.visibility = if (busy) View.VISIBLE else View.GONE
+        btnPickFolder.isEnabled = !busy
+        btnPickFiles.isEnabled = !busy
+        btnPickZip.isEnabled = !busy
+        btnBackupAll.isEnabled = !busy
+        if (statusRes != null) tvStatus.setText(statusRes)
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -123,14 +185,11 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
     }
 
     private fun setImporting(importing: Boolean) {
-        progressBar.visibility = if (importing) View.VISIBLE else View.GONE
-        btnPickFolder.isEnabled = !importing
-        btnPickFiles.isEnabled = !importing
-        if (importing) tvStatus.setText(R.string.wf_import_progress)
+        setBusy(importing, if (importing) R.string.wf_import_progress else null)
     }
 
     private fun onImportDone(count: Int) {
-        setImporting(false)
+        setBusy(false)
         tvStatus.text = getString(R.string.wf_import_done, count)
         tvStatus.postDelayed({
             startActivity(Intent(this, WatchfaceSelectorActivity::class.java))

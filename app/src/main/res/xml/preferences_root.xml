@@ -99,6 +99,13 @@
         android:fragment="com.ailife.clox.rtos.settings.RtosSettingsFragment" />
 
     <Preference
+        android:key="nav_debug"
+        android:title="@string/pref_debug_title"
+        android:summary="@string/pref_debug_summary"
+        android:icon="@drawable/baseline_bug_report_24"
+        android:fragment="com.ailife.clox.settings.fragments.DebugSettingsFragment" />
+
+    <Preference
         android:key="nav_about"
         android:title="About &amp; Update"
         android:summary="Version, developers, Onyx project, update checker"

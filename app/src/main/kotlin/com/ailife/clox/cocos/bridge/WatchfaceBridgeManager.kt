@@ -558,7 +558,8 @@ class WatchfaceBridgeManager(
                     // Must run on main thread — startActivity and AudioManager require it
                     android.os.Handler(Looper.getMainLooper()).post {
                         when (val result = TapActionHandler.handle(ctx, shortcut)) {
-                            is TapActionHandler.Result.NotConfigured -> showTapNotConfiguredDialog(result.def)
+                            is TapActionHandler.Result.NotConfigured ->
+                                if (!com.ailife.clox.debug.DebugPrefs.ignoreLuaErrors(ctx)) showTapNotConfiguredDialog(result.def)
                             is TapActionHandler.Result.LaunchFailed  -> showTapLaunchFailedDialog(result.appLabel)
                             TapActionHandler.Result.Handled          -> { /* nothing to surface */ }
                         }
@@ -614,11 +615,14 @@ class WatchfaceBridgeManager(
                     com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(ctx)
                 }
                 "luaError" -> {
-                    // Always shown (was debug-only): a broken watchface must
-                    // fail loudly — a silent black/partial face is never OK.
-                    val context = json.optString("context", "Lua error")
-                    val trace   = json.optString("trace")
-                    Handler(Looper.getMainLooper()).post { showLuaErrorDialog(context, trace) }
+                    // Shown in all builds by default: a broken watchface should fail loudly
+                    // rather than silently rendering black/partial. The Debug settings
+                    // "Ignore Lua errors" toggle opts back into silent failure.
+                    if (!com.ailife.clox.debug.DebugPrefs.ignoreLuaErrors(ctx)) {
+                        val context = json.optString("context", "Lua error")
+                        val trace   = json.optString("trace")
+                        Handler(Looper.getMainLooper()).post { showLuaErrorDialog(context, trace) }
+                    }
                 }
             }
         } catch (e: Exception) {

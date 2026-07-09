@@ -526,6 +526,13 @@
     <string name="wf_invalid_file">Not a valid .watch file</string>
     <string name="wf_imported">Watch face imported and set as active</string>
     <string name="wf_import_failed">Failed to import watch face</string>
+    <string name="wf_import_pick_zip">Pick zip (multiple watch faces)</string>
+    <string name="wf_import_zip_failed">No watch faces found in that zip</string>
+    <string name="wf_backup_desc">Save all installed watch faces, including subfolders, to a single zip file</string>
+    <string name="wf_backup_all_btn">Back up all to zip</string>
+    <string name="wf_backup_progress">Backing up…</string>
+    <string name="wf_backup_done">Backed up %d watch face(s)</string>
+    <string name="wf_backup_failed">Backup failed</string>
     <string name="action_back">Back</string>
 
     <!-- Remote management -->
@@ -630,6 +637,34 @@
     <string name="pref_aod_shallow_sleep_summary">Single touch wakes screen but does not unlock gestures</string>
     <string name="pref_aod_power_button_exit_title">Power button exits AOD</string>
     <string name="pref_aod_power_button_exit_summary">Pressing the power button turns screen on and exits AOD</string>
+
+    <!-- Debug settings -->
+    <string name="pref_debug_title">Debug</string>
+    <string name="pref_debug_summary">Error handling, backup, maintenance</string>
+    <string name="debug_ignore_lua_errors_title">Ignore Lua errors</string>
+    <string name="debug_ignore_lua_errors_summary">Fail silently instead of showing a dialog when a watchface script errors or a tap action isn\'t configured</string>
+    <string name="debug_category_backup">Backup &amp; restore</string>
+    <string name="debug_export_settings_title">Export settings</string>
+    <string name="debug_export_settings_summary">Save all settings and watchface configs to a JSON file</string>
+    <string name="debug_export_btn">Export</string>
+    <string name="debug_import_settings_title">Import settings</string>
+    <string name="debug_import_settings_summary">Restore settings from a previously exported JSON file</string>
+    <string name="debug_import_btn">Import</string>
+    <string name="debug_export_success">Settings exported</string>
+    <string name="debug_export_failed">Export failed</string>
+    <string name="debug_import_success">Settings imported — restarting launcher…</string>
+    <string name="debug_import_failed">Import failed — file may not be a valid CloX settings export</string>
+    <string name="debug_category_danger">Danger zone</string>
+    <string name="debug_force_stop_title">Force stop launcher</string>
+    <string name="debug_force_stop_summary">Android doesn\'t allow apps to force-stop themselves like Settings does — this kills and restarts the launcher process instead</string>
+    <string name="debug_force_stop_btn">Force stop</string>
+    <string name="debug_force_stop_confirm_title">Force stop launcher?</string>
+    <string name="debug_force_stop_confirm_message">This kills the launcher process immediately. It restarts automatically since CloX is the default home app.</string>
+    <string name="debug_uninstall_title">Uninstall launcher</string>
+    <string name="debug_uninstall_summary">Deactivates device admin, then opens the system uninstall dialog</string>
+    <string name="debug_uninstall_btn">Uninstall</string>
+    <string name="debug_uninstall_confirm_title">Uninstall CloX?</string>
+    <string name="debug_uninstall_confirm_message">This deactivates device admin and opens the system uninstall dialog. You\'ll need to confirm the uninstall there.</string>
 
     <string-array name="privilege_entries">
         <item>None (system panels as fallback)</item>

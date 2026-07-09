@@ -30,4 +30,13 @@ object DeviceAdminHelper {
         dpm(ctx).lockNow()
         return true
     }
+
+    /**
+     * Deactivates this app's own device admin. Self-removal by a non-owner active
+     * admin needs no confirmation or special permission — used to unblock the OS
+     * force-stop/uninstall restrictions that apply while admin is active.
+     */
+    fun removeActiveAdmin(ctx: Context) {
+        if (isActive(ctx)) dpm(ctx).removeActiveAdmin(adminComponent(ctx))
+    }
 }
