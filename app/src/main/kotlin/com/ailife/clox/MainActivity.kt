@@ -127,9 +127,19 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Launch animation interruptible state ─────────────────────────────────
     private var activeLaunchAnim: android.animation.ValueAnimator? = null
     private var activeLaunchT: Float = 0f
-    private var lastLaunchReverseAt = 0L   // uptimeMillis of the last launch-anim reverse
+    private var lastLaunchReverseAt = 0L         // uptimeMillis of the last launch-anim reverse
+    private var lastLaunchReverseDurationMs = 0L // actual duration of that reverse anim (see reverseLaunchAnimation)
     private var launchAnimUpdateFn: ((Float) -> Unit)? = null
     private var launchAnimCleanupFn: (() -> Unit)? = null
+
+    // The window-expand interceptor may reverse the launch anim on touch-down; the matching
+    // HOME/BACK signal for that same gesture then arrives a beat later. Swallow it while the
+    // reverse anim it triggered is still actually playing, so it doesn't fall through to
+    // context menu / overlay / app-list dismissal. Uses the anim's real duration (which scales
+    // with the user's animation-speed pref and how far the forward anim had progressed) rather
+    // than a guessed constant, so it stays correct at any speed setting.
+    private fun isLaunchAnimReversing(): Boolean =
+        android.os.SystemClock.uptimeMillis() - lastLaunchReverseAt < lastLaunchReverseDurationMs
 
     // Real-time blur of the app list behind the expanding/collapsing app window. Created at the
     // bottom of the animation's overlay stack so the window/card draws sharp on top of it.
@@ -433,7 +443,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // The window-expand interceptor reverses the launch anim the instant the HOME gesture's
         // touch lands; the matching HOME intent then arrives a beat later. Swallow it so it
         // doesn't propagate to closeAppList — the reverse already handled the gesture.
-        if (android.os.SystemClock.uptimeMillis() - lastLaunchReverseAt < 600L) return
+        if (isLaunchAnimReversing()) return
 
         // If the launcher was NOT in the foreground when this HOME arrived, then an app was
         // actually on top and this is a return-to-launcher — not an in-launcher Home press.
@@ -1105,10 +1115,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         anim.removeAllUpdateListeners()
         anim.cancel()
 
-        if (startT <= 0f) { cleanupFn(); return }
+        if (startT <= 0f) { lastLaunchReverseDurationMs = 0L; cleanupFn(); return }
 
         val speed           = com.ailife.clox.applist.AppListPrefs.animSpeed(this)
         val reverseDuration = ((400L / speed) * startT).toLong().coerceAtLeast(80L)
+        lastLaunchReverseDurationMs = reverseDuration
 
         android.animation.ValueAnimator.ofFloat(startT, 0f).apply {
             duration     = reverseDuration
@@ -1601,12 +1612,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Re-enabled whenever the app list or an overlay becomes active.
         backCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackStarted(backEvent: BackEventCompat) {
-                if (activeLaunchAnim != null) return
+                if (activeLaunchAnim != null || isLaunchAnimReversing()) return
                 appListSpring?.cancel()
             }
 
             override fun handleOnBackProgressed(backEvent: BackEventCompat) {
-                if (activeLaunchAnim != null) return
+                if (activeLaunchAnim != null || isLaunchAnimReversing()) return
                 val p = backEvent.progress
                 when {
                     overlayController.hasActiveOverlay() ->
@@ -1619,7 +1630,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
 
             override fun handleOnBackCancelled() {
-                if (activeLaunchAnim != null) return
+                if (activeLaunchAnim != null || isLaunchAnimReversing()) return
                 when {
                     overlayController.hasActiveOverlay() -> overlayController.cancelPredictiveBack()
                     appListOpen -> springAppList(0f)
@@ -1629,6 +1640,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             override fun handleOnBackPressed() {
                 when {
                     activeLaunchAnim != null             -> reverseLaunchAnimation()
+                    // The window-expand interceptor may have already reversed the launch anim on
+                    // touch-down for this same gesture; swallow the follow-up Back so it doesn't
+                    // propagate to context menu / overlay / app-list dismissal. Mirrors the HOME
+                    // guard in onNewIntent.
+                    isLaunchAnimReversing()              -> {}
                     AppContextMenu.isShowing             -> { AppContextMenu.dismissCurrent(); updateBackEnabled() }
                     overlayController.hasActiveOverlay() -> overlayController.dismissActive()
                     appListOpen                          -> closeAppList()
@@ -1794,6 +1810,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (keyCode == KeyEvent.KEYCODE_HOME) {
             when {
                 activeLaunchAnim != null             -> reverseLaunchAnimation()
+                isLaunchAnimReversing()              -> {}
                 AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
                 overlayController.hasActiveOverlay() -> overlayController.dismissActive()
                 appListOpen                          -> closeAppList()
