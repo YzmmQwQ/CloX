@@ -935,7 +935,7 @@ function Builders.image(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+    setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
     -- shader consumes the image alpha as its mask (UL applies shaders to
     -- image layers the same way); otherwise plain tint
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end
@@ -952,7 +952,7 @@ function Builders.image_tap(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+    setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
     rec.tap = function()
         rec.frameIdx = (rec.frameIdx % #frames) + 1
@@ -966,12 +966,12 @@ function Builders.image_gif(self, rec)
     for f in (L.path or ""):gmatch("[^`]+") do frames[#frames + 1] = f end
     if #frames == 0 then return end
     rec.frames = frames
-    rec.delay = math.max(0.02, num(L.gif_delay, 50) / 1000)
+    rec.delay = math.max(0.02, rec:evalNum("gif_delay", 50) / 1000)
     local sp = cc.Sprite:create(self:imageFile(frames[1]))
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+    setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
     -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener.
     -- Because it drives the sprite through a closure (not a {tag} descriptor),
@@ -990,7 +990,7 @@ end
 
 function Builders.text(self, rec)
     local L = rec.L
-    local size = math.max(1, floor(num(L.text_size, 20)))
+    local size = math.max(1, floor(rec:evalNum("text_size", 20)))
     local font = L.font or ""
     local function makeLabel(str)
         local lab
@@ -1072,7 +1072,7 @@ function Builders.text(self, rec)
         rec.visual = clip
         -- plate rect = the 512 canvas mapped into holder space (the holder
         -- sits at the authored x/y)
-        local hx, hy = num(L.x, 0), Y_SIGN * num(L.y, 0)
+        local hx, hy = rec:evalNum("x", 0), Y_SIGN * rec:evalNum("y", 0)
         local function redrawPlate(r)
             plate:clear()
             plate:drawSolidRect(cc.p(-256 - hx, -256 - hy),
@@ -1165,7 +1165,7 @@ function Builders.image_cond(self, rec)
     local cols, rows = (L.cond_grid or "1x1"):match("(%d+)x(%d+)")
     cols, rows = num(cols, 1), num(rows, 1)
     local cw, chh = cs.width / cols, cs.height / rows
-    setBaseScale(rec, cw, chh, num(L.width, cw), num(L.height, chh))
+    setBaseScale(rec, cw, chh, rec:evalNum("width", cw), rec:evalNum("height", chh))
     -- shader rides the sprite (texcoords span the CELL's atlas sub-rect —
     -- same quirk as UL, which also sets the program straight on the sprite)
     bindShapeShader(rec, sp)
@@ -1191,7 +1191,7 @@ function Builders.shape(self, rec)
         if sp then
             rec.visual = sp
             local cs = sp:getContentSize()
-            setBaseScale(rec, cs.width, cs.height, num(L.width, cs.width), num(L.height, cs.height))
+            setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
             -- shader consumes the image alpha as its mask (exactly UL);
             -- otherwise plain tint
             if not bindShapeShader(rec, sp) then
@@ -1215,7 +1215,7 @@ function Builders.shape(self, rec)
         end
     end
     -- Otherwise draw the primitive with a DrawNode.
-    local w, h = num(L.width, 50), num(L.height, 50)
+    local w, h = rec:evalNum("width", 50), rec:evalNum("height", 50)
     local shp = (L.shape or "Square"):lower()
     local function drawPrim(node, col)
         node:clear()
@@ -1277,9 +1277,9 @@ end
 
 function Builders.rounded(self, rec)
     local L = rec.L
-    local w, h = num(L.width, 100), num(L.height, 60)
-    local r0 = math.min(num(L.radius, 0), w / 2, h / 2)
-    local cor = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]   -- {TL,TR,BL,BR}
+    local w, h = rec:evalNum("width", 100), rec:evalNum("height", 60)
+    local r0 = math.min(rec:evalNum("radius", 0), w / 2, h / 2)
+    local cor = CORNERS[floor(rec:evalNum("corner_type", 1))] or CORNERS[1]   -- {TL,TR,BL,BR}
     if L.shader and SHADER_UNIFORMS[L.shader] then
         -- shader on a white quad clipped through the rounded-rect geometry
         local sp = whiteQuad()
@@ -1319,14 +1319,14 @@ function Builders.ring(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local ro = num(L.radius_outer, 100)
-    local ri = num(L.radius_inner, ro * 0.8)
+    local ro = rec:evalNum("radius_outer", 100)
+    local ri = rec:evalNum("radius_inner", ro * 0.8)
     if ri > ro then ri, ro = ro, ri end
     rec.shapeW, rec.shapeH = ro * 2, ro * 2  -- UL layer box: 2×radius_outer
                                              -- (drives alignment shift + taps)
     local rc, capR = (ri + ro) / 2, (ro - ri) / 2
     local cw = (L.is_clockwise or "Y") ~= "N"
-    local outOp = clamp(num(L.outside_opacity, 100), 0, 100)
+    local outOp = clamp(rec:evalNum("outside_opacity", 100), 0, 100)
     rec:composite(function(r)
         dn:clear()
         local total = r:evalNum("angle_total", 360)
@@ -1365,18 +1365,18 @@ function Builders.progress(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local w, h = num(L.width, 120), num(L.height, 24)
+    local w, h = rec:evalNum("width", 120), rec:evalNum("height", 24)
     rec.shapeW, rec.shapeH = w, h
     local vertical = false
     do
-        local a = num(L.angle, 90)
+        local a = rec:evalNum("angle", 90)
         vertical = (a == 0 or a == 180)
     end
-    local margin = math.max(0, num(L.margin, 0))
-    local r0 = math.min(num(L.radius, 50), w / 2, h / 2)
-    local cor = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]
+    local margin = math.max(0, rec:evalNum("margin", 0))
+    local r0 = math.min(rec:evalNum("radius", 50), w / 2, h / 2)
+    local cor = CORNERS[floor(rec:evalNum("corner_type", 1))] or CORNERS[1]
     local roundEnd = (L.end_style == "round")
-    local outOp = clamp(num(L.outside_opacity, 100), 0, 100) / 100
+    local outOp = clamp(rec:evalNum("outside_opacity", 100), 0, 100) / 100
     rec:composite(function(r)
         dn:clear()
         local pct = clamp(r:evalNum("pct_complete", 0), 0, 100)
@@ -1434,12 +1434,12 @@ function Builders.markers(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local count = math.max(1, floor(num(L.m_count, 12)))
-    local radius = num(L.radius, 200)
+    local count = math.max(1, floor(rec:evalNum("m_count", 12)))
+    local radius = rec:evalNum("radius", 200)
     rec.hitW, rec.hitH = radius * 2, radius * 2
-    local mw, mh = num(L.m_width, 10), num(L.m_height, 30)
+    local mw, mh = rec:evalNum("m_width", 10), rec:evalNum("m_height", 30)
     local shp = (L.shape or "Square"):lower()
-    local sq = num(L.squarify, 0)
+    local sq = rec:evalNum("squarify", 0)
     rec:composite(function(r)
         dn:clear()
         local col = c4f(r:evalSub("color", "ffffff"), 100)
@@ -1471,12 +1471,12 @@ function Builders.markers_hm(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local radius = num(L.radius, 240)
+    local radius = rec:evalNum("radius", 240)
     rec.hitW, rec.hitH = radius * 2, radius * 2
     local SZ = { None = 0, Tiny = 1, Small = 2, Medium = 3, Large = 4 }
     local hsz = SZ[L.m_hour or "Medium"] or 3
     local msz = SZ[L.m_minute or "Medium"] or 3
-    local sq = num(L.squarify, 0)
+    local sq = rec:evalNum("squarify", 0)
     local function tick(center, th, len, wdt, col)
         local tu = cc.p(-sin(th), cos(th))
         local outer = squarifyRadius(center, th, sq)
@@ -1528,7 +1528,7 @@ function Builders.video(self, rec)
     end
     local mp = axui.MediaPlayer:create()
     rec.visual = mp
-    local w, h = num(L.width, 512), num(L.height, 512)
+    local w, h = rec:evalNum("width", 512), rec:evalNum("height", 512)
     mp:setContentSize(cc.size(w, h))
     mp:setAnchorPoint(cc.p(0.5, 0.5))
     mp:setStyle(1)                        -- StyleType.NONE: no controls
@@ -1575,9 +1575,9 @@ function Builders.map(self, rec)
     -- tile arrives via a bridge push (no {tag} descriptor) — a baked run would
     -- never see the update and the map would freeze on the first tile
     rec._noFlatten = true
-    local w, h = num(L.width, 256), num(L.height, 256)
-    local zoom = clamp(floor(num(L.map_zoom, 15)), 1, 19)
-    local mscale = num(L.map_scale, 100) / 100
+    local w, h = rec:evalNum("width", 256), rec:evalNum("height", 256)
+    local zoom = clamp(floor(rec:evalNum("map_zoom", 15)), 1, 19)
+    local mscale = rec:evalNum("map_scale", 100) / 100
     local wantTx, wantTy
     rec.onMapPush = function(data)
         if not (data and data.file and data.file ~= "") then return end
@@ -1668,9 +1668,9 @@ function Builders.series(self, rec)
     local cfg = SERIES_CFG[sname] or { n = 7, ev = "minute" }
     local vertical = (L.orientation or "v") ~= "h"
     local pos = L.current_pos or "m"
-    local size1 = math.max(1, floor(num(L.text_size, 24)))
-    local size2 = math.max(1, floor(num(L.text_size2, size1)))
-    local step = num(L.spacing, 0) + size1     -- UL offsets use the CURRENT size
+    local size1 = math.max(1, floor(rec:evalNum("text_size", 24)))
+    local size2 = math.max(1, floor(rec:evalNum("text_size2", size1)))
+    local step = rec:evalNum("spacing", 0) + size1     -- UL offsets use the CURRENT size
     local function caseOf(s)
         if L.transform == "uc" then return s:upper()
         elseif L.transform == "lc" then return s:lower() end
@@ -1743,14 +1743,14 @@ function Builders.calendar(self, rec)
     -- same-frame rebake already queued (GLThread UAF), and the dependency scan
     -- can't see the listener anyway (frozen grid)
     rec._noFlatten = true
-    local marginX = num(L.margin_x, 5)
-    local marginY = num(L.margin_y, 5)
-    local size = math.max(1, floor(num(L.text_size, 10)))
+    local marginX = rec:evalNum("margin_x", 5)
+    local marginY = rec:evalNum("margin_y", 5)
+    local size = math.max(1, floor(rec:evalNum("text_size", 10)))
     local color1 = L.color or "ffffff"
     local color2 = L.color2 or L.color or "ffffff"
-    local outOp = num(L.outside_opacity, 60)
-    local dowStart = floor(num(L.dow_start, 1))
-    local nHdr = math.max(0, floor(num(L.no_letters_header, 1)))
+    local outOp = rec:evalNum("outside_opacity", 60)
+    local dowStart = floor(rec:evalNum("dow_start", 1))
+    local nHdr = math.max(0, floor(rec:evalNum("no_letters_header", 1)))
     local align = (L.alignment and L.alignment ~= "") and L.alignment or "cc"
     local font = L.font or ""
     local isBM = font:sub(1, 3) == "bm:"
@@ -1955,7 +1955,7 @@ function Builders.chart(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
-    local w, h = num(L.width, 100), num(L.height, 100)
+    local w, h = rec:evalNum("width", 100), rec:evalNum("height", 100)
     rec.shapeW, rec.shapeH = w, h
     local dn    = cc.DrawNode:create()   -- grid + data
     local dots  = cc.DrawNode:create()   -- line-chart markers, above the line
@@ -1963,13 +1963,13 @@ function Builders.chart(self, rec)
     node:addChild(dn, 1); node:addChild(dots, 2); node:addChild(labNode, 3)
 
     local isLine     = (L.chart_type or "line") ~= "bar"
-    local lineWidth  = num(L.line_width, 10)
-    local markerSize = num(L.marker_size, 10)
-    local barThick   = num(L.bar_thickness, 50)
-    local topOp      = num(L.top_opacity, 100)
-    local botOp      = num(L.bottom_opacity, 100)
-    local radius     = num(L.radius, 10)
-    local cor        = CORNERS[floor(num(L.corner_type, 1))] or CORNERS[1]
+    local lineWidth  = rec:evalNum("line_width", 10)
+    local markerSize = rec:evalNum("marker_size", 10)
+    local barThick   = rec:evalNum("bar_thickness", 50)
+    local topOp      = rec:evalNum("top_opacity", 100)
+    local botOp      = rec:evalNum("bottom_opacity", 100)
+    local radius     = rec:evalNum("radius", 10)
+    local cor        = CORNERS[floor(rec:evalNum("corner_type", 1))] or CORNERS[1]
     local minMax     = parseMinMax(L.min_max)
     local chartLines = parseChartLines(L.lines)
     local chartLabels = parseChartLabels(L.labels)
@@ -2196,13 +2196,13 @@ function Builders.text_ring(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
-    local radius = num(L.radius, 200)
-    local size = math.max(1, floor(num(L.text_size, 24)))
+    local radius = rec:evalNum("radius", 200)
+    local size = math.max(1, floor(rec:evalNum("text_size", 24)))
     local font = L.font or ""
     local isBM = font:sub(1, 3) == "bm:"
     local rotMode = L.rotated_text
-    local sq = num(L.squarify, 0)
-    local showEvery = math.max(1, floor(num(L.show_every, 1)))
+    local sq = rec:evalNum("squarify", 0)
+    local showEvery = math.max(1, floor(rec:evalNum("show_every", 1)))
     local hide = {}
     for h in (L.hide_text or ""):gmatch("-?%d+") do hide[tonumber(h)] = true end
 
@@ -2239,7 +2239,7 @@ function Builders.text_ring(self, rec)
         for k = 1, n do labels[k] = labels[k]:lower() end
     end
 
-    local aStart, aEnd = num(L.angle_start, 0), num(L.angle_end, 360)
+    local aStart, aEnd = rec:evalNum("angle_start", 0), rec:evalNum("angle_end", 360)
     local stepA = (aEnd - aStart) / n
     local rot = -aStart
     local colHex = rec:evalSub("color", "ffffff")
@@ -2310,8 +2310,8 @@ function Builders.text_curved(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
-    local radius = num(L.radius, 200)
-    local size = math.max(1, floor(num(L.text_size, 30)))
+    local radius = rec:evalNum("radius", 200)
+    local size = math.max(1, floor(rec:evalNum("text_size", 30)))
     -- container node reports a zero box (glyphs are children) — declare the
     -- arc's real extents for tap sizing AND the flatten canvas bound
     rec.hitW = 2 * (radius + 2 * size)
@@ -2595,7 +2595,7 @@ local function bindTransform(rec)
     -- gyro parallax: activating sgx/sgy switches the gyroscope stream on via
     -- the normal feature pipeline; the composite re-places the holder on
     -- every sensor push.
-    rec.gyro = num(rec.L.gyro, 0)
+    rec.gyro = rec:evalNum("gyro", 0)
     if rec.gyro ~= 0 then
         local e = rec.engine
         e:activate("sgx"); e:activate("sgy")
@@ -3043,8 +3043,8 @@ function WFRender:load(xml, baseDir)
             holder:addChild(rec.visual)
         end
         -- static skew (rarely dynamic)
-        if L.skew_x and num(L.skew_x) ~= 0 then holder:setSkewX(num(L.skew_x)) end
-        if L.skew_y and num(L.skew_y) ~= 0 then holder:setSkewY(num(L.skew_y)) end
+        if L.skew_x and rec:evalNum("skew_x", 0) ~= 0 then holder:setSkewX(rec:evalNum("skew_x", 0)) end
+        if L.skew_y and rec:evalNum("skew_y", 0) ~= 0 then holder:setSkewY(rec:evalNum("skew_y", 0)) end
 
         -- transform attributes → setter bindings (constants apply immediately)
         local ok, err = pcall(bindTransform, rec)
