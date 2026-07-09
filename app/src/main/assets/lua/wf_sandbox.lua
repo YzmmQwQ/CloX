@@ -50,7 +50,7 @@ local OS_KEYS = { "time", "date", "clock", "difftime" }
 -- and the integer-conversion argument positions are memoised per face (the
 -- cache lives in the wrapper closure and dies with the sandbox).
 local sformat, sbyte = string.format, string.byte
-local floor, ceil = math.floor, math.ceil
+local floor, ceil, huge = math.floor, math.ceil, math.huge
 local FMT_FLAG = { [45]=true, [43]=true, [32]=true, [35]=true, [48]=true } -- - + space # 0
 local INT_CONV = { [100]=true, [105]=true, [117]=true, [111]=true,        -- d i u o
                    [120]=true, [88]=true,  [99]=true }                    -- x X c
@@ -94,8 +94,17 @@ local function newWmFormat()
         local args = { ... }
         for k = 1, #idx do
             local v = tonumber(args[idx[k]])
-            if v and v % 1 ~= 0 then
-                args[idx[k]] = v >= 0 and floor(v) or ceil(v)
+            if v then
+                if v ~= v or v == huge or v == -huge then
+                    -- ±inf / nan (e.g. math.log(x/0) when a sensor tag reads 0
+                    -- on hardware without that sensor): 5.4 "%d" throws, which
+                    -- would dump the whole template as literal text. Render 0
+                    -- instead — WM's C cast prints LONG_MIN garbage here, so
+                    -- there is no meaningful value to be faithful to.
+                    args[idx[k]] = 0
+                elseif v % 1 ~= 0 then
+                    args[idx[k]] = v >= 0 and floor(v) or ceil(v)
+                end
             end
         end
         return sformat(fmt, table.unpack(args, 1, n))
