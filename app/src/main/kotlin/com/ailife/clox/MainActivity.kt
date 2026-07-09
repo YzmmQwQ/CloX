@@ -71,6 +71,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Like EXTRA_OPEN_WATCHFACE_CONFIG but opens the app-wide defaults editor
         // (Settings > Watch Faces > Default Watch Face Settings) after the reset.
         const val EXTRA_OPEN_WATCHFACE_DEFAULTS = "com.ailife.clox.EXTRA_OPEN_WATCHFACE_DEFAULTS"
+        // Like EXTRA_OPEN_WATCHFACE_CONFIG but opens the watch face picker/gallery after the
+        // reset — used after importing a .watch file via ACTION_VIEW so the user lands on the
+        // watch face page instead of whatever overlay/app-list was open before.
+        const val EXTRA_OPEN_WATCHFACE_SELECTOR = "com.ailife.clox.EXTRA_OPEN_WATCHFACE_SELECTOR"
     }
 
     override fun showDialog(pTitle: String, pMessage: String) {}
@@ -401,6 +405,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             com.ailife.clox.watchface.config.WatchfaceConfigActivity.start(this)
         } else if (intent.getBooleanExtra(EXTRA_OPEN_WATCHFACE_DEFAULTS, false)) {
             com.ailife.clox.watchface.config.WatchfaceConfigActivity.startDefaults(this)
+        } else if (intent.getBooleanExtra(EXTRA_OPEN_WATCHFACE_SELECTOR, false)) {
+            com.ailife.clox.watchface.selector.WatchfaceSelectorActivity.start(this)
         }
     }
 

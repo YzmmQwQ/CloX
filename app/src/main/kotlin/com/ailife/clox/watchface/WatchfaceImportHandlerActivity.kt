@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
-import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
 import kotlinx.coroutines.launch
 
 /** Handles ACTION_VIEW for .watch files — copies to watchface dir and sets active. */
@@ -39,9 +38,16 @@ class WatchfaceImportHandlerActivity : AppCompatActivity() {
             if (result != null) {
                 WatchfacePrefs.setActivePath(this@WatchfaceImportHandlerActivity, result.absolutePath)
                 Toast.makeText(this@WatchfaceImportHandlerActivity, R.string.wf_imported, Toast.LENGTH_SHORT).show()
+                // Reset MainActivity to the bare watchface (collapsing any open overlay/app
+                // list/context menu) before landing on the watch face picker, same as the
+                // Settings > Watch Faces entry points do.
                 startActivity(Intent(this@WatchfaceImportHandlerActivity,
                     com.ailife.clox.MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                    .setAction(Intent.ACTION_MAIN)
+                    .addCategory(Intent.CATEGORY_HOME)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    .putExtra(com.ailife.clox.MainActivity.EXTRA_CLOSE_OVERLAYS, true)
+                    .putExtra(com.ailife.clox.MainActivity.EXTRA_OPEN_WATCHFACE_SELECTOR, true))
             } else {
                 Toast.makeText(this@WatchfaceImportHandlerActivity, R.string.wf_import_failed, Toast.LENGTH_SHORT).show()
             }
