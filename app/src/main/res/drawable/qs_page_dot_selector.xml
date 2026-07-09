@@ -21,7 +21,9 @@
                 android:height="6dp"
                 android:gravity="center">
                 <shape android:shape="oval">
-                    <solid android:color="#66FFFFFF"/>
+                    <!-- Theme on-color: translucent white was invisible on the light
+                         colorSurfaceVariant pill in solid style / light theme -->
+                    <solid android:color="?attr/colorOnSurfaceVariant"/>
                 </shape>
             </item>
         </layer-list>

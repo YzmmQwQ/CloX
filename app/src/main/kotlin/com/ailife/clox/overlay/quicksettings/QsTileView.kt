@@ -125,24 +125,24 @@ class QsTileView @JvmOverloads constructor(
         setDetail(detailText)
         setBadge(badgeText)
         strokeWidth = 0
+        val fill: Int
+        val onFill: Int
         if (active) {
-            val fill   = resolveAttrColor(com.google.android.material.R.attr.colorPrimaryContainer)
-            val onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnPrimaryContainer)
-            setCardBackgroundColor(fill)
-            icon.setColorFilter(onFill)
-            label.setTextColor(onFill)
-            detail.setTextColor(onFill)
+            fill   = resolveAttrColor(com.google.android.material.R.attr.colorPrimaryContainer)
+            onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnPrimaryContainer)
             arcColor = ringColor ?: resolveAttrColor(androidx.appcompat.R.attr.colorPrimary)
         } else {
-            val fill   = resolveAttrColor(com.google.android.material.R.attr.colorSurfaceVariant)
-            val onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
-            setCardBackgroundColor(fill)
-            icon.setColorFilter(onFill)
-            label.setTextColor(onFill)
-            detail.setTextColor(onFill)
-            arcColor = Color.WHITE
+            fill   = resolveAttrColor(com.google.android.material.R.attr.colorSurfaceVariant)
+            onFill = resolveAttrColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
+            // Loading ring must read on the theme surface — white is invisible in light theme
+            arcColor = onFill
         }
-        badge.setTextColor(Color.argb(160, 255, 255, 255))
+        setCardBackgroundColor(fill)
+        icon.setColorFilter(onFill)
+        label.setTextColor(onFill)
+        detail.setTextColor(onFill)
+        // Badge sits on the tile fill: derive from the on-color, not hardcoded white
+        badge.setTextColor((onFill and 0x00FFFFFF) or (160 shl 24))
         invalidate()
     }
 
@@ -170,8 +170,13 @@ class QsTileView @JvmOverloads constructor(
     // ── Loading ring animation ────────────────────────────────────────────────
 
     private fun startRingAnim() {
-        arcColor = strokeColor  // strokeColor returns Int in this Material version
-        setInactiveStroke()  // dim base ring during loading
+        // Stroke style only: arc takes the border color and the base ring dims.
+        // Solid style has strokeWidth 0 — keep the theme-based arcColor from
+        // applyStateSolid; the translucent-white strokeColor is invisible on light fills.
+        if (strokeWidth > 0) {
+            arcColor = strokeColor  // strokeColor returns Int in this Material version
+            setInactiveStroke()  // dim base ring during loading
+        }
         loadingAnimator.removeAllUpdateListeners()
         loadingAnimator.addUpdateListener { anim ->
             loadingProgress = anim.animatedValue as Float

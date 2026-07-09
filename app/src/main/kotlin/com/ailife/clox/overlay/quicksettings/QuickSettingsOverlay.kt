@@ -258,10 +258,24 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val solid = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
         val bgRes = if (solid) R.drawable.qs_btn_bg_solid else R.drawable.qs_btn_bg
+        // Solid style puts the buttons on a colorSurfaceVariant fill — the XML white
+        // tint (on_dark_primary) is invisible there in light theme; use the on-color.
+        val iconTint = if (solid) resolveAttrColor(com.google.android.material.R.attr.colorOnSurfaceVariant)
+                       else context.getColor(R.color.on_dark_primary)
         listOf(btnLauncherSettings, btnRecents, btnFlashlight, btnPower, btnSettings)
-            .forEach { it.setBackgroundResource(bgRes) }
+            .forEach {
+                it.setBackgroundResource(bgRes)
+                it.imageTintList = android.content.res.ColorStateList.valueOf(iconTint)
+            }
         pageIndicator.setBackgroundResource(
             if (solid) R.drawable.qs_page_indicator_bg_solid else R.drawable.qs_page_indicator_bg)
+    }
+
+    private fun resolveAttrColor(attr: Int): Int {
+        val ta = context.obtainStyledAttributes(intArrayOf(attr))
+        val color = ta.getColor(0, android.graphics.Color.WHITE)
+        ta.recycle()
+        return color
     }
 
     // Header taps: time → alarm app, date → calendar app, battery → battery settings
