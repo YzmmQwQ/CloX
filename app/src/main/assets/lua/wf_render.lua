@@ -1215,23 +1215,73 @@ function Builders.image_cond(self, rec)
     -- shader rides the sprite (texcoords span the CELL's atlas sub-rect —
     -- same quirk as UL, which also sets the program straight on the sprite)
     bindShapeShader(rec, sp)
+    -- WM night weather sets (weather_night="Y"): the face ships BOTH 3×3
+    -- sheets, base + "_n" (the "_n" one only differs where night art exists:
+    -- clear/few-clouds get moon glyphs in cells 4/3). {wci} always carries
+    -- the "d" suffix — the WM editor generates day-code-only cond_values even
+    -- for night-enabled elements — so night handling happens HERE: by day
+    -- show the base sheet with the expression's cell as-is; by night show the
+    -- "_n" sheet and replace the sun cells (clear 1→4 moon, few clouds 2→3
+    -- moon+cloud, scattered 3→3, broken 4→9 cloud stack). Confirmed against a
+    -- WM-exported test face (weather_set_1*.png, 2026-07-10).
+    local nightSet = (L.weather_night == "Y")
+    local dayFile, nightFile
+    if nightSet then
+        local stem, ext = (L.path or ""):match("^(.*)(%.%w+)$")   -- build time: patterns OK
+        if stem then
+            if stem:sub(-2) == "_n" then stem = stem:sub(1, -3) end
+            local df, nf = self:imageFile(stem .. ext), self:imageFile(stem .. "_n" .. ext)
+            dayFile   = fileExists(df) and df or self:imageFile(L.path)
+            nightFile = fileExists(nf) and nf or dayFile
+        end
+        if not dayFile then nightSet = false end
+    end
+    if nightSet then
+        -- the sheet/cell choice rides WF.weather.isDaytime, which is invisible
+        -- to the descriptor dependency scan — never bake this layer
+        rec._noFlatten = true
+    end
+    local NIGHT_CELL = { [1] = 4, [2] = 3, [3] = 3, [4] = 9 }
+    local curFile
     rec.lastIdx = -1
     rec:use("cond_value", "num"); rec:use("width", "num"); rec:use("height", "num")
     rec:use("color", "sub"); rec:use("color_dim", "sub")
-    rec:dimCompositeNow(function(r)
-        -- cw/chh are the TEXTURE cell size (texture ÷ grid, static); only the
-        -- authored box is live and feeds the base scale
+    local function redraw(r)
+        local night = nightSet and WF.weather.isDaytime == false
+        if nightSet then
+            local want = night and nightFile or dayFile
+            if want ~= curFile then
+                curFile = want
+                sp:setTexture(want)
+                local tcs = sp:getTexture():getContentSize()
+                if tcs.width > 0 then cw, chh = tcs.width / cols, tcs.height / rows end
+                rec.lastIdx = -1          -- force the rect onto the new sheet
+            end
+        end
+        -- cw/chh are the TEXTURE cell size (texture ÷ grid, static per sheet);
+        -- only the authored box is live and feeds the base scale
         setBaseScale(r, cw, chh, r:evalNum("width", cw), r:evalNum("height", chh))
         sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
-        local idx = clamp(floor(r:evalNum("cond_value", 1)) - 1, 0, cols * rows - 1)
+        local cell = clamp(floor(r:evalNum("cond_value", 1)), 1, cols * rows)
+        if night then cell = NIGHT_CELL[cell] or cell end
+        local idx = cell - 1
         if idx ~= rec.lastIdx then
             rec.lastIdx = idx
             local col, row = idx % cols, floor(idx / cols)   -- row-major, top-left
             sp:setTextureRect(cc.rect(col * cw, row * chh, cw, chh))
         end
         sp:setColor(c3b(r:evalSub(colAttr(r), "ffffff")))
-    end, { { "cond_value", "num" }, { "width", "num" }, { "height", "num" },
-           { "color", "sub" }, { "color_dim", "sub" } })
+    end
+    rec:dimCompositeNow(redraw, { { "cond_value", "num" }, { "width", "num" },
+        { "height", "num" }, { "color", "sub" }, { "color_dim", "sub" } })
+    if nightSet then
+        -- isDaytime can flip without any {tag} value changing (wci stays "d");
+        -- a raw weather listener keeps the sheet honest on every push
+        self.engine:listen("weather", function()
+            local ok, err = pcall(redraw, rec)
+            if not ok then print("[WFRender] weather_night redraw: " .. tostring(err)) end
+        end)
+    end
 end
 
 function Builders.shape(self, rec)

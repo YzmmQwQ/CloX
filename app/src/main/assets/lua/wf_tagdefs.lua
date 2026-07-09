@@ -295,15 +295,17 @@ def("weather", {
     wtld = function() return floor(num(WF.weather.lowTemp)) .. "°" .. (WF.weather.tempUnit or "C") end,
     wct  = function() return WF.weather.conditionText or "" end,
     wci  = function()
-        -- WM's {wci} is the OWM icon CODE ("01d".."50n") that faces compare
-        -- with == "01d" etc; the bridge pushes the numeric part only
-        -- (1,2,3,4,9,10,11,13,50) — zero-pad and add the day/night suffix.
-        -- (Faces that compare ONLY day codes render their fallback at night;
-        -- that's the face's bug — UL never even updates wci past its static
-        -- "01d" stub.)
+        -- WM's {wci} is the OWM-style icon code faces compare with == "01d"
+        -- etc; the bridge pushes the numeric part only (1,2,3,4,9,10,11,13,
+        -- 50) — zero-pad and ALWAYS suffix "d". WM's own editor generates
+        -- day-code-only comparisons even for night-enabled weather elements
+        -- (confirmed 2026-07-10 against a WM-exported test face), so a real
+        -- "n" suffix made EVERY face fall to its `or 1` fallback at night.
+        -- Night is signalled separately: {wisday}, and weather_night="Y"
+        -- sheet/cell swapping inside the image_cond builder.
         local n = num(WF.weather.conditionIcon)
         if n <= 0 then return "" end
-        return fmt("%02d", n) .. (WF.weather.isDaytime == false and "n" or "d")
+        return fmt("%02d", n) .. "d"
     end,
     wh   = function() return floor(num(WF.weather.humidity)) end,
     whp  = function() return floor(num(WF.weather.humidity)) .. "%" end,
@@ -691,12 +693,12 @@ local FAMILIES = {
             t  = function(h) return floor(num(h.temp)) end,
             h  = function(h) return floor(num(h.hourOfDay)) end,
             ct = function(h) return h.conditionText or "" end,
-            -- zero-padded icon code; day/night suffix from the slot's hour
+            -- zero-padded icon code; ALWAYS "d" — faces only ever compare day
+            -- codes (same finding as {wci}, 2026-07-10)
             ci = function(h)
                 local n = num(h.conditionIcon)
                 if n <= 0 then return "" end
-                local hh = floor(num(h.hourOfDay))
-                return fmt("%02d", n) .. ((hh >= 6 and hh < 18) and "d" or "n")
+                return fmt("%02d", n) .. "d"
             end,
         }
         local pick = PICK[field]

@@ -497,7 +497,20 @@ Cross-referenced wf_render builders against the UL ground-truth renderer
   {wci} emits the real OWM icon code — zero-padded bridge number + d/n
   suffix from isDaytime (was the bare number "2", matching nothing). Faces
   comparing only day codes (wf_333) show their fallback at night — face
-  bug, kept as-is per user.
+  bug, kept as-is per user. [SUPERSEDED 2026-07-10 — see below: the "n"
+  suffix was wrong, not the faces.]
+- 2026-07-10 weather night handling (corrects the 2026-07-07 {wci} entry):
+  a WM-exported test face proved the WM editor generates day-code-only
+  cond_values ('{wci}'=='01d' … or 1) even for night-enabled weather
+  elements — so {wci} (and {wf<N>hci}) now ALWAYS suffix "d"; an "n" suffix
+  sent every face to its `or 1` fallback at night. Night is a separate
+  mechanism, now implemented in image_cond: weather_night="Y" elements ship
+  both 3×3 sheets (base + "_n"; the _n sheet only swaps clear→moon cell 4,
+  few-clouds→moon+cloud cell 3), and the renderer shows the base sheet by
+  day / the _n sheet by night with cells remapped 1→4, 2→3, 3→3, 4→9.
+  isDaytime can flip with no tag change, so weather_night layers are
+  _noFlatten and redraw on a raw "weather" listener. WM_TAGS.md +
+  WM_FORMAT_1.0.md corrected.
 - 2026-07-08: location tag family wired — the "location" bridge category now
   carries latitude/longitude (WeatherPrefs primary coords, manual or
   IP-resolved) and elevation (new location_elevation pref: manual row in
