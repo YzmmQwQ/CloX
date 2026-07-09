@@ -457,9 +457,13 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
                     tvStatus.setText(R.string.wf_store_download_done)
                     view.postDelayed({ dismissAllowingStateLoss() }, 800)
                 } catch (e: Exception) {
+                    // The bottom sheet can be dismissed (swipe-down) while the download is
+                    // still in flight; if the failure lands after that, the fragment is
+                    // already detached and requireContext()/view access would crash.
+                    val ctx = context ?: return@launch
                     progressLayout.visibility = View.GONE
                     btnDownload.visibility = View.VISIBLE
-                    Toast.makeText(requireContext(),
+                    Toast.makeText(ctx,
                         getString(R.string.store_download_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
