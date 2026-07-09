@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The launcher X as a loading animation: four round-cap sticks radiating
      from the center (blue "<" pair left, white ">" pair right), lengths
-     pulsing with alternating phase around the circle via trimPathEnd — so one
-     diagonal grows while the other shrinks.
+     pulsing via trimPathEnd. The four pulses are identical but phase-shifted
+     by a quarter cycle each, ordered clockwise around the ring
+     (NE → SE → SW → NW), so the pulse travels around the circle as a wave
+     rather than mirroring symmetrically across the diagonals.
+
+     Full reverse cycle = 2 x 400 = 800 ms; each stick is offset by 800/4 =
+     200 ms so the four are evenly spread around the wave at all times.
 
      An AVD (not a View-level ValueAnimator) on purpose: AnimatedVectorDrawable
      runs on the RenderThread, so the animation keeps playing even when the
@@ -17,7 +22,8 @@
             android:viewportWidth="100"
             android:viewportHeight="100">
             <!-- Sticks run from inner radius 9 to outer radius 36 (of 50);
-                 trimPathEnd 0.45 ≈ the old minimum length (outer radius 21). -->
+                 trimPathEnd 0.45 ≈ the old minimum length (outer radius 21).
+                 All start at full length; the phase comes from startOffset. -->
             <path
                 android:name="stickNE"
                 android:pathData="M 56.36,43.64 L 75.46,24.54"
@@ -31,7 +37,7 @@
                 android:strokeColor="#FFFFFF"
                 android:strokeWidth="7"
                 android:strokeLineCap="round"
-                android:trimPathEnd="0.45" />
+                android:trimPathEnd="1" />
             <path
                 android:name="stickSW"
                 android:pathData="M 43.64,56.36 L 24.54,75.46"
@@ -45,10 +51,11 @@
                 android:strokeColor="#82ABD1"
                 android:strokeWidth="7"
                 android:strokeLineCap="round"
-                android:trimPathEnd="0.45" />
+                android:trimPathEnd="1" />
         </vector>
     </aapt:attr>
 
+    <!-- Clockwise wave: NE leads, each next corner lags by a quarter cycle. -->
     <target android:name="stickNE">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -56,7 +63,8 @@
                 android:valueFrom="1"
                 android:valueTo="0.45"
                 android:valueType="floatType"
-                android:duration="550"
+                android:duration="400"
+                android:startOffset="0"
                 android:repeatCount="infinite"
                 android:repeatMode="reverse"
                 android:interpolator="@android:interpolator/accelerate_decelerate" />
@@ -66,10 +74,11 @@
         <aapt:attr name="android:animation">
             <objectAnimator
                 android:propertyName="trimPathEnd"
-                android:valueFrom="0.45"
-                android:valueTo="1"
+                android:valueFrom="1"
+                android:valueTo="0.45"
                 android:valueType="floatType"
-                android:duration="550"
+                android:duration="400"
+                android:startOffset="200"
                 android:repeatCount="infinite"
                 android:repeatMode="reverse"
                 android:interpolator="@android:interpolator/accelerate_decelerate" />
@@ -82,7 +91,8 @@
                 android:valueFrom="1"
                 android:valueTo="0.45"
                 android:valueType="floatType"
-                android:duration="550"
+                android:duration="400"
+                android:startOffset="400"
                 android:repeatCount="infinite"
                 android:repeatMode="reverse"
                 android:interpolator="@android:interpolator/accelerate_decelerate" />
@@ -92,10 +102,11 @@
         <aapt:attr name="android:animation">
             <objectAnimator
                 android:propertyName="trimPathEnd"
-                android:valueFrom="0.45"
-                android:valueTo="1"
+                android:valueFrom="1"
+                android:valueTo="0.45"
                 android:valueType="floatType"
-                android:duration="550"
+                android:duration="400"
+                android:startOffset="600"
                 android:repeatCount="infinite"
                 android:repeatMode="reverse"
                 android:interpolator="@android:interpolator/accelerate_decelerate" />
