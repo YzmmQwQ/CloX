@@ -117,14 +117,18 @@ class WatchfaceBridgeManager(
             }
             key in watchfaceSettingsKeys ||
                 com.ailife.clox.watchface.WatchfaceConfigPrefs.isConfigKey(key) -> {
-                // Re-resolve the cached dynamic-FPS policy: the effective value
-                // shifts on face switch, per-face override, use-default flip or
-                // a defaults-editor change — all of which land in this branch.
+                // Re-resolve the cached render policy: the effective dynamic-FPS
+                // value shifts on face switch, per-face override, use-default
+                // flip or a defaults-editor change; the AOD dim flag flips on
+                // every dim/undim — all of which land in this branch.
                 com.ailife.clox.cocos.RenderPolicy.load(ctx)
                 // now-off mid-session: drop a stale app-list 1 FPS cap
                 if (!com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
                     dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
                 }
+                // AOD dim ⇄ awake: slow active sensors to ~1 Hz / restore (no-op
+                // when unchanged or none active)
+                sensorHelper.setLowPower(com.ailife.clox.cocos.RenderPolicy.aodDimmed)
                 sendToLua("settings", LiveDataHelper.watchfaceSettingsJson(ctx))
                 // A face switch (selector / import / random) travels this path.
                 // If the renderer is gone the push above was dropped silently —
@@ -578,7 +582,14 @@ class WatchfaceBridgeManager(
                 "setSensorEnabled" -> sensorHelper.setEnabled(
                     json.optString("sensor"),
                     json.optBoolean("enabled")
-                ) { sensor, data -> sendToLua("sensor_$sensor", data) }
+                ) { sensor, data ->
+                    // In the AOD dim state a kick per sensor event would drive
+                    // the face at the sensor rate (16-33 Hz) all night despite
+                    // the 1 FPS AOD interval; queue the data un-kicked and let
+                    // the 1 FPS frame consume it.
+                    sendToLua("sensor_$sensor", data,
+                              kick = !com.ailife.clox.cocos.RenderPolicy.aodDimmed)
+                }
                 "reportLayerCount" -> {
                     com.ailife.clox.watchface.WatchfaceStats.setLayerCount(
                         json.optInt("count", -1),
@@ -709,23 +720,24 @@ class WatchfaceBridgeManager(
         }
     }
 
-    private fun sendToLua(category: String, data: JSONObject) {
+    private fun sendToLua(category: String, data: JSONObject, kick: Boolean = true) {
         val payload = JSONObject().apply {
             put("category", category)
             put("data", data)
         }.toString()
-        queueOnGL { LuaBridge.callLuaFunction("WatchfaceBridgeDispatch", payload) }
+        queueOnGL(kick) { LuaBridge.callLuaFunction("WatchfaceBridgeDispatch", payload) }
     }
 
     // All Lua calls must run on the Axmol GL thread.
-    private fun queueOnGL(block: () -> Unit) {
+    private fun queueOnGL(kick: Boolean = true, block: () -> Unit) {
         val glView = CocosManager.getGlView() as? GLSurfaceView
         if (glView != null) {
             glView.queueEvent(block)
             // wake the render thread out of its FPS-throttle wait so dispatches
             // (face switch, settings push) don't stall a frame interval — up to
-            // 1s at the static-face cadence
-            dev.axmol.lib.AxmolRenderer.kickFrame()
+            // 1s at the static-face cadence. kick=false lets high-rate data
+            // (AOD sensor streams) queue without forcing a frame per event.
+            if (kick) dev.axmol.lib.AxmolRenderer.kickFrame()
         } else {
             Log.w(TAG, "queueOnGL skipped — GL view not ready")
         }

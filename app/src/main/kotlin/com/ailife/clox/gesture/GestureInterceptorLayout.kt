@@ -112,9 +112,14 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     // animations and blur backdrop captures all composite against it, and the
     // idle 1 FPS throttle makes them stutter. Cheap enough to call per event.
     // Only needed while dynamic FPS is throttling; without it the face already
-    // renders at its configured rate.
+    // renders at its configured rate. Suppressed in the AOD dim state so a
+    // touch on the (gesture-locked) dim face can't run 3 s of 60 FPS — a
+    // touch that legitimately wakes the watch undims first (AodManager.onTouch
+    // runs earlier in the activity's dispatch), flipping aodDimmed off before
+    // this fires.
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
+        if (com.ailife.clox.cocos.RenderPolicy.dynamicFps &&
+            !com.ailife.clox.cocos.RenderPolicy.aodDimmed) {
             dev.axmol.lib.AxmolRenderer.boostFrames(3f)
         }
         return super.dispatchTouchEvent(ev)
