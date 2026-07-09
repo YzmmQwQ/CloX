@@ -2,9 +2,12 @@ package com.ailife.clox.watchface.store
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.http.HttpResponseCache
 import android.os.Bundle
 import android.util.Log
+import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
@@ -66,6 +69,8 @@ class WatchfaceStoreActivity : AppCompatActivity() {
     private var hasMore = true
     private var currentQuery = ""
     private var currentCategory = ""
+    private var currentSort = ""
+    private var currentScreenType = ""
     private val items = mutableListOf<StoreItem>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,6 +82,13 @@ class WatchfaceStoreActivity : AppCompatActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+
+        // Disk-cache preview JPEGs (server sends 24h Cache-Control) so previews
+        // survive process restarts and don't re-download on every visit.
+        runCatching {
+            if (HttpResponseCache.getInstalled() == null)
+                HttpResponseCache.install(File(cacheDir, "store_http"), 20L * 1024 * 1024)
+        }.onFailure { Log.w(TAG, "HTTP cache install failed: ${it.message}") }
 
         val toolbar = findViewById<Toolbar>(R.id.storeToolbar)
         setSupportActionBar(toolbar)
@@ -99,6 +111,21 @@ class WatchfaceStoreActivity : AppCompatActivity() {
             }
         })
 
+        // Sort toggle: most downloaded (sort=popular) vs default (latest)
+        findViewById<Chip>(R.id.chipSortPopular).setOnCheckedChangeListener { _, checked ->
+            reload(sort = if (checked) "popular" else "")
+        }
+
+        // Screen-type filter: round / square / rectangular (single-select, uncheckable)
+        findViewById<ChipGroup>(R.id.storeScreenChips).setOnCheckedStateChangeListener { _, checkedIds ->
+            reload(screenType = when (checkedIds.firstOrNull()) {
+                R.id.chipScreenRound  -> "round"
+                R.id.chipScreenSquare -> "square"
+                R.id.chipScreenRect   -> "rectangular"
+                else                  -> ""
+            })
+        }
+
         loadCategories()
         loadPage(reset = true)
     }
@@ -120,8 +147,19 @@ class WatchfaceStoreActivity : AppCompatActivity() {
 
     override fun onSupportNavigateUp(): Boolean { finish(); return true }
 
-    private fun reload(query: String = currentQuery, category: String = currentCategory) {
+    override fun onStop() {
+        super.onStop()
+        HttpResponseCache.getInstalled()?.flush()
+    }
+
+    private fun reload(
+        query: String = currentQuery,
+        category: String = currentCategory,
+        sort: String = currentSort,
+        screenType: String = currentScreenType,
+    ) {
         currentQuery = query; currentCategory = category
+        currentSort = sort; currentScreenType = screenType
         items.clear(); adapter.submitList(emptyList())
         currentPage = 1; hasMore = true
         loadPage(reset = true)
@@ -239,8 +277,10 @@ class WatchfaceStoreActivity : AppCompatActivity() {
 
     private fun buildUrl(page: Int): String {
         val sb = StringBuilder("$BASE_API/watchfaces?page=$page&limit=$PAGE_SIZE")
-        if (currentQuery.isNotBlank())    sb.append("&search=${java.net.URLEncoder.encode(currentQuery, "UTF-8")}")
-        if (currentCategory.isNotBlank()) sb.append("&category=$currentCategory")
+        if (currentQuery.isNotBlank())      sb.append("&search=${java.net.URLEncoder.encode(currentQuery, "UTF-8")}")
+        if (currentCategory.isNotBlank())   sb.append("&category=$currentCategory")
+        if (currentSort.isNotBlank())       sb.append("&sort=$currentSort")
+        if (currentScreenType.isNotBlank()) sb.append("&screen_type=$currentScreenType")
         return sb.toString()
     }
 
@@ -262,6 +302,46 @@ data class StoreItem(
     val uploadDate: String = "",
 )
 
+// ── Preview bitmap cache ──────────────────────────────────────────────────────
+//
+// In-memory LRU keyed on preview URL. Without this, RecyclerView re-fetched and
+// re-decoded every thumbnail over the network on every rebind, so previews kept
+// reloading while scrolling. A cache hit is instant and does no network work;
+// the HttpResponseCache installed by the activity backs cache misses from disk.
+
+object StorePreviewCache {
+    // ~64px grid thumbnails; keep 2x for crisp centerCrop on high-density screens.
+    const val TARGET_PX = 320
+
+    private val cache = object : LruCache<String, Bitmap>(
+        (Runtime.getRuntime().maxMemory() / 1024 / 8).toInt()  // 1/8 of heap, in KB
+    ) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount / 1024
+    }
+
+    fun get(url: String): Bitmap? = cache.get(url)
+
+    /** Fetch (via HTTP cache when possible), downsample to ~TARGET_PX, and memoise. */
+    fun load(url: String, reqWidth: Int = TARGET_PX): Bitmap? {
+        cache.get(url)?.let { return it }
+        val bytes = runCatching {
+            val conn = URL(url).openConnection() as HttpsURLConnection
+            conn.connectTimeout = 5_000; conn.readTimeout = 10_000
+            conn.inputStream.use { it.readBytes() }
+        }.onFailure { Log.w("StorePreviewCache", "Preview load failed for $url: ${it.message}") }
+         .getOrNull() ?: return null
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        var sample = 1
+        while (bounds.outWidth / sample > reqWidth * 2) sample *= 2
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size,
+            BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+        cache.put(url, bmp)
+        return bmp
+    }
+}
+
 // ── Store grid adapter ────────────────────────────────────────────────────────
 
 class StoreAdapter(
@@ -280,23 +360,24 @@ class StoreAdapter(
         val item = items[pos]
         holder.tvName.text = item.name
         holder.tvDownloads.text = holder.itemView.context.getString(R.string.store_download_count, item.downloadCount)
-        holder.ivPreview.setImageBitmap(null)
         holder.ivDownloaded.visibility = if (item.isDownloaded) View.VISIBLE else View.GONE
         holder.itemView.setOnClickListener { onItemClick(item) }
-
+        holder.boundId = item.id
         holder.loadJob?.cancel()
+
+        // Cache hit: set instantly, no flash and no network.
+        val cached = StorePreviewCache.get(item.previewUrl)
+        if (cached != null) {
+            holder.ivPreview.setImageBitmap(cached)
+            return
+        }
+        holder.ivPreview.setImageBitmap(null)
         holder.loadJob = scope.launch(Dispatchers.IO) {
-            val bmp = runCatching {
-                val conn = URL(item.previewUrl).openConnection() as HttpsURLConnection
-                conn.connectTimeout = 5_000; conn.readTimeout = 10_000
-                BitmapFactory.decodeStream(conn.inputStream)
-            }.onFailure { Log.w("StoreAdapter", "Preview load failed for ${item.previewUrl}: ${it.message}") }
-             .getOrNull()
+            val bmp = StorePreviewCache.load(item.previewUrl)
             withContext(Dispatchers.Main) {
                 if (holder.boundId == item.id) holder.ivPreview.setImageBitmap(bmp)
             }
         }
-        holder.boundId = item.id
     }
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
@@ -354,10 +435,11 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
 
         val ivPreview = view.findViewById<ImageView>(R.id.ivDetailPreview)
         val previewUrl = args.getString("previewUrl") ?: ""
-        lifecycleScope.launch(Dispatchers.IO) {
-            val bmp = runCatching { BitmapFactory.decodeStream(URL(previewUrl).openStream()) }.getOrNull()
-            withContext(Dispatchers.Main) { ivPreview.setImageBitmap(bmp) }
-        }
+        StorePreviewCache.get(previewUrl)?.let { ivPreview.setImageBitmap(it) }
+            ?: lifecycleScope.launch(Dispatchers.IO) {
+                val bmp = StorePreviewCache.load(previewUrl)
+                withContext(Dispatchers.Main) { ivPreview.setImageBitmap(bmp) }
+            }
 
         val btnDownload  = view.findViewById<MaterialButton>(R.id.btnDetailDownload)
         val progressLayout = view.findViewById<View>(R.id.downloadProgressLayout)

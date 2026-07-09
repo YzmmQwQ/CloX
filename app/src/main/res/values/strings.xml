@@ -766,6 +766,10 @@
     <string name="store_downloads_label">%d downloads</string>
     <string name="store_uploaded_label">Uploaded %s</string>
     <string name="store_download_failed">Download failed: %s</string>
+    <string name="wf_store_sort_popular">Most downloaded</string>
+    <string name="wf_store_screen_round">Round</string>
+    <string name="wf_store_screen_square">Square</string>
+    <string name="wf_store_screen_rect">Rectangular</string>
 
     <!-- ── Notification badge ──────────────────────────────────────────── -->
     <string name="badge_overflow">99+</string>
