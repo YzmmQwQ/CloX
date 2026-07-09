@@ -423,6 +423,27 @@ function WFLayerRec:dimComposite(redraw, attrs)
             if not ok then print("[WFRender] dim redraw '" .. tostring(self.type) .. "': " .. tostring(err)) end
         end
     end
+    return bound
+end
+
+-- Live-geometry convention (one rule for EVERY builder): composite() only
+-- self-fires when fully static, so a genuinely dynamic redraw would otherwise
+-- leave the record's defaults applied (bsx/bsy = 1 — the original wrong-size
+-- bug) until its first dependency tag fires. These variants ALWAYS run the
+-- redraw once at registration, so derived state (bsx/bsy, shapeW/H, hitW/H)
+-- is correct the moment the builder returns — Pass 1 and bindEffects read it.
+function WFLayerRec:compositeNow(redraw, attrs)
+    if self:composite(redraw, attrs) then
+        local ok, err = pcall(redraw, self)
+        if not ok then print("[WFRender] initial draw '" .. tostring(self.type) .. "': " .. tostring(err)) end
+    end
+end
+
+function WFLayerRec:dimCompositeNow(redraw, attrs)
+    if self:dimComposite(redraw, attrs) then
+        local ok, err = pcall(redraw, self)
+        if not ok then print("[WFRender] initial draw '" .. tostring(self.type) .. "': " .. tostring(err)) end
+    end
 end
 
 -- ── module ────────────────────────────────────────────────────────────────────
@@ -694,11 +715,20 @@ end
 --   opts.makeCopy(z)             → new effect node parented at local z-order z
 --   opts.paint(node, hex, op)    → color a copy (op is 0..100)
 --   opts.baseX/baseY             → the visual's rest position inside the holder
+--   opts.base()                  → live variant of baseX/baseY: read each fire
+--                                  (DrawNode shapes derive it from width/height)
+--   opts.geomAttrs               → attr specs appended to every effect
+--                                  composite, so copies re-place/repaint when
+--                                  live layer geometry moves
 --   opts.nativeOutline(c4b, px)  → optional hard-stroke fast path (TTF labels)
 local function bindEffects(rec, opts)
     local L = rec.L
     local paint = opts.paint
-    local bx, by = opts.baseX or 0, opts.baseY or 0
+    local base = opts.base or function() return opts.baseX or 0, opts.baseY or 0 end
+    local function withGeom(attrs)
+        for _, a in ipairs(opts.geomAttrs or {}) do attrs[#attrs + 1] = a end
+        return attrs
+    end
 
     if L.outline == "Glow" then
         -- rings of 8 copies at 45° steps; UL: ring r sits at 2*r px up to
@@ -718,13 +748,14 @@ local function bindEffects(rec, opts)
         end
         rec:use("o_color", "sub"); rec:use("o_opacity", "num")
         rec:composite(function(r)
+            local bx, by = base()
             local col = r:evalSub("o_color", "ffffff")
             local op  = clamp(r:evalNum("o_opacity", 100), 0, 100)
             for _, g in ipairs(glows) do
                 g.node:setPosition(bx + g.ox, by + g.oy)
                 paint(g.node, col, (op / rings) * (1 - (g.ring - 1) / rings))
             end
-        end, { { "o_color", "sub" }, { "o_opacity", "num" } })
+        end, withGeom({ { "o_color", "sub" }, { "o_opacity", "num" } }))
     elseif L.outline == "Outline" then
         if opts.nativeOutline then
             rec:use("o_color", "sub"); rec:use("o_size", "num"); rec:use("o_opacity", "num")
@@ -740,6 +771,7 @@ local function bindEffects(rec, opts)
             for a = 0, 7 do ring[a + 1] = opts.makeCopy(-2) end
             rec:use("o_color", "sub"); rec:use("o_size", "num"); rec:use("o_opacity", "num")
             rec:composite(function(r)
+                local bx, by = base()
                 local col  = r:evalSub("o_color", "ffffff")
                 local op   = clamp(r:evalNum("o_opacity", 100), 0, 100)
                 local size = r:evalNum("o_size", 4)
@@ -748,7 +780,7 @@ local function bindEffects(rec, opts)
                                             by + size * sin(rad(a * 45)))
                     paint(ring[a + 1], col, op)
                 end
-            end, { { "o_color", "sub" }, { "o_size", "num" }, { "o_opacity", "num" } })
+            end, withGeom({ { "o_color", "sub" }, { "o_size", "num" }, { "o_opacity", "num" } }))
         end
     end
 
@@ -763,6 +795,7 @@ local function bindEffects(rec, opts)
             rec:use("w_color", "sub"); rec:use("w_distance", "num")
             rec:use("w_angle", "num"); rec:use("w_opacity", "num")
             rec:composite(function(r)
+                local bx, by = base()
                 local col  = r:evalSub("w_color", "000000")
                 local op   = clamp(r:evalNum("w_opacity", 100), 0, 100)
                 local ang  = rad(r:evalNum("w_angle", 135))
@@ -772,8 +805,8 @@ local function bindEffects(rec, opts)
                     s:setPosition(bx - d * cos(ang), by - d * sin(ang))
                     paint(s, col, op)
                 end
-            end, { { "w_color", "sub" }, { "w_distance", "num" },
-                   { "w_angle", "num" }, { "w_opacity", "num" } })
+            end, withGeom({ { "w_color", "sub" }, { "w_distance", "num" },
+                            { "w_angle", "num" }, { "w_opacity", "num" } }))
         end
     end
 end
@@ -935,7 +968,13 @@ function Builders.image(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
+    -- live width/height: re-derive the base scale and re-apply it to the node
+    -- (mirrors the post-builder application in the main build loop)
+    rec:use("width", "num"); rec:use("height", "num")
+    rec:compositeNow(function(r)
+        setBaseScale(r, cs.width, cs.height, r:evalNum("width", cs.width), r:evalNum("height", cs.height))
+        sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
+    end, { { "width", "num" }, { "height", "num" } })
     -- shader consumes the image alpha as its mask (UL applies shaders to
     -- image layers the same way); otherwise plain tint
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end
@@ -952,7 +991,11 @@ function Builders.image_tap(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
+    rec:use("width", "num"); rec:use("height", "num")
+    rec:compositeNow(function(r)
+        setBaseScale(r, cs.width, cs.height, r:evalNum("width", cs.width), r:evalNum("height", cs.height))
+        sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
+    end, { { "width", "num" }, { "height", "num" } })
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
     rec.tap = function()
         rec.frameIdx = (rec.frameIdx % #frames) + 1
@@ -971,7 +1014,11 @@ function Builders.image_gif(self, rec)
     if not sp then return end
     rec.visual = sp
     local cs = sp:getContentSize()
-    setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
+    rec:use("width", "num"); rec:use("height", "num")
+    rec:compositeNow(function(r)
+        setBaseScale(r, cs.width, cs.height, r:evalNum("width", cs.width), r:evalNum("height", cs.height))
+        sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
+    end, { { "width", "num" }, { "height", "num" } })
     if not bindShapeShader(rec, sp) then bindTint(rec, sp) end   -- survives setTexture
     -- frame stepping is elapsed-time-driven, not tag-driven: a raw ms listener.
     -- Because it drives the sprite through a closure (not a {tag} descriptor),
@@ -1165,13 +1212,17 @@ function Builders.image_cond(self, rec)
     local cols, rows = (L.cond_grid or "1x1"):match("(%d+)x(%d+)")
     cols, rows = num(cols, 1), num(rows, 1)
     local cw, chh = cs.width / cols, cs.height / rows
-    setBaseScale(rec, cw, chh, rec:evalNum("width", cw), rec:evalNum("height", chh))
     -- shader rides the sprite (texcoords span the CELL's atlas sub-rect —
     -- same quirk as UL, which also sets the program straight on the sprite)
     bindShapeShader(rec, sp)
     rec.lastIdx = -1
-    rec:use("cond_value", "num"); rec:use("color", "sub"); rec:use("color_dim", "sub")
-    rec:dimComposite(function(r)
+    rec:use("cond_value", "num"); rec:use("width", "num"); rec:use("height", "num")
+    rec:use("color", "sub"); rec:use("color_dim", "sub")
+    rec:dimCompositeNow(function(r)
+        -- cw/chh are the TEXTURE cell size (texture ÷ grid, static); only the
+        -- authored box is live and feeds the base scale
+        setBaseScale(r, cw, chh, r:evalNum("width", cw), r:evalNum("height", chh))
+        sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
         local idx = clamp(floor(r:evalNum("cond_value", 1)) - 1, 0, cols * rows - 1)
         if idx ~= rec.lastIdx then
             rec.lastIdx = idx
@@ -1179,7 +1230,8 @@ function Builders.image_cond(self, rec)
             sp:setTextureRect(cc.rect(col * cw, row * chh, cw, chh))
         end
         sp:setColor(c3b(r:evalSub(colAttr(r), "ffffff")))
-    end, { { "cond_value", "num" }, { "color", "sub" }, { "color_dim", "sub" } })
+    end, { { "cond_value", "num" }, { "width", "num" }, { "height", "num" },
+           { "color", "sub" }, { "color_dim", "sub" } })
 end
 
 function Builders.shape(self, rec)
@@ -1191,7 +1243,14 @@ function Builders.shape(self, rec)
         if sp then
             rec.visual = sp
             local cs = sp:getContentSize()
-            setBaseScale(rec, cs.width, cs.height, rec:evalNum("width", cs.width), rec:evalNum("height", cs.height))
+            local copies = {}
+            rec:use("width", "num"); rec:use("height", "num")
+            rec:compositeNow(function(r)
+                setBaseScale(r, cs.width, cs.height, r:evalNum("width", cs.width), r:evalNum("height", cs.height))
+                sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
+                -- effect copies take their scale at creation; keep them in step
+                for _, c in ipairs(copies) do c:setScaleX(r.bsx); c:setScaleY(r.bsy) end
+            end, { { "width", "num" }, { "height", "num" } })
             -- shader consumes the image alpha as its mask (exactly UL);
             -- otherwise plain tint
             if not bindShapeShader(rec, sp) then
@@ -1205,6 +1264,7 @@ function Builders.shape(self, rec)
                     c:setScaleX(rec.bsx); c:setScaleY(rec.bsy)
                     c:setCascadeOpacityEnabled(true)
                     rec.holder:addChild(c, z)
+                    copies[#copies + 1] = c
                     return c
                 end,
                 paint = function(n, hex, op)
@@ -1214,9 +1274,20 @@ function Builders.shape(self, rec)
             return
         end
     end
-    -- Otherwise draw the primitive with a DrawNode.
+    -- Otherwise draw the primitive with a DrawNode. w/h are upvalues refreshed
+    -- by the geometry composite below — drawPrim, the effect composites and the
+    -- base() offsets all read them live.
     local w, h = rec:evalNum("width", 50), rec:evalNum("height", 50)
     local shp = (L.shape or "Square"):lower()
+    local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+    local GEOM = { { "width", "num" }, { "height", "num" } }
+    -- refresh the derived box + re-apply the anchor shift the main build loop
+    -- performs once off rec.shapeW (anchored shapes stay pinned on resize)
+    local function applyBox(r)
+        w, h = r:evalNum("width", 50), r:evalNum("height", 50)
+        r.shapeW, r.shapeH = w, h
+        r.visual:setPosition((0.5 - ap.x) * w, (0.5 - ap.y) * h)
+    end
     local function drawPrim(node, col)
         node:clear()
         if shp == "circle" then
@@ -1236,35 +1307,43 @@ function Builders.shape(self, rec)
             local cs = sp:getContentSize()
             if shp == "square" or shp == "" then
                 rec.visual = sp
-                setBaseScale(rec, cs.width, cs.height, w, h)
+                rec:compositeNow(function(r)
+                    w, h = r:evalNum("width", 50), r:evalNum("height", 50)
+                    setBaseScale(r, cs.width, cs.height, w, h)
+                    sp:setScaleX(r.bsx); sp:setScaleY(r.bsy)
+                end, GEOM)
             else
-                sp:setScaleX(w / cs.width); sp:setScaleY(h / cs.height)
                 sp:setCascadeOpacityEnabled(true)
                 local mask = cc.DrawNode:create()
-                drawPrim(mask, cc.c4f(1, 1, 1, 1))
                 local clip = cc.ClippingNode:create()
                 clip:setStencil(mask)
                 clip:addChild(sp)
                 rec.visual = clip
-                rec.shapeW, rec.shapeH = w, h
+                rec:compositeNow(function(r)
+                    applyBox(r)
+                    sp:setScaleX(w / cs.width); sp:setScaleY(h / cs.height)
+                    drawPrim(mask, cc.c4f(1, 1, 1, 1))
+                end, GEOM)
             end
             return
         end
     end
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    rec.shapeW, rec.shapeH = w, h
     rec:use("color", "sub"); rec:use("color_dim", "sub")
-    rec:dimComposite(function(r)
+    rec:dimCompositeNow(function(r)
+        applyBox(r)
         drawPrim(dn, c4f(r:evalSub(colAttr(r), "ffffff"), 100))
-    end, { { "color", "sub" }, { "color_dim", "sub" } })
+    end, { { "width", "num" }, { "height", "num" },
+           { "color", "sub" }, { "color_dim", "sub" } })
     -- effect copies redraw the primitive; load() shifts the main visual by the
-    -- anchor offset (rec.shapeW path), so copies bake the same shift into
-    -- their base position. Effect opacity rides the vertex alpha — DrawNode
-    -- copies are repainted only when an effect attribute changes.
-    local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+    -- anchor offset (rec.shapeW path), so copies derive the same shift live
+    -- through base(). geomAttrs re-fires them on a live resize (their bucket
+    -- runs AFTER the geometry composite above — bind order — so drawPrim
+    -- already sees the fresh w/h).
     bindEffects(rec, {
-        baseX = (0.5 - ap.x) * w, baseY = (0.5 - ap.y) * h,
+        base = function() return (0.5 - ap.x) * w, (0.5 - ap.y) * h end,
+        geomAttrs = GEOM,
         makeCopy = function(z)
             local c = cc.DrawNode:create()
             c:setCascadeOpacityEnabled(true)
@@ -1277,37 +1356,51 @@ end
 
 function Builders.rounded(self, rec)
     local L = rec.L
-    local w, h = rec:evalNum("width", 100), rec:evalNum("height", 60)
-    local r0 = math.min(rec:evalNum("radius", 0), w / 2, h / 2)
-    local cor = CORNERS[floor(rec:evalNum("corner_type", 1))] or CORNERS[1]   -- {TL,TR,BL,BR}
+    -- w/h/r0/cor are upvalues refreshed per redraw so the box, radius and
+    -- corner pick stay live
+    local w, h, r0, cor
+    local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+    local GEOM = { { "width", "num" }, { "height", "num" },
+                   { "radius", "num" }, { "corner_type", "num" } }
+    local function applyBox(r)
+        w, h = r:evalNum("width", 100), r:evalNum("height", 60)
+        r0 = math.min(r:evalNum("radius", 0), w / 2, h / 2)
+        cor = CORNERS[floor(r:evalNum("corner_type", 1))] or CORNERS[1]   -- {TL,TR,BL,BR}
+        r.shapeW, r.shapeH = w, h
+        r.visual:setPosition((0.5 - ap.x) * w, (0.5 - ap.y) * h)
+    end
     if L.shader and SHADER_UNIFORMS[L.shader] then
         -- shader on a white quad clipped through the rounded-rect geometry
         local sp = whiteQuad()
         if sp and bindShapeShader(rec, sp) then
             local cs = sp:getContentSize()
-            sp:setScaleX(w / cs.width); sp:setScaleY(h / cs.height)
             sp:setCascadeOpacityEnabled(true)
             local mask = cc.DrawNode:create()
-            fillRoundedRect(mask, -w / 2, -h / 2, w / 2, h / 2,
-                { cor[1] * r0, cor[2] * r0, cor[3] * r0, cor[4] * r0 }, cc.c4f(1, 1, 1, 1))
             local clip = cc.ClippingNode:create()
             clip:setStencil(mask)
             clip:addChild(sp)
             rec.visual = clip
-            rec.shapeW, rec.shapeH = w, h
+            rec:compositeNow(function(r)
+                applyBox(r)
+                sp:setScaleX(w / cs.width); sp:setScaleY(h / cs.height)
+                mask:clear()
+                fillRoundedRect(mask, -w / 2, -h / 2, w / 2, h / 2,
+                    { cor[1] * r0, cor[2] * r0, cor[3] * r0, cor[4] * r0 }, cc.c4f(1, 1, 1, 1))
+            end, GEOM)
             return
         end
     end
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    rec.shapeW, rec.shapeH = w, h
     rec:use("color", "sub"); rec:use("color_dim", "sub")
-    rec:dimComposite(function(rr)
+    rec:dimCompositeNow(function(rr)
+        applyBox(rr)
         dn:clear()
         local col = c4f(rr:evalSub(colAttr(rr), "ffffff"), 100)
         fillRoundedRect(dn, -w / 2, -h / 2, w / 2, h / 2,
             { cor[1] * r0, cor[2] * r0, cor[3] * r0, cor[4] * r0 }, col)
-    end, { { "color", "sub" }, { "color_dim", "sub" } })
+    end, { { "width", "num" }, { "height", "num" }, { "radius", "num" },
+           { "corner_type", "num" }, { "color", "sub" }, { "color_dim", "sub" } })
 end
 
 -- Ring semantics follow the UL Ring shader (and the wftools preview), NOT the
@@ -1319,15 +1412,17 @@ function Builders.ring(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local ro = rec:evalNum("radius_outer", 100)
-    local ri = rec:evalNum("radius_inner", ro * 0.8)
-    if ri > ro then ri, ro = ro, ri end
-    rec.shapeW, rec.shapeH = ro * 2, ro * 2  -- UL layer box: 2×radius_outer
-                                             -- (drives alignment shift + taps)
-    local rc, capR = (ri + ro) / 2, (ro - ri) / 2
     local cw = (L.is_clockwise or "Y") ~= "N"
-    local outOp = clamp(rec:evalNum("outside_opacity", 100), 0, 100)
-    rec:composite(function(r)
+    local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+    rec:compositeNow(function(r)
+        local ro = r:evalNum("radius_outer", 100)
+        local ri = r:evalNum("radius_inner", ro * 0.8)
+        if ri > ro then ri, ro = ro, ri end
+        r.shapeW, r.shapeH = ro * 2, ro * 2  -- UL layer box: 2×radius_outer
+                                             -- (drives alignment shift + taps)
+        r.visual:setPosition((0.5 - ap.x) * r.shapeW, (0.5 - ap.y) * r.shapeH)
+        local rc, capR = (ri + ro) / 2, (ro - ri) / 2
+        local outOp = clamp(r:evalNum("outside_opacity", 100), 0, 100)
         dn:clear()
         local total = r:evalNum("angle_total", 360)
         if total <= 0 then total = 360 end
@@ -1350,6 +1445,8 @@ function Builders.ring(self, rec)
             ringCap(dn, rc, capR, ang, cw, lerpRGB(ca, cb, ang / total))
         end
     end, { { "angle", "num" }, { "angle_total", "num" },
+           { "radius_outer", "num" }, { "radius_inner", "num" },
+           { "outside_opacity", "num" },
            { "color", "sub" }, { "color2", "sub" }, { "color3", "sub" } })
 end
 
@@ -1365,19 +1462,18 @@ function Builders.progress(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local w, h = rec:evalNum("width", 120), rec:evalNum("height", 24)
-    rec.shapeW, rec.shapeH = w, h
-    local vertical = false
-    do
-        local a = rec:evalNum("angle", 90)
-        vertical = (a == 0 or a == 180)
-    end
-    local margin = math.max(0, rec:evalNum("margin", 0))
-    local r0 = math.min(rec:evalNum("radius", 50), w / 2, h / 2)
-    local cor = CORNERS[floor(rec:evalNum("corner_type", 1))] or CORNERS[1]
     local roundEnd = (L.end_style == "round")
-    local outOp = clamp(rec:evalNum("outside_opacity", 100), 0, 100) / 100
-    rec:composite(function(r)
+    local ap = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
+    rec:compositeNow(function(r)
+        local w, h = r:evalNum("width", 120), r:evalNum("height", 24)
+        r.shapeW, r.shapeH = w, h
+        r.visual:setPosition((0.5 - ap.x) * w, (0.5 - ap.y) * h)
+        local a = r:evalNum("angle", 90)
+        local vertical = (a == 0 or a == 180)
+        local margin = math.max(0, r:evalNum("margin", 0))
+        local r0 = math.min(r:evalNum("radius", 50), w / 2, h / 2)
+        local cor = CORNERS[floor(r:evalNum("corner_type", 1))] or CORNERS[1]
+        local outOp = clamp(r:evalNum("outside_opacity", 100), 0, 100) / 100
         dn:clear()
         local pct = clamp(r:evalNum("pct_complete", 0), 0, 100)
         local ix0, iy0 = -w / 2 + margin, -h / 2 + margin
@@ -1426,7 +1522,10 @@ function Builders.progress(self, rec)
             gradStrips(dn, ix0 + lw, iy0, fx1 - rw, iy1, false, colAt,
                 lw / fw, (fw - rw) / fw)
         end
-    end, { { "pct_complete", "num" }, { "color", "sub" }, { "color2", "sub" },
+    end, { { "pct_complete", "num" }, { "width", "num" }, { "height", "num" },
+           { "angle", "num" }, { "margin", "num" }, { "radius", "num" },
+           { "corner_type", "num" }, { "outside_opacity", "num" },
+           { "color", "sub" }, { "color2", "sub" },
            { "color3", "sub" }, { "color4", "sub" } })
 end
 
@@ -1434,13 +1533,13 @@ function Builders.markers(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local count = math.max(1, floor(rec:evalNum("m_count", 12)))
-    local radius = rec:evalNum("radius", 200)
-    rec.hitW, rec.hitH = radius * 2, radius * 2
-    local mw, mh = rec:evalNum("m_width", 10), rec:evalNum("m_height", 30)
     local shp = (L.shape or "Square"):lower()
-    local sq = rec:evalNum("squarify", 0)
-    rec:composite(function(r)
+    rec:compositeNow(function(r)
+        local count = math.max(1, floor(r:evalNum("m_count", 12)))
+        local radius = r:evalNum("radius", 200)
+        r.hitW, r.hitH = radius * 2, radius * 2
+        local mw, mh = r:evalNum("m_width", 10), r:evalNum("m_height", 30)
+        local sq = r:evalNum("squarify", 0)
         dn:clear()
         local col = c4f(r:evalSub("color", "ffffff"), 100)
         for i = 0, count - 1 do
@@ -1464,19 +1563,18 @@ function Builders.markers(self, rec)
                 fillQuad(dn, p1, p2, p3, p4, col)
             end
         end
-    end, { { "color", "sub" } })
+    end, { { "m_count", "num" }, { "radius", "num" }, { "m_width", "num" },
+           { "m_height", "num" }, { "squarify", "num" }, { "color", "sub" } })
 end
 
 function Builders.markers_hm(self, rec)
     local L = rec.L
     local dn = cc.DrawNode:create()
     rec.visual = dn
-    local radius = rec:evalNum("radius", 240)
-    rec.hitW, rec.hitH = radius * 2, radius * 2
     local SZ = { None = 0, Tiny = 1, Small = 2, Medium = 3, Large = 4 }
     local hsz = SZ[L.m_hour or "Medium"] or 3
     local msz = SZ[L.m_minute or "Medium"] or 3
-    local sq = rec:evalNum("squarify", 0)
+    local sq = 0   -- refreshed in the composite before each redraw (tick reads it)
     local function tick(center, th, len, wdt, col)
         local tu = cc.p(-sin(th), cos(th))
         local outer = squarifyRadius(center, th, sq)
@@ -1489,7 +1587,10 @@ function Builders.markers_hm(self, rec)
             cc.p(ix - tu.x * wdt / 2, iy - tu.y * wdt / 2),
             cc.p(ix + tu.x * wdt / 2, iy + tu.y * wdt / 2), col)
     end
-    rec:composite(function(r)
+    rec:compositeNow(function(r)
+        local radius = r:evalNum("radius", 240)
+        r.hitW, r.hitH = radius * 2, radius * 2
+        sq = r:evalNum("squarify", 0)
         dn:clear()
         local colM = c4f(r:evalSub(L.color2 and "color2" or "color", "ffffff"), 100)
         local colH = c4f(r:evalSub("color", "ffffff"), 100)
@@ -1505,7 +1606,8 @@ function Builders.markers_hm(self, rec)
                 tick(radius, rad(90 - i * 30), hsz * 6, hsz * 1.8, colH)
             end
         end
-    end, { { "color", "sub" }, { "color2", "sub" } })
+    end, { { "radius", "num" }, { "squarify", "num" },
+           { "color", "sub" }, { "color2", "sub" } })
 end
 
 -- ── video + map layers ────────────────────────────────────────────────────────
@@ -1528,6 +1630,10 @@ function Builders.video(self, rec)
     end
     local mp = axui.MediaPlayer:create()
     rec.visual = mp
+    -- width/height are deliberately build-time-only (Tier-2 decision): live-
+    -- resizing a playing MediaPlayer via setContentSize mid-play drives the
+    -- MediaCodec output surface and is unverified on this axmol fork — not
+    -- worth the risk for a case no known face uses.
     local w, h = rec:evalNum("width", 512), rec:evalNum("height", 512)
     mp:setContentSize(cc.size(w, h))
     mp:setAnchorPoint(cc.p(0.5, 0.5))
@@ -1575,9 +1681,7 @@ function Builders.map(self, rec)
     -- tile arrives via a bridge push (no {tag} descriptor) — a baked run would
     -- never see the update and the map would freeze on the first tile
     rec._noFlatten = true
-    local w, h = rec:evalNum("width", 256), rec:evalNum("height", 256)
     local zoom = clamp(floor(rec:evalNum("map_zoom", 15)), 1, 19)
-    local mscale = rec:evalNum("map_scale", 100) / 100
     local wantTx, wantTy
     rec.onMapPush = function(data)
         if not (data and data.file and data.file ~= "") then return end
@@ -1586,6 +1690,10 @@ function Builders.map(self, rec)
             sp:setTexture(data.file)
             local cs = sp:getTexture():getContentSize()
             sp:setTextureRect(cc.rect(0, 0, cs.width, cs.height))
+            -- read live per push: a dynamic width/height/map_scale applies on
+            -- the next tile arrival (the push is already the redraw path here)
+            local w, h = rec:evalNum("width", 256), rec:evalNum("height", 256)
+            local mscale = rec:evalNum("map_scale", 100) / 100
             if cs.width > 0 and cs.height > 0 then
                 sp:setScaleX(w / cs.width * mscale)
                 sp:setScaleY(h / cs.height * mscale)
@@ -1717,6 +1825,17 @@ function Builders.series(self, rec)
         node:addChild(lab)
         items[#items + 1] = { lab = lab, k = k, bm = isBM }
     end
+    -- live step: text_size/spacing re-lay the window out. Glyph size is
+    -- creation-time only (labels are built once at size1/size2 — recreating
+    -- fonts on every tag fire is a hot-path hazard, documented limitation).
+    rec:compositeNow(function(r)
+        local s1 = math.max(1, floor(r:evalNum("text_size", 24)))
+        step = r:evalNum("spacing", 0) + s1
+        for _, it in ipairs(items) do
+            if vertical then it.lab:setPosition(0, -it.k * step)
+            else it.lab:setPosition(it.k * step, 0) end
+        end
+    end, { { "text_size", "num" }, { "spacing", "num" } })
     local function update()
         for _, it in ipairs(items) do
             local s = caseOf(seriesValue(sname, it.k))
@@ -1743,15 +1862,10 @@ function Builders.calendar(self, rec)
     -- same-frame rebake already queued (GLThread UAF), and the dependency scan
     -- can't see the listener anyway (frozen grid)
     rec._noFlatten = true
-    local marginX = rec:evalNum("margin_x", 5)
-    local marginY = rec:evalNum("margin_y", 5)
-    local size = math.max(1, floor(rec:evalNum("text_size", 10)))
     local color1 = L.color or "ffffff"
     local color2 = L.color2 or L.color or "ffffff"
-    local outOp = rec:evalNum("outside_opacity", 60)
-    local dowStart = floor(rec:evalNum("dow_start", 1))
-    local nHdr = math.max(0, floor(rec:evalNum("no_letters_header", 1)))
     local align = (L.alignment and L.alignment ~= "") and L.alignment or "cc"
+    local size = 10   -- refreshed at the top of rebuild (mkLabel captures it)
     local font = L.font or ""
     local isBM = font:sub(1, 3) == "bm:"
     local function mkLabel(str, colorHex)
@@ -1778,8 +1892,14 @@ function Builders.calendar(self, rec)
         if m == 2 and (y % 4 == 0 and (y % 100 ~= 0 or y % 400 == 0)) then return 29 end
         return d[m]
     end
-    local function rebuild()
+    local function rebuild(r)
         node:removeAllChildren()
+        local marginX = r:evalNum("margin_x", 5)
+        local marginY = r:evalNum("margin_y", 5)
+        size = math.max(1, floor(r:evalNum("text_size", 10)))
+        local outOp = r:evalNum("outside_opacity", 60)
+        local dowStart = floor(r:evalNum("dow_start", 1))
+        local nHdr = math.max(0, floor(r:evalNum("no_letters_header", 1)))
         local t = os.date("*t")
         local year, month, day = t.year, t.month, t.day
         local dim = daysIn(year, month)
@@ -1842,8 +1962,12 @@ function Builders.calendar(self, rec)
             row = row + 1
         end
     end
-    rebuild()
-    self.engine:listen("day", function() rebuild() end)
+    -- the grid rebuild already recreates every child, so live layout attrs
+    -- (including text_size — labels are recreated at the new size) just re-run it
+    rec:compositeNow(rebuild, { { "margin_x", "num" }, { "margin_y", "num" },
+        { "text_size", "num" }, { "outside_opacity", "num" },
+        { "dow_start", "num" }, { "no_letters_header", "num" } })
+    self.engine:listen("day", function() rebuild(rec) end)
 end
 
 -- ── chart layer (ports UL WatchSkin:createChartLayer / renderChart) ──────────
@@ -1955,21 +2079,13 @@ function Builders.chart(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
-    local w, h = rec:evalNum("width", 100), rec:evalNum("height", 100)
-    rec.shapeW, rec.shapeH = w, h
     local dn    = cc.DrawNode:create()   -- grid + data
     local dots  = cc.DrawNode:create()   -- line-chart markers, above the line
     local labNode = cc.Node:create()     -- labels topmost
     node:addChild(dn, 1); node:addChild(dots, 2); node:addChild(labNode, 3)
 
     local isLine     = (L.chart_type or "line") ~= "bar"
-    local lineWidth  = rec:evalNum("line_width", 10)
-    local markerSize = rec:evalNum("marker_size", 10)
-    local barThick   = rec:evalNum("bar_thickness", 50)
-    local topOp      = rec:evalNum("top_opacity", 100)
-    local botOp      = rec:evalNum("bottom_opacity", 100)
-    local radius     = rec:evalNum("radius", 10)
-    local cor        = CORNERS[floor(rec:evalNum("corner_type", 1))] or CORNERS[1]
+    local ap         = (L.alignment and ALIGN_AP[L.alignment]) or cc.p(.5, .5)
     local minMax     = parseMinMax(L.min_max)
     local chartLines = parseChartLines(L.lines)
     local chartLabels = parseChartLabels(L.labels)
@@ -1991,8 +2107,13 @@ function Builders.chart(self, rec)
     mergeDeps(rec:desc("color", "sub"))
     mergeDeps(rec:desc("color3", "sub"))
     mergeDeps(rec:desc("color4", "sub"))
-
-    local ox, oy = -w / 2, -h / 2       -- centre-anchored box (UL offsets)
+    -- geometry attrs re-fire the same redraw (their values are read inside it)
+    for _, a in ipairs({ "width", "height", "line_width", "marker_size",
+                         "bar_thickness", "top_opacity", "bottom_opacity",
+                         "radius", "corner_type" }) do
+        rec:use(a, "num")
+        mergeDeps(rec:desc(a, "num"))
+    end
 
     local function labelText(segs, ctx)
         local out = {}
@@ -2010,6 +2131,17 @@ function Builders.chart(self, rec)
     end
 
     local function redraw(r)
+        local w, h = r:evalNum("width", 100), r:evalNum("height", 100)
+        r.shapeW, r.shapeH = w, h
+        node:setPosition((0.5 - ap.x) * w, (0.5 - ap.y) * h)
+        local lineWidth  = r:evalNum("line_width", 10)
+        local markerSize = r:evalNum("marker_size", 10)
+        local barThick   = r:evalNum("bar_thickness", 50)
+        local topOp      = r:evalNum("top_opacity", 100)
+        local botOp      = r:evalNum("bottom_opacity", 100)
+        local radius     = r:evalNum("radius", 10)
+        local cor        = CORNERS[floor(r:evalNum("corner_type", 1))] or CORNERS[1]
+        local ox, oy = -w / 2, -h / 2   -- centre-anchored box (UL offsets)
         dn:clear(); dots:clear(); labNode:removeAllChildren()
         local V = r.engine.V
         local vals, n = {}, 0
@@ -2173,16 +2305,19 @@ function Builders.chart(self, rec)
         end
     end
 
-    if #deps == 0 then
-        local ok, err = pcall(redraw, rec)
-        if not ok then print("[WFRender] static chart: " .. tostring(err)) end
-    else
+    if #deps > 0 then
         self.engine:bind(WFCompositeBinding.new(rec, redraw), deps)
     end
+    -- same first-frame convention as compositeNow: draw once immediately
+    -- (also sets rec.shapeW before the main loop's anchor shift reads it)
+    local ok, err = pcall(redraw, rec)
+    if not ok then print("[WFRender] chart draw: " .. tostring(err)) end
 end
 
--- Ring of text labels (clock numerals). Built once; numerals are static.
--- Semantics port UL WatchSkin:createTextRing:
+-- Ring of text labels (clock numerals). The label SET is static; geometry
+-- (radius/text_size/squarify/show_every/angle span) and color are live —
+-- a dependency change rebuilds the ring. Semantics port UL
+-- WatchSkin:createTextRing:
 --   • label sets: named (I-XII with "IIII", Mo-Su / Mon-Sun starting at Sun,
 --     Jan-Dec) plus generic numeric ranges "A-B" and "A to B" (reversible);
 --   • item k sits k steps PAST 12 o'clock, so the LAST value lands at 12 for
@@ -2196,13 +2331,9 @@ function Builders.text_ring(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
-    local radius = rec:evalNum("radius", 200)
-    local size = math.max(1, floor(rec:evalNum("text_size", 24)))
     local font = L.font or ""
     local isBM = font:sub(1, 3) == "bm:"
     local rotMode = L.rotated_text
-    local sq = rec:evalNum("squarify", 0)
-    local showEvery = math.max(1, floor(rec:evalNum("show_every", 1)))
     local hide = {}
     for h in (L.hide_text or ""):gmatch("-?%d+") do hide[tonumber(h)] = true end
 
@@ -2239,51 +2370,60 @@ function Builders.text_ring(self, rec)
         for k = 1, n do labels[k] = labels[k]:lower() end
     end
 
-    local aStart, aEnd = rec:evalNum("angle_start", 0), rec:evalNum("angle_end", 360)
-    local stepA = (aEnd - aStart) / n
-    local rot = -aStart
-    local colHex = rec:evalSub("color", "ffffff")
-    local function mkLabel(str)
-        local lab
-        if isBM then
-            local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
-            if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, str:upper()) end
-            if lab then
-                local ch = lab:getContentSize().height
-                if ch > 0 then lab:setScale(1.6 * size / ch) end
-                lab:setColor(c3b(colHex))
-                return lab
-            end
-        elseif font ~= "" then
-            local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
-        end
-        lab = lab or cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size))
-        lab:setTextColor(c4b(colHex, 100))
-        return lab
-    end
-    -- UL quirk kept: bitmap-font rings place labels at radius/1.6
-    local placeR = isBM and radius / 1.6 or radius
-
-    for k = 1, n do
-        if vals[k] % showEvery == 0 and not hide[vals[k]] then
-            local sweep = rot - stepA * k + 90        -- polar degrees
-            local th = rad(sweep)
-            local rr = squarifyRadius(placeR, th, sq)
-            local lab = mkLabel(labels[k])
-            lab:setPosition(rr * cos(th), rr * sin(th))
-            if rotMode == "y" or rotMode == "ru" or rotMode == "ri" then
-                local r0 = stepA * k - rot            -- tangent rotation
-                local pol = (rot - stepA * k) % 360
-                local flip = (pol > 90 and pol < 270)
-                if (rotMode == "ru" and flip) or (rotMode == "ri" and not flip) then
-                    r0 = r0 + 180
+    rec:compositeNow(function(r)
+        node:removeAllChildren()
+        local radius = r:evalNum("radius", 200)
+        local size = math.max(1, floor(r:evalNum("text_size", 24)))
+        local sq = r:evalNum("squarify", 0)
+        local showEvery = math.max(1, floor(r:evalNum("show_every", 1)))
+        local aStart, aEnd = r:evalNum("angle_start", 0), r:evalNum("angle_end", 360)
+        local stepA = (aEnd - aStart) / n
+        local rot = -aStart
+        local colHex = r:evalSub("color", "ffffff")
+        local function mkLabel(str)
+            local lab
+            if isBM then
+                local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
+                if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, str:upper()) end
+                if lab then
+                    local ch = lab:getContentSize().height
+                    if ch > 0 then lab:setScale(1.6 * size / ch) end
+                    lab:setColor(c3b(colHex))
+                    return lab
                 end
-                lab:setRotation(r0)
+            elseif font ~= "" then
+                local ttf = self.base .. "fonts/" .. font .. ".ttf"
+                if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
             end
-            node:addChild(lab)
+            lab = lab or cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size))
+            lab:setTextColor(c4b(colHex, 100))
+            return lab
         end
-    end
+        -- UL quirk kept: bitmap-font rings place labels at radius/1.6
+        local placeR = isBM and radius / 1.6 or radius
+
+        for k = 1, n do
+            if vals[k] % showEvery == 0 and not hide[vals[k]] then
+                local sweep = rot - stepA * k + 90        -- polar degrees
+                local th = rad(sweep)
+                local rr = squarifyRadius(placeR, th, sq)
+                local lab = mkLabel(labels[k])
+                lab:setPosition(rr * cos(th), rr * sin(th))
+                if rotMode == "y" or rotMode == "ru" or rotMode == "ri" then
+                    local r0 = stepA * k - rot            -- tangent rotation
+                    local pol = (rot - stepA * k) % 360
+                    local flip = (pol > 90 and pol < 270)
+                    if (rotMode == "ru" and flip) or (rotMode == "ri" and not flip) then
+                        r0 = r0 + 180
+                    end
+                    lab:setRotation(r0)
+                end
+                node:addChild(lab)
+            end
+        end
+    end, { { "radius", "num" }, { "text_size", "num" }, { "squarify", "num" },
+           { "show_every", "num" }, { "angle_start", "num" }, { "angle_end", "num" },
+           { "color", "sub" } })
 end
 
 -- Split a UTF-8 string into characters. Byte walk, no patterns — this runs
@@ -2310,12 +2450,18 @@ function Builders.text_curved(self, rec)
     local L = rec.L
     local node = cc.Node:create()
     rec.visual = node
-    local radius = rec:evalNum("radius", 200)
-    local size = math.max(1, floor(rec:evalNum("text_size", 30)))
-    -- container node reports a zero box (glyphs are children) — declare the
-    -- arc's real extents for tap sizing AND the flatten canvas bound
-    rec.hitW = 2 * (radius + 2 * size)
-    rec.hitH = rec.hitW
+    -- radius/size are upvalues refreshed per rebuild (mkLabel and the arc
+    -- geometry read them live)
+    local radius, size
+    local function refreshGeom(r)
+        radius = r:evalNum("radius", 200)
+        size = math.max(1, floor(r:evalNum("text_size", 30)))
+        -- container node reports a zero box (glyphs are children) — declare the
+        -- arc's real extents for tap sizing AND the flatten canvas bound
+        r.hitW = 2 * (radius + 2 * size)
+        r.hitH = r.hitW
+    end
+    refreshGeom(rec)
     local font = L.font or ""
     local up = (L.curve_dir or "Up") ~= "Down"
     local isBM = font:sub(1, 3) == "bm:"
@@ -2383,19 +2529,35 @@ function Builders.text_curved(self, rec)
         -- per-glyph labels carry font-ATLAS texcoords: bake the arc into an
         -- RT covering the full circle bounds and shader THAT sprite
         rec.shaderBake = true
-        rebuild(rec:evalText("text", ""))
-        local D = 2 * (radius + 2 * size) + 4
-        local sp, rebake = bakedSprite(self, node, function() return D, D end)
+        -- lastText mirrors what the text binding applied (fmtnum-formatted),
+        -- so a geometry redraw never re-derives a differently-formatted string
+        local lastText = rec:evalText("text", "")
+        rebuild(lastText)
+        local sp, rebake = bakedSprite(self, node, function()
+            local D = 2 * (radius + 2 * size) + 4   -- live: tracks radius/text_size
+            return D, D
+        end)
         rec.visual = sp
         bindShapeShader(rec, sp)
         rec:bindText("text", function(_, v)
+            lastText = v
             rebuild(v)
             rebake()
         end)
+        rec:compositeNow(function(r)
+            refreshGeom(r)
+            rebuild(lastText)
+            rebake()
+        end, { { "radius", "num" }, { "text_size", "num" } })
         return
     end
     rec:use("color", "sub")
-    rec:bindText("text", function(_, v) rebuild(v) end)
+    local lastText = ""
+    rec:bindText("text", function(_, v) lastText = v; rebuild(v) end)
+    rec:compositeNow(function(r)
+        refreshGeom(r)
+        rebuild(lastText)
+    end, { { "radius", "num" }, { "text_size", "num" }, { "color", "sub" } })
 end
 
 -- ── tap handling ──────────────────────────────────────────────────────────────
@@ -2594,17 +2756,24 @@ end
 local function bindTransform(rec)
     -- gyro parallax: activating sgx/sgy switches the gyroscope stream on via
     -- the normal feature pipeline; the composite re-places the holder on
-    -- every sensor push.
-    rec.gyro = rec:evalNum("gyro", 0)
-    if rec.gyro ~= 0 then
+    -- every sensor push. A DYNAMIC gyro expression activates the stream too —
+    -- it may be 0 now and become nonzero later (the stream stays on either
+    -- way; that is the price of a live gyro=expression) — and rec.gyro itself
+    -- is bound so applyPos always multiplies the current value.
+    local gd = rec:desc("gyro", "num")
+    if not gd.const or (tonumber(gd.value) or 0) ~= 0 then
         local e = rec.engine
         e:activate("sgx"); e:activate("sgy")
         e:bind(WFCompositeBinding.new(rec, applyPos), { "sgx", "sgy" })
     end
+    rec.gyro = rec:evalNum("gyro", 0)
+    rec:bindNum("gyro", 0, function(r, v) r.gyro = v; applyPos(r) end)
     rec:bindNum("x", 0, function(r, v) r.baseX = v; applyPos(r) end)
     -- authored y is screen-down; Y_SIGN flips into cocos Y-up (see top)
     rec:bindNum("y", 0, function(r, v) r.baseY = Y_SIGN * v; applyPos(r) end)
     rec:bindNum("rotation", 0, function(r, v) r.holder:setRotation(v) end)
+    rec:bindNum("skew_x", 0, function(r, v) r.holder:setSkewX(v) end)
+    rec:bindNum("skew_y", 0, function(r, v) r.holder:setSkewY(v) end)
     rec:bindNum("anim_scale_x", 100, function(r, v) r.holder:setScaleX(v / 100) end)
     rec:bindNum("anim_scale_y", 100, function(r, v) r.holder:setScaleY(v / 100) end)
     -- A NON-NUMERIC opacity result hides the layer (UL: tonumber(op) or 0).
@@ -2659,7 +2828,11 @@ local function fastTagSet(engine)
 end
 
 local function recHasFastDep(rec, fast)
-    if (tonumber(rec.L.gyro) or 0) ~= 0 then return true end   -- sensor-driven position
+    -- sensor-driven position: literal nonzero gyro, or a DYNAMIC gyro
+    -- expression (may become nonzero later — its sgx/sgy composite is live,
+    -- so the layer must never bake)
+    local gd = rec._descs.gyro
+    if (tonumber(rec.L.gyro) or 0) ~= 0 or (gd and not gd.const) then return true end
     for _, d in pairs(rec._descs) do
         if type(d) == "table" and not d.const and d.deps then
             for _, t in ipairs(d.deps) do
@@ -3042,11 +3215,8 @@ function WFRender:load(xml, baseDir)
             rec.visual:setScaleX(rec.bsx); rec.visual:setScaleY(rec.bsy)
             holder:addChild(rec.visual)
         end
-        -- static skew (rarely dynamic)
-        if L.skew_x and rec:evalNum("skew_x", 0) ~= 0 then holder:setSkewX(rec:evalNum("skew_x", 0)) end
-        if L.skew_y and rec:evalNum("skew_y", 0) ~= 0 then holder:setSkewY(rec:evalNum("skew_y", 0)) end
-
-        -- transform attributes → setter bindings (constants apply immediately)
+        -- transform attributes → setter bindings (constants apply immediately;
+        -- skew_x/skew_y ride along in bindTransform like rotation)
         local ok, err = pcall(bindTransform, rec)
         if not ok then print("[WFRender] transform " .. tostring(L.type) .. ": " .. tostring(err)) end
 
