@@ -18,6 +18,16 @@ object WatchfaceRepository {
         override fun sizeOf(key: String, value: Bitmap) = 1
     }
 
+    // Cap concurrent preview decodes: a fling through the selector binds many
+    // cells at once, and unbounded Dispatchers.IO would run every JPEG decode
+    // in parallel — saturating all cores of a slow SoC and starving the
+    // UI/render thread even though nothing runs on main.
+    private val previewDecodeDispatcher = Dispatchers.IO.limitedParallelism(2)
+
+    // Previews never need to exceed the watchface render square (512 canvas);
+    // oversized preview.jpg decodes downsampled to save CPU and cache memory.
+    private const val MAX_PREVIEW_DIM = 512
+
     fun getWatchfaceDir(ctx: Context): File =
         File(ctx.getExternalFilesDir(null), "watchfaces").also { it.mkdirs() }
 
@@ -62,18 +72,32 @@ object WatchfaceRepository {
 
     suspend fun loadPreview(file: File): Bitmap? {
         previewCache.get(file.absolutePath)?.let { return it }
-        return withContext(Dispatchers.IO) {
+        return withContext(previewDecodeDispatcher) {
             try {
                 ZipFile(file).use { zip ->
                     val entry = zip.getEntry("preview.jpg") ?: return@withContext null
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    zip.getInputStream(entry).use { BitmapFactory.decodeStream(it, null, bounds) }
+                    val opts = BitmapFactory.Options().apply {
+                        inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
+                    }
                     zip.getInputStream(entry).use { stream ->
-                        BitmapFactory.decodeStream(stream)?.also {
+                        BitmapFactory.decodeStream(stream, null, opts)?.also {
                             previewCache.put(file.absolutePath, it)
                         }
                     }
                 }
             } catch (_: Exception) { null }
         }
+    }
+
+    /** Largest power-of-two downsample that keeps both dimensions >= MAX_PREVIEW_DIM. */
+    private fun sampleSizeFor(w: Int, h: Int): Int {
+        var sample = 1
+        while (w / (sample * 2) >= MAX_PREVIEW_DIM && h / (sample * 2) >= MAX_PREVIEW_DIM) {
+            sample *= 2
+        }
+        return sample
     }
 
     fun getPreviewCached(path: String): Bitmap? = previewCache.get(path)
