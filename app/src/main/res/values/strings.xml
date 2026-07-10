@@ -82,7 +82,8 @@
     <string name="aod_overlay_perm_message">To wake into AOD when the screen turns off inside another app, CloX needs the “Display over other apps” permission. Without it, Android blocks the launcher from coming to the front.</string>
     <string name="aod_overlay_perm_grant">Open settings</string>
 
-    <!-- Round overscroll (shared by Grid2D / Honeycomb) -->
+    <!-- Round overscroll + icon size (shared by all app-list styles) -->
+    <string name="pref_icon_size_title">Icon size (dp, 0 = auto)</string>
     <string name="pref_round_overscroll_title">Round overscroll</string>
     <string name="pref_round_overscroll_summary">Pan up to half a screen past the edge and stay there — reach corner icons on a round screen</string>
 

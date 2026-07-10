@@ -305,6 +305,15 @@ class AppListSettingsFragment : BaseSettingsFragment() {
                 p.edit().putString("list_3d_curve", val2).apply(); refreshCurve()
             }
         }
+        val sliderIcon = v.findViewById<Slider>(R.id.sliderListIconSize)
+        val tvIcon     = v.findViewById<TextView>(R.id.tvListIconSize)
+        val iconVal = p.getInt("list_icon_size", 0).toFloat()
+        sliderIcon.value = iconVal.coerceIn(0f, 120f); tvIcon.text = "${iconVal.toInt()}"
+        sliderIcon.addOnChangeListener { _, value, _ -> tvIcon.text = "${value.toInt()}"; p.edit().putInt("list_icon_size", value.toInt()).apply() }
+        v.findViewById<MaterialSwitch>(R.id.switchListRoundOverscroll).apply {
+            isChecked = p.getBoolean("list_round_overscroll", false)
+            setOnCheckedChangeListener { _, c -> p.edit().putBoolean("list_round_overscroll", c).apply() }
+        }
     }
 
     private fun setupGridStyleOptions(v: View, p: android.content.SharedPreferences) {
@@ -316,6 +325,15 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         v.findViewById<MaterialSwitch>(R.id.switchGridNames).apply {
             isChecked = p.getBoolean("grid_names", true)
             setOnCheckedChangeListener { _, c -> p.edit().putBoolean("grid_names", c).apply() }
+        }
+        val sliderIcon = v.findViewById<Slider>(R.id.sliderGridIconSize)
+        val tvIcon     = v.findViewById<TextView>(R.id.tvGridIconSize)
+        val iconVal = p.getInt("grid_icon_size", 0).toFloat()
+        sliderIcon.value = iconVal.coerceIn(0f, 120f); tvIcon.text = "${iconVal.toInt()}"
+        sliderIcon.addOnChangeListener { _, value, _ -> tvIcon.text = "${value.toInt()}"; p.edit().putInt("grid_icon_size", value.toInt()).apply() }
+        v.findViewById<MaterialSwitch>(R.id.switchGridRoundOverscroll).apply {
+            isChecked = p.getBoolean("grid_round_overscroll", false)
+            setOnCheckedChangeListener { _, c -> p.edit().putBoolean("grid_round_overscroll", c).apply() }
         }
     }
 
@@ -343,6 +361,15 @@ class AppListSettingsFragment : BaseSettingsFragment() {
                 p.getString("waterfall_3d_curve", "linear") ?: "linear") { val2, _ ->
                 p.edit().putString("waterfall_3d_curve", val2).apply(); refreshCurve()
             }
+        }
+        val sliderIcon = v.findViewById<Slider>(R.id.sliderWaterfallIconSize)
+        val tvIcon     = v.findViewById<TextView>(R.id.tvWaterfallIconSize)
+        val iconVal = p.getInt("waterfall_icon_size", 0).toFloat()
+        sliderIcon.value = iconVal.coerceIn(0f, 120f); tvIcon.text = "${iconVal.toInt()}"
+        sliderIcon.addOnChangeListener { _, value, _ -> tvIcon.text = "${value.toInt()}"; p.edit().putInt("waterfall_icon_size", value.toInt()).apply() }
+        v.findViewById<MaterialSwitch>(R.id.switchWaterfallRoundOverscroll).apply {
+            isChecked = p.getBoolean("waterfall_round_overscroll", false)
+            setOnCheckedChangeListener { _, c -> p.edit().putBoolean("waterfall_round_overscroll", c).apply() }
         }
     }
 

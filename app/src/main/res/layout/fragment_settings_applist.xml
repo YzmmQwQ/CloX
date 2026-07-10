@@ -377,6 +377,40 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/pref_icon_size_title"
+                        android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                    <TextView android:id="@+id/tvListIconSize"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:textSize="13sp" android:textColor="?attr/colorPrimary"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderListIconSize"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:valueFrom="0" android:valueTo="120" android:stepSize="1" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_round_overscroll_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_round_overscroll_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchListRoundOverscroll"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -421,6 +455,40 @@
                         android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchGridNames"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/pref_icon_size_title"
+                        android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                    <TextView android:id="@+id/tvGridIconSize"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:textSize="13sp" android:textColor="?attr/colorPrimary"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderGridIconSize"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:valueFrom="0" android:valueTo="120" android:stepSize="1" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_round_overscroll_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_round_overscroll_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchGridRoundOverscroll"
                         android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
             </LinearLayout>
@@ -496,6 +564,40 @@
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_expand_more" app:tint="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/pref_icon_size_title"
+                        android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                    <TextView android:id="@+id/tvWaterfallIconSize"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:textSize="13sp" android:textColor="?attr/colorPrimary"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderWaterfallIconSize"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:valueFrom="0" android:valueTo="120" android:stepSize="1" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="14dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_round_overscroll_title"
+                            android:textSize="14sp" android:textColor="?attr/colorOnSurface" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/pref_round_overscroll_summary"
+                            android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchWaterfallRoundOverscroll"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
 
             </LinearLayout>

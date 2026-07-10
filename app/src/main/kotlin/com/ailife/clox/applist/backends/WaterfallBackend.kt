@@ -36,6 +36,11 @@ class WaterfallBackend(private val ctx: Context) : AppListBackend {
 
     override fun createContentView(context: Context): View {
         val wlm = WaterfallLayoutManager().also { lm = it }
+        val iconSizeDp = AppListPrefs.waterfallIconSize(ctx)
+        if (iconSizeDp > 0) {
+            wlm.cellSizePx = (iconSizeDp * ctx.resources.displayMetrics.density + 0.5f).toInt()
+        }
+        wlm.roundOverscroll = AppListPrefs.waterfallRoundOverscroll(ctx)
         val rv = RecyclerView(context).also { rv3d = it }.apply {
             layoutManager = wlm
             clipToPadding = false

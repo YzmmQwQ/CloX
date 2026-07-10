@@ -26,6 +26,10 @@ class GridBackend(private val ctx: Context) : AppListBackend {
 
     private val cols      = AppListPrefs.gridCols(ctx)
     private val showNames = AppListPrefs.gridNames(ctx)
+    private val iconSizePx = AppListPrefs.gridIconSize(ctx).let {
+        if (it > 0) (it * ctx.resources.displayMetrics.density + 0.5f).toInt() else 0
+    }
+    private val roundOverscroll = AppListPrefs.gridRoundOverscroll(ctx)
     private val showBadge = AppListPrefs.notifBadge(ctx)
     private val showCount = AppListPrefs.notifBadgeCount(ctx)
     private var notifCounts: Map<String, Int> = emptyMap()
@@ -38,12 +42,18 @@ class GridBackend(private val ctx: Context) : AppListBackend {
             clipToPadding = false
             edgeEffectFactory = SpringEdgeEffectFactory(AppListPrefs.overscroll(context))
         }
+        if (roundOverscroll) ListBackend.attachRoundOverscroll(rv)
 
         // Always use item_app_grid.xml; icon size is identical with or without label
         adapter = AppListAdapter(R.layout.item_app_grid) { view, item ->
             val iv = view.findViewById<ImageView>(R.id.appIcon)
             val key = "${item.packageName}/${item.activityName}"
-            if (iv.measuredWidth > 0) {
+            if (iconSizePx > 0) {
+                // Fixed size, centred in the (cols-driven) square cell
+                iv.layoutParams = android.widget.FrameLayout.LayoutParams(
+                    iconSizePx, iconSizePx, android.view.Gravity.CENTER)
+                iv.setImageDrawable(ScaledIconCache.obtain(item.icon, iconSizePx, key))
+            } else if (iv.measuredWidth > 0) {
                 val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
                 iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
             } else {

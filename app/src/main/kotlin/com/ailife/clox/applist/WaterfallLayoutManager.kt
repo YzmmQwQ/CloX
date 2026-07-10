@@ -15,6 +15,16 @@ import androidx.recyclerview.widget.RecyclerView
  */
 class WaterfallLayoutManager : RecyclerView.LayoutManager() {
 
+    /** Fixed cell size in px; 0 = auto (width / 4). Rows re-centre for any size. */
+    var cellSizePx = 0
+
+    /**
+     * Extends the settled scroll range half a screen past the content on both ends,
+     * so top/bottom rows can rest at the centre of a round screen — same semantics
+     * as Grid2DView/HoneycombView roundOverscroll.
+     */
+    var roundOverscroll = false
+
     private var scrollOffset = 0
 
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams =
@@ -28,9 +38,10 @@ class WaterfallLayoutManager : RecyclerView.LayoutManager() {
     }
 
     override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler, state: RecyclerView.State): Int {
-        val maxScroll = (totalHeight() - height).coerceAtLeast(0)
+        val restPad = if (roundOverscroll) height / 2 else 0
+        val maxScroll = (totalHeight() - height).coerceAtLeast(0) + restPad
         val clamped = when {
-            dy < 0 -> dy.coerceAtLeast(-scrollOffset)
+            dy < 0 -> dy.coerceAtLeast(-(scrollOffset + restPad))
             dy > 0 -> dy.coerceAtMost(maxScroll - scrollOffset)
             else   -> 0
         }
@@ -45,8 +56,12 @@ class WaterfallLayoutManager : RecyclerView.LayoutManager() {
 
     // ── Layout helpers ────────────────────────────────────────────────────────
 
-    /** Cell size = width/4, same for all icons regardless of row type. */
-    private fun cellSize() = if (width > 0) width / 4 else 80
+    /** Cell size = fixed px when set, else width/4; same for all icons regardless of row type. */
+    private fun cellSize() = when {
+        cellSizePx > 0 -> cellSizePx
+        width > 0      -> width / 4
+        else           -> 80
+    }
 
     /** Returns (row, col, rowType: 3|4) for adapter position. */
     private fun rowInfo(pos: Int): Triple<Int, Int, Int> {
@@ -59,9 +74,10 @@ class WaterfallLayoutManager : RecyclerView.LayoutManager() {
     /** Pixel Y of the top of a row (before scroll offset). */
     private fun rowTopAbs(row: Int) = row * cellSize()
 
-    /** Left pixel for col inside a row. 3-col rows are centred. */
+    /** Left pixel for col inside a row. Rows are centred for any cell size
+     *  (at the default cs = width/4 this gives the original 0 / cs/2 offsets). */
     private fun leftX(col: Int, rowType: Int, cs: Int): Int {
-        val startOffset = if (rowType == 3) cs / 2 else 0
+        val startOffset = (width - rowType * cs) / 2
         return startOffset + col * cs
     }
 

@@ -41,15 +41,21 @@ object AppListPrefs {
     const val KEY_LIST_3D     = "list_3d"
     const val KEY_LIST_3D_MIN_SCALE = "list_3d_min_scale"
     const val KEY_LIST_3D_CURVE = "list_3d_curve"
+    const val KEY_LIST_ICON_SIZE = "list_icon_size"              // dp, 0 = auto
+    const val KEY_LIST_ROUND_OVERSCROLL = "list_round_overscroll"
 
     // ── Grid sub-settings ────────────────────────────────────────────────────
     const val KEY_GRID_COLS  = "grid_cols"
     const val KEY_GRID_NAMES = "grid_names"
+    const val KEY_GRID_ICON_SIZE = "grid_icon_size"              // dp, 0 = auto
+    const val KEY_GRID_ROUND_OVERSCROLL = "grid_round_overscroll"
 
     // ── Waterfall sub-settings ───────────────────────────────────────────────
     const val KEY_WATERFALL_3D = "waterfall_3d"
     const val KEY_WATERFALL_3D_MIN_SCALE = "waterfall_3d_min_scale"
     const val KEY_WATERFALL_3D_CURVE = "waterfall_3d_curve"
+    const val KEY_WATERFALL_ICON_SIZE = "waterfall_icon_size"    // dp, 0 = auto
+    const val KEY_WATERFALL_ROUND_OVERSCROLL = "waterfall_round_overscroll"
 
     // ── Honeycomb sub-settings ───────────────────────────────────────────────
     const val KEY_HONEYCOMB_3D        = "honeycomb_3d"
@@ -101,6 +107,8 @@ object AppListPrefs {
 
     fun listSearch(ctx: Context) = get(ctx).getBoolean(KEY_LIST_SEARCH, true)
     fun list3d(ctx: Context)     = get(ctx).getBoolean(KEY_LIST_3D, false)
+    fun listIconSize(ctx: Context) = get(ctx).getInt(KEY_LIST_ICON_SIZE, 0)
+    fun listRoundOverscroll(ctx: Context) = get(ctx).getBoolean(KEY_LIST_ROUND_OVERSCROLL, false)
     fun list3dConfig(ctx: Context) = Effect3DConfig(
         curve = get(ctx).getString(KEY_LIST_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
         minScalePercent = get(ctx).getInt(KEY_LIST_3D_MIN_SCALE, 50)
@@ -108,8 +116,12 @@ object AppListPrefs {
 
     fun gridCols(ctx: Context)  = get(ctx).getInt(KEY_GRID_COLS, 4)
     fun gridNames(ctx: Context) = get(ctx).getBoolean(KEY_GRID_NAMES, true)
+    fun gridIconSize(ctx: Context) = get(ctx).getInt(KEY_GRID_ICON_SIZE, 0)
+    fun gridRoundOverscroll(ctx: Context) = get(ctx).getBoolean(KEY_GRID_ROUND_OVERSCROLL, false)
 
     fun waterfall3d(ctx: Context) = get(ctx).getBoolean(KEY_WATERFALL_3D, false)
+    fun waterfallIconSize(ctx: Context) = get(ctx).getInt(KEY_WATERFALL_ICON_SIZE, 0)
+    fun waterfallRoundOverscroll(ctx: Context) = get(ctx).getBoolean(KEY_WATERFALL_ROUND_OVERSCROLL, false)
     fun waterfall3dConfig(ctx: Context) = Effect3DConfig(
         curve = get(ctx).getString(KEY_WATERFALL_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
         minScalePercent = get(ctx).getInt(KEY_WATERFALL_3D_MIN_SCALE, 50)

@@ -38,6 +38,8 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     private var allItems: List<AppItem> = emptyList()
     private val showSearch  = AppListPrefs.listSearch(ctx)
     private val enable3d    = AppListPrefs.list3d(ctx)
+    private val iconSizePx  = AppListPrefs.listIconSize(ctx).let { if (it > 0) it.dp(ctx) else 0 }
+    private val roundOverscroll = AppListPrefs.listRoundOverscroll(ctx)
     private val showBadge   = AppListPrefs.notifBadge(ctx)
     private val showCount   = AppListPrefs.notifBadgeCount(ctx)
     private var notifCounts: Map<String, Int> = emptyMap()
@@ -67,13 +69,22 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             setPadding(0, 0, 0, 8.dp(context))
             edgeEffectFactory = SpringEdgeEffectFactory(AppListPrefs.overscroll(context))
         }
+        if (roundOverscroll) attachRoundOverscroll(recyclerView)
 
         adapter = AppListAdapter(
             itemLayoutRes = R.layout.item_app_list
         ) { view, item ->
             val iv = view.findViewById<ImageView>(R.id.appIcon)
             val key = "${item.packageName}/${item.activityName}"
-            if (iv.measuredWidth > 0) {
+            if (iconSizePx > 0) {
+                // Fixed size: resize the icon slot and grow the row to fit
+                val slot = iv.parent as View
+                slot.layoutParams = slot.layoutParams.apply { width = iconSizePx; height = iconSizePx }
+                view.layoutParams = view.layoutParams.apply {
+                    height = maxOf(iconSizePx + 16.dp(ctx), 56.dp(ctx))
+                }
+                iv.setImageDrawable(ScaledIconCache.obtain(item.icon, iconSizePx, key))
+            } else if (iv.measuredWidth > 0) {
                 val size = (iv.measuredWidth - iv.paddingLeft - iv.paddingRight).coerceAtLeast(1)
                 iv.setImageDrawable(ScaledIconCache.obtain(item.icon, size, key))
             } else {
@@ -207,4 +218,21 @@ class ListBackend(private val ctx: Context) : AppListBackend {
     }
 
     private fun Int.dp(ctx: Context) = (this * ctx.resources.displayMetrics.density + 0.5f).toInt()
+
+    companion object {
+        /**
+         * Round overscroll for RecyclerView styles: half-a-screen top/bottom padding
+         * (clipToPadding=false) extends the settled scroll range past the content so
+         * edge rows can rest at the centre of a round screen — the RecyclerView
+         * equivalent of Grid2DView/HoneycombView's roundOverscroll rest padding.
+         */
+        fun attachRoundOverscroll(rv: RecyclerView) {
+            rv.addOnLayoutChangeListener { v, _, top, _, bottom, _, _, _, _ ->
+                val half = (bottom - top) / 2
+                if (half > 0 && v.paddingTop != half) {
+                    v.setPadding(v.paddingLeft, half, v.paddingRight, half)
+                }
+            }
+        }
+    }
 }
