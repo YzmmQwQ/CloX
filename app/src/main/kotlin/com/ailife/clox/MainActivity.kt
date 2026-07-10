@@ -243,6 +243,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         gestureRoot = findViewById(R.id.gestureRoot)
         setupSplash(savedInstanceState)
+        setupAppListCover()
 
         if (savedInstanceState == null) {
             // HomeFragment hosts the Axmol SurfaceView (Lua watchface)
@@ -300,6 +301,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             appListFragment?.view?.translationX = if (appListOpen) 0f else screenW
             appListFragment?.setActive(appListOpen)
             gestureRoot.appListOpen = appListOpen
+            setAppListCoverShown(appListOpen)   // restored directly into settled-open
             // restored directly into the open state (no spring end listener runs)
             dev.axmol.lib.AxmolRenderer.setForceLowFps(
                 appListOpen && com.ailife.clox.cocos.RenderPolicy.dynamicFps)
@@ -549,6 +551,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // is re-asserted in onWindowFocusChanged once the window has settled.
         dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
         dev.axmol.lib.AxmolRenderer.boostFrames(1.5f)
+        // Safety net: the cover only belongs under a settled-open app list
+        if (!appListOpen) setAppListCoverShown(false)
         // A panel (notifications / QS / widgets) left open before the screen turned off should
         // not linger on resume — drop it instantly so we land on the watchface.
         if (overlayController.hasActiveOverlay()) overlayController.dismissActiveInstant()
@@ -1567,7 +1571,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     private fun closeAppList(velocity: Float = 0f) {
         appListOpen = false; gestureRoot.appListOpen = false
-        // face becomes visible the moment the close slide starts — lift the cap now
+        // face becomes visible the moment the close slide starts — drop the opaque
+        // cover and lift the cap now
+        setAppListCoverShown(false)
         dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
         appListFragment?.setActive(false)
         springAppList(screenW, velocity)
@@ -1589,8 +1595,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             // invisible GL rendering at 1 FPS and leave the CPU/GPU to the list
             // (dynamic FPS setting, default on).
             addEndListener { _, canceled, _, _ ->
-                if (!canceled && appListOpen && com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
-                    dev.axmol.lib.AxmolRenderer.setForceLowFps(true)
+                if (!canceled && appListOpen) {
+                    // Settled fully open: back the opaque list with its cover layer so a
+                    // background trip + gesture return can't flash the face through it.
+                    setAppListCoverShown(true)
+                    if (com.ailife.clox.cocos.RenderPolicy.dynamicFps) {
+                        dev.axmol.lib.AxmolRenderer.setForceLowFps(true)
+                    }
                 }
             }
         }
@@ -1607,7 +1618,72 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // live position so it correctly occludes the watchface during and after the slide.
     private fun refreshAppListTransparentRegion() {
         val v = appListFragment?.view ?: return
+        // Any movement re-exposes the watchface — drop the opaque cover instantly.
+        // (Every path that moves the list calls this: interactive drags, the spring's
+        // frame listener, predictive back, and resetToWatchface.)
+        if (v.translationX > 1f) setAppListCoverShown(false)
         v.parent?.requestTransparentRegion(v)
+    }
+
+    // ── Opaque app-list backing layer (never touches the GL view) ─────────────
+    //
+    // Screen-record analysis of the gesture-home return with the app list open: the
+    // watchface GL layer gets a fresh buffer BEFORE the relaunched window's first frame
+    // is presented (the window frame is held by the resume sync), so for 1-2 frames
+    // SurfaceFlinger composites the watchface alone (alpha-ramped by the transition)
+    // over the wallpaper — the "app list not opaque" flash. Nothing drawn INSIDE the
+    // window can prevent it: the window frame isn't on screen yet.
+    //
+    // Fix: our own opaque cover SurfaceView at media-overlay Z — above the watchface
+    // layer, below the window — painted with the app list background by a synchronous
+    // main-thread canvas draw in surfaceCreated. Shown only while the list is settled
+    // fully open (exactly when the face is invisible anyway) and persists as view state
+    // across the background trip, so after a relaunch its buffer is present from the
+    // first composited frame: the transition shows the list background, not the face.
+    // Dropped the instant the list starts moving (refreshAppListTransparentRegion runs
+    // on every translation change) so it never occludes the face in normal use.
+
+    private var appListCover: android.view.SurfaceView? = null
+
+    private fun setupAppListCover() {
+        val cover = android.view.SurfaceView(this)
+        cover.setZOrderMediaOverlay(true)   // above the watchface layer, below the window
+        cover.visibility = View.GONE
+        cover.holder.addCallback(object : android.view.SurfaceHolder.Callback {
+            override fun surfaceCreated(holder: android.view.SurfaceHolder) = drawAppListCover()
+            override fun surfaceChanged(holder: android.view.SurfaceHolder, f: Int, w: Int, h: Int) = drawAppListCover()
+            override fun surfaceDestroyed(holder: android.view.SurfaceHolder) {}
+        })
+        // Between homeContainer (index 0) and fragmentContainer
+        gestureRoot.addView(cover, 1, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        appListCover = cover
+    }
+
+    private fun drawAppListCover() {
+        val cover = appListCover ?: return
+        val canvas = try { cover.holder.lockCanvas() } catch (_: Exception) { null } ?: return
+        try {
+            // Copy of the list background (same source as the gesture-return veil) so the
+            // shared drawable's bounds are never disturbed.
+            val bg = appListFragment?.view?.background?.constantState?.newDrawable()?.mutate()
+            if (bg != null) {
+                bg.setBounds(0, 0, canvas.width, canvas.height)
+                bg.draw(canvas)
+            } else {
+                canvas.drawColor(com.google.android.material.color.MaterialColors.getColor(
+                    gestureRoot, com.google.android.material.R.attr.colorSurface,
+                    android.graphics.Color.BLACK))
+            }
+        } finally {
+            try { cover.holder.unlockCanvasAndPost(canvas) } catch (_: Exception) {}
+        }
+    }
+
+    private fun setAppListCoverShown(shown: Boolean) {
+        val cover = appListCover ?: return
+        val vis = if (shown) View.VISIBLE else View.GONE
+        if (cover.visibility != vis) cover.visibility = vis
     }
 
     // ── Back press ───────────────────────────────────────────────────────────
