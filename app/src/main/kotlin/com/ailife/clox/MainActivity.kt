@@ -1341,6 +1341,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             (CocosManager.getGlView() as? android.opengl.GLSurfaceView)?.queueEvent {
                 runCatching { com.ailife.clox.cocos.LuaBridge.callLuaFunction("WatchfaceOnSaveVars", "") }
             }
+            // The 1 FPS app-list cap leaves the render thread napping up to a full second
+            // in its frame-gate wait; GLSurfaceView.onPause() and the queued save-vars
+            // event block the main thread until it wakes — trace showed performPause at
+            // 680-1000 ms on every pause with the list open (the "laggy HOME press").
+            // Kick it awake (after queueEvent, per kickFrame's contract); the cap stays.
+            dev.axmol.lib.AxmolRenderer.kickFrame()
             CocosManager.onPause()
         }
         aodManager.onPause()
@@ -1644,11 +1650,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // on every translation change) so it never occludes the face in normal use.
 
     private var appListCover: android.view.SurfaceView? = null
+    private val COVER_OFFSCREEN = 100_000f
 
     private fun setupAppListCover() {
         val cover = android.view.SurfaceView(this)
         cover.setZOrderMediaOverlay(true)   // above the watchface layer, below the window
-        cover.visibility = View.GONE
+        cover.translationX = COVER_OFFSCREEN
         cover.holder.addCallback(object : android.view.SurfaceHolder.Callback {
             override fun surfaceCreated(holder: android.view.SurfaceHolder) = drawAppListCover()
             override fun surfaceChanged(holder: android.view.SurfaceHolder, f: Int, w: Int, h: Int) = drawAppListCover()
@@ -1680,10 +1687,16 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
     }
 
+    // Shown/hidden by TRANSLATION, never visibility: a visibility toggle destroys and
+    // recreates the cover's surface, and that relayout's window sync waits for a fresh
+    // frame from the (1 FPS-capped, list-open) watchface SurfaceView — a 1000 ms stall
+    // on every HOME-collapse (Choreographer "Skipped 60 frames", Davey ~1s). Moving the
+    // layer off-screen is a pure composition transaction: surface stays alive, no
+    // relayout, no sync, instant.
     private fun setAppListCoverShown(shown: Boolean) {
         val cover = appListCover ?: return
-        val vis = if (shown) View.VISIBLE else View.GONE
-        if (cover.visibility != vis) cover.visibility = vis
+        val tx = if (shown) 0f else COVER_OFFSCREEN
+        if (cover.translationX != tx) cover.translationX = tx
     }
 
     // ── Back press ───────────────────────────────────────────────────────────
