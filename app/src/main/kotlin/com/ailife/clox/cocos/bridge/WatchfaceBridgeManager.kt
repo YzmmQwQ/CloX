@@ -430,6 +430,30 @@ class WatchfaceBridgeManager(
         }.launchIn(scope)
     }
 
+    // ── Host pause/resume ──────────────────────────────────────────────────────
+    // The launcher pausing (screen off, or covered by a launched app) must quiesce
+    // the periodic data sources: every sendToLua kicks the GL thread out of its
+    // FPS-throttle nap, so the 5 s storage/alarm poll alone was a wakeup train all
+    // night, and face-enabled sensors stayed registered at live rates. Push-driven
+    // categories (settings, battery, notifications) keep flowing — a face switch
+    // from the selector happens while we're paused and must not be suppressed.
+    // Resume re-registers the sensors and re-pushes everything so the face
+    // catches up instantly.
+    @Volatile private var hostPaused = false
+
+    fun onHostPause() {
+        if (hostPaused) return
+        hostPaused = true
+        sensorHelper.suspend()
+    }
+
+    fun onHostResume() {
+        if (!hostPaused) return
+        hostPaused = false
+        sensorHelper.resume()
+        pushAllLiveData()
+    }
+
     // ── Periodic updates for data that doesn't have a push observer ───────────
 
     private fun startPeriodicUpdates() {
@@ -444,6 +468,7 @@ class WatchfaceBridgeManager(
         scope.launch {
             while (isActive) {
                 delay(5_000)
+                if (hostPaused) continue   // face invisible: no disk poll, no GL wakeups
                 val storage = withContext(Dispatchers.IO) { LiveDataHelper.storageJson(ctx) }
                 val alarm   = withContext(Dispatchers.IO) { LiveDataHelper.alarmJson(ctx) }
                 sendToLua("storage", storage)
@@ -465,6 +490,7 @@ class WatchfaceBridgeManager(
         // has elapsed since the last successful update and the feature is in use.
         scope.launch {
             while (isActive) {
+                if (hostPaused) { delay(60_000); continue }   // no fetches while invisible
                 val enabled      = WeatherPrefs.enabled(ctx)
                 val wantsWeather = watchfaceWantsWeather
                 val hasWidget    = hasWeatherWidget()
@@ -492,6 +518,7 @@ class WatchfaceBridgeManager(
         // its configured interval has elapsed and the watchface requests it.
         scope.launch {
             while (isActive) {
+                if (hostPaused) { delay(60_000); continue }   // no fetches while invisible
                 val intervalMs = HealthPrefs.intervalMs(ctx)
                 for (metric in HealthHelper.Metric.entries) {
                     if (watchfaceWantsHealth[metric] != true) continue

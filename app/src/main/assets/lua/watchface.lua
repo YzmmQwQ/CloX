@@ -532,6 +532,15 @@ function WatchfaceScene:wireBridge()
             pcall(function() self._renderer.script:saveVars() end)
         end
     end)
+    -- Host pause/resume (screen off, or covered by a launched app): stop/restart
+    -- face videos. MediaEngine (MediaCodec) decodes on its own thread — pausing GL
+    -- does NOT stop the codec, so a playing face video kept the decoder at full
+    -- rate with the display dark (~35% CPU while asleep).
+    WatchfaceBridge.onChange("cmd_hostvis", function(s)
+        if self._renderer and self._renderer.setVideosRunning then
+            pcall(function() self._renderer:setVideosRunning(s and s.visible ~= false) end)
+        end
+    end)
     -- "Clear persistent storage" from the config dialog: delete the current
     -- face's variable backup + wipe its live vars, then reload (fresh state).
     WatchfaceBridge.onChange("cmd_clearvars", function()

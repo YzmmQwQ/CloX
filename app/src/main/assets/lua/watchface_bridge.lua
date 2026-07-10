@@ -295,3 +295,19 @@ function WatchfaceOnSaveVars()
     local h = WatchfaceBridge._handlers["cmd_savevars"]
     if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_savevars) end end
 end
+
+-- Java tells Lua the host activity paused/resumed (screen off, or covered by a
+-- launched app). Pausing GL does NOT stop MediaEngine's decode thread, so face
+-- videos must be stopped explicitly or the codec keeps burning CPU/battery
+-- while the face is not visible.
+function WatchfaceOnHostPause()
+    WF.cmd_hostvis = { visible = false }
+    local h = WatchfaceBridge._handlers["cmd_hostvis"]
+    if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_hostvis) end end
+end
+
+function WatchfaceOnHostResume()
+    WF.cmd_hostvis = { visible = true }
+    local h = WatchfaceBridge._handlers["cmd_hostvis"]
+    if h then for _, fn in ipairs(h) do pcall(fn, WF.cmd_hostvis) end end
+end

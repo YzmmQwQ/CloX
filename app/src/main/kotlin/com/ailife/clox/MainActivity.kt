@@ -542,6 +542,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         Log.d("CloX/Return", "onResume (reset wasStopped=false, cameFromBackground=$cameFromBackground selfForeground=$selfForeground skipSelfAnim=$skipSelfAnim)")
         wasStoppedSinceResume = false
         CocosManager.onResume()
+        // Restart face videos stopped by WatchfaceOnHostPause (no-op if none / dim)
+        (CocosManager.getGlView() as? android.opengl.GLSurfaceView)?.queueEvent {
+            runCatching { com.ailife.clox.cocos.LuaBridge.callLuaFunction("WatchfaceOnHostResume", "") }
+        }
+        // Restore periodic bridge data + sensors, and resync everything missed
+        (supportFragmentManager.findFragmentByTag("home") as? com.ailife.clox.home.HomeFragment)
+            ?.onHostResume()
         aodManager.onResume()
         // The resume window sync (SurfaceSyncGroup) waits for a fresh frame from
         // the GL SurfaceView; a 1 FPS-capped or idle-clamped face makes it hit
@@ -1340,7 +1347,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             // the GL thread still services its event queue while paused.
             (CocosManager.getGlView() as? android.opengl.GLSurfaceView)?.queueEvent {
                 runCatching { com.ailife.clox.cocos.LuaBridge.callLuaFunction("WatchfaceOnSaveVars", "") }
+                // Face not visible (screen off or covered by an app): stop face videos.
+                // MediaEngine decodes on its own thread — pausing GL does NOT stop the
+                // codec, which kept burning ~35% CPU with the watch asleep.
+                runCatching { com.ailife.clox.cocos.LuaBridge.callLuaFunction("WatchfaceOnHostPause", "") }
             }
+            // Quiesce the bridge's periodic data + hardware sensors with the face
+            (supportFragmentManager.findFragmentByTag("home") as? com.ailife.clox.home.HomeFragment)
+                ?.onHostPause()
             // The 1 FPS app-list cap leaves the render thread napping up to a full second
             // in its frame-gate wait; GLSurfaceView.onPause() and the queued save-vars
             // event block the main thread until it wakes — trace showed performPause at

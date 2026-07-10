@@ -38,8 +38,27 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
         if (low == lowPower) return
         lowPower = low
         lastEmitMs.clear()
-        if (activeSensors.isEmpty()) return
+        if (activeSensors.isEmpty() || suspended) return
         sensorManager.unregisterListener(this)
+        activeSensors.forEach { registerSensor(it) }
+    }
+
+    // ── Host pause/resume ─────────────────────────────────────────────────────
+    // Face not visible (screen off, or covered by a launched app): the hardware
+    // registrations otherwise stay live at face rates all night. Keep the
+    // active set so resume restores exactly what the face enabled.
+    private var suspended = false
+
+    fun suspend() {
+        if (suspended) return
+        suspended = true
+        sensorManager.unregisterListener(this)
+    }
+
+    fun resume() {
+        if (!suspended) return
+        suspended = false
+        lastEmitMs.clear()
         activeSensors.forEach { registerSensor(it) }
     }
 
@@ -61,7 +80,8 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
             val checkType = typesFor(sensorName).firstOrNull() ?: return
             if (sensorManager.getDefaultSensor(checkType) == null) return
 
-            if (activeSensors.add(sensorName)) registerSensor(sensorName)
+            // While suspended only record the wish — resume() registers the hardware
+            if (activeSensors.add(sensorName) && !suspended) registerSensor(sensorName)
         } else {
             if (activeSensors.remove(sensorName)) unregisterSensor(sensorName)
         }

@@ -59,6 +59,10 @@ class HomeFragment : Fragment() {
         return root
     }
 
+    /** Quiesce/restore the bridge's periodic data + sensors with the host activity. */
+    fun onHostPause()  { bridgeManager?.onHostPause() }
+    fun onHostResume() { bridgeManager?.onHostResume() }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         if (freshEngine) showLoadingPlaceholder()

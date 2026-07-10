@@ -618,6 +618,7 @@ function WFRender:clear()
     self._ctxRestore, self._needCtxRestore = {}, false
     self.recs, self.taps, self.dimRedraws = {}, {}, {}
     self.videos, self._mapRecs, self.retained = {}, {}, {}
+    self._videosRunning = true   -- next build's players start playing (Builders.video)
     self._colorIdx = 0
     self.engine, self.sandbox, self.script = nil, nil, nil
     self.needFrame, self.needSecond = false, false
@@ -1698,6 +1699,35 @@ function Builders.video(self, rec)
     end
     mp:play()
     self.videos[#self.videos + 1] = mp
+end
+
+-- Host pause/resume + dim: single owner of the videos' running state. MediaEngine
+-- (MediaCodec) decodes on its own thread — pausing GL does NOT stop the codec, so
+-- videos must stop whenever the face is not visible (screen off, covered by an
+-- app, dim mode) or the decoder keeps burning CPU/battery. stop/play restarts the
+-- loop, which is fine for ambient face videos. Never restarts into a dim face.
+function WFRender:setVideosRunning(run)
+    if run and self.dim then return end
+    if run == (self._videosRunning ~= false) then return end
+    self._videosRunning = run
+    for _, mp in ipairs(self.videos or {}) do
+        pcall(function()
+            if run then mp:play() else mp:stop() end
+        end)
+    end
+    self:updateNeedFrame()
+end
+
+-- Recompute needFrame from every continuous-work source and notify the scene
+-- (onNeedFrame → applyFrameRate) on change. A PLAYING video is continuous work:
+-- the decoder writes the GL texture every video frame, but without this term the
+-- dynamic-FPS idle clamp saw a "static" face and dropped the scene to 1 FPS —
+-- the video decoded at full rate yet displayed one frame per second.
+function WFRender:updateNeedFrame()
+    local was = self.needFrame
+    self.needFrame = self.engine:eventActive("ms") or self.script:needsFrame()
+        or (#(self.videos or {}) > 0 and self._videosRunning ~= false)
+    if self.needFrame ~= was and self.onNeedFrame then self.onNeedFrame() end
 end
 
 -- Re-apply the current "allow sound" setting to every playing video (live toggle
@@ -3234,9 +3264,7 @@ function WFRender:load(xml, baseDir)
     end
     self.script:attach()
     self.script:onNeedFrameChanged(function()
-        local was = self.needFrame
-        self.needFrame = self.engine:eventActive("ms") or self.script:needsFrame()
-        if self.needFrame ~= was and self.onNeedFrame then self.onNeedFrame() end
+        self:updateNeedFrame()
     end)
 
     -- Pass 1: create a holder per layer, build its visual + content bindings.
@@ -3296,6 +3324,7 @@ function WFRender:load(xml, baseDir)
     self.engine:repaint()
 
     self.needFrame  = self.engine:eventActive("ms") or self.script:needsFrame()
+        or (#self.videos > 0 and self._videosRunning ~= false)   -- playing video = continuous work
     self.needSecond = self.engine:eventActive("second")
     self:buildFeatures()
     self:registerAsyncListeners()
@@ -3430,13 +3459,10 @@ function WFRender:setDim(dim)
     -- aren't in any bucket, so re-run them explicitly
     if self.engine then self.engine:repaint() end
     for _, fn in ipairs(self.dimRedraws) do fn() end
-    -- videos are power hogs: decode only in bright mode (no pause binding —
-    -- stop/play restarts the loop, fine for ambient face videos)
-    for _, mp in ipairs(self.videos) do
-        pcall(function()
-            if dim then mp:stop() else mp:play() end
-        end)
-    end
+    -- videos are power hogs: decode only in bright mode (routed through
+    -- setVideosRunning so the running-state flag stays consistent with the
+    -- host pause/resume path)
+    self:setVideosRunning(not dim)
 end
 
 -- Map layers share ONE bridge listener for the "map" tile pushes; it lives in
