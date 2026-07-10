@@ -2,6 +2,12 @@
 <resources>
     <color name="notif_badge">#F2B8B5</color>
 
+    <!-- ── Notification panel (dark) — original glass-on-blur look ────────── -->
+    <color name="notif_panel_wash">#00000000</color>
+    <color name="notif_card_bg">#FF2A2A2A</color>
+    <color name="notif_card_bg_dim">#CC1A1A1A</color>
+    <color name="notif_card_stroke">#33FFFFFF</color>
+
     <!-- Neutral surfaces (dark) — plain near-black greys so Material 3's
          purple-tinted default neutral palette doesn't tint backgrounds. -->
     <color name="m3_background">#131315</color>

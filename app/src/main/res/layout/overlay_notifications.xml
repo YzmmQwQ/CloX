@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Wash over the shared dark blur/scrim: transparent at night, translucent
+     light in light theme — keeps theme on-colors (page text, empty state,
+     permission screen) readable. -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/notif_panel_wash">
 
     <!-- ── Permission / device-not-supported screen ─────────────────────────── -->
     <LinearLayout

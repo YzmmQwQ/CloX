@@ -31,10 +31,14 @@
     <color name="on_dark_inactive">#AAAAAA</color>
     <color name="on_dark_scrim">#40FFFFFF</color>
 
-    <!-- ── Notification panel ────────────────────────────────────────────── -->
-    <color name="notif_card_bg">#FF2A2A2A</color>
-    <color name="notif_card_bg_dim">#CC1A1A1A</color>
-    <color name="notif_card_stroke">#33FFFFFF</color>
+    <!-- ── Notification panel (light — dark variants in values-night) ───────
+         notif_panel_wash sits on the panel root over the shared dark blur/scrim:
+         transparent at night (blur shows through), translucent light in light
+         theme so the theme's dark on-colors stay readable. -->
+    <color name="notif_panel_wash">#CCFCFCFD</color>
+    <color name="notif_card_bg">#FFF4F4F5</color>
+    <color name="notif_card_bg_dim">#CCFFFFFF</color>
+    <color name="notif_card_stroke">#1F000000</color>
 
     <!-- ── App grid ──────────────────────────────────────────────────────── -->
     <color name="app_label_scrim">#99000000</color>
