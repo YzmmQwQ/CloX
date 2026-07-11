@@ -17,9 +17,20 @@ class DefaultLauncherManager(private val activity: Activity) {
 
     fun isDefaultLauncher(): Boolean {
         return try {
-            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-            val info = activity.packageManager.resolveActivity(intent, 0)
-            activity.packageName == info?.activityInfo?.packageName
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // The HOME *role* is the source of truth. resolveActivity(HOME) returns
+                // CloX even when the role is None — CloX has the top-match HOME filter, so
+                // the resolver still picks it with no holder. That falsely reported
+                // "already default", so checkAndPromptIfNeeded bailed and never showed the
+                // chooser — leaving the launcher permanently unrecoverable once the role
+                // broke to None. isRoleHeld correctly returns false when the role is empty.
+                val rm = activity.getSystemService(RoleManager::class.java)
+                rm != null && rm.isRoleHeld(RoleManager.ROLE_HOME)
+            } else {
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                val info = activity.packageManager.resolveActivity(intent, 0)
+                activity.packageName == info?.activityInfo?.packageName
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error checking default launcher", e)
             false
