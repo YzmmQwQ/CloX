@@ -17,10 +17,15 @@ object BhtApiClient {
 
     const val PACKAGE = "com.ailife.betterhealth"
 
-    private const val ACTION_REQUEST = "com.ailife.betterhealth.GET_DATA_API"
+    /** v2 runtime permission — gates both the broadcast API and the secure provider.
+     *  Ungranted: broadcasts are silently dropped (requests time out) and provider
+     *  queries throw SecurityException (swallowed by the try/catch → zero values). */
+    const val PERMISSION_READ_DATA = "$PACKAGE.permission.READ_DATA"
+
+    private const val ACTION_REQUEST = "com.ailife.betterhealth.GET_DATA_API_V2"
     private const val ACTION_REPLY   = "com.ailife.betterhealth.DATA_REPLY"
 
-    private val AUTHORITY = Uri.parse("content://$PACKAGE.healthprovider")
+    private val AUTHORITY = Uri.parse("content://$PACKAGE.health.secure")
 
     fun isInstalled(ctx: Context): Boolean = try {
         ctx.packageManager.getPackageInfo(PACKAGE, 0)
@@ -28,6 +33,9 @@ object BhtApiClient {
     } catch (e: PackageManager.NameNotFoundException) {
         false
     }
+
+    fun hasReadPermission(ctx: Context): Boolean =
+        ctx.checkSelfPermission(PERMISSION_READ_DATA) == PackageManager.PERMISSION_GRANTED
 
     // ── Content Provider ──────────────────────────────────────────────────────
 
@@ -108,6 +116,61 @@ object BhtApiClient {
             }
         } catch (_: Exception) {}
         return max
+    }
+
+    data class SleepSession(
+        val sleepStartSec: Long,
+        val wakeSec: Long,
+        val awakeSec: Long,
+        val remSec: Long,
+        val lightSec: Long,
+        val deepSec: Long,
+        val totalSec: Long,
+        val asleepSec: Long,
+    )
+
+    /** Last night's sleep session (noon-to-noon window around today's local midnight).
+     *  Null when BHT found no viable session (< 4h) or on any error. */
+    fun querySleep(ctx: Context, dayStartSec: Long = todayStartSec()): SleepSession? {
+        val uri = Uri.withAppendedPath(AUTHORITY, "sleep/$dayStartSec")
+        try {
+            ctx.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    return SleepSession(
+                        sleepStartSec = cursor.getLong(cursor.getColumnIndexOrThrow("sleep_start")),
+                        wakeSec       = cursor.getLong(cursor.getColumnIndexOrThrow("wake")),
+                        awakeSec      = cursor.getLong(cursor.getColumnIndexOrThrow("awake_sec")),
+                        remSec        = cursor.getLong(cursor.getColumnIndexOrThrow("rem_sec")),
+                        lightSec      = cursor.getLong(cursor.getColumnIndexOrThrow("light_sec")),
+                        deepSec       = cursor.getLong(cursor.getColumnIndexOrThrow("deep_sec")),
+                        totalSec      = cursor.getLong(cursor.getColumnIndexOrThrow("total_sec")),
+                        asleepSec     = cursor.getLong(cursor.getColumnIndexOrThrow("asleep_sec")),
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+        return null
+    }
+
+    /** Today's stress score 0-100. BHT currently stubs this endpoint at 0; the shape is stable. */
+    fun queryStress(ctx: Context, dayStartSec: Long = todayStartSec()): Int {
+        val uri = Uri.withAppendedPath(AUTHORITY, "stress/$dayStartSec")
+        try {
+            ctx.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    return cursor.getInt(cursor.getColumnIndexOrThrow("stress_score"))
+                }
+            }
+        } catch (_: Exception) {}
+        return 0
+    }
+
+    private fun todayStartSec(): Long {
+        val cal = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+        }
+        return cal.timeInMillis / 1000L
     }
 
     // ── Broadcast API ─────────────────────────────────────────────────────────

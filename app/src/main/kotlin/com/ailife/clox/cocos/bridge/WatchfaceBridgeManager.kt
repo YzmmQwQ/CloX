@@ -63,6 +63,8 @@ class WatchfaceBridgeManager(
         HealthHelper.Metric.STEPS      to false,
         HealthHelper.Metric.HEART_RATE to false,
         HealthHelper.Metric.SPO2       to false,
+        HealthHelper.Metric.SLEEP      to false,
+        HealthHelper.Metric.STRESS     to false,
     )
 
     private val calendarObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {

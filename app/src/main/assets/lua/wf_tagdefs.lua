@@ -10,6 +10,7 @@
 --   clock:  "ms" | "second" | "minute" | "hour" | "day" | "static"
 --   bridge: the WF.* category Java pushes — "battery", "weather",
 --           "health_steps", "health_heartRate", "health_spo2",
+--           "health_sleep", "health_stress",
 --           "sensor_accelerometer", "sensor_gyroscope", "sensor_compass",
 --           "sensor_barometer", "calendar", "notification", "network",
 --           "connectivity", "system", "storage", "alarm", "location",
@@ -366,6 +367,36 @@ def("health_heartRate", {
 })
 def("health_spo2", {
     sbo = function() return floor(num(WF.health_spo2.percent)) end,
+})
+-- Sleep tags are CloX extensions (no WM equivalent) — backed by BHT 2.0's
+-- sleep endpoint. Times are "--:--" and durations 0 until a session exists.
+def("health_sleep", {
+    sslm  = function() return floor(num(WF.health_sleep.asleepSec) / 60) end,
+    sslh  = function() return fmt("%.1f", num(WF.health_sleep.asleepSec) / 3600) end,
+    sslt  = function()
+        local m = floor(num(WF.health_sleep.asleepSec) / 60)
+        return floor(m / 60) .. ":" .. z2(m % 60)
+    end,
+    sslbt = function()
+        if not WF.health_sleep.hasData then return "--:--" end
+        return os.date("%H:%M", num(WF.health_sleep.sleepStart))
+    end,
+    sslwt = function()
+        if not WF.health_sleep.hasData then return "--:--" end
+        return os.date("%H:%M", num(WF.health_sleep.wake))
+    end,
+    sslrm = function() return floor(num(WF.health_sleep.remSec)   / 60) end,
+    ssllm = function() return floor(num(WF.health_sleep.lightSec) / 60) end,
+    ssldm = function() return floor(num(WF.health_sleep.deepSec)  / 60) end,
+    sslam = function() return floor(num(WF.health_sleep.awakeSec) / 60) end,
+    sslp  = function()
+        local total = num(WF.health_sleep.totalSec)
+        return total > 0 and floor(num(WF.health_sleep.asleepSec) / total * 100) or 0
+    end,
+})
+-- Stress score is a CloX extension — BHT 2.0's stress endpoint (currently stubbed at 0).
+def("health_stress", {
+    sstr = function() return floor(num(WF.health_stress.score)) end,
 })
 
 -- ── sensors / compass ──

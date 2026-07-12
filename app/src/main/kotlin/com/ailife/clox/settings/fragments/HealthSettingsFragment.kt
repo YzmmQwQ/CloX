@@ -3,6 +3,7 @@ package com.ailife.clox.settings.fragments
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -29,9 +30,20 @@ class HealthSettingsFragment : BaseSettingsFragment() {
     private lateinit var tvStepsSummary: TextView
     private lateinit var tvHrSummary: TextView
     private lateinit var tvSpo2Summary: TextView
+    private lateinit var tvSleepSummary: TextView
+    private lateinit var tvStressSummary: TextView
     private lateinit var switchSteps: MaterialSwitch
     private lateinit var switchHr: MaterialSwitch
     private lateinit var switchSpo2: MaterialSwitch
+    private lateinit var switchSleep: MaterialSwitch
+    private lateinit var switchStress: MaterialSwitch
+
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
+                Toast.makeText(requireContext(), R.string.pref_health_permission_toast, Toast.LENGTH_LONG).show()
+            }
+        }
     private lateinit var switchInstantSteps: MaterialSwitch
     private lateinit var switchInstantHrSpo2: MaterialSwitch
     private lateinit var rowInstantSteps: View
@@ -48,9 +60,13 @@ class HealthSettingsFragment : BaseSettingsFragment() {
         tvStepsSummary    = view.findViewById(R.id.tvStepsSummary)
         tvHrSummary       = view.findViewById(R.id.tvHrSummary)
         tvSpo2Summary     = view.findViewById(R.id.tvSpo2Summary)
+        tvSleepSummary    = view.findViewById(R.id.tvSleepSummary)
+        tvStressSummary   = view.findViewById(R.id.tvStressSummary)
         switchSteps       = view.findViewById(R.id.switchSteps)
         switchHr          = view.findViewById(R.id.switchHr)
         switchSpo2        = view.findViewById(R.id.switchSpo2)
+        switchSleep       = view.findViewById(R.id.switchSleep)
+        switchStress      = view.findViewById(R.id.switchStress)
         switchInstantSteps    = view.findViewById(R.id.switchInstantSteps)
         switchInstantHrSpo2   = view.findViewById(R.id.switchInstantHrSpo2)
         rowInstantSteps   = view.findViewById(R.id.rowInstantSteps)
@@ -76,38 +92,26 @@ class HealthSettingsFragment : BaseSettingsFragment() {
         cardBht.setOnClickListener { openPlayStore() }
 
         // Metric switches
-        switchSteps.isChecked = HealthPrefs.stepsEnabled(requireContext())
-        switchSteps.setOnCheckedChangeListener { _, checked ->
-            if (checked && !BhtApiClient.isInstalled(requireContext())) {
-                Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
-                switchSteps.isChecked = false
-                return@setOnCheckedChangeListener
+        fun bindMetricSwitch(sw: MaterialSwitch, prefKey: String, enabledNow: Boolean) {
+            sw.isChecked = enabledNow
+            sw.setOnCheckedChangeListener { _, checked ->
+                if (checked && !BhtApiClient.isInstalled(requireContext())) {
+                    Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
+                    sw.isChecked = false
+                    return@setOnCheckedChangeListener
+                }
+                if (checked && !BhtApiClient.hasReadPermission(requireContext())) {
+                    permissionLauncher.launch(BhtApiClient.PERMISSION_READ_DATA)
+                }
+                prefs.edit().putBoolean(prefKey, checked).apply()
+                updateVisibility()
             }
-            prefs.edit().putBoolean(HealthPrefs.KEY_STEPS_ENABLED, checked).apply()
-            updateVisibility()
         }
-
-        switchHr.isChecked = HealthPrefs.hrEnabled(requireContext())
-        switchHr.setOnCheckedChangeListener { _, checked ->
-            if (checked && !BhtApiClient.isInstalled(requireContext())) {
-                Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
-                switchHr.isChecked = false
-                return@setOnCheckedChangeListener
-            }
-            prefs.edit().putBoolean(HealthPrefs.KEY_HR_ENABLED, checked).apply()
-            updateVisibility()
-        }
-
-        switchSpo2.isChecked = HealthPrefs.spo2Enabled(requireContext())
-        switchSpo2.setOnCheckedChangeListener { _, checked ->
-            if (checked && !BhtApiClient.isInstalled(requireContext())) {
-                Toast.makeText(requireContext(), R.string.pref_health_not_installed_toast, Toast.LENGTH_SHORT).show()
-                switchSpo2.isChecked = false
-                return@setOnCheckedChangeListener
-            }
-            prefs.edit().putBoolean(HealthPrefs.KEY_SPO2_ENABLED, checked).apply()
-            updateVisibility()
-        }
+        bindMetricSwitch(switchSteps,  HealthPrefs.KEY_STEPS_ENABLED,  HealthPrefs.stepsEnabled(requireContext()))
+        bindMetricSwitch(switchHr,     HealthPrefs.KEY_HR_ENABLED,     HealthPrefs.hrEnabled(requireContext()))
+        bindMetricSwitch(switchSpo2,   HealthPrefs.KEY_SPO2_ENABLED,   HealthPrefs.spo2Enabled(requireContext()))
+        bindMetricSwitch(switchSleep,  HealthPrefs.KEY_SLEEP_ENABLED,  HealthPrefs.sleepEnabled(requireContext()))
+        bindMetricSwitch(switchStress, HealthPrefs.KEY_STRESS_ENABLED, HealthPrefs.stressEnabled(requireContext()))
 
         switchInstantSteps.isChecked = HealthPrefs.instantSteps(requireContext())
         switchInstantSteps.setOnCheckedChangeListener { _, checked ->
@@ -188,11 +192,15 @@ class HealthSettingsFragment : BaseSettingsFragment() {
             HealthHelper.Metric.STEPS      -> tvStepsSummary
             HealthHelper.Metric.HEART_RATE -> tvHrSummary
             HealthHelper.Metric.SPO2       -> tvSpo2Summary
+            HealthHelper.Metric.SLEEP      -> tvSleepSummary
+            HealthHelper.Metric.STRESS     -> tvStressSummary
         }
         val defaultText = when (metric) {
             HealthHelper.Metric.STEPS      -> getString(R.string.pref_health_steps_summary)
             HealthHelper.Metric.HEART_RATE -> getString(R.string.pref_health_hr_summary)
             HealthHelper.Metric.SPO2       -> getString(R.string.pref_health_spo2_summary)
+            HealthHelper.Metric.SLEEP      -> getString(R.string.pref_health_sleep_summary)
+            HealthHelper.Metric.STRESS     -> getString(R.string.pref_health_stress_summary)
         }
         val lastTime = HealthHelper.getLastFetchTimeMs(metric)
         if (lastTime == null || !HealthHelper.isEnabled(ctx, metric)) {
@@ -207,17 +215,28 @@ class HealthSettingsFragment : BaseSettingsFragment() {
             }
             HealthHelper.Metric.HEART_RATE -> "${data.optInt("bpm")} bpm · $timeStr"
             HealthHelper.Metric.SPO2       -> "${data.optInt("percent")}% SpO2 · $timeStr"
+            HealthHelper.Metric.SLEEP      -> {
+                if (!data.optBoolean("hasData")) getString(R.string.pref_health_no_sleep_data)
+                else {
+                    val asleepMin = data.optLong("asleepSec") / 60
+                    val deepMin   = data.optLong("deepSec") / 60
+                    "%dh %02dm asleep · %dm deep · %s".format(asleepMin / 60, asleepMin % 60, deepMin, timeStr)
+                }
+            }
+            HealthHelper.Metric.STRESS     -> "${data.optInt("score")}/100 · $timeStr"
         }
     }
 
     private fun updateVisibility() {
         val ctx = requireContext()
-        val stepsOn = switchSteps.isChecked
-        val hrOn    = switchHr.isChecked
-        val spo2On  = switchSpo2.isChecked
+        val stepsOn  = switchSteps.isChecked
+        val hrOn     = switchHr.isChecked
+        val spo2On   = switchSpo2.isChecked
+        val sleepOn  = switchSleep.isChecked
+        val stressOn = switchStress.isChecked
         rowInstantSteps.visibility  = if (stepsOn) View.VISIBLE else View.GONE
         rowInstantHrSpo2.visibility = if (hrOn || spo2On) View.VISIBLE else View.GONE
-        val anyEnabled = (stepsOn || hrOn || spo2On) && BhtApiClient.isInstalled(ctx)
+        val anyEnabled = (stepsOn || hrOn || spo2On || sleepOn || stressOn) && BhtApiClient.isInstalled(ctx)
         btnRefresh.isEnabled = anyEnabled
     }
 }

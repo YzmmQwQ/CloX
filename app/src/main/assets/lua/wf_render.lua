@@ -3391,6 +3391,8 @@ function WFRender:buildFeatures()
             steps     = e:eventActive("health_steps"),
             heartRate = e:eventActive("health_heartRate"),
             spo2      = e:eventActive("health_spo2"),
+            sleep     = e:eventActive("health_sleep"),
+            stress    = e:eventActive("health_stress"),
         },
         sensor = {
             accelerometer = e:eventActive("sensor_accelerometer"),

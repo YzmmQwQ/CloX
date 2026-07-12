@@ -16,13 +16,16 @@ import org.json.JSONObject
  *   steps:    { steps (int), distance (double, km), calories (double, kcal) }
  *   heartRate:{ bpm (int), timestamp (Long, ms), measuring (bool), history[10]: [{bpm, timestamp}] }
  *   spo2:     { percent (int), timestamp (Long, ms), measuring (bool) }
+ *   sleep:    { hasData (bool), sleepStart/wake (Long, unix sec),
+ *               awakeSec/remSec/lightSec/deepSec/totalSec/asleepSec (Long) }
+ *   stress:   { score (int, 0-100) }
  *
  * fetchAndUpdate() is the main entry point; call it from WatchfaceBridgeManager's async loop.
  * onInstant is called during live measurement with intermediate values.
  */
 object HealthHelper {
 
-    enum class Metric { STEPS, HEART_RATE, SPO2 }
+    enum class Metric { STEPS, HEART_RATE, SPO2, SLEEP, STRESS }
 
     /** Emits after each metric is fetched. Collected by WatchfaceBridgeManager (→ Lua) and
      *  HealthSettingsFragment (→ summary UI). One fetch, two listeners. */
@@ -32,6 +35,8 @@ object HealthHelper {
         Metric.STEPS      to emptySteps(),
         Metric.HEART_RATE to emptyHeartRate(),
         Metric.SPO2       to emptySpo2(),
+        Metric.SLEEP      to emptySleep(),
+        Metric.STRESS     to emptyStress(),
     )
 
     private val lastFetchTimeMs = mutableMapOf<Metric, Long>()
@@ -42,6 +47,8 @@ object HealthHelper {
         "steps"     -> Metric.STEPS
         "heartRate" -> Metric.HEART_RATE
         "spo2"      -> Metric.SPO2
+        "sleep"     -> Metric.SLEEP
+        "stress"    -> Metric.STRESS
         else        -> null
     }
 
@@ -49,6 +56,8 @@ object HealthHelper {
         Metric.STEPS      -> HealthPrefs.stepsEnabled(ctx)
         Metric.HEART_RATE -> HealthPrefs.hrEnabled(ctx)
         Metric.SPO2       -> HealthPrefs.spo2Enabled(ctx)
+        Metric.SLEEP      -> HealthPrefs.sleepEnabled(ctx)
+        Metric.STRESS     -> HealthPrefs.stressEnabled(ctx)
     }
 
     /** Returns null if the metric is disabled or BHT is not installed. */
@@ -64,6 +73,8 @@ object HealthHelper {
             Metric.STEPS      -> fetchSteps(ctx)
             Metric.HEART_RATE -> fetchHeartRate(ctx, onInstant)
             Metric.SPO2       -> fetchSpo2(ctx, onInstant)
+            Metric.SLEEP      -> fetchSleep(ctx)
+            Metric.STRESS     -> fetchStress(ctx)
         } ?: return null
 
         latestData[metric] = data
@@ -82,6 +93,8 @@ object HealthHelper {
         Metric.STEPS      -> "health_steps"
         Metric.HEART_RATE -> "health_heartRate"
         Metric.SPO2       -> "health_spo2"
+        Metric.SLEEP      -> "health_sleep"
+        Metric.STRESS     -> "health_stress"
     }
 
     // ── Metric fetchers ───────────────────────────────────────────────────────
@@ -139,6 +152,25 @@ object HealthHelper {
         }
     }
 
+    private suspend fun fetchSleep(ctx: Context): JSONObject = withContext(Dispatchers.IO) {
+        val session = BhtApiClient.querySleep(ctx) ?: return@withContext emptySleep()
+        JSONObject().apply {
+            put("hasData",    true)
+            put("sleepStart", session.sleepStartSec)
+            put("wake",       session.wakeSec)
+            put("awakeSec",   session.awakeSec)
+            put("remSec",     session.remSec)
+            put("lightSec",   session.lightSec)
+            put("deepSec",    session.deepSec)
+            put("totalSec",   session.totalSec)
+            put("asleepSec",  session.asleepSec)
+        }
+    }
+
+    private suspend fun fetchStress(ctx: Context): JSONObject = withContext(Dispatchers.IO) {
+        JSONObject().apply { put("score", BhtApiClient.queryStress(ctx)) }
+    }
+
     // ── JSON builders ─────────────────────────────────────────────────────────
 
     private fun buildHrJson(
@@ -177,4 +209,13 @@ object HealthHelper {
     private fun emptySpo2() = JSONObject().apply {
         put("percent", 0); put("timestamp", 0L); put("measuring", false)
     }
+
+    private fun emptySleep() = JSONObject().apply {
+        put("hasData", false)
+        put("sleepStart", 0L); put("wake", 0L)
+        put("awakeSec", 0L); put("remSec", 0L); put("lightSec", 0L); put("deepSec", 0L)
+        put("totalSec", 0L); put("asleepSec", 0L)
+    }
+
+    private fun emptyStress() = JSONObject().apply { put("score", 0) }
 }

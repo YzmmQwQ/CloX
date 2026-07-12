@@ -299,6 +299,12 @@
     <string name="pref_health_hr_summary">BPM reading with 10-point history</string>
     <string name="pref_health_spo2_title">Blood oxygen</string>
     <string name="pref_health_spo2_summary">SpO2 percentage</string>
+    <string name="pref_health_sleep_title">Sleep</string>
+    <string name="pref_health_sleep_summary">Last night\'s sleep stages (needs overnight HR logging)</string>
+    <string name="pref_health_stress_title">Stress</string>
+    <string name="pref_health_stress_summary">Daily stress score 0–100</string>
+    <string name="pref_health_no_sleep_data">No sleep detected</string>
+    <string name="pref_health_permission_toast">Health data permission is required — grant it to read data from Better Health Tracker</string>
     <string name="pref_health_instant_title">Instant measurement</string>
     <string name="pref_health_instant_summary">Trigger real-time sensor read for heart rate and SpO2; takes longer but reflects current value</string>
     <string name="pref_health_interval_title">Update interval</string>

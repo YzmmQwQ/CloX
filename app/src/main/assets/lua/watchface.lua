@@ -256,7 +256,7 @@ function WatchfaceScene:applyFeatures(f)
     if (f.weather or false) ~= (prev.weather or false) then
         WatchfaceBridge.setWeatherEnabled(f.weather or false)
     end
-    for _, m in ipairs({ "steps", "heartRate", "spo2" }) do
+    for _, m in ipairs({ "steps", "heartRate", "spo2", "sleep", "stress" }) do
         if (f.health[m] or false) ~= (prev.health[m] or false) then
             WatchfaceBridge.setHealthEnabled(m, f.health[m] or false)
         end
@@ -286,6 +286,8 @@ function WatchfaceScene:maskedFeatures()
             steps     = allowHealth and (h.steps or false),
             heartRate = allowHealth and (h.heartRate or false),
             spo2      = allowHealth and (h.spo2 or false),
+            sleep     = allowHealth and (h.sleep or false),
+            stress    = allowHealth and (h.stress or false),
         },
         sensor = {
             accelerometer = allowSensors and (sn.accelerometer or false),

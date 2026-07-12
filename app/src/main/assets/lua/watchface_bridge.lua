@@ -17,7 +17,7 @@
 --
 -- ── ENABLE OPTIONAL SOURCES (default: all off) ────────────────────────────────
 --   WatchfaceBridge.setWeatherEnabled(true)
---   WatchfaceBridge.setHealthEnabled("steps", true)     -- "steps"|"heartRate"|"spo2"
+--   WatchfaceBridge.setHealthEnabled("steps", true)     -- "steps"|"heartRate"|"spo2"|"sleep"|"stress"
 --   WatchfaceBridge.setSensorEnabled("compass", true)   -- "accelerometer"|"compass"|"barometer"
 --
 -- ── LUA → ANDROID ACTIONS ────────────────────────────────────────────────────
@@ -59,6 +59,9 @@
 --   health_heartRate: bpm, timestamp (unix ms), maxHeartRate (peak from last 24h),
 --                     history[1..10]: {bpm, timestamp} (1=oldest, 10=newest)
 --   health_spo2:      percent, timestamp (unix ms)
+--   health_sleep:     hasData, sleepStart/wake (unix sec),
+--                     awakeSec, remSec, lightSec, deepSec, totalSec, asleepSec
+--   health_stress:    score (0-100)
 --   thirdParty:       slots[1..10]: {data (String), key (String), timestamp (unix ms)}
 --   sensor_accelerometer: x, y, z  (m/s²)
 --   sensor_gyroscope:     x, y, z  (rad/s)
@@ -128,6 +131,9 @@ WF = {
         return h
     end)() },
     health_spo2 = { percent = 0, timestamp = 0 },
+    health_sleep = { hasData = false, sleepStart = 0, wake = 0, awakeSec = 0,
+                     remSec = 0, lightSec = 0, deepSec = 0, totalSec = 0, asleepSec = 0 },
+    health_stress = { score = 0 },
     -- 10 persistent slots written by third-party apps via broadcast API
     thirdParty = { slots = (function()
         local s = {}
