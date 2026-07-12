@@ -1761,11 +1761,14 @@ function Builders.map(self, rec)
     -- tile arrives via a bridge push (no {tag} descriptor) — a baked run would
     -- never see the update and the map would freeze on the first tile
     rec._noFlatten = true
-    local zoom = clamp(floor(rec:evalNum("map_zoom", 15)), 1, 19)
-    local wantTx, wantTy
+    -- zoom is LIVE: map_zoom (e.g. "var_zoom", driven by a script click_zoom)
+    -- was previously captured once at build, so runtime zoom controls never
+    -- took effect. Evaluate it in the composite, make it a dependency, and
+    -- re-request the tile whenever the resolved zoom (or the tile) changes.
+    local wantTx, wantTy, wantZoom
     rec.onMapPush = function(data)
         if not (data and data.file and data.file ~= "") then return end
-        if data.zoom ~= zoom or data.tx ~= wantTx or data.ty ~= wantTy then return end
+        if data.zoom ~= wantZoom or data.tx ~= wantTx or data.ty ~= wantTy then return end
         local ok, err = pcall(function()
             sp:setTexture(data.file)
             local cs = sp:getTexture():getContentSize()
@@ -1782,17 +1785,18 @@ function Builders.map(self, rec)
         if not ok then print("[WFRender] map tile apply: " .. tostring(err)) end
     end
     self:registerMapRec(rec)
-    rec:use("lat", "num"); rec:use("lon", "num")
+    rec:use("lat", "num"); rec:use("lon", "num"); rec:use("map_zoom", "num")
     rec:composite(function(r)
         local lat = r:evalNum("lat", 0)
         local lon = r:evalNum("lon", 0)
+        local zoom = clamp(floor(r:evalNum("map_zoom", 15)), 1, 19)
         local tx, ty = osmTile(lat, lon, zoom)
-        if tx == wantTx and ty == wantTy then return end   -- same tile, skip
-        wantTx, wantTy = tx, ty
+        if tx == wantTx and ty == wantTy and zoom == wantZoom then return end   -- unchanged, skip
+        wantTx, wantTy, wantZoom = tx, ty, zoom
         if WatchfaceBridge and WatchfaceBridge.requestMapTile then
             WatchfaceBridge.requestMapTile(lat, lon, zoom)
         end
-    end, { { "lat", "num" }, { "lon", "num" } })
+    end, { { "lat", "num" }, { "lon", "num" }, { "map_zoom", "num" } })
 end
 
 -- ── series + calendar layers (port UL WatchSkin) ─────────────────────────────
