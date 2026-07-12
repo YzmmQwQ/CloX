@@ -355,6 +355,17 @@ function WFScript.new(engine, sandbox, actionHandler)
         end,
         __newindex = function(_, k, v)
             vars[k] = v
+            -- Table variables mutate in place (`t[i] = x`) without ever going
+            -- through publish, so the binding layer never sees the fill. Track
+            -- them; guarded()/runSnippet() re-fire their buckets after each
+            -- script entry so in-place writes propagate (and the initial `t={}`
+            -- empty-publish is coalesced past — see WFEngine:publish batching).
+            if type(v) == "table" then
+                self._tableVars = self._tableVars or {}
+                self._tableVars[k] = true
+            elseif self._tableVars then
+                self._tableVars[k] = nil
+            end
             -- first write registers the def so later activations resolve it;
             -- publish() runs the update bucket when the tag is already live
             if not eng.extraDefs[k] then
@@ -515,7 +526,11 @@ end
 -- same splice as the global script.
 function WFScript:runSnippet(src, label)
     if src:find("{", 1, true) then src = spliceTags(src) end
+    local eng = self.engine
+    eng:beginBatch()
     local ok, err = self.sandbox:run(src, label or "=wf_tap")
+    self:_markTableVarsDirty()
+    eng:endBatch()
     if not ok then self:reportError("Tap script failed", err) end
     -- the snippet may have defined on_millisecond/on_second after load —
     -- attach the drivers and let the scene re-derive the render cadence
@@ -527,11 +542,28 @@ end
 
 -- ── engine wiring ─────────────────────────────────────────────────────────────
 
+-- Re-fire every table variable's bucket: in-place element writes (`t[i]=v`)
+-- made during a script entry never publish, so their dependent bindings would
+-- otherwise stay stale. Called at the close of each entry, inside the batch.
+function WFScript:_markTableVarsDirty()
+    local tv = self._tableVars
+    if not tv then return end
+    local eng = self.engine
+    for name in pairs(tv) do eng:markDirty(name) end
+end
+
 -- callbacks run guarded so a broken face surfaces the error dialog
 -- (once per callback per face load) instead of dying in the engine's
--- listener pcall with only a logcat line
+-- listener pcall with only a logcat line.
+-- Wrapped in an engine batch: dependent bindings fire ONCE after the callback
+-- settles (past the empty-then-filled `t={}` window), and table vars are
+-- re-fired so in-place writes propagate. See WFEngine:publish/endBatch.
 function WFScript:guarded(name, cb, ...)
+    local eng = self.engine
+    eng:beginBatch()
     local ok, err = self.sandbox:pcallLimited(cb, ...)
+    self:_markTableVarsDirty()
+    eng:endBatch()
     if not ok then self:reportError("Script " .. name .. " failed", err, true) end
 end
 

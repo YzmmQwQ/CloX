@@ -254,13 +254,62 @@ end
 
 -- External value write (script variable, theme colour, tween step): publish a
 -- new value for a tag and run its bucket immediately when it changed.
+--
+-- Batching (script entries): a script callback that assigns a table variable
+-- as `t = {}` then fills it element-by-element publishes the EMPTY table first,
+-- which — fired immediately — would run dependent bindings against the not-yet-
+-- populated table (e.g. `t[1] > 0` → compare-nil errors). While a batch is open
+-- publishes only mark the tag dirty; endBatch fires each dirty tag ONCE, after
+-- the callback (and its in-place fills) have settled. See WFScript:guarded.
 function WFEngine:publish(name, value)
     local tag = self.tags[name] or self:activate(name)
     if tag.value == value then return end
     tag.value = value
     self.V[name] = value
+    if self._batchDepth and self._batchDepth > 0 then
+        self._batchDirty[name] = true
+        return
+    end
     self.gen = self.gen + 1
     tag:fireBucket(self.gen)
+end
+
+-- Force a tag's bucket to re-run at endBatch (or now, if no batch is open) even
+-- though its VALUE object is unchanged. Table variables mutated in place
+-- (`t[i] = v`) don't go through publish, so WFScript marks them dirty each entry.
+function WFEngine:markDirty(name)
+    local tag = self.tags[name]
+    if not tag then return end
+    if self._batchDepth and self._batchDepth > 0 then
+        self._batchDirty[name] = true
+        return
+    end
+    self.gen = self.gen + 1
+    tag:fireBucket(self.gen)
+end
+
+-- Open a publish batch: dependent bindings don't fire until the matching
+-- endBatch, coalescing many writes (and in-place table fills) into one fire.
+-- Re-entrant (tap snippet during a callback) via depth counting.
+function WFEngine:beginBatch()
+    self._batchDepth = (self._batchDepth or 0) + 1
+    if not self._batchDirty then self._batchDirty = {} end
+end
+
+-- Close the batch; when the outermost one closes, fire every dirty tag once.
+function WFEngine:endBatch()
+    if not self._batchDepth or self._batchDepth == 0 then return end
+    self._batchDepth = self._batchDepth - 1
+    if self._batchDepth > 0 then return end
+    local dirty = self._batchDirty
+    self._batchDirty = {}
+    if next(dirty) == nil then return end
+    self.gen = self.gen + 1
+    local g = self.gen
+    for name in pairs(dirty) do
+        local tag = self.tags[name]
+        if tag then tag:fireBucket(g) end
+    end
 end
 
 -- True when a name is resolvable as a live value: a script variable/tween
