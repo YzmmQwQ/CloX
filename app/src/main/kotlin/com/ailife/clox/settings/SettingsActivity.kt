@@ -14,7 +14,7 @@ import com.ailife.clox.R
 import com.ailife.clox.databinding.ActivitySettingsBinding
 import com.ailife.clox.settings.fragments.RootSettingsFragment
 import com.ailife.clox.settings.fragments.TapActionsSettingsFragment
-import com.ailife.clox.update.OtaManager
+import com.ailife.clox.update.UpdateController
 
 class SettingsActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
@@ -42,7 +42,7 @@ class SettingsActivity : AppCompatActivity(),
                 setReorderingAllowed(true)
                 replace(R.id.settingsContainer, RootSettingsFragment(), "root")
             }
-            OtaManager(this).checkUpdate(silent = true)
+            UpdateController(this).check(userInitiated = false)
 
             // Deep link: open straight to a specific screen (e.g. from the tap-action
             // "Configure now" error dialog), pushing it above root so Up returns here.

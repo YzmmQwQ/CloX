@@ -849,6 +849,12 @@
     <string name="dialog_ota_update_positive">Update</string>
     <string name="dialog_ota_update_neutral">Later</string>
     <string name="dialog_ota_update_negative">Don\'t ask again</string>
+    <string name="dialog_ota_skip">Skip this version</string>
+    <string name="toast_ota_checking">Checking for updates…</string>
+    <string name="toast_ota_skipped">Skipped version %s</string>
+    <string name="dialog_ota_progress_title">Downloading update…</string>
+    <string name="dialog_ota_progress_hide">Hide</string>
+    <string name="ota_progress_size">%1$.1f / %2$.1f MB</string>
     <string name="ota_download_notif_title">CloX update</string>
 
     <!-- ── Default launcher dialog ──────────────────────────────────────── -->

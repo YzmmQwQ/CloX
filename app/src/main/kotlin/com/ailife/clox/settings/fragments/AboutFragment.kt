@@ -8,12 +8,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.ailife.clox.R
-import com.ailife.clox.update.OtaManager
+import com.ailife.clox.update.UpdateController
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class AboutFragment : BaseSettingsFragment() {
 
-    private lateinit var otaManager: OtaManager
+    private lateinit var updater: UpdateController
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_settings_about, container, false)
@@ -21,7 +21,7 @@ class AboutFragment : BaseSettingsFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        otaManager = OtaManager(requireContext())
+        updater = UpdateController(requireActivity())
 
         // Version
         val tvVersion = view.findViewById<TextView>(R.id.tvVersion)
@@ -47,15 +47,30 @@ class AboutFragment : BaseSettingsFragment() {
 
         // Auto-update switch
         val switchAutoUpdate = view.findViewById<MaterialSwitch>(R.id.switchAutoUpdate)
-        switchAutoUpdate.isChecked = otaManager.isUpdateCheckEnabled()
+        switchAutoUpdate.isChecked = updater.isUpdateCheckEnabled()
         switchAutoUpdate.setOnCheckedChangeListener { _, checked ->
-            otaManager.setUpdateCheckEnabled(checked)
+            updater.setUpdateCheckEnabled(checked)
         }
 
-        // Check for updates
-        view.findViewById<View>(R.id.rowCheckUpdate).setOnClickListener {
-            otaManager.checkUpdate(silent = false)
+        // Check for updates — status renders inline in the row (no toasts):
+        // spinner while checking, then the result text replaces the subtitle.
+        val tvSummary  = view.findViewById<TextView>(R.id.tvCheckUpdateSummary)
+        val spinner    = view.findViewById<View>(R.id.progressCheckUpdate)
+        val ivDownload = view.findViewById<View>(R.id.ivCheckUpdate)
+        updater.onStatus = { state, text ->
+            tvSummary.text = text
+            val checking = state == UpdateController.CheckState.CHECKING
+            spinner.visibility    = if (checking) View.VISIBLE else View.GONE
+            ivDownload.visibility = if (checking) View.GONE else View.VISIBLE
         }
+        view.findViewById<View>(R.id.rowCheckUpdate).setOnClickListener {
+            updater.check(userInitiated = true)
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        updater.onStatus = null
     }
 
     private fun openUrl(url: String) {

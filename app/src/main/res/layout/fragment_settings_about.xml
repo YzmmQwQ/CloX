@@ -318,6 +318,7 @@
                             android:textColor="?attr/colorOnSurface" />
 
                         <TextView
+                            android:id="@+id/tvCheckUpdateSummary"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/about_repo_url"
@@ -326,7 +327,17 @@
 
                     </LinearLayout>
 
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/progressCheckUpdate"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:indeterminate="true"
+                        android:visibility="gone"
+                        app:indicatorSize="20dp"
+                        app:trackThickness="2dp" />
+
                     <ImageView
+                        android:id="@+id/ivCheckUpdate"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_download"
