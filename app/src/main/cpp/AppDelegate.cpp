@@ -8,6 +8,7 @@
 #include "base/Director.h"
 #include "base/EventCustom.h"
 #include "base/EventDispatcher.h"
+#include "base/EventType.h"
 #include "base/ZipUtils.h"
 #include "platform/FileUtils.h"
 #include "platform/RenderView.h"
@@ -114,6 +115,19 @@ bool AppDelegate::applicationDidFinishLaunching()
     director->getEventDispatcher()->addCustomEventListener(
         Director::EVENT_AFTER_DRAW,
         [](EventCustom*) { BlurPostProcess::applyIfNeeded(); });
+
+    // Reset BlurPP's GL objects whenever the renderer is recreated. The EGL
+    // context can be lost+recreated WITHOUT the app-background lifecycle: an
+    // activity recreation that reuses the live GL surface (dark/light or
+    // orientation change) recreates the context but never calls
+    // applicationDidEnterBackground, so onContextLost() (which zeroes BlurPP's
+    // texture/FBO handles) would otherwise be skipped. Its stale names from the
+    // dead context then get recycled by Axmol for the rebaked watchface run RTs,
+    // and the next blur pass reads/writes/deletes them — baking the flattened
+    // layers black ("works after a rebake, until the blur is triggered").
+    director->getEventDispatcher()->addCustomEventListener(
+        EVENT_RENDERER_RECREATED,
+        [](EventCustom*) { BlurPostProcess::onContextLost(); });
 
     auto engine = LuaEngine::getInstance();
     ScriptEngineManager::getInstance()->setScriptEngine(engine);
