@@ -34,6 +34,10 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             val pkg = intent.data?.schemeSpecificPart ?: return
             val replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
             needsPackageRefresh = true
+            // The scaled/circular caches key by "pkg/activity_size", which doesn't change when
+            // the app's icon does — drop this package's entries so the reload re-renders them.
+            ScaledIconCache.invalidatePackage(pkg)
+            CircularIconCache.invalidatePackage(pkg)
             when (intent.action) {
                 Intent.ACTION_PACKAGE_ADDED -> if (!replacing) appendNewApp(pkg) else loadApps()
                 else -> loadApps()  // REMOVED or REPLACED

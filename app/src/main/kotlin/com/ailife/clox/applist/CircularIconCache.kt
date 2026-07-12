@@ -23,5 +23,11 @@ object CircularIconCache {
         keys.forEach { cache.remove(it) }
     }
 
+    /** Drop cached entries for every activity of [packageName] (keys are "pkg/activity_size"). */
+    fun invalidatePackage(packageName: String) {
+        val prefix = "$packageName/"
+        cache.snapshot().keys.filter { it.startsWith(prefix) }.forEach { cache.remove(it) }
+    }
+
     fun evictAll() = cache.evictAll()
 }
