@@ -35,6 +35,7 @@ import com.google.android.material.shape.ShapeAppearanceModel
 import com.ailife.clox.R
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.watchface.WatchfaceConfigPrefs
+import com.ailife.clox.watchface.WatchfaceMetadata
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceStats
 import java.io.File
@@ -655,6 +656,26 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8))
         }
+        // Descriptive metadata from the .watch package header (memoised read).
+        val meta = activePath?.let { p ->
+            File(p).takeIf { it.isFile }?.let { WatchfaceMetadata.read(it) }
+        }
+        if (meta != null) {
+            if (meta.name.isNotBlank())
+                page.addChild(infoRow(getString(R.string.wfcfg_info_name), meta.name))
+            if (meta.author.isNotBlank())
+                page.addChild(infoRow(getString(R.string.wfcfg_info_author), meta.author))
+            val format = (if (meta.buildSource == "studio") "2.0 (Studio)" else "1.0") +
+                (if (meta.isProtected) " · " + getString(R.string.wfcfg_info_protected) else "")
+            page.addChild(infoRow(getString(R.string.wfcfg_info_format), format))
+            if (meta.description.isNotBlank())
+                page.addChild(infoBlock(getString(R.string.wfcfg_info_desc), meta.description))
+            if (meta.tags.isNotBlank())
+                page.addChild(infoBlock(getString(R.string.wfcfg_info_tags), meta.tags))
+            if (meta.featureCodes.isNotEmpty())
+                page.addChild(infoBlock(getString(R.string.wfcfg_info_features),
+                    WatchfaceMetadata.featureLabels(meta.featureCodes).joinToString(", ")))
+        }
         // Layer count (reported by the Lua engine on load, for the active face).
         val layers = if (WatchfaceStats.layerCount >= 0) WatchfaceStats.layerCount.toString() else "—"
         page.addChild(infoRow(getString(R.string.wfcfg_info_layers), layers))
@@ -876,6 +897,19 @@ class WatchfaceConfigActivity : AppCompatActivity() {
             isChecked = checked; isEnabled = enabled
             setOnCheckedChangeListener { _, v -> onChange(v) }
         }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        return box
+    }
+
+    /** Label with a wrapped multi-line value below — for description/tags/features. */
+    private fun infoBlock(label: String, value: String): View {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(0, dp(10), 0, dp(10))
+        }
+        box.addView(TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f })
+        box.addView(TextView(this).apply {
+            text = value; setTextColor(0xFF82ABD1.toInt()); textSize = 13f
+            setPadding(0, dp(2), 0, 0)
+        })
         return box
     }
 
