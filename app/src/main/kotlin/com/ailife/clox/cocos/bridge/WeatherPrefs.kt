@@ -12,6 +12,7 @@ object WeatherPrefs {
     const val KEY_ROUND_TEMP        = "weather_round_temp"
     const val KEY_WEATHERAPI_KEY    = "weather_weatherapi_key"
     const val KEY_OWM_KEY           = "weather_owm_key"
+    const val KEY_WIDGET_HOURLY     = "weather_widget_hourly"   // forecast row mode of the built-in card
 
     // Location — primary
     const val KEY_LAT               = "location_lat"
@@ -42,6 +43,10 @@ object WeatherPrefs {
     fun saveElevation(ctx: Context, meters: Double) {
         // Locale.US: a comma decimal separator would break toDoubleOrNull on read
         prefs(ctx).edit().putString(KEY_ELEVATION, "%.1f".format(java.util.Locale.US, meters)).apply()
+    }
+    fun widgetHourly(ctx: Context)    = prefs(ctx).getBoolean(KEY_WIDGET_HOURLY, false)
+    fun saveWidgetHourly(ctx: Context, hourly: Boolean) {
+        prefs(ctx).edit().putBoolean(KEY_WIDGET_HOURLY, hourly).apply()
     }
     fun city(ctx: Context)            = prefs(ctx).getString(KEY_CITY, "") ?: ""
     fun autoUpdateLocation(ctx: Context) = prefs(ctx).getBoolean(KEY_AUTO_UPDATE_LOC, true)

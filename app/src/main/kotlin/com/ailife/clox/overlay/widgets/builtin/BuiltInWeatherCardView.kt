@@ -50,6 +50,9 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
     var onDelete: (() -> Unit)? = null
     var onDragStart: ((View) -> Unit)? = null
 
+    private var editing = false
+    private var showHourly = WeatherPrefs.widgetHourly(ctx)
+
     init {
         radius = resources.getDimension(R.dimen.widget_card_radius)
         LayoutInflater.from(ctx).inflate(R.layout.card_builtin_weather, this, true)
@@ -65,6 +68,12 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
         dragHandle   = findViewById(R.id.dragHandle)
 
         btnDelete.setOnClickListener { onDelete?.invoke() }
+        setOnClickListener {
+            if (editing) return@setOnClickListener
+            showHourly = !showHourly
+            WeatherPrefs.saveWidgetHourly(context, showHourly)
+            refresh()
+        }
         dragHandle.setOnTouchListener { v, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) { onDragStart?.invoke(v); true } else false
         }
@@ -108,6 +117,7 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
     }
 
     fun setEditMode(editing: Boolean) {
+        this.editing = editing
         val vis = if (editing) View.VISIBLE else View.GONE
         btnDelete.visibility = vis
         dragHandle.visibility = vis
@@ -130,8 +140,12 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
 
         updateLastUpdateLabel(lastUpdate)
 
-        // 5-day forecast
+        // Forecast row — tapping the card toggles between 5-day and hourly
         forecastRow.removeAllViews()
+        if (showHourly) bindHourlyRow(json, round) else bindDailyRow(json, round)
+    }
+
+    private fun bindDailyRow(json: JSONObject, round: Boolean) {
         val daily = json.optJSONArray("daily") ?: return
         val count = minOf(daily.length(), 5)
         val dayFmt = SimpleDateFormat("EEE", Locale.getDefault())
@@ -148,6 +162,23 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
         }
     }
 
+    private fun bindHourlyRow(json: JSONObject, round: Boolean) {
+        val hourly = json.optJSONArray("hourly")
+        if (hourly == null || hourly.length() == 0) { bindDailyRow(json, round); return }
+        val count = minOf(hourly.length(), 5)
+        val is24h = android.text.format.DateFormat.is24HourFormat(context)
+        repeat(count) { i ->
+            val hour = hourly.getJSONObject(i)
+            val label = if (i == 0) {
+                context.getString(R.string.widget_weather_now)
+            } else {
+                formatHour(hour.optInt("hourOfDay", -1), is24h)
+            }
+            forecastRow.addView(buildHourCell(label, hour.optDouble("temp"),
+                hour.optInt("conditionIcon", 1), round))
+        }
+    }
+
     private fun buildDayCell(
         dayLabel: String,
         high: Double, low: Double,
@@ -159,6 +190,24 @@ class BuiltInWeatherCardView @JvmOverloads constructor(
         cell.findViewById<TextView>(R.id.tvForecastHigh).text  = formatTemp(high, round)
         cell.findViewById<TextView>(R.id.tvForecastLow).text   = formatTemp(low, round)
         return cell
+    }
+
+    private fun buildHourCell(label: String, temp: Double, iconCode: Int, round: Boolean): View {
+        val cell = LayoutInflater.from(context).inflate(R.layout.item_weather_forecast_day, forecastRow, false)
+        cell.findViewById<TextView>(R.id.tvForecastDay).text  = label
+        cell.findViewById<ImageView>(R.id.ivForecastIcon).setImageResource(conditionIconRes(iconCode))
+        cell.findViewById<TextView>(R.id.tvForecastHigh).text = formatTemp(temp, round)
+        // INVISIBLE (not GONE) keeps the cell the same height as a daily cell, so
+        // toggling modes doesn't change the card height.
+        cell.findViewById<TextView>(R.id.tvForecastLow).visibility = View.INVISIBLE
+        return cell
+    }
+
+    private fun formatHour(hourOfDay: Int, is24h: Boolean): String {
+        if (hourOfDay !in 0..23) return ""
+        if (is24h) return "%02d".format(hourOfDay)
+        val h = hourOfDay % 12
+        return "${if (h == 0) 12 else h}${if (hourOfDay < 12) "AM" else "PM"}"
     }
 
     private fun updateLastUpdateLabel(epochMs: Long = WeatherRepository.getLatestJson()?.optLong("lastUpdate", 0L) ?: 0L) {
