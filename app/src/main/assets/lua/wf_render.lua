@@ -3007,6 +3007,11 @@ function WFRender:bakeRun(run, zLo, fast, canvas)
     end
     local rtSlot = #self.retained + 1
     rt:retain(); self.retained[rtSlot] = rt
+    -- Coverage-accumulating alpha: a run flattens several layers, so an opaque
+    -- layer under a semi-transparent one must keep alpha 1 in the RT — otherwise
+    -- the baked sprite composites semi-transparent and the background bleeds
+    -- through (only visible with flatten on). See RenderTexture::setAlphaAccumulate.
+    if rt.setAlphaAccumulate then rt:setAlphaAccumulate(true) end
     -- Off-graph container: design origin (0,0) maps to the RT centre.
     local grp = cc.Node:create()
     grp:setPosition(canvas / 2, canvas / 2)
@@ -3082,6 +3087,7 @@ function WFRender:bakeRun(run, zLo, fast, canvas)
             if rt then self:deferRelease(rt) end
             rt = nrt
             rt:retain(); self.retained[rtSlot] = rt   -- replaces the old slot: no double release
+            if rt.setAlphaAccumulate then rt:setAlphaAccumulate(true) end   -- carry over to the recreated RT
             requestBake()
         else
             -- old (stale) RT stays in retained for face-clear release; baking
