@@ -531,7 +531,7 @@ end
 -- (once per callback per face load) instead of dying in the engine's
 -- listener pcall with only a logcat line
 function WFScript:guarded(name, cb, ...)
-    local ok, err = pcall(cb, ...)
+    local ok, err = self.sandbox:pcallLimited(cb, ...)
     if not ok then self:reportError("Script " .. name .. " failed", err, true) end
 end
 

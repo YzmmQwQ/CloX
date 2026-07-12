@@ -18,6 +18,25 @@
 
 using namespace ax;
 
+// Zip-Slip guard: a .watch is untrusted input, so a crafted entry name must
+// never let "destDir + name" escape destDir. Reject absolute paths (unix "/",
+// windows drive "C:") and any name with a ".." path component — with destDir a
+// fixed trusted prefix, that is sufficient to keep every write inside it. The
+// files don't exist yet, so realpath-based containment isn't available here.
+static bool isUnsafeZipEntryName(const std::string& name) {
+    if (name.empty()) return true;
+    if (name[0] == '/' || name[0] == '\\') return true;          // absolute
+    if (name.size() >= 2 && name[1] == ':') return true;         // drive letter
+    size_t i = 0, n = name.size();
+    while (i < n) {
+        size_t j = i;
+        while (j < n && name[j] != '/' && name[j] != '\\') ++j;
+        if (j - i == 2 && name[i] == '.' && name[i + 1] == '.') return true;
+        i = j + 1;
+    }
+    return false;
+}
+
 // ── axUnzipToDir(zipPath, destDir) → true | false, errmsg ────────────────────
 // Extracts all files from a ZIP archive to destDir (trailing slash required).
 // Creates subdirectories as needed. Called from Lua on the GL thread.
@@ -37,16 +56,20 @@ static int lua_axUnzipToDir(lua_State* L) {
 
     std::string name = zip->getFirstFilename();
     while (!name.empty()) {
-        std::string data;
-        ResizableBufferAdapter<std::string> buf(&data);
-        if (zip->getFileData(name, &buf) && !data.empty()) {
-            std::string out = std::string(destDir) + name;
-            auto slash = out.rfind('/');
-            if (slash != std::string::npos)
-                fu->createDirectory(out.substr(0, slash + 1));
-            if (FILE* f = fopen(out.c_str(), "wb")) {
-                fwrite(data.data(), 1, data.size(), f);
-                fclose(f);
+        if (isUnsafeZipEntryName(name)) {
+            ax::print("axUnzipToDir: rejected unsafe entry '%s'", name.c_str());
+        } else {
+            std::string data;
+            ResizableBufferAdapter<std::string> buf(&data);
+            if (zip->getFileData(name, &buf) && !data.empty()) {
+                std::string out = std::string(destDir) + name;
+                auto slash = out.rfind('/');
+                if (slash != std::string::npos)
+                    fu->createDirectory(out.substr(0, slash + 1));
+                if (FILE* f = fopen(out.c_str(), "wb")) {
+                    fwrite(data.data(), 1, data.size(), f);
+                    fclose(f);
+                }
             }
         }
         name = zip->getNextFilename();

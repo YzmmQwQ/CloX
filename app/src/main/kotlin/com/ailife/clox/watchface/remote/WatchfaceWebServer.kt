@@ -53,9 +53,8 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
     // ── Preview image from .watch zip ────────────────────────────────────────
 
     private fun servePreview(session: IHTTPSession): Response {
-        val path = session.parameters["path"]?.firstOrNull()
-            ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "missing path")
-        val file = java.io.File(path)
+        val file = containedFile(session.parameters["path"]?.firstOrNull())
+            ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, MIME_PLAINTEXT, "missing or out-of-scope path")
         return try {
             val bytes = java.util.zip.ZipFile(file).use { zip ->
                 val entry = zip.getEntry("preview.jpg")
@@ -124,9 +123,8 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
     }
 
     private fun downloadWatchface(path: String): Response {
-        val filePath = path.removePrefix("/watchfaces/")
-        val file = File(filePath)
-        return if (file.exists() && file.name.endsWith(".watch")) {
+        val file = containedFile(path.removePrefix("/watchfaces/"))
+        return if (file != null && file.exists() && file.name.endsWith(".watch")) {
             newFixedLengthResponse(Response.Status.OK, "application/octet-stream", FileInputStream(file), file.length()).apply {
                 addHeader("Content-Disposition", "attachment; filename=\"${file.name}\"")
             }
@@ -136,9 +134,8 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
     }
 
     private fun deleteWatchface(path: String): Response {
-        val filePath = path.removePrefix("/watchfaces/")
-        val file = File(filePath)
-        return if (file.exists() && file.name.endsWith(".watch")) {
+        val file = containedFile(path.removePrefix("/watchfaces/"))
+        return if (file != null && file.exists() && file.name.endsWith(".watch")) {
             WatchfaceRepository.delete(file)
             jsonResponse("""{"ok":true}""")
         } else {
@@ -153,6 +150,7 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
             val tmpPath = files["file"] ?: return badRequest("No file")
             val fileName = session.parameters["filename"]?.firstOrNull() ?: "upload.watch"
             val safeName = if (fileName.endsWith(".watch")) fileName else "$fileName.watch"
+            if (!isSafeLeafName(safeName)) return badRequest("Invalid filename")
             val destDir = WatchfaceRepository.getWatchfaceDir(ctx)
             val dest = File(destDir, safeName)
             File(tmpPath).copyTo(dest, overwrite = true)
@@ -165,9 +163,9 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
     private fun renameItem(session: IHTTPSession): Response {
         return try {
             val body = parseJsonBody(session)
-            val oldPath = body.optString("path")
             val newName = body.optString("newName")
-            val file = File(oldPath)
+            val file = containedFile(body.optString("path")) ?: return badRequest("Invalid path")
+            if (!isSafeLeafName(newName)) return badRequest("Invalid name")
             val result = WatchfaceRepository.rename(file, newName)
             if (result != null) jsonResponse("""{"ok":true,"path":"${result.absolutePath}"}""")
             else badRequest("Name already in use")
@@ -177,9 +175,9 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
     private fun moveItem(session: IHTTPSession): Response {
         return try {
             val body = parseJsonBody(session)
-            val path = body.optString("path")
             val targetFolder = body.optString("folder").takeIf { it.isNotEmpty() }
-            val file = File(path)
+            val file = containedFile(body.optString("path")) ?: return badRequest("Invalid path")
+            if (targetFolder != null && !isSafeLeafName(targetFolder)) return badRequest("Invalid folder")
             val targetDir = if (targetFolder != null) File(WatchfaceRepository.getWatchfaceDir(ctx), targetFolder) else null
             val result = WatchfaceRepository.moveToFolder(file, targetDir)
             if (result != null) jsonResponse("""{"ok":true,"path":"${result.absolutePath}"}""")
@@ -191,6 +189,7 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
         return try {
             val body = parseJsonBody(session)
             val name = body.optString("name")
+            if (!isSafeLeafName(name)) return badRequest("Invalid folder name")
             val dir = WatchfaceRepository.createFolder(ctx, name)
             if (dir != null) jsonResponse("""{"ok":true}""") else badRequest("Folder exists")
         } catch (e: Exception) { serverError(e.message ?: "Create folder failed") }
@@ -213,6 +212,7 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
         return try {
             val body = parseJsonBody(session)
             val path = body.optString("path")
+            if (containedFile(path) == null) return badRequest("Invalid path")
             WatchfacePrefs.setActivePath(ctx, path)
             jsonResponse("""{"ok":true}""")
         } catch (e: Exception) { serverError(e.message ?: "Set active failed") }
@@ -232,6 +232,26 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
         newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, msg)
 
     private fun addCorsHeaders() {}
+
+    /**
+     * Resolve [rawPath] and return it only if it stays inside the watchfaces
+     * dir. The remote API is intentionally unauthenticated for everything
+     * WITHIN that dir — this containment check is the boundary that stops a
+     * request from reading/writing/deleting any path outside it.
+     */
+    private fun containedFile(rawPath: String?): File? {
+        if (rawPath.isNullOrBlank()) return null
+        return try {
+            val root = WatchfaceRepository.getWatchfaceDir(ctx).canonicalFile
+            val f = File(rawPath).canonicalFile
+            if (f.path == root.path || f.path.startsWith(root.path + File.separator)) f else null
+        } catch (_: Exception) { null }
+    }
+
+    /** A single path segment (file/folder name) with no traversal or separators. */
+    private fun isSafeLeafName(name: String): Boolean =
+        name.isNotBlank() && !name.contains('/') && !name.contains('\\') &&
+            name != "." && name != ".."
 
     private fun parseJsonBody(session: IHTTPSession): JSONObject {
         val files = mutableMapOf<String, String>()

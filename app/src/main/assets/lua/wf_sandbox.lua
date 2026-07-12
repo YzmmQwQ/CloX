@@ -111,6 +111,41 @@ local function newWmFormat()
     end
 end
 
+-- ── instruction budget (runaway-script guard) ────────────────────────────────
+-- Face code (global script, tap snippets, on_* callbacks) runs under a Lua
+-- count hook: after INSTR_LIMIT VM instructions in a single invocation the hook
+-- raises an error, which the surrounding pcall turns into the normal face-error
+-- dialog instead of a 30s-frozen GL thread (the renderer watchdog stays the
+-- backstop). Catches accidental infinite loops; a face that deliberately
+-- swallows the error in its own pcall keeps re-tripping the still-armed hook and
+-- makes no unbounded progress, so the watchdog catches that case instead.
+--
+-- Only pure-Lua instructions are counted — a single C call (string.rep, …) is
+-- one instruction, so this bounds loops, not one pathological library call.
+-- ~20M instructions is tens of ms of pure Lua: far above any legitimate load or
+-- per-frame callback, far below a hung thread.
+local INSTR_LIMIT = 20000000
+local dsethook = debug and debug.sethook
+local tpack, tunpack = table.pack, table.unpack
+
+local function onInstrHook()
+    error("instruction limit exceeded (possible infinite loop in face script)", 2)
+end
+
+-- pcall(fn, ...) with the instruction budget armed. Nested calls run under the
+-- outer budget — never re-arm, never clear the parent's hook. Degrades to a
+-- plain pcall if debug.sethook is unavailable.
+local hookArmed = false
+local function callLimited(fn, ...)
+    if not dsethook or hookArmed then return pcall(fn, ...) end
+    hookArmed = true
+    dsethook(onInstrHook, "", INSTR_LIMIT)
+    local res = tpack(pcall(fn, ...))
+    dsethook()
+    hookArmed = false
+    return tunpack(res, 1, res.n)
+end
+
 function WFSandbox.new()
     local self = setmetatable({}, WFSandbox)
 
@@ -159,11 +194,18 @@ function WFSandbox:compile(src, chunkname, envOverride)
     return load(src, chunkname or "=wf_sandbox", "t", envOverride or self._env)
 end
 
--- Compile + run protected. Returns ok, err-or-result.
+-- Compile + run protected under the instruction budget. Returns ok, err-or-result.
 function WFSandbox:run(src, chunkname, envOverride)
     local fn, err = self:compile(src, chunkname, envOverride)
     if not fn then return false, err end
-    return pcall(fn)
+    return callLimited(fn)
+end
+
+-- Run fn(...) under the same instruction budget as face scripts. Used by the
+-- engine's guarded on_* callback dispatch so a runaway on_millisecond loop
+-- surfaces the error dialog instead of freezing the render thread.
+function WFSandbox:pcallLimited(fn, ...)
+    return callLimited(fn, ...)
 end
 
 return WFSandbox
