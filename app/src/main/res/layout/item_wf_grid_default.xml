@@ -56,7 +56,7 @@
                 android:layout_height="24dp"
                 android:src="@drawable/ic_chevron_down"
                 android:rotation="-90"
-                android:tint="?attr/colorOnSurfaceVariant" />
+                app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

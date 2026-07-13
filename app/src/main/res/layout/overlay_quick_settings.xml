@@ -122,7 +122,7 @@
                     android:layout_gravity="start|center_vertical"
                     android:layout_marginStart="20dp"
                     android:src="@drawable/baseline_brightness_low_24"
-                    android:tint="?attr/colorOnPrimary"/>
+                    app:tint="?attr/colorOnPrimary"/>
 
                 <ImageView
                     android:layout_width="20dp"
@@ -130,7 +130,7 @@
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="20dp"
                     android:src="@drawable/baseline_brightness_high_24"
-                    android:tint="?attr/colorOnSurfaceVariant"/>
+                    app:tint="?attr/colorOnSurfaceVariant"/>
 
             </FrameLayout>
 
