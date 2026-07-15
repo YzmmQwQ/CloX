@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 
 object DeviceAdminHelper {
 
@@ -18,7 +19,7 @@ object DeviceAdminHelper {
     // ADD_DEVICE_ADMIN's target activity (DeviceAdminAdd) refuses to launch as a new task, so this
     // must be called with an Activity context — unlike the other permission-request helpers here.
     fun requestActivation(ctx: Context) {
-        ctx.startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+        ctx.safeStartActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
             putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent(ctx))
             putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, ctx.getString(R.string.dialog_device_admin_explanation))
         })

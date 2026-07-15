@@ -14,6 +14,7 @@ import com.ailife.clox.R
 import com.ailife.clox.debug.DebugPrefs
 import com.ailife.clox.debug.LauncherMaintenance
 import com.ailife.clox.debug.SettingsBackupManager
+import com.ailife.clox.util.safeLaunch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.Dispatchers
@@ -54,10 +55,10 @@ class DebugSettingsFragment : BaseSettingsFragment() {
         }
 
         btnExportSettings.setOnClickListener {
-            exportLauncher.launch("clox_settings_backup.json")
+            exportLauncher.safeLaunch("clox_settings_backup.json", requireContext())
         }
         btnImportSettings.setOnClickListener {
-            importLauncher.launch(arrayOf("application/json", "*/*"))
+            importLauncher.safeLaunch(arrayOf("application/json", "*/*"), requireContext())
         }
 
         btnForceStop.setOnClickListener { confirmForceStop() }

@@ -19,6 +19,7 @@ import eightbitlab.com.blurview.RenderScriptBlur
 import android.widget.ImageView
 import android.widget.TextView
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.button.MaterialButton
 import java.util.concurrent.TimeUnit
 
@@ -77,7 +78,7 @@ class MediaPlayerCard(root: View, private val onVolumeClick: () -> Unit) {
                 .getLaunchIntentForPackage(pkg)
                 ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
                            android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            if (intent != null) mediaAppIcon.context.startActivity(intent)
+            if (intent != null) mediaAppIcon.context.safeStartActivity(intent)
         }
 
         btnPlayPause.setOnClickListener { togglePlayback() }

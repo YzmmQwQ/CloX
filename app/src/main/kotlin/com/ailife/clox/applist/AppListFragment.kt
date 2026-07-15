@@ -34,6 +34,7 @@ import com.ailife.clox.applist.backends.HoneycombBackend
 import com.ailife.clox.applist.backends.ListBackend
 import com.ailife.clox.applist.backends.PagesBackend
 import com.ailife.clox.applist.backends.WaterfallBackend
+import com.ailife.clox.util.safeStartActivity
 import kotlinx.coroutines.launch
 
 class AppListFragment : Fragment() {
@@ -219,7 +220,7 @@ class AppListFragment : Fragment() {
                     }.onFailure {
                         ctx.packageManager.getLaunchIntentForPackage(item.packageName)
                             ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let { ctx.startActivity(it) }
+                            ?.let { ctx.safeStartActivity(it) }
                     }
                 }
             } else {
@@ -232,7 +233,7 @@ class AppListFragment : Fragment() {
                     }.onFailure {
                         ctx.packageManager.getLaunchIntentForPackage(item.packageName)
                             ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let { ctx.startActivity(it, opts) }
+                            ?.let { ctx.safeStartActivity(it, opts) }
                     }
                 }
             }

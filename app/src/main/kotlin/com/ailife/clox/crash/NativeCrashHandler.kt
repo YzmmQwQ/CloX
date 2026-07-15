@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.ailife.clox.BuildConfig
+import com.ailife.clox.util.safeStartActivity
 import java.io.File
 
 /**
@@ -65,7 +66,7 @@ object NativeCrashHandler {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             putExtra(CrashActivity.EXTRA_CRASH_FILE, path)
         }
-        app.startActivity(intent)
+        app.safeStartActivity(intent, showError = false)
     }
 
     // Device/version lines the native handler can't know; prepended verbatim

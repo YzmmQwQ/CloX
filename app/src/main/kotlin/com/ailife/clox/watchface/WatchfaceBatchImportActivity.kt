@@ -18,6 +18,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
 import com.ailife.clox.debug.WatchfaceBackupManager
+import com.ailife.clox.util.safeLaunch
+import com.ailife.clox.util.safeStartActivity
+import com.ailife.clox.util.safeStartActivityForResult
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -67,13 +70,13 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
         btnBackupAll = findViewById(R.id.btnBackupAll)
 
         btnPickFolder.setOnClickListener {
-            startActivityForResult(
+            safeStartActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQ_FOLDER
             )
         }
 
         btnPickFiles.setOnClickListener {
-            startActivityForResult(
+            safeStartActivityForResult(
                 Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     type = "*/*"
                     putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
@@ -83,11 +86,11 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
         }
 
         btnPickZip.setOnClickListener {
-            pickZipLauncher.launch(arrayOf("application/zip", "*/*"))
+            pickZipLauncher.safeLaunch(arrayOf("application/zip", "*/*"), this)
         }
 
         btnBackupAll.setOnClickListener {
-            backupAllLauncher.launch("clox_watchfaces_backup.zip")
+            backupAllLauncher.safeLaunch("clox_watchfaces_backup.zip", this)
         }
     }
 
@@ -192,7 +195,7 @@ class WatchfaceBatchImportActivity : AppCompatActivity() {
         setBusy(false)
         tvStatus.text = getString(R.string.wf_import_done, count)
         tvStatus.postDelayed({
-            startActivity(Intent(this, WatchfaceSelectorActivity::class.java))
+            safeStartActivity(Intent(this, WatchfaceSelectorActivity::class.java))
             finish()
         }, 1200)
     }

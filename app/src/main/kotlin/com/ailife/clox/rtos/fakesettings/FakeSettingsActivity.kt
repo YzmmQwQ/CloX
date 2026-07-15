@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
 import com.ailife.clox.watchface.WatchfaceSnapshot
@@ -292,7 +293,7 @@ class FakeSettingsActivity : AppCompatActivity() {
         if (activePath != null) {
             WatchfaceSnapshot.bitmap = WatchfaceRepository.getPreviewCached(activePath)
         }
-        startActivity(Intent(this, WatchfaceSelectorActivity::class.java).apply {
+        safeStartActivity(Intent(this, WatchfaceSelectorActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }

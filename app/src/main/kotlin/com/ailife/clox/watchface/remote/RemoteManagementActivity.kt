@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.Dispatchers
@@ -73,13 +74,13 @@ class RemoteManagementActivity : AppCompatActivity() {
 
         btnShare.setOnClickListener {
             val url = currentUrl() ?: return@setOnClickListener
-            startActivity(Intent.createChooser(
+            safeStartActivity(Intent.createChooser(
                 Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, url) }, null
             ))
         }
 
         btnOpenBrowser.setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(currentUrl() ?: return@setOnClickListener)))
+            safeStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(currentUrl() ?: return@setOnClickListener)))
         }
     }
 

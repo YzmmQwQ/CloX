@@ -12,6 +12,7 @@ import com.ailife.clox.R
 import com.ailife.clox.applist.AppListPrefs
 import com.ailife.clox.applist.HideAppsFragment
 import com.ailife.clox.icon.IconPackLoader
+import com.ailife.clox.util.safeLaunch
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
@@ -157,7 +158,7 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         }
 
         // Background image
-        view.findViewById<View>(R.id.rowBgImagePick).setOnClickListener { pickImage.launch("image/*") }
+        view.findViewById<View>(R.id.rowBgImagePick).setOnClickListener { pickImage.safeLaunch("image/*", requireContext()) }
         btnBgImageClear.setOnClickListener {
             AppListPrefs.saveBgImagePath(requireContext(), null)
             updateBgState()

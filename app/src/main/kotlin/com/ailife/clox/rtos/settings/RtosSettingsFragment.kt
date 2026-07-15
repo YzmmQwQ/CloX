@@ -19,6 +19,7 @@ import com.ailife.clox.R
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.rtos.RtosPrefs
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -114,12 +115,12 @@ class RtosSettingsFragment : Fragment() {
 
         // Set password nav
         view.findViewById<View>(R.id.rowRtosSetPassword).setOnClickListener {
-            startActivity(Intent(requireContext(), RtosPasswordSetupActivity::class.java))
+            safeStartActivity(Intent(requireContext(), RtosPasswordSetupActivity::class.java))
         }
 
         // Whitelist nav
         view.findViewById<View>(R.id.rowRtosWhitelist).setOnClickListener {
-            startActivity(Intent(requireContext(), RtosWhitelistActivity::class.java))
+            safeStartActivity(Intent(requireContext(), RtosWhitelistActivity::class.java))
         }
 
         // Block apps switch

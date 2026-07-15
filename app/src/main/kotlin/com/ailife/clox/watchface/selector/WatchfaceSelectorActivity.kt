@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 import com.ailife.clox.watchface.WatchfaceConfigPrefs
 import com.ailife.clox.watchface.WatchfaceItem
 import com.ailife.clox.watchface.WatchfacePrefs
@@ -631,19 +632,19 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
     // ── Navigation ────────────────────────────────────────────────────────────
 
     private fun openStore() {
-        startActivity(Intent(this,
+        safeStartActivity(Intent(this,
             com.ailife.clox.watchface.store.WatchfaceStoreActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun openRemote() {
-        startActivity(Intent(this,
+        safeStartActivity(Intent(this,
             com.ailife.clox.watchface.remote.RemoteManagementActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun openImport() {
-        startActivity(Intent(this,
+        safeStartActivity(Intent(this,
             com.ailife.clox.watchface.WatchfaceBatchImportActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
@@ -673,7 +674,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
     companion object {
         fun start(ctx: Context) {
-            ctx.startActivity(Intent(ctx, WatchfaceSelectorActivity::class.java)
+            ctx.safeStartActivity(Intent(ctx, WatchfaceSelectorActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             // Suppress system slide animation — we play our own snapshot transition
             if (ctx is android.app.Activity) {

@@ -16,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.util.safeLaunch
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -79,9 +80,9 @@ class GalleryActivity : AppCompatActivity() {
 
         fab.setOnClickListener {
             if (PickVisualMedia.isPhotoPickerAvailable(this)) {
-                pickViaPhotoPicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                pickViaPhotoPicker.safeLaunch(PickVisualMediaRequest(PickVisualMedia.ImageOnly), this)
             } else {
-                pickViaContent.launch("image/*")
+                pickViaContent.safeLaunch("image/*", this)
             }
         }
 

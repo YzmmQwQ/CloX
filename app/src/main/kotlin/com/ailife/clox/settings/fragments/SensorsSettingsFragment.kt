@@ -18,6 +18,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.SensorsPrefs
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class SensorsSettingsFragment : BaseSettingsFragment() {
@@ -39,7 +40,7 @@ class SensorsSettingsFragment : BaseSettingsFragment() {
                     .setTitle(R.string.pref_calendar_permission_denied)
                     .setMessage(R.string.dialog_calendar_perm_message)
                     .setPositiveButton(R.string.btn_open_settings) { _, _ ->
-                        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        safeStartActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", requireContext().packageName, null)
                         })
                     }

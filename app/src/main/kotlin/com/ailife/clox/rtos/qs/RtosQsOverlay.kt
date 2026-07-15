@@ -21,6 +21,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.ailife.clox.R
 import com.ailife.clox.rtos.fakesettings.FakeSettingsActivity
+import com.ailife.clox.util.safeStartActivity
 
 /**
  * RTOS fake quick settings panel — swipe-down in Mode 2.
@@ -169,14 +170,14 @@ class RtosQsOverlay @JvmOverloads constructor(
 
     private fun openFakeSettings() {
         onDismiss?.invoke()
-        context.startActivity(Intent(context, FakeSettingsActivity::class.java).apply {
+        context.safeStartActivity(Intent(context, FakeSettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }
 
     private fun openQr() {
         onDismiss?.invoke()
-        context.startActivity(Intent(context, FakeSettingsActivity::class.java).apply {
+        context.safeStartActivity(Intent(context, FakeSettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             putExtra(FakeSettingsActivity.EXTRA_START_PAGE, FakeSettingsActivity.PAGE_QR)
         })

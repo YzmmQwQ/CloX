@@ -23,6 +23,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ailife.clox.R
 import com.ailife.clox.applist.model.AppItem
+import com.ailife.clox.util.safeStartActivity
 
 object AppContextMenu {
 
@@ -222,14 +223,14 @@ object AppContextMenu {
     }
 
     private fun requestUninstall(ctx: Context, item: AppItem) {
-        ctx.startActivity(
+        ctx.safeStartActivity(
             Intent(Intent.ACTION_DELETE, Uri.parse("package:${item.packageName}"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
     }
 
     private fun openAppInfo(ctx: Context, item: AppItem) {
-        ctx.startActivity(
+        ctx.safeStartActivity(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                 Uri.parse("package:${item.packageName}"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

@@ -1143,4 +1143,10 @@
     <string name="about_auto_update_summary">Check for new releases on launch</string>
     <string name="about_check_updates_btn">Check for updates</string>
     <string name="about_repo_url">gitlab.com/ailife8881/clox</string>
+
+    <!-- Crash-safe activity launching (SafeActivityLauncher) -->
+    <string name="launch_error_title">Can\'t open</string>
+    <string name="launch_error_no_app">No app on this device can handle that. You may need to install a file manager or the target app.</string>
+    <string name="launch_error_not_permitted">The system blocked this action. Check the app\'s permissions and try again.</string>
+    <string name="launch_error_generic">Couldn\'t open that. Please try again.</string>
 </resources>

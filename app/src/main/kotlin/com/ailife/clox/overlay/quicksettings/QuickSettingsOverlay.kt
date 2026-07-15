@@ -38,6 +38,7 @@ import com.ailife.clox.qs.tile.TileLayoutManager
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.settings.SettingsActivity
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.slider.Slider
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -320,7 +321,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
     private fun setupBottomBar() {
         applyBottomBarStyle()
         btnLauncherSettings.setOnClickListener {
-            context.startActivity(Intent(context, SettingsActivity::class.java)
+            context.safeStartActivity(Intent(context, SettingsActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
         btnRecents.setOnClickListener {

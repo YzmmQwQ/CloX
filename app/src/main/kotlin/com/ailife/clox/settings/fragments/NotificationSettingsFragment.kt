@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import com.ailife.clox.R
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 
@@ -120,7 +121,7 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
             if (!running && granted) {
                 CloXNotificationListenerService.requestRebind(requireContext())
             } else {
-                requireContext().startActivity(
+                requireContext().safeStartActivity(
                     Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }

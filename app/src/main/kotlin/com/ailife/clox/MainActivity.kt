@@ -49,6 +49,7 @@ import com.ailife.clox.overlay.widgets.WidgetHostManager
 import com.ailife.clox.rtos.RtosActivityDelegate
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.rtos.RtosPrefs
+import com.ailife.clox.util.safeStartActivityForResult
 import dev.axmol.lib.AxmolEngine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -1779,7 +1780,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, allocatedId)
             }
             @Suppress("DEPRECATION")
-            startActivityForResult(intent, WidgetHostManager.REQUEST_PICK_WIDGET)
+            safeStartActivityForResult(intent, WidgetHostManager.REQUEST_PICK_WIDGET)
         }
     }
 

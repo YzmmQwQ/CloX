@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.ailife.clox.databinding.ActivityCrashBinding
+import com.ailife.clox.util.safeStartActivity
 import java.io.File
 
 class CrashActivity : AppCompatActivity() {
@@ -41,7 +42,7 @@ class CrashActivity : AppCompatActivity() {
         }
 
         binding.btnShare.setOnClickListener {
-            startActivity(Intent.createChooser(
+            safeStartActivity(Intent.createChooser(
                 Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_SUBJECT, getString(R.string.crash_subject))

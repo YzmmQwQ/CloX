@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.os.Build
 import com.ailife.clox.BuildConfig
+import com.ailife.clox.util.safeStartActivity
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,7 +31,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 putExtra(CrashActivity.EXTRA_CRASH_FILE, file.absolutePath)
             }
-            app.startActivity(intent)
+            app.safeStartActivity(intent, showError = false)
         } catch (_: Exception) { }
 
         defaultHandler?.uncaughtException(thread, throwable)

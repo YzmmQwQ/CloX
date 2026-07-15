@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentActivity
 import androidx.preference.PreferenceManager
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 
 object QsPermissionHelper {
 
@@ -79,7 +80,7 @@ object QsPermissionHelper {
             .setTitle(R.string.dialog_qs_permissions_title)
             .setMessage(R.string.dialog_qs_permissions_message)
             .setPositiveButton(R.string.btn_open_settings) { _, _ ->
-                activity.startActivity(
+                activity.safeStartActivity(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.fromParts("package", activity.packageName, null)
                     }
@@ -95,7 +96,7 @@ object QsPermissionHelper {
 
     fun ensureWriteSettings(ctx: Context): Boolean {
         if (Settings.System.canWrite(ctx)) return true
-        ctx.startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+        ctx.safeStartActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
             .setData(Uri.parse("package:${ctx.packageName}"))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         return false
@@ -104,14 +105,14 @@ object QsPermissionHelper {
     fun ensureDndAccess(ctx: Context): Boolean {
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (nm.isNotificationPolicyAccessGranted) return true
-        ctx.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+        ctx.safeStartActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         return false
     }
 
     fun ensureAccessibilityEnabled(ctx: Context): Boolean {
         if (CloXAccessibilityService.isRunning()) return true
-        ctx.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        ctx.safeStartActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         return false
     }

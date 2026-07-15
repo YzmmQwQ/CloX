@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.slider.Slider
 
 class AppearanceSettingsFragment : BaseSettingsFragment() {
@@ -46,7 +47,7 @@ class AppearanceSettingsFragment : BaseSettingsFragment() {
                         .getLaunchIntentForPackage(act.packageName)
                         ?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     act.finish()
-                    if (restart != null) act.startActivity(restart)
+                    if (restart != null) act.safeStartActivity(restart)
                 }
             }
         }

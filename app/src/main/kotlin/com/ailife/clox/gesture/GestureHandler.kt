@@ -11,6 +11,7 @@ import com.ailife.clox.qs.ScreenOffHelper
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.rtos.RtosPrefs
 import com.ailife.clox.settings.SettingsActivity
+import com.ailife.clox.util.safeStartActivity
 import com.ailife.clox.watchface.WatchfaceAutoChanger
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
@@ -78,7 +79,7 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
     }
 
     private fun openSettings() {
-        ctx.startActivity(Intent(ctx, SettingsActivity::class.java).apply {
+        ctx.safeStartActivity(Intent(ctx, SettingsActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }

@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.ailife.clox.R
+import com.ailife.clox.qs.QsPermissionHelper
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.slider.Slider
 
@@ -56,9 +57,18 @@ class VolumeDialogFragment : BottomSheetDialogFragment() {
             slider.valueTo = max.coerceAtLeast(1f)
             slider.addOnChangeListener { _, value, fromUser ->
                 if (fromUser) {
-                    audio.setStreamVolume(stream, value.toInt(), 0)
-                    view.findViewById<TextView>(pctIds[i]).text =
-                        "${(value / max * 100).toInt()}%"
+                    try {
+                        audio.setStreamVolume(stream, value.toInt(), 0)
+                        view.findViewById<TextView>(pctIds[i]).text =
+                            "${(value / max * 100).toInt()}%"
+                    } catch (e: SecurityException) {
+                        // Muting/unmuting the ring or notification stream toggles the
+                        // ringer/DND state, which requires notification-policy access.
+                        // Without it the framework throws instead of applying the change.
+                        // Revert the slider to the real level and send the user to grant it.
+                        syncSliders(view)
+                        QsPermissionHelper.ensureDndAccess(requireContext())
+                    }
                 }
             }
         }

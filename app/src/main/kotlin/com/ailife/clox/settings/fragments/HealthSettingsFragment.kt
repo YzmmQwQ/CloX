@@ -14,6 +14,7 @@ import com.ailife.clox.R
 import com.ailife.clox.cocos.bridge.BhtApiClient
 import com.ailife.clox.cocos.bridge.HealthHelper
 import com.ailife.clox.cocos.bridge.HealthPrefs
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.Job
@@ -162,7 +163,7 @@ class HealthSettingsFragment : BaseSettingsFragment() {
 
     private fun openPlayStore() {
         val ctx = requireContext()
-        startActivity(Intent(Intent.ACTION_VIEW,
+        safeStartActivity(Intent(Intent.ACTION_VIEW,
             Uri.parse("https://gitlab.com/ailife8881/better-health-tracker/-/releases")))
     }
 

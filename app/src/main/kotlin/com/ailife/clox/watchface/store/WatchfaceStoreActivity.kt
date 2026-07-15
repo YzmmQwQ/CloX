@@ -23,6 +23,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.util.safeStartActivity
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -54,7 +55,7 @@ class WatchfaceStoreActivity : AppCompatActivity() {
         private const val TAG = "WatchfaceStore"
 
         fun launch(ctx: Context) =
-            ctx.startActivity(Intent(ctx, WatchfaceStoreActivity::class.java)
+            ctx.safeStartActivity(Intent(ctx, WatchfaceStoreActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 

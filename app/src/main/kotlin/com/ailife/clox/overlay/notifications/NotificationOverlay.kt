@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.ailife.clox.R
 import com.ailife.clox.overlay.quicksettings.VolumeDialogFragment
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
 
@@ -274,7 +275,7 @@ class NotificationOverlay @JvmOverloads constructor(
     }
 
     private fun openNotificationListenerSettings() {
-        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+        context.safeStartActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 

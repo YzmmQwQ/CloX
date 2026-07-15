@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import com.ailife.clox.admin.DeviceAdminHelper
+import com.ailife.clox.util.safeStartActivity
 
 /**
  * A real OS-level "force stop" (ActivityManager.forceStopPackage) needs the
@@ -30,7 +31,7 @@ object LauncherMaintenance {
     fun uninstall(ctx: Context) {
         DeviceAdminHelper.removeActiveAdmin(ctx)
         Handler(Looper.getMainLooper()).postDelayed({
-            ctx.startActivity(
+            ctx.safeStartActivity(
                 Intent(Intent.ACTION_DELETE, Uri.parse("package:${ctx.packageName}"))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )

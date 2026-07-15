@@ -13,6 +13,7 @@ import com.ailife.clox.qs.QsPrefs
 import com.ailife.clox.qs.privilege.PrivilegeLevel
 import com.ailife.clox.qs.privilege.PrivilegeManager
 import com.ailife.clox.settings.fragments.TileEditorFragment
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 
@@ -176,7 +177,7 @@ class QuickSettingsSettingsFragment : BaseSettingsFragment() {
 
         // Accessibility
         view.findViewById<View>(R.id.rowQsAccessibility).setOnClickListener {
-            requireContext().startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            requireContext().safeStartActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }

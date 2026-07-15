@@ -34,6 +34,7 @@ import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.ailife.clox.R
 import com.ailife.clox.rtos.RtosManager
+import com.ailife.clox.util.safeStartActivity
 import com.ailife.clox.watchface.WatchfaceConfigPrefs
 import com.ailife.clox.watchface.WatchfaceMetadata
 import com.ailife.clox.watchface.WatchfacePrefs
@@ -73,7 +74,7 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         /** Per-face config for the active face (live preview over the watchface). */
         fun start(ctx: Context) {
             isActive = true
-            ctx.startActivity(Intent(ctx, WatchfaceConfigActivity::class.java).apply {
+            ctx.safeStartActivity(Intent(ctx, WatchfaceConfigActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
         }
@@ -81,7 +82,7 @@ class WatchfaceConfigActivity : AppCompatActivity() {
         /** App-wide defaults editor (from Settings). */
         fun startDefaults(ctx: Context) {
             isActive = true
-            ctx.startActivity(Intent(ctx, WatchfaceConfigActivity::class.java).apply {
+            ctx.safeStartActivity(Intent(ctx, WatchfaceConfigActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 putExtra(EXTRA_DEFAULTS, true)
             })
@@ -255,7 +256,7 @@ class WatchfaceConfigActivity : AppCompatActivity() {
                 text = getString(R.string.wfcfg_change); textSize = 12f
                 setTextColor(Color.WHITE); insetTop = 0; insetBottom = 0
                 setOnClickListener {
-                    startActivity(Intent(this@WatchfaceConfigActivity,
+                    safeStartActivity(Intent(this@WatchfaceConfigActivity,
                         com.ailife.clox.watchface.selector.WatchfaceSelectorActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     finish()

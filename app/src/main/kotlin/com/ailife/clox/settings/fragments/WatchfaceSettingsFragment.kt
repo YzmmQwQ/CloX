@@ -13,6 +13,7 @@ import com.ailife.clox.watchface.gallery.GalleryActivity
 import com.ailife.clox.watchface.remote.RemoteManagementActivity
 import com.ailife.clox.watchface.selector.WatchfaceSelectorActivity
 import com.ailife.clox.watchface.store.WatchfaceStoreActivity
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class WatchfaceSettingsFragment : BaseSettingsFragment() {
@@ -35,7 +36,7 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
 
         // Open selector card
         view.findViewById<View>(R.id.cardWfOpenSelector).setOnClickListener {
-            startActivity(Intent(requireContext(), WatchfaceSelectorActivity::class.java))
+            safeStartActivity(Intent(requireContext(), WatchfaceSelectorActivity::class.java))
         }
 
         // Open per-face config dialog — Settings lives in its own task, so bring the
@@ -45,7 +46,7 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
         // fired from here since MainActivity may need to fully recreate first.
         view.findViewById<View>(R.id.cardWfOpenConfig).setOnClickListener {
             val ctx = requireContext()
-            ctx.startActivity(Intent(Intent.ACTION_MAIN).apply {
+            ctx.safeStartActivity(Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 setPackage(ctx.packageName)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -59,7 +60,7 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
         // overlay is dismissed and home is brought forward before the editor opens.
         view.findViewById<View>(R.id.cardWfDefaults).setOnClickListener {
             val ctx = requireContext()
-            ctx.startActivity(Intent(Intent.ACTION_MAIN).apply {
+            ctx.safeStartActivity(Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 setPackage(ctx.packageName)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -125,16 +126,16 @@ class WatchfaceSettingsFragment : BaseSettingsFragment() {
 
         // Management rows
         view.findViewById<View>(R.id.rowWfStore).setOnClickListener {
-            startActivity(Intent(requireContext(), WatchfaceStoreActivity::class.java))
+            safeStartActivity(Intent(requireContext(), WatchfaceStoreActivity::class.java))
         }
         view.findViewById<View>(R.id.rowWfRemote).setOnClickListener {
-            startActivity(Intent(requireContext(), RemoteManagementActivity::class.java))
+            safeStartActivity(Intent(requireContext(), RemoteManagementActivity::class.java))
         }
         view.findViewById<View>(R.id.rowWfImport).setOnClickListener {
-            startActivity(Intent(requireContext(), WatchfaceBatchImportActivity::class.java))
+            safeStartActivity(Intent(requireContext(), WatchfaceBatchImportActivity::class.java))
         }
         view.findViewById<View>(R.id.rowWfGallery).setOnClickListener {
-            startActivity(Intent(requireContext(), GalleryActivity::class.java))
+            safeStartActivity(Intent(requireContext(), GalleryActivity::class.java))
         }
     }
 }

@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import com.ailife.clox.R
 import com.ailife.clox.update.UpdateController
+import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class AboutFragment : BaseSettingsFragment() {
@@ -74,6 +75,6 @@ class AboutFragment : BaseSettingsFragment() {
     }
 
     private fun openUrl(url: String) {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        safeStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 }
