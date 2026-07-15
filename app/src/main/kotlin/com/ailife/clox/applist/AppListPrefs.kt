@@ -1,6 +1,7 @@
 package com.ailife.clox.applist
 
 import android.content.Context
+import android.os.Build
 import com.ailife.clox.applist.model.AppItem
 import org.json.JSONArray
 import org.json.JSONObject
@@ -229,18 +230,14 @@ object AppListPrefs {
     const val LAUNCH_ANIM_SYSTEM     = "system"
     const val LAUNCH_ANIM_CUSTOM     = "custom"
 
-    // Path A — real app-window OPEN morph. When on, launch the app with a privileged remote
-    // animation so the system hands us the real window leash and we morph it from the icon rect.
-    // Requires the priv-app Magisk module (permission + hidden-API). Overrides the in-app launch
-    // animation. R+ only. Default off.
-    const val KEY_OPEN_REAL_WINDOW   = "open_real_window"
-
-    fun openRealWindow(ctx: Context) =
-        get(ctx).getBoolean(KEY_OPEN_REAL_WINDOW, false)
-
     const val KEY_OPEN_ANIM_TYPE        = "open_anim_type"
     const val OPEN_ANIM_ICON_ZOOM       = "icon_zoom"
     const val OPEN_ANIM_WINDOW_EXPAND   = "window_expand"
+    // Path A — real system app-window morph (privileged remote animation). Only usable when the
+    // CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS permission is held (CloX shipped as a priv-app);
+    // it is the DEFAULT open/close type when the permission is present.
+    const val OPEN_ANIM_REAL_WINDOW     = "real_window"
+    const val CLOSE_ANIM_REAL_WINDOW    = "real_window"
 
     const val KEY_RETURN_ANIM_ENABLED   = "return_anim_enabled"
     const val KEY_ANIM_SPEED            = "anim_speed"   // Float, 0.5..2.0
@@ -251,11 +248,31 @@ object AppListPrefs {
     const val KEY_CLOSE_ANIM_SPEED      = "close_anim_speed"  // Float, 0.5..2.0
     const val KEY_CLOSE_ANIM_DELAY      = "close_anim_delay"  // Int ms, 0..500
 
+    /** True when CloX holds the privileged remote-animation permission (Path A available). */
+    fun hasRemoteAnimPermission(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+        ctx.checkSelfPermission("android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS") ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
     fun useCustomLaunchAnim(ctx: Context) =
         get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_CUSTOM) == LAUNCH_ANIM_CUSTOM
 
-    fun openAnimType(ctx: Context) =
-        get(ctx).getString(KEY_OPEN_ANIM_TYPE, OPEN_ANIM_WINDOW_EXPAND) ?: OPEN_ANIM_WINDOW_EXPAND
+    /** Effective open type: defaults to real_window when the permission is held; falls back off it
+     *  to window_expand if the permission is ever lost. */
+    fun openAnimType(ctx: Context): String {
+        val stored = get(ctx).getString(KEY_OPEN_ANIM_TYPE, null)
+        if (stored == null)
+            return if (hasRemoteAnimPermission(ctx)) OPEN_ANIM_REAL_WINDOW else OPEN_ANIM_WINDOW_EXPAND
+        if (stored == OPEN_ANIM_REAL_WINDOW && !hasRemoteAnimPermission(ctx))
+            return OPEN_ANIM_WINDOW_EXPAND
+        return stored
+    }
+
+    /** Whether the open uses the real system window morph (Path A). */
+    fun openRealWindow(ctx: Context) = openAnimType(ctx) == OPEN_ANIM_REAL_WINDOW
+
+    /** Whether the close/return uses the real system window morph (Path A). */
+    fun closeRealWindow(ctx: Context) = closeAnimType(ctx) == CLOSE_ANIM_REAL_WINDOW
 
     fun returnAnimEnabled(ctx: Context) =
         get(ctx).getBoolean(KEY_RETURN_ANIM_ENABLED, true)
@@ -263,8 +280,15 @@ object AppListPrefs {
     fun animSpeed(ctx: Context) =
         get(ctx).getFloat(KEY_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
 
-    fun closeAnimType(ctx: Context) =
-        get(ctx).getString(KEY_CLOSE_ANIM_TYPE, CLOSE_ANIM_WINDOW_EXPAND) ?: CLOSE_ANIM_WINDOW_EXPAND
+    /** Effective close type: same permission-based default/fallback as [openAnimType]. */
+    fun closeAnimType(ctx: Context): String {
+        val stored = get(ctx).getString(KEY_CLOSE_ANIM_TYPE, null)
+        if (stored == null)
+            return if (hasRemoteAnimPermission(ctx)) CLOSE_ANIM_REAL_WINDOW else CLOSE_ANIM_WINDOW_EXPAND
+        if (stored == CLOSE_ANIM_REAL_WINDOW && !hasRemoteAnimPermission(ctx))
+            return CLOSE_ANIM_WINDOW_EXPAND
+        return stored
+    }
 
     fun closeAnimSpeed(ctx: Context) =
         get(ctx).getFloat(KEY_CLOSE_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)

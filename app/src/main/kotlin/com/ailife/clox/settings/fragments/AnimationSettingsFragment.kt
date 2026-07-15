@@ -42,10 +42,20 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         val tvCloseAnimDelay     = view.findViewById<TextView>(R.id.tvCloseAnimDelay)
         val sliderCloseAnimDelay = view.findViewById<Slider>(R.id.sliderCloseAnimDelay)
 
-        val openTypeEntries  = resources.getStringArray(R.array.open_anim_type_entries)
-        val openTypeValues   = resources.getStringArray(R.array.open_anim_type_values)
-        val closeTypeEntries = resources.getStringArray(R.array.close_anim_type_entries)
-        val closeTypeValues  = resources.getStringArray(R.array.close_anim_type_values)
+        // The real-system-window (Path A) option is only offered when the privileged permission is
+        // held (CloX shipped as a priv-app). It is the default type in that case (see AppListPrefs).
+        val hasRemoteAnim = AppListPrefs.hasRemoteAnimPermission(requireContext())
+        val realEntry = getString(R.string.anim_setting_real_window_entry)
+        fun withReal(entries: Array<String>, values: Array<String>, realValue: String) =
+            if (hasRemoteAnim) Pair(entries + realEntry, values + realValue) else Pair(entries, values)
+        val (openTypeEntries, openTypeValues) = withReal(
+            resources.getStringArray(R.array.open_anim_type_entries),
+            resources.getStringArray(R.array.open_anim_type_values),
+            AppListPrefs.OPEN_ANIM_REAL_WINDOW)
+        val (closeTypeEntries, closeTypeValues) = withReal(
+            resources.getStringArray(R.array.close_anim_type_entries),
+            resources.getStringArray(R.array.close_anim_type_values),
+            AppListPrefs.CLOSE_ANIM_REAL_WINDOW)
 
         fun labelFor(entries: Array<String>, values: Array<String>, v: String) =
             entries.getOrElse(values.indexOf(v)) { v }
@@ -66,15 +76,13 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
         // ── Open animation style picker ──────────────────────────────────────
         fun refreshOpenType() {
-            val v = appListPrefs.getString(AppListPrefs.KEY_OPEN_ANIM_TYPE, AppListPrefs.OPEN_ANIM_WINDOW_EXPAND)
-                ?: AppListPrefs.OPEN_ANIM_WINDOW_EXPAND
-            tvOpenAnimType.text = labelFor(openTypeEntries, openTypeValues, v)
+            tvOpenAnimType.text =
+                labelFor(openTypeEntries, openTypeValues, AppListPrefs.openAnimType(requireContext()))
         }
         refreshOpenType()
 
         rowOpenAnimType.setOnClickListener {
-            val current = appListPrefs.getString(AppListPrefs.KEY_OPEN_ANIM_TYPE, AppListPrefs.OPEN_ANIM_WINDOW_EXPAND)
-                ?: AppListPrefs.OPEN_ANIM_WINDOW_EXPAND
+            val current = AppListPrefs.openAnimType(requireContext())
             showListPicker(getString(R.string.anim_setting_open_type_title), openTypeEntries, openTypeValues, current) { v, _ ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_OPEN_ANIM_TYPE, v).apply()
                 refreshOpenType()
@@ -86,13 +94,6 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         switchLaunchBlur.isChecked = appListPrefs.getBoolean(AppListPrefs.KEY_LAUNCH_BLUR, false)
         switchLaunchBlur.setOnCheckedChangeListener { _, checked ->
             appListPrefs.edit().putBoolean(AppListPrefs.KEY_LAUNCH_BLUR, checked).apply()
-        }
-
-        val switchRealWindowOpen = view.findViewById<MaterialSwitch>(R.id.switchRealWindowOpen)
-        switchRealWindowOpen.isChecked =
-            appListPrefs.getBoolean(AppListPrefs.KEY_OPEN_REAL_WINDOW, false)
-        switchRealWindowOpen.setOnCheckedChangeListener { _, checked ->
-            appListPrefs.edit().putBoolean(AppListPrefs.KEY_OPEN_REAL_WINDOW, checked).apply()
         }
 
         // ── Return animation switch + close style picker ─────────────────────
@@ -111,15 +112,13 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         }
 
         fun refreshCloseType() {
-            val v = appListPrefs.getString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND)
-                ?: AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND
-            tvCloseAnimType.text = labelFor(closeTypeEntries, closeTypeValues, v)
+            tvCloseAnimType.text =
+                labelFor(closeTypeEntries, closeTypeValues, AppListPrefs.closeAnimType(requireContext()))
         }
         refreshCloseType()
 
         rowCloseAnimType.setOnClickListener {
-            val current = appListPrefs.getString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND)
-                ?: AppListPrefs.CLOSE_ANIM_WINDOW_EXPAND
+            val current = AppListPrefs.closeAnimType(requireContext())
             showListPicker(getString(R.string.anim_setting_close_type_title), closeTypeEntries, closeTypeValues, current) { v, _ ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, v).apply()
                 refreshCloseType()

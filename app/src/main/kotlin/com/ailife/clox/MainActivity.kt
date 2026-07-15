@@ -598,8 +598,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         // Path A: register the close remote-animation once so the system hands us the real closing
         // window leash on app→launcher transitions (shrinks it back into the launched icon rect).
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-            com.ailife.clox.applist.AppListPrefs.openRealWindow(this) && !pathACloseRegistered) {
+        if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this) && !pathACloseRegistered) {
             com.ailife.clox.anim.RemoteAppAnimator.registerClose(this) { lastLaunchBounds }
             pathACloseRegistered = true
         }
@@ -607,8 +606,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Path A: the registered close remote-animation morphs the real window back into the icon —
         // do NOT play the in-app return animation, and do NOT suppress the system transition (which
         // would kill the morph). Keep lastLaunchBounds so the close runner can target the icon.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-            com.ailife.clox.applist.AppListPrefs.openRealWindow(this)) {
+        if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this)) {
             lastLaunchedItem = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
             Log.d("CloX/Return", "onResume Path A — system close morph owns the return; skip in-app")

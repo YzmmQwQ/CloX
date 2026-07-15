@@ -150,36 +150,43 @@ private class LeashAnimator(
     }
 }
 
-/** Shared reflection over the public-but-@hide SurfaceControl.Transaction geometry setters. */
+/**
+ * Shared reflection over the public-but-@hide SurfaceControl.Transaction geometry setters. Every
+ * method handle is resolved defensively (null if the platform lacks that exact signature) so class
+ * init never throws, and every invoke is wrapped so a hidden-API failure degrades gracefully.
+ */
 private object SurfaceTx {
     private val txClass = SurfaceControl.Transaction::class.java
     private val scClass = SurfaceControl::class.java
-    private val mSetMatrix =
-        txClass.getMethod("setMatrix", scClass, Matrix::class.java, FloatArray::class.java)
-    private val mSetCorner =
-        txClass.getMethod("setCornerRadius", scClass, Float::class.javaPrimitiveType)
-    private val mSetAlpha =
-        txClass.getMethod("setAlpha", scClass, Float::class.javaPrimitiveType)
+    private fun m(name: String, vararg params: Class<*>?) =
+        runCatching { txClass.getMethod(name, *params) }.getOrNull()
 
-    private val mShow = txClass.getMethod("show", scClass)
-    private val mSetLayer = txClass.getMethod("setLayer", scClass, Int::class.javaPrimitiveType)
+    private val mSetMatrix = m("setMatrix", scClass, Matrix::class.java, FloatArray::class.java)
+    private val mSetCorner = m("setCornerRadius", scClass, Float::class.javaPrimitiveType)
+    private val mSetAlpha = m("setAlpha", scClass, Float::class.javaPrimitiveType)
+    private val mShow = m("show", scClass)
+    private val mSetLayer = m("setLayer", scClass, Int::class.javaPrimitiveType)
 
     /** Build + apply one frame's transform on the given leash. Safe on any thread. */
     fun frame(leash: SurfaceControl, matrix: Matrix, tmp: FloatArray, cornerR: Float, alpha: Float) {
-        val t = SurfaceControl.Transaction()
-        runCatching { mSetMatrix.invoke(t, leash, matrix, tmp) }
-        runCatching { mSetCorner.invoke(t, leash, cornerR) }
-        runCatching { mSetAlpha.invoke(t, leash, alpha) }
-        t.apply()
+        runCatching {
+            val t = SurfaceControl.Transaction()
+            runCatching { mSetMatrix?.invoke(t, leash, matrix, tmp) }
+            runCatching { mSetCorner?.invoke(t, leash, cornerR) }
+            runCatching { mSetAlpha?.invoke(t, leash, alpha) }
+            t.apply()
+        }
     }
 
-    /** Reveal [leash] fully opaque at the given z-order (identity transform). Any thread. */
+    /** Reveal [leash] fully opaque at the given z-order. Any thread. */
     fun reveal(leash: SurfaceControl, layer: Int) {
-        val t = SurfaceControl.Transaction()
-        runCatching { mShow.invoke(t, leash) }
-        runCatching { mSetAlpha.invoke(t, leash, 1f) }
-        runCatching { mSetLayer.invoke(t, leash, layer) }
-        t.apply()
+        runCatching {
+            val t = SurfaceControl.Transaction()
+            runCatching { mShow?.invoke(t, leash) }
+            runCatching { mSetAlpha?.invoke(t, leash, 1f) }
+            runCatching { mSetLayer?.invoke(t, leash, layer) }
+            t.apply()
+        }
     }
 }
 
@@ -203,34 +210,40 @@ private class AppOpenAnimationRunner(
         wallpapers: Array<out RemoteAnimationTarget>?,
         finishedCallback: IRemoteAnimationFinishedCallback?
     ) {
-        anim?.cancel()
-        done = false
-        val opening = apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }
-        val win = opening?.screenSpaceBounds ?: opening?.sourceContainerBounds
-        if (opening?.leash == null || win == null) {
-            Log.w("CloX/PathA", "open: no opening leash, finishing")
+        try {
+            anim?.cancel()
+            done = false
+            val opening = apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }
+            val win = opening?.screenSpaceBounds ?: opening?.sourceContainerBounds
+            if (opening?.leash == null || win == null) {
+                Log.w("CloX/PathA", "open: no opening leash, finishing")
+                finish(finishedCallback)
+                return
+            }
+            val leash = opening.leash
+            Log.d("CloX/PathA", "open onAnimationStart icon=$iconBounds win=$win apps=${apps.size}")
+
+            val winW = win.width().coerceAtLeast(1).toFloat()
+            val winH = win.height().coerceAtLeast(1).toFloat()
+            val startScale = (iconBounds.width().toFloat() / winW).coerceIn(0.05f, 1f)
+            val startCornerR = iconBounds.width() / 2f
+            val matrix = Matrix()
+            val tmp = FloatArray(9)
+
+            anim = LeashAnimator(OPEN_DURATION_MS, onFrame = { p ->
+                if (done) return@LeashAnimator
+                val s = lerp(startScale, 1f, p)
+                val cx = lerp(iconBounds.exactCenterX(), win.exactCenterX(), p)
+                val cy = lerp(iconBounds.exactCenterY(), win.exactCenterY(), p)
+                matrix.setScale(s, s)
+                matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
+                SurfaceTx.frame(leash, matrix, tmp, (1f - p) * startCornerR, 1f)
+            }, onFinish = { finish(finishedCallback) }).also { it.start() }
+        } catch (t: Throwable) {
+            // Any failure must still release the transition, or the system hangs ~seconds.
+            Log.e("CloX/PathA", "open onAnimationStart failed — finishing", t)
             finish(finishedCallback)
-            return
         }
-        val leash = opening.leash
-        Log.d("CloX/PathA", "open onAnimationStart icon=$iconBounds win=$win apps=${apps.size}")
-
-        val winW = win.width().coerceAtLeast(1).toFloat()
-        val winH = win.height().coerceAtLeast(1).toFloat()
-        val startScale = (iconBounds.width().toFloat() / winW).coerceIn(0.05f, 1f)
-        val startCornerR = iconBounds.width() / 2f
-        val matrix = Matrix()
-        val tmp = FloatArray(9)
-
-        anim = LeashAnimator(OPEN_DURATION_MS, onFrame = { p ->
-            if (done) return@LeashAnimator
-            val s = lerp(startScale, 1f, p)
-            val cx = lerp(iconBounds.exactCenterX(), win.exactCenterX(), p)
-            val cy = lerp(iconBounds.exactCenterY(), win.exactCenterY(), p)
-            matrix.setScale(s, s)
-            matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
-            SurfaceTx.frame(leash, matrix, tmp, (1f - p) * startCornerR, 1f)
-        }, onFinish = { finish(finishedCallback) }).also { it.start() }
     }
 
     override fun onAnimationCancelled() {
@@ -265,54 +278,59 @@ private class AppCloseAnimationRunner(
         wallpapers: Array<out RemoteAnimationTarget>?,
         finishedCallback: IRemoteAnimationFinishedCallback?
     ) {
-        // This runner instance is registered once and REUSED for every close — reset per-run state
-        // so a latched `done` from the previous close doesn't freeze all subsequent ones.
-        anim?.cancel()
-        done = false
-        val closing = apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_CLOSING }
-        val win = closing?.screenSpaceBounds ?: closing?.sourceContainerBounds
-        if (closing?.leash == null || win == null) {
-            Log.w("CloX/PathA", "close: no closing leash, finishing")
+        try {
+            // This runner instance is registered once and REUSED for every close — reset per-run
+            // state so a latched `done` from the previous close doesn't freeze subsequent ones.
+            anim?.cancel()
+            done = false
+            val closing = apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_CLOSING }
+            val win = closing?.screenSpaceBounds ?: closing?.sourceContainerBounds
+            if (closing?.leash == null || win == null) {
+                Log.w("CloX/PathA", "close: no closing leash, finishing")
+                finish(finishedCallback)
+                return
+            }
+            val leash = closing.leash
+            val icon = iconProvider() ?: Rect(
+                win.centerX() - 1, win.centerY() - 1, win.centerX() + 1, win.centerY() + 1)
+            Log.d("CloX/PathA", "close onAnimationStart win=$win icon=$icon apps=${apps.size}")
+
+            // Reveal the launcher (home / opening target) fully opaque BELOW the closing app, so the
+            // area outside the shrinking window shows the launcher instead of a black transition layer.
+            apps.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }?.leash
+                ?.let { SurfaceTx.reveal(it, 0) }
+            wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
+            // Keep the shrinking app above the launcher.
+            SurfaceTx.reveal(leash, 1)
+
+            val winW = win.width().coerceAtLeast(1).toFloat()
+            val winH = win.height().coerceAtLeast(1).toFloat()
+            val endScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
+            val endCornerR = icon.width() / 2f
+            val matrix = Matrix()
+            val tmp = FloatArray(9)
+            var frames = 0
+
+            anim = LeashAnimator(CLOSE_DURATION_MS, onFrame = { p ->
+                if (done) return@LeashAnimator
+                if (frames == 0) Log.d("CloX/PathA", "close FIRST frame p=$p")
+                frames++
+                val s = lerp(1f, endScale, p)
+                val cx = lerp(win.exactCenterX(), icon.exactCenterX(), p)
+                val cy = lerp(win.exactCenterY(), icon.exactCenterY(), p)
+                matrix.setScale(s, s)
+                matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
+                // Fade out over the last 25% so the shrunken window doesn't pop when removed.
+                val alpha = if (p > 0.75f) (1f - (p - 0.75f) / 0.25f).coerceIn(0f, 1f) else 1f
+                SurfaceTx.frame(leash, matrix, tmp, p * endCornerR, alpha)
+            }, onFinish = {
+                Log.d("CloX/PathA", "close onFinish after $frames frames -> onAnimationFinished")
+                finish(finishedCallback)
+            }).also { it.start() }
+        } catch (t: Throwable) {
+            Log.e("CloX/PathA", "close onAnimationStart failed — finishing", t)
             finish(finishedCallback)
-            return
         }
-        val leash = closing.leash
-        val icon = iconProvider() ?: Rect(
-            win.centerX() - 1, win.centerY() - 1, win.centerX() + 1, win.centerY() + 1)
-        Log.d("CloX/PathA", "close onAnimationStart win=$win icon=$icon apps=${apps.size}")
-
-        // Reveal the launcher (home / opening target) fully opaque BELOW the closing app, so the
-        // area outside the shrinking window shows the launcher instead of a black transition layer.
-        apps.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }?.leash
-            ?.let { SurfaceTx.reveal(it, 0) }
-        wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
-        // Keep the shrinking app above the launcher.
-        SurfaceTx.reveal(leash, 1)
-
-        val winW = win.width().coerceAtLeast(1).toFloat()
-        val winH = win.height().coerceAtLeast(1).toFloat()
-        val endScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
-        val endCornerR = icon.width() / 2f
-        val matrix = Matrix()
-        val tmp = FloatArray(9)
-        var frames = 0
-
-        anim = LeashAnimator(CLOSE_DURATION_MS, onFrame = { p ->
-            if (done) return@LeashAnimator
-            if (frames == 0) Log.d("CloX/PathA", "close FIRST frame p=$p")
-            frames++
-            val s = lerp(1f, endScale, p)
-            val cx = lerp(win.exactCenterX(), icon.exactCenterX(), p)
-            val cy = lerp(win.exactCenterY(), icon.exactCenterY(), p)
-            matrix.setScale(s, s)
-            matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
-            // Fade out over the last 25% so the shrunken window doesn't pop when removed.
-            val alpha = if (p > 0.75f) (1f - (p - 0.75f) / 0.25f).coerceIn(0f, 1f) else 1f
-            SurfaceTx.frame(leash, matrix, tmp, p * endCornerR, alpha)
-        }, onFinish = {
-            Log.d("CloX/PathA", "close onFinish after $frames frames -> onAnimationFinished")
-            finish(finishedCallback)
-        }).also { it.start() }
     }
 
     override fun onAnimationCancelled() {
