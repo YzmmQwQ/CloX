@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Message
 import android.os.UserHandle
 import android.util.Log
+import android.view.SurfaceControl
 import androidx.annotation.RequiresApi
 
 /**
@@ -24,10 +25,17 @@ class GestureNavContract private constructor(
     private val callback: Message
 ) {
 
-    fun sendEndPosition(position: RectF) {
+    fun sendEndPosition(position: RectF) = sendEndPosition(position, null)
+
+    /**
+     * Reply with the icon rect and, optionally, a real [SurfaceControl] holding the icon. When a
+     * surface is provided the system morphs the closing app window directly into it (a true
+     * window→icon morph); when null the system just collapses the window toward [position].
+     */
+    fun sendEndPosition(position: RectF, surface: SurfaceControl?) {
         val result = Bundle().apply {
             putParcelable(EXTRA_ICON_POSITION, position)
-            putParcelable(EXTRA_ICON_SURFACE, null)
+            putParcelable(EXTRA_ICON_SURFACE, surface)
         }
         try {
             val reply = Message.obtain()

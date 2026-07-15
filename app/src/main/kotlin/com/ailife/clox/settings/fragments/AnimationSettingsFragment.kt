@@ -160,6 +160,13 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             appListPrefs.edit().putBoolean(AppListPrefs.KEY_GESTURE_RETURN_ONLY_GESTURE, checked).apply()
         }
 
+        val switchGestureHandoff = view.findViewById<MaterialSwitch>(R.id.switchGestureHandoff)
+        switchGestureHandoff.isChecked =
+            appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_HANDOFF_SURFACE, false)
+        switchGestureHandoff.setOnCheckedChangeListener { _, checked ->
+            appListPrefs.edit().putBoolean(AppListPrefs.KEY_GESTURE_HANDOFF_SURFACE, checked).apply()
+        }
+
         val grSpeedVal = appListPrefs.getFloat(AppListPrefs.KEY_GESTURE_RETURN_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
         sliderGestureReturnSpeed.value = grSpeedVal
         tvGestureReturnSpeed.text = String.format("%.1f×", grSpeedVal)

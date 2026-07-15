@@ -111,6 +111,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var lastLaunchBounds: Rect? = null
     private var appListSpring: SpringAnimation? = null
     private var pendingGestureFollowOn = false
+    // Path B: when set, the system is morphing the real closing window into a handed-off icon
+    // surface; onResume must play NO in-app return / reveal animation.
+    private var gestureHandoffActive = false
+    private var activeHandoffSurface: AppCloseIconSurface? = null
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private var lastClosingPkg: String? = null   // package of the app currently returning to us
     // Set when the launcher brings ITSELF to the front (AOD re-wake), so the next onResume can skip
@@ -582,6 +586,17 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
         appLaunchedFromList = false
 
+        // Path B: the system is morphing the real closing window into the icon surface we handed
+        // it in handleGestureContract. Play nothing in-app and drop the pending return so no stale
+        // animation fires — the system owns the whole transition.
+        if (gestureHandoffActive) {
+            gestureHandoffActive = false
+            lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
+            pendingGestureFollowOn = false
+            Log.d("CloX/Return", "onResume handoff mode — system owns the transition, skip all anim")
+            return
+        }
+
         // Back / hardware-Home returns send no gesture-nav contract. When enabled, detect the
         // app we're actually returning from via usage stats and animate ITS icon — even when we
         // have no remembered launched item (Back from a recents/notification app, or after the
@@ -661,9 +676,21 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun handleGestureContract(contract: GestureNavContract) {
         val pkg = contract.componentName.packageName
         if (resolveAndApplyClosingApp(pkg)) {
-            pendingGestureFollowOn = true
-            Log.d("CloX/Return", "contract pkg=$pkg target=$lastLaunchBounds")
-            contract.sendEndPosition(RectF(lastLaunchBounds!!))
+            if (com.ailife.clox.applist.AppListPrefs.gestureHandoffSurface(this)) {
+                // Path B: hand the system a real icon surface; it morphs the closing window into
+                // it. No in-app follow-on / reveal — the system owns the whole transition.
+                val item = lastLaunchedItem!!; val bounds = Rect(lastLaunchBounds!!)
+                Log.d("CloX/Return", "contract handoff pkg=$pkg bounds=$bounds")
+                activeHandoffSurface?.remove()
+                activeHandoffSurface = AppCloseIconSurface.show(
+                    this, gestureRoot, resolveHeroIcon(item), bounds, contract)
+                gestureHandoffActive = true
+                pendingGestureFollowOn = false
+            } else {
+                pendingGestureFollowOn = true
+                Log.d("CloX/Return", "contract pkg=$pkg target=$lastLaunchBounds")
+                contract.sendEndPosition(RectF(lastLaunchBounds!!))
+            }
         } else {
             // Unknown app (no launchable component) — collapse to centre, no custom anim.
             lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null

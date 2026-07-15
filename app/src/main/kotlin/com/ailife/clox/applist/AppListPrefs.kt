@@ -292,6 +292,15 @@ object AppListPrefs {
     fun gestureReturnOnlyGesture(ctx: Context) =
         get(ctx).getBoolean(KEY_GESTURE_RETURN_ONLY_GESTURE, true)
 
+    // Path B — real system-driven window→icon morph. When true, on the swipe-home gesture we
+    // hand the system a real icon SurfaceControl via the GestureNavContract so IT morphs the
+    // closing app window into the icon. CloX plays NO follow-on / reveal animation in this mode.
+    // Swipe-home gesture only (Back / hardware-Home carry no contract).
+    const val KEY_GESTURE_HANDOFF_SURFACE = "gesture_handoff_surface"
+
+    fun gestureHandoffSurface(ctx: Context) =
+        get(ctx).getBoolean(KEY_GESTURE_HANDOFF_SURFACE, false)
+
     const val KEY_GESTURE_RETURN_SPEED = "gesture_return_speed"   // Float, 0.5..2.0
     const val KEY_GESTURE_RETURN_DELAY = "gesture_return_delay"   // Int ms, 0..500
 
