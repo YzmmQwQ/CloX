@@ -229,6 +229,15 @@ object AppListPrefs {
     const val LAUNCH_ANIM_SYSTEM     = "system"
     const val LAUNCH_ANIM_CUSTOM     = "custom"
 
+    // Path A — real app-window OPEN morph. When on, launch the app with a privileged remote
+    // animation so the system hands us the real window leash and we morph it from the icon rect.
+    // Requires the priv-app Magisk module (permission + hidden-API). Overrides the in-app launch
+    // animation. R+ only. Default off.
+    const val KEY_OPEN_REAL_WINDOW   = "open_real_window"
+
+    fun openRealWindow(ctx: Context) =
+        get(ctx).getBoolean(KEY_OPEN_REAL_WINDOW, false)
+
     const val KEY_OPEN_ANIM_TYPE        = "open_anim_type"
     const val OPEN_ANIM_ICON_ZOOM       = "icon_zoom"
     const val OPEN_ANIM_WINDOW_EXPAND   = "window_expand"

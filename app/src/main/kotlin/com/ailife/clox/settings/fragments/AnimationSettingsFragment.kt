@@ -88,6 +88,13 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             appListPrefs.edit().putBoolean(AppListPrefs.KEY_LAUNCH_BLUR, checked).apply()
         }
 
+        val switchRealWindowOpen = view.findViewById<MaterialSwitch>(R.id.switchRealWindowOpen)
+        switchRealWindowOpen.isChecked =
+            appListPrefs.getBoolean(AppListPrefs.KEY_OPEN_REAL_WINDOW, false)
+        switchRealWindowOpen.setOnCheckedChangeListener { _, checked ->
+            appListPrefs.edit().putBoolean(AppListPrefs.KEY_OPEN_REAL_WINDOW, checked).apply()
+        }
+
         // ── Return animation switch + close style picker ─────────────────────
         tvReturnSummary.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             getString(R.string.anim_setting_return_summary_11plus)

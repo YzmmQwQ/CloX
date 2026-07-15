@@ -115,6 +115,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // surface; onResume must play NO in-app return / reveal animation.
     private var gestureHandoffActive = false
     private var activeHandoffSurface: AppCloseIconSurface? = null
+    // Path A: whether the close remote-animation is registered on this activity instance.
+    private var pathACloseRegistered = false
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private var lastClosingPkg: String? = null   // package of the app currently returning to us
     // Set when the launcher brings ITSELF to the front (AOD re-wake), so the next onResume can skip
@@ -264,7 +266,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 lastLaunchIconView = java.lang.ref.WeakReference(iconView)
                 lastClosingPkg = item.packageName
                 Log.d("CloX/Return", "onAppLaunched pkg=${item.packageName} bounds=$bounds")
-                if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                    com.ailife.clox.applist.AppListPrefs.openRealWindow(this)) {
+                    // Path A: the system runs the real app-window open morph — no in-app anim.
+                    launch()
+                } else if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
                     playLaunchAnimation(item, bounds, launch)
                 } else {
                     launch()
@@ -287,7 +293,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 lastLaunchIconView = java.lang.ref.WeakReference(iconView)
                 lastClosingPkg = item.packageName
                 Log.d("CloX/Return", "onAppLaunched pkg=${item.packageName} bounds=$bounds")
-                if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                    com.ailife.clox.applist.AppListPrefs.openRealWindow(this)) {
+                    // Path A: the system runs the real app-window open morph — no in-app anim.
+                    launch()
+                } else if (com.ailife.clox.applist.AppListPrefs.useCustomLaunchAnim(this)) {
                     playLaunchAnimation(item, bounds, launch)
                 } else {
                     launch()
@@ -585,6 +595,25 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         // Safety-net: clear flag on any resume (covers Back-button return, not just Home)
         appLaunchedFromList = false
+
+        // Path A: register the close remote-animation once so the system hands us the real closing
+        // window leash on app→launcher transitions (shrinks it back into the launched icon rect).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            com.ailife.clox.applist.AppListPrefs.openRealWindow(this) && !pathACloseRegistered) {
+            com.ailife.clox.anim.RemoteAppAnimator.registerClose(this) { lastLaunchBounds }
+            pathACloseRegistered = true
+        }
+
+        // Path A: the registered close remote-animation morphs the real window back into the icon —
+        // do NOT play the in-app return animation, and do NOT suppress the system transition (which
+        // would kill the morph). Keep lastLaunchBounds so the close runner can target the icon.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            com.ailife.clox.applist.AppListPrefs.openRealWindow(this)) {
+            lastLaunchedItem = null; lastLaunchIconView = null
+            pendingGestureFollowOn = false
+            Log.d("CloX/Return", "onResume Path A — system close morph owns the return; skip in-app")
+            return
+        }
 
         // Path B: the system is morphing the real closing window into the icon surface we handed
         // it in handleGestureContract. Play nothing in-app and drop the pending return so no stale
@@ -1409,6 +1438,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (pathACloseRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            com.ailife.clox.anim.RemoteAppAnimator.unregisterClose(this)
+            pathACloseRegistered = false
+        }
         CocosManager.onDestroy(this)
         stateManager.detach()
         aodManager.stop()

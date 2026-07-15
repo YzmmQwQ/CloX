@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.ailife.clox.R
 import android.graphics.Rect
+import android.os.Build
 import com.ailife.clox.applist.backends.Grid2DBackend
 import com.ailife.clox.rtos.RtosAppGuard
 import com.ailife.clox.applist.model.AppItem
@@ -212,8 +213,23 @@ class AppListFragment : Fragment() {
                 setClassName(item.packageName, item.activityName)
                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+            val realWindow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                AppListPrefs.openRealWindow(ctx)
             val useCustomAnim = AppListPrefs.useCustomLaunchAnim(ctx)
-            val doLaunch: () -> Unit = if (useCustomAnim) {
+            val doLaunch: () -> Unit = if (realWindow) {
+                {
+                    // Path A: system runs the real app-window open morph from the icon rect.
+                    val opts = com.ailife.clox.anim.RemoteAppAnimator.openAnimationBundle(bounds)
+                    runCatching {
+                        if (opts != null) ctx.startActivity(intent, opts)
+                        else ctx.startActivity(intent)
+                    }.onFailure {
+                        ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                            ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            ?.let { ctx.safeStartActivity(it) }
+                    }
+                }
+            } else if (useCustomAnim) {
                 {
                     runCatching {
                         ctx.startActivity(intent)
