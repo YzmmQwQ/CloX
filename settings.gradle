@@ -16,6 +16,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "CloX"
 include ':app'
+// Compile-only stubs for hidden framework classes (Path A remote-animation plumbing).
+// Never packaged; the real framework classes shadow these at runtime (parent-first).
+include ':frameworkstubs'
 
 // Include Axmol Android Java library (AxmolGLSurfaceView, AxmolActivity, etc.)
 // Only when the submodule is present.

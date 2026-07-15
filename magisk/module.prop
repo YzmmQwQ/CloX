@@ -1,0 +1,6 @@
+id=clox_privapp
+name=CloX Priv-App Integration
+version=v1.0
+versionCode=1
+author=ailife
+description=Installs CloX as a privileged system app (grants CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS for real app-window open/close animations) and disables hidden-API enforcement so the launcher can drive the framework remote-animation APIs.

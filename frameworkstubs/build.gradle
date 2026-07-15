@@ -1,0 +1,21 @@
+// Compile-only stubs for hidden Android framework classes used by Path A (remote app-window
+// animations). These are NEVER packaged into the APK (the app depends on this module with
+// `compileOnly`); at runtime the real framework classes on the bootclasspath are used via
+// parent-first classloading. The stubs only exist to satisfy javac/AIDL at compile time.
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    namespace 'com.ailife.clox.frameworkstubs'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 26
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

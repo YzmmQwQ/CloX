@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Whitelists the signature|privileged permissions CloX requests as a /system/priv-app.
+  On this ROM ro.control_privapp_permissions=disable, so priv-app perms are granted without
+  this file; it is included so the module stays correct if the ROM is ever set to "enforce"
+  (which would otherwise deny the permission / warn at boot).
+-->
+<permissions>
+    <privapp-permissions package="com.ailife.clox">
+        <permission name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS" />
+    </privapp-permissions>
+</permissions>
