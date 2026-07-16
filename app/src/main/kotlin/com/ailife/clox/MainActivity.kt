@@ -230,6 +230,98 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         pathABlur?.let { gestureRoot.removeView(it) }
         pathABlur = null
     }
+
+    // Follow-up "settle" on the app icon that plays TOGETHER with the real-window CLOSE morph: as the
+    // window collapses and fades out over the last stretch, the icon fades in at the landing rect and
+    // scales down into place with an overshoot bounce — so the close hands off to the icon smoothly
+    // instead of ending abruptly. Fires the instant the morph's expansion enters the fade zone (~0.3),
+    // while the morph is still playing; skipped if the close reversed back toward fullscreen.
+    private var settleSession = 0
+    private fun scheduleCloseIconSettle(item: AppItem, bounds: Rect) {
+        val session = ++settleSession
+        val startedAt = android.os.SystemClock.uptimeMillis()
+        val w = bounds.width().coerceAtLeast(1); val h = bounds.height().coerceAtLeast(1)
+        val rootLoc = IntArray(2); gestureRoot.getLocationOnScreen(rootLoc)
+        val iv = ImageView(this).apply {
+            setImageDrawable(resolveHeroIcon(item))
+            (drawable as? android.graphics.drawable.BitmapDrawable)?.isFilterBitmap = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            pivotX = w / 2f; pivotY = h / 2f
+            isClickable = false; isFocusable = false
+            alpha = 0f
+        }
+        gestureRoot.addView(iv, FrameLayout.LayoutParams(w, h).apply {
+            leftMargin = bounds.left - rootLoc[0]; topMargin = bounds.top - rootLoc[1]
+        })
+        // Hide the real app-list icon so only the hero shows during the settle (restored in cleanup).
+        val realIcon = appListFragment?.returnIconHit(item.packageName)?.iconView
+        realIcon?.visibility = View.INVISIBLE
+
+        val speed = com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
+        val thresh = 0.32f
+        val startScale = 1.4f
+        val minScale = 0.84f
+        // Off-centre lead-in: start toward screen centre (where the window is) so a corner icon flies
+        // in on the window's line; a centred icon gets ~0 offset.
+        val startTx = (screenW / 2f - bounds.exactCenterX()) * 0.35f
+        val startTy = (screenH / 2f - bounds.exactCenterY()) * 0.35f
+        var sawMorph = false
+        var cleaned = false
+        fun cleanup() {
+            if (cleaned) return
+            cleaned = true
+            gestureRoot.removeView(iv)
+            realIcon?.visibility = View.VISIBLE
+        }
+        val choreo = android.view.Choreographer.getInstance()
+        choreo.postFrameCallback(object : android.view.Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (session != settleSession || isFinishing || isDestroyed) { cleanup(); return }
+                val animating = com.ailife.clox.anim.RemoteAppAnimator.morphInFlight
+                val e = com.ailife.clox.anim.RemoteAppAnimator.morphExpansion
+                if (animating) {
+                    sawMorph = true
+                    // f: 0 at e=thresh, 1 at e=0. Drive fade-in, scale-down and fly-in in lock step
+                    // with the collapsing/fading window, so the icon plays TOGETHER with the shrink.
+                    val f = ((thresh - e) / thresh).coerceIn(0f, 1f)
+                    iv.alpha = f
+                    val s = startScale + (minScale - startScale) * f
+                    iv.scaleX = s; iv.scaleY = s
+                    iv.translationX = startTx * (1f - f); iv.translationY = startTy * (1f - f)
+                    choreo.postFrameCallback(this); return
+                }
+                if (!sawMorph) {
+                    // Morph hasn't started yet — wait briefly for it, else give up.
+                    if (android.os.SystemClock.uptimeMillis() - startedAt < 600L) choreo.postFrameCallback(this)
+                    else cleanup()
+                    return
+                }
+                // Morph ended: if it collapsed to the icon, spring the scale back up to 1.0 (the
+                // bounce); if it reversed back to fullscreen, just clean up.
+                if (e < 0.25f) springSettleBack(iv, ::cleanup, speed) else cleanup()
+            }
+        })
+    }
+
+    // Spring the settle hero from its current (undershot) scale back up to 1.0 with a slight overshoot
+    // — the "bounce back" after it scaled down past the real size as the window vanished.
+    private fun springSettleBack(iv: ImageView, cleanup: () -> Unit, speed: Float) {
+        iv.alpha = 1f; iv.translationX = 0f; iv.translationY = 0f
+        val fromS = iv.scaleX
+        android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = (170L / speed).toLong()
+            interpolator = android.view.animation.OvershootInterpolator(3.0f)
+            addUpdateListener { va ->
+                val s = fromS + (1f - fromS) * (va.animatedValue as Float)
+                iv.scaleX = s; iv.scaleY = s
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) { cleanup() }
+            })
+            start()
+        }
+    }
+
     private lateinit var gestureHandler: GestureHandler
     private lateinit var buttonMappingHandler: ButtonMappingHandler
     private lateinit var aodManager: AodManager
@@ -685,11 +777,17 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // do NOT play the in-app return animation, and do NOT suppress the system transition (which
         // would kill the morph). Keep lastLaunchBounds so the close runner can target the icon.
         if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this)) {
+            val settleItem = lastLaunchedItem; val settleBounds = lastLaunchBounds
             lastLaunchedItem = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
             // Blur the app list behind the shrinking real window, de-blurring as it collapses to the
             // icon (blur tracks morph progress). CloX is resuming here, so the tick renders.
             startPathAMorphBlur()
+            // Follow-up "settle" pop on the icon once the window finishes collapsing into it, so the
+            // close doesn't end abruptly. Only when the list is open (there's an icon slot to settle).
+            if (appListOpen && settleItem != null && settleBounds != null) {
+                scheduleCloseIconSettle(settleItem, Rect(settleBounds))
+            }
             Log.d("CloX/Return", "onResume Path A — system close morph owns the return; skip in-app")
             return
         }
