@@ -169,8 +169,12 @@ private class LeashAnimator(
     private val interp: android.view.animation.Interpolator = DecelerateInterpolator(1.5f),
     // Which thread drives the frames. Legacy remote-animation (API 30) uses the shared BG thread so
     // main-thread jank can't stall it. Shell Transitions (API 31+) IGNORE surface transactions applied
-    // from a background thread mid-transition, so that path must pass the MAIN handler.
-    private val handler: Handler = sharedHandler
+    // from a background thread mid-transition, so that path passes the MAIN handler + [vsync].
+    private val handler: Handler = sharedHandler,
+    // Vsync-aligned frames via Choreographer on [handler]'s (Looper) thread — one transaction per
+    // display frame. Off-vsync 8ms applies get coalesced/presented irregularly inside a shell
+    // transition, which steps the morph; vsync fixes it. Requires a Looper thread (e.g. mainHandler).
+    private val vsync: Boolean = false
 ) {
     @Volatile private var cancelled = false
     @Volatile private var finished = false
@@ -178,10 +182,23 @@ private class LeashAnimator(
 
     fun start() {
         startTime = SystemClock.uptimeMillis()
-        handler.post(tick)
+        if (vsync) handler.post { startVsync() } else handler.post(tick)
     }
 
     fun cancel() { cancelled = true }
+
+    private fun startVsync() {
+        val choreo = android.view.Choreographer.getInstance()
+        choreo.postFrameCallback(object : android.view.Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (cancelled || finished) return
+                val raw = ((SystemClock.uptimeMillis() - startTime).toFloat() / durationMs).coerceIn(0f, 1f)
+                onFrame(interp.getInterpolation(raw))
+                if (raw >= 1f) { finished = true; if (!cancelled) onFinish() }
+                else choreo.postFrameCallback(this)
+            }
+        })
+    }
 
     private val tick = object : Runnable {
         override fun run() {
@@ -382,6 +399,7 @@ private fun buildMorphAnim(
     leash: SurfaceControl, win: Rect, icon: Rect, opening: Boolean, taskId: Int, speed: Float,
     handler: Handler = LeashAnimator.sharedHandler,
     topLayer: Int = 1,
+    vsync: Boolean = false,
     onFinish: () -> Unit
 ): LeashAnimator {
     val st = MorphState.of(taskId)
@@ -422,7 +440,7 @@ private fun buildMorphAnim(
         st.expansion = target
         st.animating = false
         onFinish()
-    }, interp = android.view.animation.LinearInterpolator(), handler = handler)
+    }, interp = android.view.animation.LinearInterpolator(), handler = handler, vsync = vsync)
 }
 
 /**
@@ -670,13 +688,14 @@ private class AppOpenTransitionRunner(
                     tx.apply()
                 }
             }
-            Log.d("CloX/PathA", "open transition: reparented app to root=${root != null}, morphing")
-            // Drive the morph on the MAIN handler: Shell Transitions ignore surface transactions
-            // applied from a background thread mid-transition (the exact reason the legacy BG-thread
-            // path showed nothing here). Reuses the same morph math (scale/corner/alpha/speed).
+            Log.d("CloX/PathA", "open transition: reparented app to root=${root != null}, morphing (vsync)")
+            // Reuse the full morph (blur token, corner radius, speed, MorphState) but drive it
+            // vsync-aligned on the MAIN handler with a high top layer: main thread + Choreographer is
+            // what renders smoothly inside the shell transition, and keeping the blur/progress state
+            // updated makes the launcher blur ramp with the expansion.
             anim = buildMorphAnim(
                 leash, end, iconBounds, opening = true, taskId = taskId, speed = speed(),
-                handler = LeashAnimator.mainHandler, topLayer = 1_000_000
+                handler = LeashAnimator.mainHandler, topLayer = 1_000_000, vsync = true
             ) { finishTransition(finishCallback) }.also { it.start() }
         } catch (e: Throwable) {
             Log.e("CloX/PathA", "open transition failed — finishing", e)
