@@ -31,11 +31,17 @@ private const val CLOSE_DURATION_MS = 300L
 
 // Close transition types (API 30). We register for all of them because which one the OEM
 // WindowManager picks for "app → launcher" depends on whether the home window shows wallpaper.
+// "app ↔ launcher" transitions we register our runner for. TASK_TO_FRONT (10) is included for the
+// hardware HOME key, but it is DIRECTION-AMBIGUOUS: it also fires when tapping an ALREADY-RUNNING app
+// (home closes, app opens). The RemoteAnimationDefinition can't tell these apart (both transitions
+// involve {HOME, STANDARD} activity types), so the runner inspects the targets at animation time and
+// shrinks the app (app→launcher) or expands it (launcher→app) — see AppCloseAnimationRunner.
 private val CLOSE_TRANSITS = intArrayOf(
     13, // TRANSIT_WALLPAPER_OPEN
     9,  // TRANSIT_TASK_CLOSE
     7,  // TRANSIT_ACTIVITY_CLOSE
-    11  // TRANSIT_TASK_TO_BACK
+    11, // TRANSIT_TASK_TO_BACK
+    10  // TRANSIT_TASK_TO_FRONT (HOME key; ambiguous — runner decides direction)
 )
 
 @RequiresApi(Build.VERSION_CODES.R)
@@ -78,15 +84,16 @@ object RemoteAppAnimator {
                 "addRemoteAnimation", Int::class.javaPrimitiveType, adapterClass)
             val adapterCtor = adapterClass.getConstructor(
                 runnerClass, Long::class.javaPrimitiveType, Long::class.javaPrimitiveType)
+            val launcherTaskId = activity.taskId
             for (transit in CLOSE_TRANSITS) {
-                val runner = AppCloseAnimationRunner(iconProvider)
+                val runner = AppCloseAnimationRunner(iconProvider, launcherTaskId)
                 val adapter = adapterCtor.newInstance(runner, CLOSE_DURATION_MS, 0L)
                 addRemote.invoke(def, transit, adapter)
             }
             android.app.Activity::class.java
                 .getMethod("registerRemoteAnimations", defClass)
                 .invoke(activity, def)
-            Log.d(TAG, "registerClose: registered for transits ${CLOSE_TRANSITS.toList()}")
+            Log.d(TAG, "registerClose: registered for transits ${CLOSE_TRANSITS.toList()} launcherTaskId=$launcherTaskId")
         } catch (t: Throwable) {
             Log.e(TAG, "registerClose failed", t)
         }
@@ -267,7 +274,8 @@ private class AppOpenAnimationRunner(
  */
 @RequiresApi(Build.VERSION_CODES.R)
 private class AppCloseAnimationRunner(
-    private val iconProvider: () -> Rect?
+    private val iconProvider: () -> Rect?,
+    private val launcherTaskId: Int
 ) : IRemoteAnimationRunner.Stub() {
 
     @Volatile private var done = false
@@ -283,34 +291,66 @@ private class AppCloseAnimationRunner(
             // state so a latched `done` from the previous close doesn't freeze subsequent ones.
             anim?.cancel()
             done = false
-            val closing = apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_CLOSING }
-            val win = closing?.screenSpaceBounds ?: closing?.sourceContainerBounds
-            if (closing?.leash == null || win == null) {
-                Log.w("CloX/PathA", "close: no closing leash, finishing")
+            // TASK_TO_FRONT (10) is direction-ambiguous: the HOME key (app→launcher) and tapping an
+            // already-running app (launcher→app) both land here. Pick the "app" target as the one that
+            // is NOT our launcher/home task, then branch on its mode: OPENING = expand it from the icon
+            // (launcher→app), CLOSING = shrink it into the icon (app→launcher, i.e. HOME/BACK).
+            val appTarget = apps?.firstOrNull { it.taskId != launcherTaskId && it.leash != null }
+                ?: apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_CLOSING }
+            val win = appTarget?.screenSpaceBounds ?: appTarget?.sourceContainerBounds
+            if (appTarget?.leash == null || win == null) {
+                Log.w("CloX/PathA", "close: no app leash, finishing")
                 finish(finishedCallback)
                 return
             }
-            val leash = closing.leash
+            val leash = appTarget.leash
             val icon = iconProvider() ?: Rect(
                 win.centerX() - 1, win.centerY() - 1, win.centerX() + 1, win.centerY() + 1)
-            Log.d("CloX/PathA", "close onAnimationStart win=$win icon=$icon apps=${apps.size}")
+            val opening = appTarget.mode == RemoteAnimationTarget.MODE_OPENING
+            Log.d("CloX/PathA", "onAnimationStart dir=${if (opening) "OPEN" else "CLOSE"} appTaskId=${appTarget.taskId} launcherTaskId=$launcherTaskId win=$win icon=$icon apps=${apps?.size}")
 
-            // Reveal the launcher (home / opening target) fully opaque BELOW the closing app, so the
-            // area outside the shrinking window shows the launcher instead of a black transition layer.
-            apps.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }?.leash
+            val winW = win.width().coerceAtLeast(1).toFloat()
+            val winH = win.height().coerceAtLeast(1).toFloat()
+            val matrix = Matrix()
+            val tmp = FloatArray(9)
+            var frames = 0
+
+            if (opening) {
+                // launcher→app (tapping an already-running app via TASK_TO_FRONT): expand the opening
+                // app window from its icon — the inverse of the close. Reveal the closing launcher
+                // below so the area outside the growing window isn't a black transition layer.
+                apps?.firstOrNull { it.taskId == launcherTaskId }?.leash?.let { SurfaceTx.reveal(it, 0) }
+                wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
+                SurfaceTx.reveal(leash, 1)
+                val startScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
+                val startCornerR = icon.width() / 2f
+                anim = LeashAnimator(OPEN_DURATION_MS, onFrame = { p ->
+                    if (done) return@LeashAnimator
+                    if (frames == 0) Log.d("CloX/PathA", "open(TO_FRONT) FIRST frame p=$p")
+                    frames++
+                    val s = lerp(startScale, 1f, p)
+                    val cx = lerp(icon.exactCenterX(), win.exactCenterX(), p)
+                    val cy = lerp(icon.exactCenterY(), win.exactCenterY(), p)
+                    matrix.setScale(s, s)
+                    matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
+                    SurfaceTx.frame(leash, matrix, tmp, (1f - p) * startCornerR, 1f)
+                }, onFinish = {
+                    Log.d("CloX/PathA", "open(TO_FRONT) onFinish after $frames frames")
+                    finish(finishedCallback)
+                }).also { it.start() }
+                return
+            }
+
+            // app→launcher (HOME / BACK): reveal the launcher (opening target) fully opaque BELOW the
+            // closing app, so the area outside the shrinking window shows the launcher, not black.
+            apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }?.leash
                 ?.let { SurfaceTx.reveal(it, 0) }
             wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
             // Keep the shrinking app above the launcher.
             SurfaceTx.reveal(leash, 1)
 
-            val winW = win.width().coerceAtLeast(1).toFloat()
-            val winH = win.height().coerceAtLeast(1).toFloat()
             val endScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
             val endCornerR = icon.width() / 2f
-            val matrix = Matrix()
-            val tmp = FloatArray(9)
-            var frames = 0
-
             anim = LeashAnimator(CLOSE_DURATION_MS, onFrame = { p ->
                 if (done) return@LeashAnimator
                 if (frames == 0) Log.d("CloX/PathA", "close FIRST frame p=$p")
