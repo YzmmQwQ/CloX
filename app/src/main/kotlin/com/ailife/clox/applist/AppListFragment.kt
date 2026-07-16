@@ -238,7 +238,13 @@ class AppListFragment : Fragment() {
             val doLaunch: () -> Unit = if (realWindow) {
                 {
                     // Path A: system runs the real app-window open morph from the icon rect.
-                    val opts = com.ailife.clox.anim.RemoteAppAnimator.openAnimationBundle(bounds)
+                    // Blur the app list behind the expanding window (tracks morph progress). The tick
+                    // freezes once CloX stops — harmless (the app covers it by then), and any stale
+                    // session is cleared on the next onResume so it can't get stuck.
+                    (activity as? com.ailife.clox.MainActivity)?.startPathAMorphBlur()
+                    val opts = com.ailife.clox.anim.RemoteAppAnimator.openAnimationBundle(bounds) {
+                        AppListPrefs.animSpeed(ctx)
+                    }
                     runCatching {
                         if (opts != null) ctx.startActivity(intent, opts)
                         else ctx.startActivity(intent)

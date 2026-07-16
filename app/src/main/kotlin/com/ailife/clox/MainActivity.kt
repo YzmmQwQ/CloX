@@ -179,6 +179,57 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             bv.setBlurRadius(r)
         }
     }
+
+    // Path A (real-window morph) blur: a BlurView over the app list whose radius tracks the shared
+    // morph progress (RemoteAppAnimator.morphExpansion), driven by a Choreographer tick. The real
+    // window is a system layer above the launcher window, so it always draws sharp over this blur.
+    // NOTE: the tick runs on CloX's main thread, which keeps rendering while resuming (close/return)
+    // but pauses once CloX backgrounds on open — so the open blur is best-effort.
+    private var pathABlur: eightbitlab.com.blurview.BlurView? = null
+    private var blurFraction = 0f
+    private var blurSession = 0
+    private var blurGraceUntil = 0L
+
+    // Drive the Path A morph blur off the shared morph progress. ONE BlurView is reused across morphs
+    // (recreating it each time made the first RenderScript pass lag a frame → the flash); its radius
+    // follows morphExpansion while a morph runs, and eases out when none does. The BlurView is created
+    // only once a morph is actually in flight (so a HOME press with no close morph never blurs) and is
+    // removed only after the blur has fully faded and a short grace elapses (so rapid open/close reuse
+    // the same warm view). Bumping blurSession supersedes the previous tick, so re-entry is safe.
+    fun startPathAMorphBlur() {
+        if (!com.ailife.clox.applist.AppListPrefs.launchBlur(this)) return
+        blurGraceUntil = android.os.SystemClock.uptimeMillis() + 500L
+        val session = ++blurSession
+        val choreo = android.view.Choreographer.getInstance()
+        choreo.postFrameCallback(object : android.view.Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (session != blurSession || isFinishing || isDestroyed) return
+                val animating = com.ailife.clox.anim.RemoteAppAnimator.morphInFlight
+                if (animating) {
+                    if (pathABlur == null) pathABlur = addAppWindowBlur()
+                    blurFraction = com.ailife.clox.anim.RemoteAppAnimator.morphExpansion.coerceIn(0f, 1f)
+                } else {
+                    // Ease the blur out smoothly instead of cutting it — avoids the flash on morph end.
+                    blurFraction = (blurFraction - 0.08f).coerceAtLeast(0f)
+                }
+                pathABlur?.let { setAppWindowBlur(it, blurFraction) }
+                val keepGoing = animating || blurFraction > 0.001f ||
+                    android.os.SystemClock.uptimeMillis() < blurGraceUntil
+                if (keepGoing) {
+                    choreo.postFrameCallback(this)
+                } else {
+                    stopPathAMorphBlur()             // fully idle — drop the view until next time
+                }
+            }
+        })
+    }
+
+    private fun stopPathAMorphBlur() {
+        blurSession++                                // invalidate any running tick
+        blurFraction = 0f
+        pathABlur?.let { gestureRoot.removeView(it) }
+        pathABlur = null
+    }
     private lateinit var gestureHandler: GestureHandler
     private lateinit var buttonMappingHandler: ButtonMappingHandler
     private lateinit var aodManager: AodManager
@@ -599,7 +650,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Path A: register the close remote-animation once so the system hands us the real closing
         // window leash on app→launcher transitions (shrinks it back into the launched icon rect).
         if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this) && !pathACloseRegistered) {
-            com.ailife.clox.anim.RemoteAppAnimator.registerClose(this) { lastLaunchBounds }
+            com.ailife.clox.anim.RemoteAppAnimator.registerClose(this,
+                speed = { opening ->
+                    if (opening) com.ailife.clox.applist.AppListPrefs.animSpeed(this)
+                    else com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)
+                }) { lastLaunchBounds }
             pathACloseRegistered = true
         }
 
@@ -632,6 +687,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this)) {
             lastLaunchedItem = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
+            // Blur the app list behind the shrinking real window, de-blurring as it collapses to the
+            // icon (blur tracks morph progress). CloX is resuming here, so the tick renders.
+            startPathAMorphBlur()
             Log.d("CloX/Return", "onResume Path A — system close morph owns the return; skip in-app")
             return
         }
@@ -1453,6 +1511,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopPathAMorphBlur()
         if (pathACloseRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             com.ailife.clox.anim.RemoteAppAnimator.unregisterClose(this)
             pathACloseRegistered = false
