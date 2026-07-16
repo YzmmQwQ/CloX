@@ -792,6 +792,20 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return
         }
 
+        // Snapshot close morph (API 31+): the default app→home slide is neutralized by the
+        // CloXTransitions RRO and CloX can't own the real transition — so draw the outgoing app's
+        // task snapshot shrinking into its launch icon in a top-Z surface over the watchface.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            com.ailife.clox.applist.AppListPrefs.closeSnapshot(this) && cameFromBackground) {
+            val icon = lastLaunchBounds
+            val tid = com.ailife.clox.anim.RemoteAppAnimator.lastOpenedTaskId
+            lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
+            pendingGestureFollowOn = false
+            if (icon != null && tid >= 0) playSnapshotClose(Rect(icon), tid, 0)
+            else Log.d("CloX/Return", "snapshot close: no icon/task (tid=$tid icon=$icon)")
+            return
+        }
+
         // Back / hardware-Home returns send no gesture-nav contract. When enabled, detect the
         // app we're actually returning from via usage stats and animate ITS icon — even when we
         // have no remembered launched item (Back from a recents/notification app, or after the
@@ -855,6 +869,29 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             pendingGestureFollowOn = false
             lastLaunchIconView = null
         }
+    }
+
+    /**
+     * Play the CloX-owned snapshot close morph: shrink the outgoing app's task snapshot into its
+     * launch [icon]. The snapshot may not be cached the instant we resume (fast launch→home), so
+     * retry a few frames before giving up (then land plain — the default slide is already killed).
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
+    private fun playSnapshotClose(icon: Rect, tid: Int, attempt: Int) {
+        val snap = com.ailife.clox.anim.TaskSnapshotHelper.capture(tid)
+        if (snap == null) {
+            if (attempt < 5) gestureRoot.postDelayed({ playSnapshotClose(icon, tid, attempt + 1) }, 24L)
+            else Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid)")
+            return
+        }
+        val loc = IntArray(2); gestureRoot.getLocationOnScreen(loc)
+        val db = windowManager.maximumWindowMetrics.bounds
+        val win = Rect(-loc[0], -loc[1], db.width() - loc[0], db.height() - loc[1])
+        val ic = Rect(icon.left - loc[0], icon.top - loc[1], icon.right - loc[0], icon.bottom - loc[1])
+        com.ailife.clox.anim.CloseMorphSurface.show(
+            this, gestureRoot, snap, ic, win,
+            com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)) {}
+        Log.d("CloX/Return", "snapshot close morph task=$tid attempt=$attempt snap=${snap.width}x${snap.height}")
     }
 
     private fun suppressSystemTransition() {

@@ -11,6 +11,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url 'https://jitpack.io' }
+        // Xposed API (compileOnly) — LSPosed provides the real classes at runtime.
+        maven { url 'https://api.xposed.info/' }
     }
 }
 

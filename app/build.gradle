@@ -100,6 +100,10 @@ android {
 dependencies {
     // Hidden-framework stubs for Path A remote animations — compile-time only, never packaged.
     compileOnly project(':frameworkstubs')
+    // Xposed/LSPosed API — compileOnly; the real classes are injected by LSPosed into the
+    // hooked process (system_server) at runtime. Used to grant CloX READ_FRAME_BUFFER so
+    // getTaskSnapshot works for the real-window close morph (see xposed/PermGrantHook).
+    compileOnly 'de.robv.android.xposed:api:82'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'com.github.Dimezis:BlurView:version-2.0.6'
     implementation 'androidx.activity:activity-ktx:1.13.0'

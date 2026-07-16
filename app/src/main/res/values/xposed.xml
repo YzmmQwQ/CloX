@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- LSPosed scope hint: this module only needs to hook system_server (the framework). -->
+    <string-array name="xposed_scope" translatable="false">
+        <item>android</item>
+    </string-array>
+</resources>

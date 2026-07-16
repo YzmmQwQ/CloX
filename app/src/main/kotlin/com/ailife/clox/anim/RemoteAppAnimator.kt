@@ -56,6 +56,10 @@ object RemoteAppAnimator {
     /** True while ANY real-window morph animator is actively ticking. */
     val morphInFlight: Boolean get() = MorphState.anyAnimating()
 
+    /** Task id of the most recently opened app (set by the OPEN runners). -1 if none. Used by the
+     *  own-surface close morph to fetch that task's snapshot on return-to-home. */
+    @Volatile var lastOpenedTaskId: Int = -1
+
     /**
      * @return a bundle to pass to startActivity so the system runs our open animation, or null if
      * the privileged plumbing is unavailable (then the caller should fall back to a normal launch).
@@ -505,6 +509,7 @@ private class AppOpenAnimationRunner(
                 return
             }
             lastTaskId = opening.taskId
+            RemoteAppAnimator.lastOpenedTaskId = opening.taskId
             val leash = opening.leash
             Log.d("CloX/PathA", "open onAnimationStart icon=$iconBounds win=$win apps=${apps.size}")
             // The app leash is shown + layered (above the launcher) atomically with its first-frame
@@ -671,6 +676,7 @@ private class AppOpenTransitionRunner(
                 return
             }
             val (leash, end, taskId) = target
+            RemoteAppAnimator.lastOpenedTaskId = taskId
             Log.d("CloX/PathA", "open transition start icon=$iconBounds win=$end task=$taskId " +
                 "leashValid=${leash.isValid} ${SurfaceTx.diag} ${TransitionRefl.rootInfo(info)}")
 

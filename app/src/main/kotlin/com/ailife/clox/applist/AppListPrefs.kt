@@ -245,6 +245,10 @@ object AppListPrefs {
     const val KEY_CLOSE_ANIM_TYPE       = "close_anim_type"
     const val CLOSE_ANIM_ICON_ZOOM      = "icon_zoom"
     const val CLOSE_ANIM_WINDOW_EXPAND  = "window_expand"
+    // Snapshot morph: CloX draws the outgoing app's task snapshot shrinking into the icon in its own
+    // top-Z surface (real transition can't be owned on API 31+; default slide killed by the RRO).
+    // Requires the LSPosed perm hook for getTaskSnapshot; falls back to no morph if unavailable.
+    const val CLOSE_ANIM_SNAPSHOT       = "snapshot"
     const val KEY_CLOSE_ANIM_SPEED      = "close_anim_speed"  // Float, 0.5..2.0
     const val KEY_CLOSE_ANIM_DELAY      = "close_anim_delay"  // Int ms, 0..500
 
@@ -273,6 +277,9 @@ object AppListPrefs {
 
     /** Whether the close/return uses the real system window morph (Path A). */
     fun closeRealWindow(ctx: Context) = closeAnimType(ctx) == CLOSE_ANIM_REAL_WINDOW
+
+    /** Whether the close uses the CloX-owned task-snapshot morph (needs the LSPosed perm hook). */
+    fun closeSnapshot(ctx: Context) = closeAnimType(ctx) == CLOSE_ANIM_SNAPSHOT
 
     fun returnAnimEnabled(ctx: Context) =
         get(ctx).getBoolean(KEY_RETURN_ANIM_ENABLED, true)
