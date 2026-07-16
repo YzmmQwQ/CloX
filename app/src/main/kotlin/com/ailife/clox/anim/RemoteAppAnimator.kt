@@ -120,12 +120,12 @@ object RemoteAppAnimator {
 private class LeashAnimator(
     private val durationMs: Long,
     private val onFrame: (Float) -> Unit,
-    private val onFinish: () -> Unit
+    private val onFinish: () -> Unit,
+    private val interp: android.view.animation.Interpolator = DecelerateInterpolator(1.5f)
 ) {
     @Volatile private var cancelled = false
     @Volatile private var finished = false
     private var startTime = 0L
-    private val interp = DecelerateInterpolator(1.5f)
 
     fun start() {
         startTime = SystemClock.uptimeMillis()
@@ -199,6 +199,74 @@ private object SurfaceTx {
 
 private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
 
+/** Full-distance morph duration (icon↔fullscreen); a partial reversal is scaled down from this. */
+private const val MORPH_DURATION_MS = 300L
+
+/**
+ * Shared morph progress so open/close are REVERSIBLE and interruptible. [expansion] is 0 (icon-sized)
+ * … 1 (fullscreen). [inFlight] is true while a morph animator is running — a HOME/BACK/tap that starts
+ * a new transition mid-animation continues from the current [expansion] instead of snapping, so the
+ * window reverses in place; pressing again reverses it back. Written from the leash-anim thread and
+ * the binder thread; volatile is enough (single float, last-writer-wins is acceptable here).
+ */
+private object MorphState {
+    @Volatile var expansion = 0f
+    @Volatile var inFlight = false
+}
+
+/** Apply one morph frame at [e] (0 = icon rect, 1 = fullscreen [win]) to [leash]. */
+@RequiresApi(Build.VERSION_CODES.R)
+private fun applyMorphFrame(
+    leash: SurfaceControl, win: Rect, icon: Rect, matrix: Matrix, tmp: FloatArray, e: Float
+) {
+    val winW = win.width().coerceAtLeast(1).toFloat()
+    val winH = win.height().coerceAtLeast(1).toFloat()
+    val iconScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
+    val s = lerp(iconScale, 1f, e)
+    val cx = lerp(icon.exactCenterX(), win.exactCenterX(), e)
+    val cy = lerp(icon.exactCenterY(), win.exactCenterY(), e)
+    matrix.setScale(s, s)
+    matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
+    val cornerR = (1f - e) * (icon.width() / 2f)
+    // Fade the window out as it collapses into the last quarter toward the icon (and in on expand).
+    val alpha = if (e < 0.25f) (e / 0.25f).coerceIn(0f, 1f) else 1f
+    SurfaceTx.frame(leash, matrix, tmp, cornerR, alpha)
+}
+
+/**
+ * Build a reversible morph animator for [leash] toward [opening] (true = expand to fullscreen, false
+ * = collapse to [icon]). Starts from the CURRENT shared [MorphState.expansion] when a morph is already
+ * in flight (a reversal), else from the natural end (0 for open, 1 for close). The first frame is
+ * applied synchronously so a reversal picks up the current visual with no jump; duration is scaled by
+ * the remaining distance so the speed stays constant. Linear so reversals don't jerk at the seam.
+ */
+@RequiresApi(Build.VERSION_CODES.R)
+private fun buildMorphAnim(
+    leash: SurfaceControl, win: Rect, icon: Rect, opening: Boolean, onFinish: () -> Unit
+): LeashAnimator {
+    val target = if (opening) 1f else 0f
+    val start = if (MorphState.inFlight) MorphState.expansion.coerceIn(0f, 1f)
+                else if (opening) 0f else 1f
+    MorphState.inFlight = true
+    val matrix = Matrix()
+    val tmp = FloatArray(9)
+    // Land the leash on the starting expansion immediately (before the anim thread's first tick) so a
+    // reversal doesn't flash the leash's reset (identity/fullscreen) state for a frame.
+    applyMorphFrame(leash, win, icon, matrix, tmp, start)
+    val dist = kotlin.math.abs(target - start).coerceAtLeast(0.02f)
+    val duration = (MORPH_DURATION_MS * dist).toLong().coerceAtLeast(60L)
+    Log.d("CloX/PathA", "morph ${if (opening) "OPEN" else "CLOSE"} start=$start target=$target dur=$duration")
+    return LeashAnimator(duration, onFrame = { p ->
+        val e = start + (target - start) * p
+        MorphState.expansion = e
+        applyMorphFrame(leash, win, icon, matrix, tmp, e)
+    }, onFinish = {
+        MorphState.expansion = target
+        MorphState.inFlight = false
+        onFinish()
+    }, interp = android.view.animation.LinearInterpolator())
+}
+
 /**
  * OPEN runner — grows the real opening app-window leash from the tapped icon rect to fullscreen.
  * At runtime this extends the *framework* IRemoteAnimationRunner.Stub (parent-first classloading
@@ -229,23 +297,10 @@ private class AppOpenAnimationRunner(
             }
             val leash = opening.leash
             Log.d("CloX/PathA", "open onAnimationStart icon=$iconBounds win=$win apps=${apps.size}")
-
-            val winW = win.width().coerceAtLeast(1).toFloat()
-            val winH = win.height().coerceAtLeast(1).toFloat()
-            val startScale = (iconBounds.width().toFloat() / winW).coerceIn(0.05f, 1f)
-            val startCornerR = iconBounds.width() / 2f
-            val matrix = Matrix()
-            val tmp = FloatArray(9)
-
-            anim = LeashAnimator(OPEN_DURATION_MS, onFrame = { p ->
-                if (done) return@LeashAnimator
-                val s = lerp(startScale, 1f, p)
-                val cx = lerp(iconBounds.exactCenterX(), win.exactCenterX(), p)
-                val cy = lerp(iconBounds.exactCenterY(), win.exactCenterY(), p)
-                matrix.setScale(s, s)
-                matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
-                SurfaceTx.frame(leash, matrix, tmp, (1f - p) * startCornerR, 1f)
-            }, onFinish = { finish(finishedCallback) }).also { it.start() }
+            // Keep the growing app above the launcher (revealed) so the area outside it isn't black.
+            SurfaceTx.reveal(leash, 1)
+            anim = buildMorphAnim(leash, win, iconBounds, opening = true) { finish(finishedCallback) }
+                .also { it.start() }
         } catch (t: Throwable) {
             // Any failure must still release the transition, or the system hangs ~seconds.
             Log.e("CloX/PathA", "open onAnimationStart failed — finishing", t)
@@ -309,64 +364,17 @@ private class AppCloseAnimationRunner(
             val opening = appTarget.mode == RemoteAnimationTarget.MODE_OPENING
             Log.d("CloX/PathA", "onAnimationStart dir=${if (opening) "OPEN" else "CLOSE"} appTaskId=${appTarget.taskId} launcherTaskId=$launcherTaskId win=$win icon=$icon apps=${apps?.size}")
 
-            val winW = win.width().coerceAtLeast(1).toFloat()
-            val winH = win.height().coerceAtLeast(1).toFloat()
-            val matrix = Matrix()
-            val tmp = FloatArray(9)
-            var frames = 0
-
-            if (opening) {
-                // launcher→app (tapping an already-running app via TASK_TO_FRONT): expand the opening
-                // app window from its icon — the inverse of the close. Reveal the closing launcher
-                // below so the area outside the growing window isn't a black transition layer.
-                apps?.firstOrNull { it.taskId == launcherTaskId }?.leash?.let { SurfaceTx.reveal(it, 0) }
-                wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
-                SurfaceTx.reveal(leash, 1)
-                val startScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
-                val startCornerR = icon.width() / 2f
-                anim = LeashAnimator(OPEN_DURATION_MS, onFrame = { p ->
-                    if (done) return@LeashAnimator
-                    if (frames == 0) Log.d("CloX/PathA", "open(TO_FRONT) FIRST frame p=$p")
-                    frames++
-                    val s = lerp(startScale, 1f, p)
-                    val cx = lerp(icon.exactCenterX(), win.exactCenterX(), p)
-                    val cy = lerp(icon.exactCenterY(), win.exactCenterY(), p)
-                    matrix.setScale(s, s)
-                    matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
-                    SurfaceTx.frame(leash, matrix, tmp, (1f - p) * startCornerR, 1f)
-                }, onFinish = {
-                    Log.d("CloX/PathA", "open(TO_FRONT) onFinish after $frames frames")
-                    finish(finishedCallback)
-                }).also { it.start() }
-                return
-            }
-
-            // app→launcher (HOME / BACK): reveal the launcher (opening target) fully opaque BELOW the
-            // closing app, so the area outside the shrinking window shows the launcher, not black.
-            apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }?.leash
-                ?.let { SurfaceTx.reveal(it, 0) }
+            // Reveal the launcher (home) fully opaque BELOW the app so the area outside the morphing
+            // window isn't a black transition layer — the home target is our launcher task, in either
+            // direction. Keep the app above.
+            apps?.firstOrNull { it.taskId == launcherTaskId }?.leash?.let { SurfaceTx.reveal(it, 0) }
             wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
-            // Keep the shrinking app above the launcher.
             SurfaceTx.reveal(leash, 1)
 
-            val endScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
-            val endCornerR = icon.width() / 2f
-            anim = LeashAnimator(CLOSE_DURATION_MS, onFrame = { p ->
-                if (done) return@LeashAnimator
-                if (frames == 0) Log.d("CloX/PathA", "close FIRST frame p=$p")
-                frames++
-                val s = lerp(1f, endScale, p)
-                val cx = lerp(win.exactCenterX(), icon.exactCenterX(), p)
-                val cy = lerp(win.exactCenterY(), icon.exactCenterY(), p)
-                matrix.setScale(s, s)
-                matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
-                // Fade out over the last 25% so the shrunken window doesn't pop when removed.
-                val alpha = if (p > 0.75f) (1f - (p - 0.75f) / 0.25f).coerceIn(0f, 1f) else 1f
-                SurfaceTx.frame(leash, matrix, tmp, p * endCornerR, alpha)
-            }, onFinish = {
-                Log.d("CloX/PathA", "close onFinish after $frames frames -> onAnimationFinished")
-                finish(finishedCallback)
-            }).also { it.start() }
+            // Reversible morph: OPENING expands the app from the icon, CLOSING collapses it into the
+            // icon — both share MorphState, so a HOME/BACK/tap mid-animation reverses in place.
+            anim = buildMorphAnim(leash, win, icon, opening) { finish(finishedCallback) }
+                .also { it.start() }
         } catch (t: Throwable) {
             Log.e("CloX/PathA", "close onAnimationStart failed — finishing", t)
             finish(finishedCallback)
