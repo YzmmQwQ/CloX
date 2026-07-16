@@ -164,35 +164,42 @@ class AppListFragment : Fragment() {
         // getLocationOnScreen returns the scaled top-left, but width/height are the unscaled
         // layout size, so multiply by the cumulative scale up the hierarchy (the 3D effect scales
         // rows/cells) to get the icon's true on-screen rect — and thus its real visual centre.
-        val bounds = iconView?.takeIf { it.isAttachedToWindow && it.width > 0 && it.height > 0 }?.let { v ->
-            var sx = 1f; var sy = 1f
-            var p: View? = v
-            while (p != null) { sx *= p.scaleX; sy *= p.scaleY; p = p.parent as? View }
-            val loc = IntArray(2)
-            v.getLocationOnScreen(loc)
-            // Prefer the ACTUALLY-DRAWN icon rect. With scaleType=fitCenter + padding (grid cells fill
-            // the whole cell) the icon view is much larger than the visible icon, which made the morph
-            // surface oversized on grid. The ImageView's image matrix + padding give the true drawn
-            // rect, matching the real icon size on every layout type.
-            val iv = v as? android.widget.ImageView
-            val dr = iv?.drawable
-            if (iv != null && dr != null && dr.intrinsicWidth > 0 && dr.intrinsicHeight > 0) {
-                val r = android.graphics.RectF(0f, 0f, dr.intrinsicWidth.toFloat(), dr.intrinsicHeight.toFloat())
-                iv.imageMatrix?.mapRect(r)
-                val left = iv.paddingLeft + r.left
-                val top = iv.paddingTop + r.top
-                Rect(
-                    (loc[0] + left * sx).toInt(),
-                    (loc[1] + top * sy).toInt(),
-                    (loc[0] + (left + r.width()) * sx).toInt(),
-                    (loc[1] + (top + r.height()) * sy).toInt()
-                )
-            } else {
-                Rect(loc[0], loc[1], loc[0] + (v.width * sx).toInt(), loc[1] + (v.height * sy).toInt())
-            }
-        }
+        val bounds = iconView?.takeIf { it.isAttachedToWindow && it.width > 0 && it.height > 0 }
+            ?.let { drawnIconRect(it) }
         Log.d("CloX/Return", "returnIconHit pkg=$pkg rowFound=${row != null} bounds=$bounds")
         return ReturnIconHit(item, iconView.takeIf { bounds != null }, bounds)
+    }
+
+    /**
+     * The ACTUALLY-DRAWN icon rect for [v] in screen coords. With scaleType=fitCenter + padding (grid
+     * cells fill the whole cell) the icon view is much larger than the visible icon, so the raw view
+     * bounds made the open/close morph and the settle oversized on grid. The ImageView's image matrix
+     * + padding give the true drawn rect; other views fall back to their full bounds. Uses
+     * getLocationOnScreen (layout position, valid while occluded) and multiplies by the cumulative
+     * scale up the hierarchy (the 3D effect scales rows/cells) for the real on-screen rect.
+     */
+    fun drawnIconRect(v: View): Rect {
+        var sx = 1f; var sy = 1f
+        var p: View? = v
+        while (p != null) { sx *= p.scaleX; sy *= p.scaleY; p = p.parent as? View }
+        val loc = IntArray(2)
+        v.getLocationOnScreen(loc)
+        val iv = v as? android.widget.ImageView
+        val dr = iv?.drawable
+        return if (iv != null && dr != null && dr.intrinsicWidth > 0 && dr.intrinsicHeight > 0) {
+            val r = android.graphics.RectF(0f, 0f, dr.intrinsicWidth.toFloat(), dr.intrinsicHeight.toFloat())
+            iv.imageMatrix?.mapRect(r)
+            val left = iv.paddingLeft + r.left
+            val top = iv.paddingTop + r.top
+            Rect(
+                (loc[0] + left * sx).toInt(),
+                (loc[1] + top * sy).toInt(),
+                (loc[0] + (left + r.width()) * sx).toInt(),
+                (loc[1] + (top + r.height()) * sy).toInt()
+            )
+        } else {
+            Rect(loc[0], loc[1], loc[0] + (v.width * sx).toInt(), loc[1] + (v.height * sy).toInt())
+        }
     }
 
     private fun findVisibleRow(v: View, pkg: String): View? {
@@ -225,9 +232,11 @@ class AppListFragment : Fragment() {
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item, sourceView ->
             if (RtosAppGuard.allowLaunch(ctx, item)) {
-            // Prefer the icon ImageView for tighter bounds; fall back to the whole item view
+            // Prefer the icon ImageView for tighter bounds; fall back to the whole item view. Use the
+            // ACTUALLY-DRAWN icon rect (not the full view) so grid cells — where the icon view fills
+            // the cell with padding — don't launch/close/settle at the oversized cell size.
             val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
-            val bounds = Rect().also { boundsView.getGlobalVisibleRect(it) }
+            val bounds = drawnIconRect(boundsView)
             val intent = android.content.Intent().apply {
                 setClassName(item.packageName, item.activityName)
                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
