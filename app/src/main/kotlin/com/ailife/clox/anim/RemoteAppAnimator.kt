@@ -51,10 +51,10 @@ object RemoteAppAnimator {
 
     private const val TAG = "CloX/PathA"
 
-    /** Current morph progress (0 = icon, 1 = fullscreen) so the launcher can drive a matching blur. */
-    val morphExpansion: Float get() = MorphState.expansion
-    /** True only while a real-window morph animator is actively ticking. */
-    val morphInFlight: Boolean get() = MorphState.animating
+    /** Latest morph progress (0 = icon, 1 = fullscreen) so the launcher can drive a matching blur. */
+    val morphExpansion: Float get() = MorphState.blurExpansion
+    /** True while ANY real-window morph animator is actively ticking. */
+    val morphInFlight: Boolean get() = MorphState.anyAnimating()
 
     /**
      * @return a bundle to pass to startActivity so the system runs our open animation, or null if
@@ -165,6 +165,9 @@ private class LeashAnimator(
         private val handler: Handler by lazy {
             Handler(HandlerThread("CloX-leash-anim").apply { start() }.looper)
         }
+
+        /** Post to the shared leash-anim thread (used to defer the orphan-finish past a possible reversal). */
+        fun postDelayed(delayMs: Long, r: Runnable) { handler.postDelayed(r, delayMs) }
     }
 }
 
@@ -240,9 +243,27 @@ private const val MORPH_DURATION_MS = 300L
  * the binder thread; volatile is enough (single float, last-writer-wins is acceptable here).
  */
 private object MorphState {
-    @Volatile var expansion = 0f
-    @Volatile var animating = false     // a morph LeashAnimator is currently ticking
-    @Volatile var lastFrameAt = 0L      // uptimeMillis of the last morph frame (for reversal detection)
+    // Progress is tracked PER TASK so two windows morphing at once (one shrinking while another
+    // expands) don't share/clobber each other's expansion — while a reversal of the SAME task still
+    // continues from where it was. A stale global value was making a new open start part-open and a
+    // shrinking window's progress bleed into the opening one.
+    class TaskState {
+        @Volatile var expansion = 0f
+        @Volatile var animating = false     // a morph LeashAnimator is currently ticking for this task
+        @Volatile var lastFrameAt = 0L      // uptimeMillis of its last morph frame (reversal detection)
+        @Volatile var icon: Rect? = null    // icon rect this task expanded from (so its close can aim back)
+    }
+    private val tasks = java.util.concurrent.ConcurrentHashMap<Int, TaskState>()
+    fun of(taskId: Int): TaskState = tasks.getOrPut(taskId) { TaskState() }
+
+    // Global view for the launcher blur (which only needs "is anything morphing, and how far"). When
+    // two windows morph at once the NEWEST owns the blur: each morph claims a token, and only the
+    // current owner's frames update blurExpansion, so a shrinking window can't fight the opening one.
+    @Volatile var blurExpansion = 0f
+    private val blurSeq = java.util.concurrent.atomic.AtomicLong(0)
+    @Volatile var blurOwner = 0L
+    fun claimBlur(): Long = blurSeq.incrementAndGet().also { blurOwner = it }
+    fun anyAnimating(): Boolean = tasks.values.any { it.animating }
 }
 
 /**
@@ -284,19 +305,23 @@ private fun applyMorphFrame(
  */
 @RequiresApi(Build.VERSION_CODES.R)
 private fun buildMorphAnim(
-    leash: SurfaceControl, win: Rect, icon: Rect, opening: Boolean, speed: Float, onFinish: () -> Unit
+    leash: SurfaceControl, win: Rect, icon: Rect, opening: Boolean, taskId: Int, speed: Float,
+    onFinish: () -> Unit
 ): LeashAnimator {
+    val st = MorphState.of(taskId)
     val target = if (opening) 1f else 0f
-    // Reversal only if a morph animated VERY recently (a preempting transition just cancelled the
-    // previous one) — then continue from the current expansion. A stale expansion from an old,
-    // finished/cancelled morph must NOT count, or a later fresh open/close would start at a wrong
-    // mid-value and a spurious blur could latch onto the stale progress.
-    val recentlyActive = MorphState.animating ||
-        (android.os.SystemClock.uptimeMillis() - MorphState.lastFrameAt) < 120L
-    val start = if (recentlyActive) MorphState.expansion.coerceIn(0f, 1f)
+    // Reversal only if THIS task's morph animated VERY recently (a preempting transition just
+    // cancelled the previous one) — then continue from its current expansion. A stale expansion from
+    // an old, finished/cancelled morph must NOT count, or a later fresh open/close would start at a
+    // wrong mid-value. Per-task so a different window morphing at the same time can't affect this one.
+    val recentlyActive = st.animating ||
+        (android.os.SystemClock.uptimeMillis() - st.lastFrameAt) < 120L
+    val start = if (recentlyActive) st.expansion.coerceIn(0f, 1f)
                 else if (opening) 0f else 1f
-    MorphState.animating = true
-    MorphState.lastFrameAt = android.os.SystemClock.uptimeMillis()
+    st.animating = true
+    st.lastFrameAt = android.os.SystemClock.uptimeMillis()
+    if (opening) st.icon = Rect(icon)   // remember where this task expanded from, for its future close
+    val blurToken = MorphState.claimBlur()   // this (newest) morph now owns the launcher blur
     val matrix = Matrix()
     val tmp = FloatArray(9)
     // Land the leash on the starting expansion immediately — showing + layering + positioning it in
@@ -307,17 +332,45 @@ private fun buildMorphAnim(
     // faster = shorter). Clamped so a bad pref can't produce a 0ms or runaway animation.
     val dist = kotlin.math.abs(target - start).coerceAtLeast(0.02f)
     val duration = (MORPH_DURATION_MS * dist / speed.coerceIn(0.25f, 4f)).toLong().coerceAtLeast(60L)
-    Log.d("CloX/PathA", "morph ${if (opening) "OPEN" else "CLOSE"} start=$start target=$target dur=$duration")
+    Log.d("CloX/PathA", "morph ${if (opening) "OPEN" else "CLOSE"} task=$taskId start=$start target=$target dur=$duration")
     return LeashAnimator(duration, onFrame = { p ->
         val e = start + (target - start) * p
-        MorphState.expansion = e
-        MorphState.lastFrameAt = android.os.SystemClock.uptimeMillis()
+        st.expansion = e
+        st.lastFrameAt = android.os.SystemClock.uptimeMillis()
+        if (MorphState.blurOwner == blurToken) MorphState.blurExpansion = e  // only the newest morph
         applyMorphFrame(leash, win, icon, matrix, tmp, e)
     }, onFinish = {
-        MorphState.expansion = target
-        MorphState.animating = false
+        st.expansion = target
+        st.animating = false
         onFinish()
     }, interp = android.view.animation.LinearInterpolator())
+}
+
+/**
+ * Finish an ORPHANED morph on [leash] to [target] over a short time — used when the system cancels a
+ * shrinking window's transition to open another app (the leash is left frozen mid-shrink). Runs only
+ * if [taskId] hasn't been re-animated by a new transition (i.e. it's not a reversal). Best-effort: if
+ * the system already reclaimed the leash the transactions are simply no-ops.
+ */
+@RequiresApi(Build.VERSION_CODES.R)
+private fun finishOrphanMorph(leash: SurfaceControl, win: Rect, icon: Rect, taskId: Int, target: Float) {
+    val st = MorphState.of(taskId)
+    if (st.animating) return    // a new transition already took this task over — not orphaned
+    val start = st.expansion.coerceIn(0f, 1f)
+    st.animating = true
+    val matrix = Matrix()
+    val tmp = FloatArray(9)
+    val dist = kotlin.math.abs(target - start).coerceAtLeast(0.02f)
+    val duration = (MORPH_DURATION_MS * dist).toLong().coerceAtLeast(60L)
+    Log.d("CloX/PathA", "orphan finish task=$taskId start=$start target=$target dur=$duration")
+    LeashAnimator(duration, onFrame = { p ->
+        val e = start + (target - start) * p
+        st.expansion = e
+        applyMorphFrame(leash, win, icon, matrix, tmp, e)
+    }, onFinish = {
+        st.expansion = target
+        st.animating = false
+    }, interp = android.view.animation.LinearInterpolator()).start()
 }
 
 /**
@@ -333,6 +386,7 @@ private class AppOpenAnimationRunner(
 
     @Volatile private var done = false
     private var anim: LeashAnimator? = null
+    private var lastTaskId = -1
 
     override fun onAnimationStart(
         apps: Array<out RemoteAnimationTarget>?,
@@ -341,6 +395,10 @@ private class AppOpenAnimationRunner(
     ) {
         try {
             anim?.cancel()
+            // Reusing this instance for a new transition cancels the previous animator, which never
+            // fires onFinish — so clear the previous task's active flag here or anyAnimating() (the
+            // blur's "is anything morphing") would stay true forever and the blur would stick.
+            if (lastTaskId != -1) MorphState.of(lastTaskId).animating = false
             done = false
             val opening = apps?.firstOrNull { it.mode == RemoteAnimationTarget.MODE_OPENING }
             val win = opening?.screenSpaceBounds ?: opening?.sourceContainerBounds
@@ -349,11 +407,13 @@ private class AppOpenAnimationRunner(
                 finish(finishedCallback)
                 return
             }
+            lastTaskId = opening.taskId
             val leash = opening.leash
             Log.d("CloX/PathA", "open onAnimationStart icon=$iconBounds win=$win apps=${apps.size}")
             // The app leash is shown + layered (above the launcher) atomically with its first-frame
             // transform inside buildMorphAnim, so the area outside it isn't black and there's no flash.
-            anim = buildMorphAnim(leash, win, iconBounds, opening = true, speed = speed()) {
+            anim = buildMorphAnim(leash, win, iconBounds, opening = true, taskId = opening.taskId,
+                speed = speed()) {
                 finish(finishedCallback)
             }.also { it.start() }
         } catch (t: Throwable) {
@@ -367,9 +427,8 @@ private class AppOpenAnimationRunner(
         Log.d("CloX/PathA", "open onAnimationCancelled")
         done = true
         anim?.cancel()
-        // Mark no morph active so the blur can't latch onto stale progress. lastFrameAt is left as-is
-        // so a genuine reversal (new transition within ~120ms) is still detected and continues.
-        MorphState.animating = false
+        // Reset this task's active flag (a genuine reversal is still detected via lastFrameAt recency).
+        if (lastTaskId != -1) MorphState.of(lastTaskId).animating = false
     }
 
     private fun finish(cb: IRemoteAnimationFinishedCallback?) {
@@ -394,6 +453,12 @@ private class AppCloseAnimationRunner(
 
     @Volatile private var done = false
     private var anim: LeashAnimator? = null
+    // Remembered for the orphan-finish when the system cancels this close to open another app.
+    private var lastLeash: SurfaceControl? = null
+    private var lastWin: Rect? = null
+    private var lastIcon: Rect? = null
+    private var lastTaskId = -1
+    private var lastTarget = 0f
 
     override fun onAnimationStart(
         apps: Array<out RemoteAnimationTarget>?,
@@ -404,6 +469,9 @@ private class AppCloseAnimationRunner(
             // This runner instance is registered once and REUSED for every close — reset per-run
             // state so a latched `done` from the previous close doesn't freeze subsequent ones.
             anim?.cancel()
+            // Cancelling the previous animator never fires its onFinish, so clear the previous task's
+            // active flag here — else anyAnimating() (the blur's signal) stays true and the blur sticks.
+            if (lastTaskId != -1) MorphState.of(lastTaskId).animating = false
             done = false
             // TASK_TO_FRONT (10) is direction-ambiguous: the HOME key (app→launcher) and tapping an
             // already-running app (launcher→app) both land here. Pick the "app" target as the one that
@@ -418,9 +486,13 @@ private class AppCloseAnimationRunner(
                 return
             }
             val leash = appTarget.leash
-            val icon = iconProvider() ?: Rect(
-                win.centerX() - 1, win.centerY() - 1, win.centerX() + 1, win.centerY() + 1)
             val opening = appTarget.mode == RemoteAnimationTarget.MODE_OPENING
+            // Opening: expand from the just-tapped icon (iconProvider). Closing: shrink into THIS app's
+            // own icon, recorded when it expanded (so it aims at the right slot even if another app was
+            // launched since). Fall back to iconProvider, then screen centre.
+            val icon = (if (opening) iconProvider() else MorphState.of(appTarget.taskId).icon)
+                ?: iconProvider()
+                ?: Rect(win.centerX() - 1, win.centerY() - 1, win.centerX() + 1, win.centerY() + 1)
             Log.d("CloX/PathA", "onAnimationStart dir=${if (opening) "OPEN" else "CLOSE"} appTaskId=${appTarget.taskId} launcherTaskId=$launcherTaskId win=$win icon=$icon apps=${apps?.size}")
 
             // Reveal the launcher (home) fully opaque BELOW the app so the area outside the morphing
@@ -430,9 +502,13 @@ private class AppCloseAnimationRunner(
             apps?.firstOrNull { it.taskId == launcherTaskId }?.leash?.let { SurfaceTx.reveal(it, 0) }
             wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
 
-            // Reversible morph: OPENING expands the app from the icon, CLOSING collapses it into the
-            // icon — both share MorphState, so a HOME/BACK/tap mid-animation reverses in place.
-            anim = buildMorphAnim(leash, win, icon, opening, speed = speed(opening)) {
+            lastLeash = leash; lastWin = Rect(win); lastIcon = Rect(icon)
+            lastTaskId = appTarget.taskId; lastTarget = if (opening) 1f else 0f
+
+            // Reversible per-task morph: OPENING expands the app from the icon, CLOSING collapses it
+            // into the icon — a HOME/BACK/tap mid-animation reverses this task in place.
+            anim = buildMorphAnim(leash, win, icon, opening, taskId = appTarget.taskId,
+                speed = speed(opening)) {
                 finish(finishedCallback)
             }.also { it.start() }
         } catch (t: Throwable) {
@@ -445,9 +521,18 @@ private class AppCloseAnimationRunner(
         Log.d("CloX/PathA", "close onAnimationCancelled")
         done = true
         anim?.cancel()
-        // Mark no morph active so the blur can't latch onto stale progress. lastFrameAt is left as-is
-        // so a genuine reversal (new transition within ~120ms) is still detected and continues.
-        MorphState.animating = false
+        val tid = lastTaskId
+        if (tid != -1) {
+            // Reset this task's active flag (a genuine reversal is still detected via lastFrameAt
+            // recency). Then, deferred so a reversal (new transition ~1 frame later) can claim the
+            // task first, finish an ORPHANED shrink — the system cancels the close to open another app
+            // and leaves this leash frozen mid-shrink; drive it the rest of the way so it doesn't stick.
+            MorphState.of(tid).animating = false
+            val l = lastLeash; val w = lastWin; val ic = lastIcon; val tgt = lastTarget
+            if (l != null && w != null && ic != null) {
+                LeashAnimator.postDelayed(48L) { finishOrphanMorph(l, w, ic, tid, tgt) }
+            }
+        }
     }
 
     private fun finish(cb: IRemoteAnimationFinishedCallback?) {
