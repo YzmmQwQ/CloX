@@ -67,11 +67,45 @@ object RemoteAppAnimator {
         val adapter = adapterClass
             .getConstructor(runnerClass, Long::class.javaPrimitiveType, Long::class.javaPrimitiveType)
             .newInstance(runner, MORPH_ADAPTER_TIMEOUT_MS, 0L)
-        val make = ActivityOptions::class.java.getMethod("makeRemoteAnimation", adapterClass)
-        val options = make.invoke(null, adapter) as ActivityOptions
+        val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // API 31+: ALSO supply a Shell-transitions RemoteTransition. The platform uses the
+            // RemoteTransition when shell transitions are enabled (default on 12+, forced on 15) and
+            // the legacy adapter otherwise. On API 33+ the legacy remote-animation path is dormant, so
+            // this is the ONLY open animation that actually fires there. Falls back to the plain
+            // 1-arg legacy path if the modern classes/overload aren't available.
+            makeRemoteAnimationWithTransition(adapter, adapterClass, Rect(iconBounds), speed)
+                ?: (ActivityOptions::class.java.getMethod("makeRemoteAnimation", adapterClass)
+                    .invoke(null, adapter) as ActivityOptions)
+        } else {
+            ActivityOptions::class.java.getMethod("makeRemoteAnimation", adapterClass)
+                .invoke(null, adapter) as ActivityOptions
+        }
         options.toBundle()
     } catch (t: Throwable) {
         Log.e(TAG, "openAnimationBundle failed — falling back to normal launch", t)
+        null
+    }
+
+    /**
+     * Build ActivityOptions via the 2-arg makeRemoteAnimation(RemoteAnimationAdapter, RemoteTransition)
+     * so the OPEN morph fires under Shell Transitions (API 33+). Returns null (caller falls back) if
+     * any of the @hide RemoteTransition/IRemoteTransition classes or the overload are unavailable.
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun makeRemoteAnimationWithTransition(
+        adapter: Any, adapterClass: Class<*>, iconBounds: Rect, speed: () -> Float
+    ): ActivityOptions? = runCatching {
+        val iRemoteTransition = Class.forName("android.window.IRemoteTransition")
+        val remoteTransitionClass = Class.forName("android.window.RemoteTransition")
+        val transitionRunner = AppOpenTransitionRunner(iconBounds, speed)   // IRemoteTransition.Stub
+        val remoteTransition = remoteTransitionClass
+            .getConstructor(iRemoteTransition, String::class.java)
+            .newInstance(transitionRunner, "CloXLaunch")
+        ActivityOptions::class.java
+            .getMethod("makeRemoteAnimation", adapterClass, remoteTransitionClass)
+            .invoke(null, adapter, remoteTransition) as ActivityOptions
+    }.getOrElse {
+        Log.d(TAG, "makeRemoteAnimation(adapter, RemoteTransition) unavailable: $it")
         null
     }
 
@@ -132,7 +166,11 @@ private class LeashAnimator(
     private val durationMs: Long,
     private val onFrame: (Float) -> Unit,
     private val onFinish: () -> Unit,
-    private val interp: android.view.animation.Interpolator = DecelerateInterpolator(1.5f)
+    private val interp: android.view.animation.Interpolator = DecelerateInterpolator(1.5f),
+    // Which thread drives the frames. Legacy remote-animation (API 30) uses the shared BG thread so
+    // main-thread jank can't stall it. Shell Transitions (API 31+) IGNORE surface transactions applied
+    // from a background thread mid-transition, so that path must pass the MAIN handler.
+    private val handler: Handler = sharedHandler
 ) {
     @Volatile private var cancelled = false
     @Volatile private var finished = false
@@ -161,13 +199,14 @@ private class LeashAnimator(
     }
 
     companion object {
-        // One shared background thread for all leash morphs.
-        private val handler: Handler by lazy {
+        // One shared background thread for all legacy leash morphs.
+        val sharedHandler: Handler by lazy {
             Handler(HandlerThread("CloX-leash-anim").apply { start() }.looper)
         }
+        val mainHandler: Handler by lazy { Handler(android.os.Looper.getMainLooper()) }
 
         /** Post to the shared leash-anim thread (used to defer the orphan-finish past a possible reversal). */
-        fun postDelayed(delayMs: Long, r: Runnable) { handler.postDelayed(r, delayMs) }
+        fun postDelayed(delayMs: Long, r: Runnable) { sharedHandler.postDelayed(r, delayMs) }
     }
 }
 
@@ -187,6 +226,41 @@ private object SurfaceTx {
     private val mSetAlpha = m("setAlpha", scClass, Float::class.javaPrimitiveType)
     private val mShow = m("show", scClass)
     private val mSetLayer = m("setLayer", scClass, Int::class.javaPrimitiveType)
+    private val mSetCrop = m("setCrop", scClass, Rect::class.java)
+        ?: m("setWindowCrop", scClass, Rect::class.java)
+    private val mReparent = m("reparent", scClass, scClass)
+
+    /** Diagnostic: which reflected setters resolved. */
+    val diag: String get() = "matrix=${mSetMatrix != null} crop=${mSetCrop != null} " +
+        "show=${mShow != null} alpha=${mSetAlpha != null} reparent=${mReparent != null}"
+
+    /**
+     * Set up a Shell-transitions leash on the shell's START transaction [t] so our per-frame matrix
+     * morph actually renders: SHOW it and CROP it to its content bounds ([w]x[h]). A transition leash
+     * with no crop renders nothing — on API 35 that showed the launcher blur but no window. Applied by
+     * the caller (do not apply here). Safe if [t] is null (no-op).
+     */
+    fun setupLeash(t: SurfaceControl.Transaction?, leash: SurfaceControl, w: Int, h: Int) {
+        t ?: return
+        runCatching {
+            runCatching { mShow?.invoke(t, leash) }
+            runCatching { mSetCrop?.invoke(t, leash, Rect(0, 0, w.coerceAtLeast(1), h.coerceAtLeast(1))) }
+        }
+    }
+
+    // Direct per-transaction setters (operate on the passed transaction; caller applies).
+    fun show(t: SurfaceControl.Transaction, leash: SurfaceControl) { runCatching { mShow?.invoke(t, leash) } }
+    fun hide(t: SurfaceControl.Transaction, leash: SurfaceControl) {
+        runCatching { txClass.getMethod("hide", scClass).invoke(t, leash) }
+    }
+    fun alpha(t: SurfaceControl.Transaction, leash: SurfaceControl, a: Float) { runCatching { mSetAlpha?.invoke(t, leash, a) } }
+    fun layer(t: SurfaceControl.Transaction, leash: SurfaceControl, l: Int) { runCatching { mSetLayer?.invoke(t, leash, l) } }
+    fun crop(t: SurfaceControl.Transaction, leash: SurfaceControl, w: Int, h: Int) {
+        runCatching { mSetCrop?.invoke(t, leash, Rect(0, 0, w.coerceAtLeast(1), h.coerceAtLeast(1))) }
+    }
+    fun reparent(t: SurfaceControl.Transaction, leash: SurfaceControl, newParent: SurfaceControl?) {
+        runCatching { mReparent?.invoke(t, leash, newParent) }
+    }
 
     /** Build + apply one frame's transform on the given leash. Safe on any thread. */
     fun frame(leash: SurfaceControl, matrix: Matrix, tmp: FloatArray, cornerR: Float, alpha: Float) {
@@ -306,6 +380,8 @@ private fun applyMorphFrame(
 @RequiresApi(Build.VERSION_CODES.R)
 private fun buildMorphAnim(
     leash: SurfaceControl, win: Rect, icon: Rect, opening: Boolean, taskId: Int, speed: Float,
+    handler: Handler = LeashAnimator.sharedHandler,
+    topLayer: Int = 1,
     onFinish: () -> Unit
 ): LeashAnimator {
     val st = MorphState.of(taskId)
@@ -327,23 +403,26 @@ private fun buildMorphAnim(
     // Land the leash on the starting expansion immediately — showing + layering + positioning it in
     // ONE transaction (showLayer=1) — before the anim thread's first tick, so a reversal never flashes
     // the leash at its reset (identity/fullscreen) state for a frame.
-    applyMorphFrame(leash, win, icon, matrix, tmp, start, showLayer = 1)
+    applyMorphFrame(leash, win, icon, matrix, tmp, start, showLayer = topLayer)
     // Duration scales with remaining distance AND the user's speed setting (multiplier, higher =
     // faster = shorter). Clamped so a bad pref can't produce a 0ms or runaway animation.
     val dist = kotlin.math.abs(target - start).coerceAtLeast(0.02f)
     val duration = (MORPH_DURATION_MS * dist / speed.coerceIn(0.25f, 4f)).toLong().coerceAtLeast(60L)
     Log.d("CloX/PathA", "morph ${if (opening) "OPEN" else "CLOSE"} task=$taskId start=$start target=$target dur=$duration")
+    // For Shell Transitions (topLayer high) re-assert show+layer EVERY frame — the shell can re-order
+    // leashes mid-transition, which would drop the app back behind the home (blur-only). Cheap; the
+    // legacy path (topLayer=1) also re-asserts harmlessly.
     return LeashAnimator(duration, onFrame = { p ->
         val e = start + (target - start) * p
         st.expansion = e
         st.lastFrameAt = android.os.SystemClock.uptimeMillis()
         if (MorphState.blurOwner == blurToken) MorphState.blurExpansion = e  // only the newest morph
-        applyMorphFrame(leash, win, icon, matrix, tmp, e)
+        applyMorphFrame(leash, win, icon, matrix, tmp, e, showLayer = topLayer)
     }, onFinish = {
         st.expansion = target
         st.animating = false
         onFinish()
-    }, interp = android.view.animation.LinearInterpolator())
+    }, interp = android.view.animation.LinearInterpolator(), handler = handler)
 }
 
 /**
@@ -542,4 +621,182 @@ private class AppCloseAnimationRunner(
             Log.e("CloX/PathA", "close onAnimationFinished failed", t)
         }
     }
+}
+
+/**
+ * OPEN runner for Shell Transitions (API 31+). On Android 12+ (and forced on 15) the legacy
+ * remote-animation path is dormant; the system runs THIS instead. It hands us a TransitionInfo of
+ * leashes and we grow the opening app's leash from the tapped icon rect to its end bounds, reusing
+ * the exact same morph math as the legacy runner. Subclasses the vendored
+ * android.window.IRemoteTransition.Stub; the real framework interface shadows it at runtime.
+ */
+@RequiresApi(Build.VERSION_CODES.S)
+private class AppOpenTransitionRunner(
+    private val iconBounds: Rect,
+    private val speed: () -> Float
+) : android.window.IRemoteTransition.Stub() {
+
+    @Volatile private var anim: LeashAnimator? = null
+
+    override fun startAnimation(
+        token: android.os.IBinder?,
+        info: android.window.TransitionInfo?,
+        t: SurfaceControl.Transaction?,
+        finishCallback: android.window.IRemoteTransitionFinishedCallback?
+    ) {
+        try {
+            val target = TransitionRefl.openingApp(info)
+            if (target == null) {
+                Log.w("CloX/PathA", "open transition: no opening app leash, finishing")
+                runCatching { t?.apply() }
+                finishTransition(finishCallback)
+                return
+            }
+            val (leash, end, taskId) = target
+            Log.d("CloX/PathA", "open transition start icon=$iconBounds win=$end task=$taskId " +
+                "leashValid=${leash.isValid} ${SurfaceTx.diag} ${TransitionRefl.rootInfo(info)}")
+
+            // The opening app leash is nested UNDER the home leash in this OEM's transition hierarchy,
+            // so it can never draw above the home (and hiding the home hid it too). Reparent it to the
+            // transition ROOT leash — making it a sibling ABOVE the home — then show + crop + lift it.
+            // The home stays put below as the background the app grows over.
+            val root = TransitionRefl.rootLeash(info)
+            runCatching {
+                t?.let { tx ->
+                    if (root != null) SurfaceTx.reparent(tx, leash, root)
+                    SurfaceTx.show(tx, leash)
+                    SurfaceTx.crop(tx, leash, end.width(), end.height())
+                    SurfaceTx.layer(tx, leash, 1_000_000)
+                    tx.apply()
+                }
+            }
+            Log.d("CloX/PathA", "open transition: reparented app to root=${root != null}, morphing")
+            // Drive the morph on the MAIN handler: Shell Transitions ignore surface transactions
+            // applied from a background thread mid-transition (the exact reason the legacy BG-thread
+            // path showed nothing here). Reuses the same morph math (scale/corner/alpha/speed).
+            anim = buildMorphAnim(
+                leash, end, iconBounds, opening = true, taskId = taskId, speed = speed(),
+                handler = LeashAnimator.mainHandler, topLayer = 1_000_000
+            ) { finishTransition(finishCallback) }.also { it.start() }
+        } catch (e: Throwable) {
+            Log.e("CloX/PathA", "open transition failed — finishing", e)
+            finishTransition(finishCallback)
+        }
+    }
+
+    private fun finishTransition(cb: android.window.IRemoteTransitionFinishedCallback?) {
+        runCatching { cb?.onTransitionFinished(null, null) }
+    }
+
+    override fun mergeAnimation(
+        transition: android.os.IBinder?,
+        info: android.window.TransitionInfo?,
+        t: SurfaceControl.Transaction?,
+        mergeTarget: android.os.IBinder?,
+        finishCallback: android.window.IRemoteTransitionFinishedCallback?
+    ) { /* no-op: let the running open animation finish on its own (matches the framework default) */ }
+
+    override fun takeOverAnimation(
+        transition: android.os.IBinder?,
+        info: android.window.TransitionInfo?,
+        t: SurfaceControl.Transaction?,
+        finishCallback: android.window.IRemoteTransitionFinishedCallback?,
+        states: Array<android.window.WindowAnimationState?>?
+    ) {
+        // We don't support takeover — commit and finish immediately so nothing hangs.
+        runCatching { t?.apply() }
+        finishTransition(finishCallback)
+    }
+
+    override fun onTransitionConsumed(transition: android.os.IBinder?, aborted: Boolean) {
+        anim?.cancel()
+    }
+}
+
+/**
+ * Reflection over the @hide android.window.TransitionInfo / TransitionInfo.Change to pull the opening
+ * app's leash, end bounds and task id (the classes aren't in the SDK, so no compile-time types).
+ */
+@RequiresApi(Build.VERSION_CODES.S)
+private object TransitionRefl {
+    private val getChanges = runCatching {
+        Class.forName("android.window.TransitionInfo").getMethod("getChanges")
+    }.getOrNull()
+    private val changeClass = runCatching { Class.forName("android.window.TransitionInfo\$Change") }.getOrNull()
+    private val mLeash = runCatching { changeClass?.getMethod("getLeash") }.getOrNull()
+    private val mMode = runCatching { changeClass?.getMethod("getMode") }.getOrNull()
+    private val mEndAbs = runCatching { changeClass?.getMethod("getEndAbsBounds") }.getOrNull()
+    private val mTaskInfo = runCatching { changeClass?.getMethod("getTaskInfo") }.getOrNull()
+
+    private val mRootLeash = runCatching {
+        Class.forName("android.window.TransitionInfo\$Root").getMethod("getLeash")
+    }.getOrNull()
+
+    /** The transition's (first) root leash — reparent the app under this to lift it above the home. */
+    fun rootLeash(info: Any?): SurfaceControl? = runCatching {
+        val root = mGetRoot?.invoke(info, 0) ?: return null
+        mRootLeash?.invoke(root) as? SurfaceControl
+    }.getOrNull()
+
+    /** @return every change as (leash, mode, activityType). */
+    fun changes(info: Any?): List<Triple<SurfaceControl, Int, Int>> {
+        info ?: return emptyList()
+        val list = runCatching { getChanges?.invoke(info) as? List<*> }.getOrNull() ?: return emptyList()
+        return list.mapNotNull { c ->
+            c ?: return@mapNotNull null
+            val leash = runCatching { mLeash?.invoke(c) as? SurfaceControl }.getOrNull() ?: return@mapNotNull null
+            val mode = runCatching { mMode?.invoke(c) as? Int }.getOrNull() ?: return@mapNotNull null
+            val at = activityType(runCatching { mTaskInfo?.invoke(c) }.getOrNull())
+            Triple(leash, mode, at)
+        }
+    }
+
+    /** @return (leash, endAbsBounds, taskId) for the opening non-home app, or null. */
+    fun openingApp(info: Any?): Triple<SurfaceControl, Rect, Int>? {
+        info ?: return null
+        val changes = runCatching { getChanges?.invoke(info) as? List<*> }.getOrNull() ?: return null
+        for (c in changes) {
+            c ?: continue
+            val mode = runCatching { mMode?.invoke(c) as? Int }.getOrNull() ?: continue
+            if (mode != 1 && mode != 3) continue   // TRANSIT_OPEN(1) or TRANSIT_TO_FRONT(3)
+            if (activityType(runCatching { mTaskInfo?.invoke(c) }.getOrNull()) == 2) continue  // skip HOME
+            val leash = runCatching { mLeash?.invoke(c) as? SurfaceControl }.getOrNull() ?: continue
+            val end = runCatching { mEndAbs?.invoke(c) as? Rect }.getOrNull() ?: continue
+            val taskId = taskId(runCatching { mTaskInfo?.invoke(c) }.getOrNull())
+            return Triple(leash, end, taskId)
+        }
+        return null
+    }
+
+    private val mGetRootCount = runCatching { Class.forName("android.window.TransitionInfo").getMethod("getRootCount") }.getOrNull()
+    private val mGetRoot = runCatching { Class.forName("android.window.TransitionInfo").getMethod("getRoot", Int::class.javaPrimitiveType) }.getOrNull()
+    private val mGetType = runCatching { Class.forName("android.window.TransitionInfo").getMethod("getType") }.getOrNull()
+
+    private val mGetFlags = runCatching { changeClass?.getMethod("getFlags") }.getOrNull()
+
+    /** Diagnostic: transition type, root offset, and every Change (mode/activityType/flags/leash). */
+    fun rootInfo(info: Any?): String = runCatching {
+        val type = mGetType?.invoke(info)
+        val n = (mGetRootCount?.invoke(info) as? Int) ?: 0
+        val roots = (0 until n).joinToString(",") { i ->
+            val r = mGetRoot?.invoke(info, i)
+            "off=${runCatching { r?.javaClass?.getMethod("getOffset")?.invoke(r) }.getOrNull()}"
+        }
+        val changes = (getChanges?.invoke(info) as? List<*>)?.joinToString(" | ") { c ->
+            val mode = runCatching { mMode?.invoke(c) }.getOrNull()
+            val at = activityType(runCatching { mTaskInfo?.invoke(c) }.getOrNull())
+            val fl = runCatching { mGetFlags?.invoke(c) }.getOrNull()
+            val lv = runCatching { (mLeash?.invoke(c) as? SurfaceControl)?.isValid }.getOrNull()
+            "mode=$mode actType=$at flags=$fl leashValid=$lv"
+        }
+        "type=$type roots=$n[$roots] changes=[$changes]"
+    }.getOrDefault("rootInfo-err")
+
+    private fun activityType(taskInfo: Any?): Int = runCatching {
+        taskInfo?.javaClass?.getMethod("getActivityType")?.invoke(taskInfo) as? Int
+    }.getOrNull() ?: -1
+
+    private fun taskId(taskInfo: Any?): Int = runCatching {
+        taskInfo?.javaClass?.getField("taskId")?.getInt(taskInfo)
+    }.getOrNull() ?: -1
 }
