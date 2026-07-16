@@ -170,7 +170,26 @@ class AppListFragment : Fragment() {
             while (p != null) { sx *= p.scaleX; sy *= p.scaleY; p = p.parent as? View }
             val loc = IntArray(2)
             v.getLocationOnScreen(loc)
-            Rect(loc[0], loc[1], loc[0] + (v.width * sx).toInt(), loc[1] + (v.height * sy).toInt())
+            // Prefer the ACTUALLY-DRAWN icon rect. With scaleType=fitCenter + padding (grid cells fill
+            // the whole cell) the icon view is much larger than the visible icon, which made the morph
+            // surface oversized on grid. The ImageView's image matrix + padding give the true drawn
+            // rect, matching the real icon size on every layout type.
+            val iv = v as? android.widget.ImageView
+            val dr = iv?.drawable
+            if (iv != null && dr != null && dr.intrinsicWidth > 0 && dr.intrinsicHeight > 0) {
+                val r = android.graphics.RectF(0f, 0f, dr.intrinsicWidth.toFloat(), dr.intrinsicHeight.toFloat())
+                iv.imageMatrix?.mapRect(r)
+                val left = iv.paddingLeft + r.left
+                val top = iv.paddingTop + r.top
+                Rect(
+                    (loc[0] + left * sx).toInt(),
+                    (loc[1] + top * sy).toInt(),
+                    (loc[0] + (left + r.width()) * sx).toInt(),
+                    (loc[1] + (top + r.height()) * sy).toInt()
+                )
+            } else {
+                Rect(loc[0], loc[1], loc[0] + (v.width * sx).toInt(), loc[1] + (v.height * sy).toInt())
+            }
         }
         Log.d("CloX/Return", "returnIconHit pkg=$pkg rowFound=${row != null} bounds=$bounds")
         return ReturnIconHit(item, iconView.takeIf { bounds != null }, bounds)

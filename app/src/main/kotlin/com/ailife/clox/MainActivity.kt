@@ -603,6 +603,29 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             pathACloseRegistered = true
         }
 
+        // Path B icon-morph (swipe-home with the surface toggle): the system morphs the closing
+        // window into the icon surface we handed it in handleGestureContract. We play NO in-app
+        // return animation (the surface owns that), but we DO play the app-list reveal so the list
+        // fades / circles in over its background — the same finish as a normal gesture return. The
+        // reveal veil sits below the morph (the icon SurfaceView is ZOrderOnTop + the closing window
+        // is a system layer, both above the launcher window), so the morph stays visible over it.
+        // Checked before Path A because for a swipe-home gesture the contract handoff — not the
+        // registered close — owns the return.
+        if (gestureHandoffActive) {
+            gestureHandoffActive = false
+            val revealBounds = lastLaunchBounds
+            lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
+            pendingGestureFollowOn = false
+            val playReveal = !skipSelfAnim && appListOpen &&
+                com.ailife.clox.applist.AppListPrefs.gestureReturnEnabled(this)
+            Log.d("CloX/Return", "onResume handoff+reveal playReveal=$playReveal bounds=$revealBounds")
+            if (playReveal && revealBounds != null) {
+                val veil = showGestureReturnVeil()
+                gestureRoot.post { playGestureReturnReveal(veil, revealBounds) }
+            }
+            return
+        }
+
         // Path A: the registered close remote-animation morphs the real window back into the icon —
         // do NOT play the in-app return animation, and do NOT suppress the system transition (which
         // would kill the morph). Keep lastLaunchBounds so the close runner can target the icon.
@@ -610,17 +633,6 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             lastLaunchedItem = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
             Log.d("CloX/Return", "onResume Path A — system close morph owns the return; skip in-app")
-            return
-        }
-
-        // Path B: the system is morphing the real closing window into the icon surface we handed
-        // it in handleGestureContract. Play nothing in-app and drop the pending return so no stale
-        // animation fires — the system owns the whole transition.
-        if (gestureHandoffActive) {
-            gestureHandoffActive = false
-            lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
-            pendingGestureFollowOn = false
-            Log.d("CloX/Return", "onResume handoff mode — system owns the transition, skip all anim")
             return
         }
 
@@ -704,13 +716,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         val pkg = contract.componentName.packageName
         if (resolveAndApplyClosingApp(pkg)) {
             if (com.ailife.clox.applist.AppListPrefs.gestureHandoffSurface(this)) {
-                // Path B: hand the system a real icon surface; it morphs the closing window into
-                // it. No in-app follow-on / reveal — the system owns the whole transition.
+                // Path B: hand the system a real icon surface; it morphs the closing window into it.
+                // Reply with the target rect SYNCHRONOUSLY now, so Launcher3's spring aims straight at
+                // the icon from frame 0 (no centre default). The SurfaceView then sends the SAME rect
+                // plus its surface a frame later from surfaceCreated(); since the target is unchanged,
+                // that second reply only attaches the icon graphic — no centre-detour 2-step.
                 val item = lastLaunchedItem!!; val bounds = Rect(lastLaunchBounds!!)
-                Log.d("CloX/Return", "contract handoff pkg=$pkg bounds=$bounds")
+                Log.d("CloX/Return", "contract handoff pkg=$pkg bounds=$bounds (sync rect + late surface)")
+                contract.sendEndPosition(RectF(bounds))
                 activeHandoffSurface?.remove()
                 activeHandoffSurface = AppCloseIconSurface.show(
-                    this, gestureRoot, resolveHeroIcon(item), bounds, contract)
+                    this, gestureRoot, resolveHeroIcon(item), bounds, contract,
+                    lastLaunchIconView?.get())
                 gestureHandoffActive = true
                 pendingGestureFollowOn = false
             } else {
