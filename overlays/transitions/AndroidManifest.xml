@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CloX Transitions RRO — zeroes the framework "wallpaper" app-transition animations so that the
+  app <-> CloX-home transition is an instant cut instead of the default slide. CloX's home window
+  sets android:windowShowWallpaper=true, which routes its close/home transition through the
+  WALLPAPER_* animation set (distinct from the app<->app task_* set), so ONLY home-return is made
+  instant while ordinary app<->app transitions keep their normal animation.
+
+  Static RRO targeting the framework (android) package. framework-res declares no overlayable
+  restrictions on this ROM (aapt2 dump overlayable => empty), so a partition overlay may override
+  these anim resources. Deployed at /product/overlay via the Magisk module.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ailife.clox.overlay.transitions">
+
+    <application android:hasCode="false" />
+
+    <overlay
+        android:targetPackage="android"
+        android:isStatic="true"
+        android:priority="100" />
+</manifest>

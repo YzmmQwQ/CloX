@@ -96,9 +96,15 @@
     </style>
 
     <!-- ── Launcher / watchface screen — black, no system bars ── -->
+    <!-- windowShowWallpaper: routes the app↔home transition through the framework WALLPAPER_* anim
+         set (distinct from the app↔app task_* set). The CloXTransitions RRO zeroes those wallpaper
+         anims, so ONLY the home-return transition becomes an instant cut (no default slide) while
+         ordinary app↔app transitions keep their normal animation. The GL SurfaceView's transparent
+         region is what makes the wallpaper actually participate behind the watchface. -->
     <style name="Theme.CloX" parent="Base.Theme.CloX">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowShowWallpaper">true</item>
     </style>
 
     <!-- For activities that finish immediately without showing any UI -->

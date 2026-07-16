@@ -12,5 +12,10 @@ fi
 set_perm_recursive "$MODPATH/system/priv-app/CloX" 0 0 0755 0644
 set_perm "$MODPATH/system/etc/permissions/privapp-permissions-com.ailife.clox.xml" 0 0 0644
 
+# Transitions RRO (zeroes the wallpaper/home-return transition anims) — /product/overlay static RRO.
+if [ -f "$MODPATH/system/product/overlay/CloXTransitions.apk" ]; then
+  set_perm "$MODPATH/system/product/overlay/CloXTransitions.apk" 0 0 0644
+fi
+
 ui_print "- Hidden-API enforcement will be disabled on each boot (service.sh)"
 ui_print "- Reboot to activate. CloX will hold CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS."

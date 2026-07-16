@@ -27,3 +27,6 @@ app/src/main/assets/axslc/
 .claude/
 # Magisk module build artifact (bundles the APK)
 CloX-privapp-magisk.zip
+
+# apksigner v4 side-file (breaks Magisk-mounted overlays; never ship)
+*.apk.idsig
