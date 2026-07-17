@@ -557,6 +557,15 @@ private class AppOpenAnimationRunner(
     }
 }
 
+// Activity type of a legacy RemoteAnimationTarget's window (WindowConfiguration.ACTIVITY_TYPE_*:
+// 1 = STANDARD app, 2 = HOME). Read reflectively — windowConfiguration/getActivityType are @hide
+// and may be missing from the compile stubs. 0 (UNDEFINED) on any failure, which callers must
+// treat as "not home" so a real app close still animates.
+private fun targetActivityType(target: RemoteAnimationTarget): Int = runCatching {
+    val wc = RemoteAnimationTarget::class.java.getField("windowConfiguration").get(target)
+    wc?.javaClass?.getMethod("getActivityType")?.invoke(wc) as? Int
+}.getOrNull() ?: 0
+
 /**
  * CLOSE runner — shrinks the real closing app-window leash back into the icon rect. Registered on
  * the launcher via RemoteAnimationDefinition; the system invokes it for the app→launcher transition.
@@ -602,6 +611,18 @@ private class AppCloseAnimationRunner(
                 finish(finishedCallback)
                 return
             }
+            // The "app" window is CloX ITSELF (the watchface selector lives in the home task, so
+            // its window reports the HOME activity type; real apps are STANDARD). Own screens
+            // handle their transitions themselves — never auto-morph them. taskId can't be used
+            // here: this ROM reports appTaskId == launcherTaskId even for real app closes.
+            val appType = targetActivityType(appTarget)
+            if (appType == 2 /* ACTIVITY_TYPE_HOME */) {
+                Log.d("CloX/PathA", "close: target is CloX/home itself (type=$appType) — no auto animation, instant finish")
+                apps?.forEach { it.leash?.let { l -> SurfaceTx.reveal(l, 0) } }
+                wallpapers?.forEach { it.leash?.let { w -> SurfaceTx.reveal(w, -1) } }
+                finish(finishedCallback)
+                return
+            }
             val leash = appTarget.leash
             val opening = appTarget.mode == RemoteAnimationTarget.MODE_OPENING
             // Opening: expand from the just-tapped icon (iconProvider). Closing: shrink into THIS app's
@@ -610,7 +631,7 @@ private class AppCloseAnimationRunner(
             val icon = (if (opening) iconProvider() else MorphState.of(appTarget.taskId).icon)
                 ?: iconProvider()
                 ?: Rect(win.centerX() - 1, win.centerY() - 1, win.centerX() + 1, win.centerY() + 1)
-            Log.d("CloX/PathA", "onAnimationStart dir=${if (opening) "OPEN" else "CLOSE"} appTaskId=${appTarget.taskId} launcherTaskId=$launcherTaskId win=$win icon=$icon apps=${apps?.size}")
+            Log.d("CloX/PathA", "onAnimationStart dir=${if (opening) "OPEN" else "CLOSE"} appTaskId=${appTarget.taskId} appType=$appType launcherTaskId=$launcherTaskId win=$win icon=$icon apps=${apps?.size}")
 
             // Reveal the launcher (home) fully opaque BELOW the app so the area outside the morphing
             // window isn't a black transition layer — the home target is our launcher task, in either
