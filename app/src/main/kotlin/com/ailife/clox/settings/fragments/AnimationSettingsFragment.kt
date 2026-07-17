@@ -175,7 +175,7 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
         val switchGestureHandoff = view.findViewById<MaterialSwitch>(R.id.switchGestureHandoff)
         switchGestureHandoff.isChecked =
-            appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_HANDOFF_SURFACE, false)
+            appListPrefs.getBoolean(AppListPrefs.KEY_GESTURE_HANDOFF_SURFACE, true)
         switchGestureHandoff.setOnCheckedChangeListener { _, checked ->
             appListPrefs.edit().putBoolean(AppListPrefs.KEY_GESTURE_HANDOFF_SURFACE, checked).apply()
         }

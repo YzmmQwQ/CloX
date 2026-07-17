@@ -359,7 +359,7 @@ object AppListPrefs {
     const val KEY_GESTURE_HANDOFF_SURFACE = "gesture_handoff_surface"
 
     fun gestureHandoffSurface(ctx: Context) =
-        get(ctx).getBoolean(KEY_GESTURE_HANDOFF_SURFACE, false)
+        get(ctx).getBoolean(KEY_GESTURE_HANDOFF_SURFACE, true)
 
     const val KEY_GESTURE_RETURN_SPEED = "gesture_return_speed"   // Float, 0.5..2.0
     const val KEY_GESTURE_RETURN_DELAY = "gesture_return_delay"   // Int ms, 0..500
