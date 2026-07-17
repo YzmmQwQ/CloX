@@ -333,6 +333,15 @@ private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
 private const val MORPH_DURATION_MS = 300L
 
 /**
+ * Easing applied to the expansion→geometry map (scale/position), NOT to time. Fast-out-slow-in
+ * (Material standard): the window leaps out of the icon and settles gently into fullscreen instead
+ * of growing at a constant, mechanical rate. It's a FIXED function of the expansion [e], so its slope
+ * is continuous at any reversal seam — unlike a time-axis interpolator, easing here can't jerk when a
+ * HOME/BACK reverses a morph mid-flight (see [applyMorphFrame] / [buildMorphAnim]).
+ */
+private val MORPH_EASE = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
+
+/**
  * Shared morph progress so open/close are REVERSIBLE and interruptible. [expansion] is 0 (icon-sized)
  * … 1 (fullscreen). [inFlight] is true while a morph animator is running — a HOME/BACK/tap that starts
  * a new transition mid-animation continues from the current [expansion] instead of snapping, so the
@@ -376,9 +385,12 @@ private fun applyMorphFrame(
     val winW = win.width().coerceAtLeast(1).toFloat()
     val winH = win.height().coerceAtLeast(1).toFloat()
     val iconScale = (icon.width().toFloat() / winW).coerceIn(0.05f, 1f)
-    val s = lerp(iconScale, 1f, e)
-    val cx = lerp(icon.exactCenterX(), win.exactCenterX(), e)
-    val cy = lerp(icon.exactCenterY(), win.exactCenterY(), e)
+    // Ease the GEOMETRY (scale + center) as a function of expansion, keeping [e] linear in time so the
+    // shared reversible MorphState velocity stays constant and the reversal seam never jerks (MORPH_EASE).
+    val ge = MORPH_EASE.getInterpolation(e)
+    val s = lerp(iconScale, 1f, ge)
+    val cx = lerp(icon.exactCenterX(), win.exactCenterX(), ge)
+    val cy = lerp(icon.exactCenterY(), win.exactCenterY(), ge)
     matrix.setScale(s, s)
     matrix.postTranslate(cx - winW * s / 2f, cy - winH * s / 2f)
     // Rounded corners in SCREEN space. setCornerRadius is in the surface's local (pre-matrix) space,
@@ -398,7 +410,8 @@ private fun applyMorphFrame(
  * = collapse to [icon]). Starts from the CURRENT shared [MorphState.expansion] when a morph is already
  * in flight (a reversal), else from the natural end (0 for open, 1 for close). The first frame is
  * applied synchronously so a reversal picks up the current visual with no jump; duration is scaled by
- * the remaining distance so the speed stays constant. Linear so reversals don't jerk at the seam.
+ * the remaining distance so the speed stays constant. Time is LINEAR here on purpose — the ease lives
+ * in the geometry map ([MORPH_EASE] in applyMorphFrame), which keeps the reversal seam jerk-free.
  */
 @RequiresApi(Build.VERSION_CODES.R)
 private fun buildMorphAnim(
