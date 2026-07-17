@@ -52,10 +52,17 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
             resources.getStringArray(R.array.open_anim_type_entries),
             resources.getStringArray(R.array.open_anim_type_values),
             AppListPrefs.OPEN_ANIM_REAL_WINDOW)
-        val (closeTypeEntries, closeTypeValues) = withReal(
+        val (closeTypeEntries0, closeTypeValues0) = withReal(
             resources.getStringArray(R.array.close_anim_type_entries),
             resources.getStringArray(R.array.close_anim_type_values),
             AppListPrefs.CLOSE_ANIM_REAL_WINDOW)
+        // Snapshot close (CloX-drawn app-screenshot morph) — API 31+ where the real close transition
+        // can't be owned; it's the default there. Needs the remote-anim permission (same as real window).
+        val (closeTypeEntries, closeTypeValues) =
+            if (hasRemoteAnim && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                Pair(closeTypeEntries0 + getString(R.string.anim_setting_snapshot_entry),
+                     closeTypeValues0 + AppListPrefs.CLOSE_ANIM_SNAPSHOT)
+            else Pair(closeTypeEntries0, closeTypeValues0)
 
         fun labelFor(entries: Array<String>, values: Array<String>, v: String) =
             entries.getOrElse(values.indexOf(v)) { v }

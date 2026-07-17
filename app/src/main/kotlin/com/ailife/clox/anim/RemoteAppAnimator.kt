@@ -51,9 +51,11 @@ object RemoteAppAnimator {
 
     private const val TAG = "CloX/PathA"
 
-    /** Latest morph progress (0 = icon, 1 = fullscreen) so the launcher can drive a matching blur. */
+    /** Latest real-window morph progress (0 = icon, 1 = fullscreen) so the launcher can drive a
+     *  matching blur. The snapshot close ([CloseMorphSurface]) is independent and drives its OWN
+     *  blur/settle off its own progress, so it does NOT feed this (keeps concurrent morphs isolated). */
     val morphExpansion: Float get() = MorphState.blurExpansion
-    /** True while ANY real-window morph animator is actively ticking. */
+    /** True while a real-window morph animator is actively ticking. */
     val morphInFlight: Boolean get() = MorphState.anyAnimating()
 
     /** Task id of the most recently opened app (set by the OPEN runners). -1 if none. Used by the

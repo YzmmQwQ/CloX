@@ -1010,6 +1010,7 @@
     <string name="anim_setting_gesture_return_only_title">Only on swipe-home gesture</string>
     <string name="anim_setting_gesture_return_only_summary">Off: also play on Back and hardware-Home returns</string>
     <string name="anim_setting_real_window_entry">Real window (system)</string>
+    <string name="anim_setting_snapshot_entry">Real window (snapshot)</string>
     <string name="anim_setting_gesture_handoff_title">System window morph (real)</string>
     <string name="anim_setting_gesture_handoff_summary">On swipe-home, hand the app icon to the system so it morphs the real closing app window into it. CloX plays no follow-on animation — the system owns the whole transition. Swipe-home gesture only.</string>
     <string-array name="gesture_return_anim_entries">

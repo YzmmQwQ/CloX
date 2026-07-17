@@ -196,7 +196,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // only once a morph is actually in flight (so a HOME press with no close morph never blurs) and is
     // removed only after the blur has fully faded and a short grace elapses (so rapid open/close reuse
     // the same warm view). Bumping blurSession supersedes the previous tick, so re-entry is safe.
-    fun startPathAMorphBlur() {
+    // Default progress source = the real-window morph. Callers (e.g. the snapshot close) may pass
+    // their own (running, expansion) source so their blur is independent; the shared BlurView is
+    // driven by the latest caller (bumping blurSession), giving a natural hand-off between morphs.
+    private val globalMorphProgress: () -> Pair<Boolean, Float> = {
+        com.ailife.clox.anim.RemoteAppAnimator.morphInFlight to com.ailife.clox.anim.RemoteAppAnimator.morphExpansion
+    }
+
+    fun startPathAMorphBlur(progress: () -> Pair<Boolean, Float> = globalMorphProgress) {
         if (!com.ailife.clox.applist.AppListPrefs.launchBlur(this)) return
         blurGraceUntil = android.os.SystemClock.uptimeMillis() + 500L
         val session = ++blurSession
@@ -204,10 +211,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         choreo.postFrameCallback(object : android.view.Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
                 if (session != blurSession || isFinishing || isDestroyed) return
-                val animating = com.ailife.clox.anim.RemoteAppAnimator.morphInFlight
+                val (animating, exp) = progress()
                 if (animating) {
                     if (pathABlur == null) pathABlur = addAppWindowBlur()
-                    blurFraction = com.ailife.clox.anim.RemoteAppAnimator.morphExpansion.coerceIn(0f, 1f)
+                    blurFraction = exp.coerceIn(0f, 1f)
                 } else {
                     // Ease the blur out smoothly instead of cutting it — avoids the flash on morph end.
                     blurFraction = (blurFraction - 0.08f).coerceAtLeast(0f)
@@ -237,7 +244,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // instead of ending abruptly. Fires the instant the morph's expansion enters the fade zone (~0.3),
     // while the morph is still playing; skipped if the close reversed back toward fullscreen.
     private var settleSession = 0
-    private fun scheduleCloseIconSettle(item: AppItem, bounds: Rect) {
+    private fun scheduleCloseIconSettle(
+        item: AppItem, bounds: Rect,
+        progress: () -> Pair<Boolean, Float> = globalMorphProgress,
+    ) {
         val session = ++settleSession
         val startedAt = android.os.SystemClock.uptimeMillis()
         val w = bounds.width().coerceAtLeast(1); val h = bounds.height().coerceAtLeast(1)
@@ -277,8 +287,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         choreo.postFrameCallback(object : android.view.Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
                 if (session != settleSession || isFinishing || isDestroyed) { cleanup(); return }
-                val animating = com.ailife.clox.anim.RemoteAppAnimator.morphInFlight
-                val e = com.ailife.clox.anim.RemoteAppAnimator.morphExpansion
+                val (animating, e) = progress()
                 if (animating) {
                     sawMorph = true
                     // f: 0 at e=thresh, 1 at e=0. Drive fade-in, scale-down and fly-in in lock step
@@ -777,6 +786,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // do NOT play the in-app return animation, and do NOT suppress the system transition (which
         // would kill the morph). Keep lastLaunchBounds so the close runner can target the icon.
         if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this)) {
+            // Point the settle at the app ACTUALLY closing — which may differ from the last launch
+            // when the user switched apps (open A, switch to B, close B). The system close runner
+            // shrinks the window into the closing task's own remembered icon, so the settle must
+            // target the same app; otherwise the hero icon pops on the wrong (earlier) app's slot.
+            if (cameFromBackground && com.ailife.clox.applist.AppListPrefs.detectClosingApp(this)) {
+                val pkg = com.ailife.clox.util.ClosingAppDetector.lastForegroundPackage(this)
+                if (pkg != null && pkg != packageName && pkg != lastLaunchedItem?.packageName)
+                    resolveAndApplyClosingApp(pkg)
+            }
             val settleItem = lastLaunchedItem; val settleBounds = lastLaunchBounds
             lastLaunchedItem = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
@@ -795,13 +813,17 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Snapshot close morph (API 31+): the default app→home slide is neutralized by the
         // CloXTransitions RRO and CloX can't own the real transition — so draw the outgoing app's
         // task snapshot shrinking into its launch icon in a top-Z surface over the watchface.
+        // Snapshot morph covers ONLY physical Home / Back (no gesture-nav contract). A swipe-home
+        // gesture sets pendingGestureFollowOn (via handleGestureContract) — let Path B handle those.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            com.ailife.clox.applist.AppListPrefs.closeSnapshot(this) && cameFromBackground) {
-            val icon = lastLaunchBounds
+            com.ailife.clox.applist.AppListPrefs.closeSnapshot(this) &&
+            cameFromBackground && !pendingGestureFollowOn) {
+            val item = lastLaunchedItem; val icon = lastLaunchBounds
             val tid = com.ailife.clox.anim.RemoteAppAnimator.lastOpenedTaskId
+            val settleWhenDone = appListOpen   // only settle when there's a visible icon slot
             lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
-            if (icon != null && tid >= 0) playSnapshotClose(Rect(icon), tid, 0)
+            if (icon != null && tid >= 0) playSnapshotClose(item, Rect(icon), tid, settleWhenDone)
             else Log.d("CloX/Return", "snapshot close: no icon/task (tid=$tid icon=$icon)")
             return
         }
@@ -877,21 +899,38 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
      * retry a few frames before giving up (then land plain — the default slide is already killed).
      */
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
-    private fun playSnapshotClose(icon: Rect, tid: Int, attempt: Int) {
-        val snap = com.ailife.clox.anim.TaskSnapshotHelper.capture(tid)
-        if (snap == null) {
-            if (attempt < 5) gestureRoot.postDelayed({ playSnapshotClose(icon, tid, attempt + 1) }, 24L)
-            else Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid)")
-            return
+    private fun playSnapshotClose(item: AppItem?, icon: Rect, tid: Int, settle: Boolean) {
+        var surface: com.ailife.clox.anim.CloseMorphSurface? = null
+        var pending = true   // still waiting for the snapshot to cache (fast launch→home)
+        // This close's OWN progress source (independent of every other morph). It holds at fullscreen
+        // (blur = max) WHILE waiting for the snapshot, then follows the morph — so the blur is up from
+        // frame 0 and there's no un-blurred flicker during the retry wait. Eases out on end / give-up.
+        val src: () -> Pair<Boolean, Float> = {
+            val s = surface
+            if (s != null) s.running to s.expansion else pending to 1f
         }
-        val loc = IntArray(2); gestureRoot.getLocationOnScreen(loc)
-        val db = windowManager.maximumWindowMetrics.bounds
-        val win = Rect(-loc[0], -loc[1], db.width() - loc[0], db.height() - loc[1])
-        val ic = Rect(icon.left - loc[0], icon.top - loc[1], icon.right - loc[0], icon.bottom - loc[1])
-        com.ailife.clox.anim.CloseMorphSurface.show(
-            this, gestureRoot, snap, ic, win,
-            com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)) {}
-        Log.d("CloX/Return", "snapshot close morph task=$tid attempt=$attempt snap=${snap.width}x${snap.height}")
+        startPathAMorphBlur(src)
+
+        fun attempt(n: Int) {
+            if (isFinishing || isDestroyed) { pending = false; return }
+            val snap = com.ailife.clox.anim.TaskSnapshotHelper.capture(tid)
+            if (snap == null) {
+                if (n < 6) gestureRoot.postDelayed({ attempt(n + 1) }, 24L)
+                else { pending = false; Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid)") }
+                return
+            }
+            val loc = IntArray(2); gestureRoot.getLocationOnScreen(loc)
+            val db = windowManager.maximumWindowMetrics.bounds
+            val win = Rect(-loc[0], -loc[1], db.width() - loc[0], db.height() - loc[1])
+            val ic = Rect(icon.left - loc[0], icon.top - loc[1], icon.right - loc[0], icon.bottom - loc[1])
+            surface = com.ailife.clox.anim.CloseMorphSurface.show(
+                this, gestureRoot, snap, ic, win, tid,
+                com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)) {}
+            pending = false
+            if (settle && item != null) scheduleCloseIconSettle(item, Rect(icon), src)
+            Log.d("CloX/Return", "snapshot close morph task=$tid attempt=$n snap=${snap.width}x${snap.height} settle=$settle")
+        }
+        attempt(0)
     }
 
     private fun suppressSystemTransition() {

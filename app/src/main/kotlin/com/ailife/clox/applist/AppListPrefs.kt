@@ -287,12 +287,23 @@ object AppListPrefs {
     fun animSpeed(ctx: Context) =
         get(ctx).getFloat(KEY_ANIM_SPEED, 1.0f).coerceIn(0.5f, 2.0f)
 
-    /** Effective close type: same permission-based default/fallback as [openAnimType]. */
+    /**
+     * Effective close type. Default when unset: on API ≤30 the legacy real-window close morph works,
+     * so default to it; on API 31+ the real close transition can't be owned (shell transitions), so
+     * default to the CloX-owned SNAPSHOT morph (degrades gracefully to no-morph if the LSPosed
+     * getTaskSnapshot hook isn't present). Without the remote-anim permission, window_expand.
+     * A stored real_window/snapshot falls back to window_expand if the permission is lost.
+     */
     fun closeAnimType(ctx: Context): String {
         val stored = get(ctx).getString(KEY_CLOSE_ANIM_TYPE, null)
-        if (stored == null)
-            return if (hasRemoteAnimPermission(ctx)) CLOSE_ANIM_REAL_WINDOW else CLOSE_ANIM_WINDOW_EXPAND
-        if (stored == CLOSE_ANIM_REAL_WINDOW && !hasRemoteAnimPermission(ctx))
+        if (stored == null) {
+            return when {
+                !hasRemoteAnimPermission(ctx) -> CLOSE_ANIM_WINDOW_EXPAND
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> CLOSE_ANIM_SNAPSHOT
+                else -> CLOSE_ANIM_REAL_WINDOW
+            }
+        }
+        if ((stored == CLOSE_ANIM_REAL_WINDOW || stored == CLOSE_ANIM_SNAPSHOT) && !hasRemoteAnimPermission(ctx))
             return CLOSE_ANIM_WINDOW_EXPAND
         return stored
     }

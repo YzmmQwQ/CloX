@@ -38,9 +38,17 @@ class CloseMorphSurface private constructor(
     private val snapshot: Bitmap,
     private val icon: Rect,
     private val win: Rect,
+    private val taskId: Int,
     private val speed: Float,
     private val onDone: () -> Unit,
 ) : SurfaceHolder.Callback2 {
+
+    /** Current expansion (1 = fullscreen, 0 = icon) and whether this morph is ticking — polled by
+     *  its OWN blur/settle so each close animation is independent of every other morph. */
+    @Volatile var expansion = 1f
+        private set
+    @Volatile var running = false
+        private set
 
     private val surfaceView = SurfaceView(context)
     private val main = Handler(Looper.getMainLooper())
@@ -66,6 +74,7 @@ class CloseMorphSurface private constructor(
     override fun surfaceCreated(holder: SurfaceHolder) {
         if (started) return
         started = true
+        running = true
         drawFrame(holder, 1f)   // land at fullscreen before the first tick (no flash)
         startAnim(holder)
     }
@@ -109,6 +118,7 @@ class CloseMorphSurface private constructor(
             c.save(); c.clipPath(clip)
             c.drawBitmap(snapshot, null, dst, paint)
             c.restore()
+            expansion = e
         } finally {
             runCatching { holder.unlockCanvasAndPost(c) }
         }
@@ -117,6 +127,7 @@ class CloseMorphSurface private constructor(
     private fun finish() {
         if (removed) return
         removed = true
+        running = false
         main.removeCallbacks(removeRunnable)
         anim?.cancel(); anim = null
         runCatching { parent.removeView(surfaceView) }
@@ -140,11 +151,12 @@ class CloseMorphSurface private constructor(
             snapshot: Bitmap,
             icon: Rect,
             win: Rect,
+            taskId: Int,
             speed: Float,
             onDone: () -> Unit,
         ): CloseMorphSurface? {
             if (snapshot.width <= 0 || snapshot.height <= 0 || icon.isEmpty || win.isEmpty) return null
-            return CloseMorphSurface(context, parent, snapshot, icon, win, speed, onDone)
+            return CloseMorphSurface(context, parent, snapshot, icon, win, taskId, speed, onDone)
         }
     }
 
