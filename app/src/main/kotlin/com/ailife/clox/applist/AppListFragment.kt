@@ -66,6 +66,9 @@ class AppListFragment : Fragment() {
     private val rebuildHandler = Handler(Looper.getMainLooper())
     private val rebuildRunnable = Runnable { if (isAdded) swapBackend() }
 
+    // Live-updates the app-list background when the system wallpaper changes (privileged path).
+    private var wallpaperListener: android.app.WallpaperManager.OnColorsChangedListener? = null
+
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         Log.d("CloX/AppList", "prefChanged key=$key")
         when (key) {
@@ -97,6 +100,7 @@ class AppListFragment : Fragment() {
         root.clipChildren = false
         root.clipToPadding = false
         applyBackground()
+        registerWallpaperListener()
         swapBackend()
         observeApps()
         observeNotifications()
@@ -106,42 +110,118 @@ class AppListFragment : Fragment() {
         super.onDestroyView()
         rebuildHandler.removeCallbacks(rebuildRunnable)
         AppListPrefs.get(requireContext()).unregisterOnSharedPreferenceChangeListener(prefsListener)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) wallpaperListener?.let {
+            android.app.WallpaperManager.getInstance(requireContext()).removeOnColorsChangedListener(it)
+        }
+        wallpaperListener = null
+    }
+
+    /**
+     * Registers a system-wallpaper change listener so the background stays in sync while the live
+     * wallpaper is in use (privileged path). Listener API needs 27+; the perm gate needs the
+     * priv-app grant anyway.
+     */
+    private fun registerWallpaperListener() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O_MR1) return
+        if (!AppListPrefs.hasReadWallpaperPermission(requireContext())) return
+        val wm = android.app.WallpaperManager.getInstance(requireContext())
+        val listener = android.app.WallpaperManager.OnColorsChangedListener { _, which ->
+            if (which and android.app.WallpaperManager.FLAG_SYSTEM != 0 &&
+                isAdded && usingSystemWallpaper(requireContext())) {
+                applyBackground()
+            }
+        }
+        wm.addOnColorsChangedListener(listener, Handler(Looper.getMainLooper()))
+        wallpaperListener = listener
     }
 
     // ── Background ───────────────────────────────────────────────────────────
 
+    /**
+     * True when the app-list background should track the live system wallpaper: CloX holds the
+     * privileged perm and the user hasn't picked a custom background image. Picking an image
+     * overrides the wallpaper; clearing it reverts to the wallpaper.
+     */
+    private fun usingSystemWallpaper(ctx: Context): Boolean =
+        AppListPrefs.hasReadWallpaperPermission(ctx) && AppListPrefs.bgImagePath(ctx) == null
+
     private fun applyBackground() {
         val ctx = requireContext()
         val path = AppListPrefs.bgImagePath(ctx)
-        if (path == null) { applySurfaceBackground(); return }
+        Log.d("CloX/BgImage", "applyBackground path=$path wallpaperPerm=${AppListPrefs.hasReadWallpaperPermission(ctx)} usingWallpaper=${usingSystemWallpaper(ctx)}")
+        if (path == null) {
+            if (usingSystemWallpaper(ctx)) applySystemWallpaperBackground()
+            else applySurfaceBackground()
+            return
+        }
 
         Thread {
             val bitmap = runCatching {
                 val src = BitmapFactory.decodeFile(path) ?: return@runCatching null
-                val vw = resources.displayMetrics.widthPixels
-                val vh = resources.displayMetrics.heightPixels
-                // Center-crop: scale so the image covers the view, then crop the overflow
-                val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
-                val sw = (src.width * scale).toInt()
-                val sh = (src.height * scale).toInt()
-                val scaled = android.graphics.Bitmap.createScaledBitmap(src, sw, sh, true)
-                val ox = (sw - vw) / 2
-                val oy = (sh - vh) / 2
-                android.graphics.Bitmap.createBitmap(scaled, ox, oy, vw, vh)
+                cropToDisplay(src)
             }.getOrNull()
 
             Handler(Looper.getMainLooper()).post {
                 if (!isAdded) return@post
                 if (bitmap == null) { applySurfaceBackground(); return@post }
-
-                val dim = AppListPrefs.wallpaperDim(ctx)
-                val dimAlpha = (dim / 100f * 255).toInt().coerceIn(0, 255)
-                val wallLayer = BitmapDrawable(resources, bitmap)
-                root.background = if (dimAlpha > 0)
-                    LayerDrawable(arrayOf(wallLayer, ColorDrawable(Color.argb(dimAlpha, 0, 0, 0))))
-                else wallLayer
+                setBitmapBackground(bitmap)
             }
         }.start()
+    }
+
+    /** Reads the current device (home-screen) wallpaper and draws it as the app-list background. */
+    private fun applySystemWallpaperBackground() {
+        val ctx = requireContext()
+        Thread {
+            val bitmap = runCatching {
+                val wm = android.app.WallpaperManager.getInstance(ctx)
+                // FLAG_SYSTEM (the default drawable) = the home wallpaper shown behind the launcher.
+                val dr = wm.drawable
+                Log.d("CloX/BgImage", "wallpaper drawable=${dr?.javaClass?.simpleName} intrinsic=${dr?.intrinsicWidth}x${dr?.intrinsicHeight}")
+                if (dr == null) return@runCatching null
+                val src = (dr as? BitmapDrawable)?.bitmap ?: drawableToBitmap(dr) ?: return@runCatching null
+                cropToDisplay(src)
+            }.onFailure { Log.e("CloX/BgImage", "wallpaper read failed", it) }.getOrNull()
+
+            Handler(Looper.getMainLooper()).post {
+                if (!isAdded) return@post
+                Log.d("CloX/BgImage", "wallpaper bitmap=${bitmap?.width}x${bitmap?.height}")
+                // Wallpaper unreadable (e.g. live wallpaper / SecurityException) → plain surface.
+                if (bitmap == null) { applySurfaceBackground(); return@post }
+                setBitmapBackground(bitmap)
+            }
+        }.start()
+    }
+
+    /** Center-crop: scale so [src] covers the display, then crop the overflow to the exact size. */
+    private fun cropToDisplay(src: android.graphics.Bitmap): android.graphics.Bitmap {
+        val vw = resources.displayMetrics.widthPixels
+        val vh = resources.displayMetrics.heightPixels
+        val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
+        val sw = (src.width * scale).toInt()
+        val sh = (src.height * scale).toInt()
+        val scaled = android.graphics.Bitmap.createScaledBitmap(src, sw, sh, true)
+        return android.graphics.Bitmap.createBitmap(scaled, (sw - vw) / 2, (sh - vh) / 2, vw, vh)
+    }
+
+    /** Sets [bitmap] as the root background, overlaying the configured darken scrim. Main thread. */
+    private fun setBitmapBackground(bitmap: android.graphics.Bitmap) {
+        val dim = AppListPrefs.wallpaperDim(requireContext())
+        val dimAlpha = (dim / 100f * 255).toInt().coerceIn(0, 255)
+        val wallLayer = BitmapDrawable(resources, bitmap)
+        root.background = if (dimAlpha > 0)
+            LayerDrawable(arrayOf(wallLayer, ColorDrawable(Color.argb(dimAlpha, 0, 0, 0))))
+        else wallLayer
+    }
+
+    /** Rasterises a non-bitmap wallpaper [drawable] at its intrinsic size. */
+    private fun drawableToBitmap(drawable: android.graphics.drawable.Drawable): android.graphics.Bitmap? {
+        val w = drawable.intrinsicWidth.takeIf { it > 0 } ?: return null
+        val h = drawable.intrinsicHeight.takeIf { it > 0 } ?: return null
+        val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+        drawable.setBounds(0, 0, w, h)
+        drawable.draw(android.graphics.Canvas(bmp))
+        return bmp
     }
 
     // ── Return-animation icon lookup ─────────────────────────────────────────

@@ -43,20 +43,28 @@ class AppListSettingsFragment : BaseSettingsFragment() {
             val src = ctx.contentResolver.openInputStream(uri)
                 ?.use { BitmapFactory.decodeStream(it) }
                 ?: throw IllegalStateException("Could not decode image")
-            val dm = resources.displayMetrics
-            val vw = dm.widthPixels; val vh = dm.heightPixels
-            val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
-            val sw = (src.width * scale).toInt(); val sh = (src.height * scale).toInt()
-            val scaled = Bitmap.createScaledBitmap(src, sw, sh, true)
-            val cropped = Bitmap.createBitmap(scaled, (sw - vw) / 2, (sh - vh) / 2, vw, vh)
-            val dir = File(ctx.filesDir, "backgrounds").apply { mkdirs() }
-            val dest = File(dir, "app_list_bg.jpg")
-            FileOutputStream(dest).use { cropped.compress(Bitmap.CompressFormat.JPEG, 90, it) }
-            AppListPrefs.saveBgImagePath(ctx, dest.absolutePath)
+            saveBitmapAsBg(ctx, src)
             updateBgState()
         } catch (e: Exception) {
             android.util.Log.e("CloX/BgImage", "Failed to copy bg image: $e")
         }
+    }
+
+    /**
+     * Center-crops [src] to fill the display, then saves it as the app-list background image and
+     * records the path in prefs. Shared by the image picker and the "use system wallpaper" flow.
+     */
+    private fun saveBitmapAsBg(ctx: android.content.Context, src: Bitmap) {
+        val dm = resources.displayMetrics
+        val vw = dm.widthPixels; val vh = dm.heightPixels
+        val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
+        val sw = (src.width * scale).toInt(); val sh = (src.height * scale).toInt()
+        val scaled = Bitmap.createScaledBitmap(src, sw, sh, true)
+        val cropped = Bitmap.createBitmap(scaled, (sw - vw) / 2, (sh - vh) / 2, vw, vh)
+        val dir = File(ctx.filesDir, "backgrounds").apply { mkdirs() }
+        val dest = File(dir, "app_list_bg.jpg")
+        FileOutputStream(dest).use { cropped.compress(Bitmap.CompressFormat.JPEG, 90, it) }
+        AppListPrefs.saveBgImagePath(ctx, dest.absolutePath)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
@@ -220,11 +228,23 @@ class AppListSettingsFragment : BaseSettingsFragment() {
     }
 
     private fun updateBgState() {
-        val hasImage = AppListPrefs.bgImagePath(requireContext()) != null
-        tvBgImageStatus.text = if (hasImage) getString(R.string.app_list_bg_set) else getString(R.string.app_list_bg_not_set)
+        val ctx = requireContext()
+        val hasImage = AppListPrefs.bgImagePath(ctx) != null
+        // When privileged with no custom image picked, the app list uses the live system wallpaper
+        // as its background (read on open, kept current by a wallpaper-change listener).
+        val usingWallpaper = !hasImage && AppListPrefs.hasReadWallpaperPermission(ctx)
+        tvBgImageStatus.text = when {
+            hasImage       -> getString(R.string.app_list_bg_set)
+            usingWallpaper -> getString(R.string.applist_setting_bg_using_wallpaper)
+            else           -> getString(R.string.app_list_bg_not_set)
+        }
         btnBgImageClear.visibility = if (hasImage) View.VISIBLE else View.GONE
-        btnBgSetWallpaper.visibility = if (hasImage) View.VISIBLE else View.GONE
-        rowWallpaperDim.visibility  = if (hasImage) View.VISIBLE else View.GONE
+        // Dim applies over a custom image or the live wallpaper — show it whenever a background shows.
+        rowWallpaperDim.visibility  = if (hasImage || usingWallpaper) View.VISIBLE else View.GONE
+        // The "push CloX's image out to the system wallpaper" button is only the non-privileged
+        // fallback (privileged devices pull the wallpaper in instead), and only once an image is set.
+        btnBgSetWallpaper.visibility =
+            if (!AppListPrefs.hasReadWallpaperPermission(ctx) && hasImage) View.VISIBLE else View.GONE
     }
 
     /**

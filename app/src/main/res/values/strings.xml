@@ -949,6 +949,7 @@
     <string name="applist_setting_set_wallpaper_btn">Set device wallpaper to match</string>
     <string name="applist_setting_set_wallpaper_done">Device wallpaper updated</string>
     <string name="applist_setting_set_wallpaper_failed">Couldn\'t set device wallpaper</string>
+    <string name="applist_setting_bg_using_wallpaper">Using system wallpaper</string>
     <string name="applist_setting_list_options_category">List options</string>
     <string name="applist_setting_grid_options_category">Grid options</string>
     <string name="applist_setting_waterfall_options_category">Waterfall options</string>

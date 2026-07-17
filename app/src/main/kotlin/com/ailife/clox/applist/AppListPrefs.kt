@@ -258,6 +258,15 @@ object AppListPrefs {
         ctx.checkSelfPermission("android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS") ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
 
+    /**
+     * True when CloX holds the privileged wallpaper-read permission (priv-app grant), letting the
+     * app list use the live system wallpaper as its background. Without it, this ROM's
+     * getWallpaperWithFeature throws SecurityException (wants READ_EXTERNAL_STORAGE otherwise).
+     */
+    fun hasReadWallpaperPermission(ctx: Context): Boolean =
+        ctx.checkSelfPermission("android.permission.READ_WALLPAPER_INTERNAL") ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
     fun useCustomLaunchAnim(ctx: Context) =
         get(ctx).getString(KEY_LAUNCH_ANIM, LAUNCH_ANIM_CUSTOM) == LAUNCH_ANIM_CUSTOM
 

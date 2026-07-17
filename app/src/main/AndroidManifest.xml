@@ -9,6 +9,12 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <!-- Read the current system wallpaper for the app-list live-wallpaper background.
+         signature|privileged — granted via the clox_privapp module; MUST stay whitelisted in
+         magisk/system/etc/permissions/privapp-permissions-com.ailife.clox.xml (ROM=enforce,
+         missing entry bootloops). -->
+    <uses-permission android:name="android.permission.READ_WALLPAPER_INTERNAL"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
