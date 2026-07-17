@@ -23,6 +23,13 @@
         android:fragment="com.ailife.clox.settings.fragments.AppListSettingsFragment" />
 
     <Preference
+        android:key="nav_animations"
+        android:title="@string/applist_setting_animations_title"
+        android:summary="@string/applist_setting_animations_summary"
+        android:icon="@drawable/baseline_animation_24"
+        android:fragment="com.ailife.clox.settings.fragments.AnimationSettingsFragment" />
+
+    <Preference
         android:key="nav_watchface"
         android:title="@string/pref_watchface_title"
         android:summary="@string/pref_watchface_summary"

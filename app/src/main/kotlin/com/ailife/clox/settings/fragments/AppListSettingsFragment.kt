@@ -32,7 +32,6 @@ class AppListSettingsFragment : BaseSettingsFragment() {
     private lateinit var tvAppListSort: TextView
     private lateinit var tvIconPack: TextView
     private lateinit var rowHiddenApps: View
-    private lateinit var rowAnimations: View
 
     private val appListPrefs by lazy { namedPrefs(AppListPrefs.PREFS_NAME) }
 
@@ -84,7 +83,6 @@ class AppListSettingsFragment : BaseSettingsFragment() {
         tvAppListSort    = view.findViewById(R.id.tvAppListSort)
         tvIconPack       = view.findViewById(R.id.tvIconPack)
         rowHiddenApps    = view.findViewById(R.id.rowHiddenApps)
-        rowAnimations    = view.findViewById(R.id.rowAnimations)
 
         val styleEntries = resources.getStringArray(R.array.app_list_style_entries)
         val styleValues  = resources.getStringArray(R.array.app_list_style_values)
@@ -144,16 +142,6 @@ class AppListSettingsFragment : BaseSettingsFragment() {
                 IconPackLoader.setSelectedPack(requireContext(), v.ifEmpty { null })
                 refreshIconPack()
             }
-        }
-
-        // Animations subcategory nav
-        rowAnimations.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.settingsContainer, AnimationSettingsFragment())
-                .addToBackStack(null)
-                .commit()
-            (activity as? androidx.appcompat.app.AppCompatActivity)?.title =
-                getString(R.string.applist_setting_animations_title)
         }
 
         // Hidden apps nav — only visible when no password set or already unlocked this session
