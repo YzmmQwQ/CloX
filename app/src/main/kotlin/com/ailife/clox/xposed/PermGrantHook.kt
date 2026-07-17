@@ -8,17 +8,21 @@ import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 /**
- * CloX is its own LSPosed module. This hook runs inside **system_server** and lets CloX call the
- * hidden `ActivityTaskManagerService.getTaskSnapshot()` / `takeTaskSnapshot()` — which require
- * `READ_FRAME_BUFFER` (`signature|recents`, ungrantable to CloX) — so CloX can capture the
- * outgoing app's real pixels for the home-return close morph.
+ * CloX is its own LSPosed module. This hook runs inside **system_server** and lets CloX call
+ * several hidden `ActivityTaskManagerService` methods that require permissions ungrantable to CloX:
+ *  - `getTaskSnapshot()` / `takeTaskSnapshot()` — `READ_FRAME_BUFFER` (`signature|recents`) — to
+ *    capture the outgoing app's real pixels for the home-return close morph.
+ *  - `getTasks()` / `getRecentTasks()` — filtered to the caller's OWN tasks unless the caller holds
+ *    `REAL_GET_TASKS` (`signature|privileged`). CloX needs the FULL task list to resolve the closing
+ *    app's task id (by package) so the snapshot morph captures the RIGHT task for every launch source
+ *    — not just app-list launches (which are the only ones that set RemoteAppAnimator.lastOpenedTaskId).
  *
  * Approach: instead of trying to fake the permission grant (the check funnels through several
- * layers), we hook the two snapshot methods and, **only for calls originating from CloX's uid**,
- * `Binder.clearCallingIdentity()` in the before-hook so the method's internal
- * `enforceCallingPermission(READ_FRAME_BUFFER)` sees the system uid (1000, which holds the perm),
- * then restore in the after-hook. This is path-independent and version-stable (API 31–35) — it
- * doesn't depend on which internal permission helper the method uses.
+ * layers), we hook these methods and, **only for calls originating from CloX's uid**,
+ * `Binder.clearCallingIdentity()` in the before-hook so the method's internal permission enforce /
+ * task filtering sees the system uid (1000, which holds the perms), then restore in the after-hook.
+ * This is path-independent and version-stable (API 31–35) — it doesn't depend on which internal
+ * permission helper the method uses.
  *
  * Scope in LSPosed: **System Framework** (`android`). Only affects CloX; other callers are
  * untouched. Cannot ship in-system (needs LSPosed), which is accepted.
@@ -33,10 +37,12 @@ class PermGrantHook : IXposedHookLoadPackage {
                 "com.android.server.wm.ActivityTaskManagerService", false, lpparam.classLoader
             )
             var hooked = 0
-            for (name in arrayOf("getTaskSnapshot", "takeTaskSnapshot")) {
+            // The identity-clear hook is generic (it only keys off CloX's uid), so the same instance
+            // serves every ATMS method whose permission/filtering we need to bypass for CloX.
+            for (name in arrayOf("getTaskSnapshot", "takeTaskSnapshot", "getTasks", "getRecentTasks")) {
                 hooked += XposedBridge.hookAllMethods(atms, name, snapshotHook).size
             }
-            XposedBridge.log("CloX/PathA: snapshot-perm hook installed in system_server ($hooked methods)")
+            XposedBridge.log("CloX/PathA: perm hook installed in system_server ($hooked methods)")
         }.onFailure { XposedBridge.log("CloX/PathA: hook install failed: $it") }
     }
 

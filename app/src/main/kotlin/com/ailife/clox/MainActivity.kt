@@ -786,15 +786,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // do NOT play the in-app return animation, and do NOT suppress the system transition (which
         // would kill the morph). Keep lastLaunchBounds so the close runner can target the icon.
         if (com.ailife.clox.applist.AppListPrefs.closeRealWindow(this)) {
-            // Point the settle at the app ACTUALLY closing — which may differ from the last launch
-            // when the user switched apps (open A, switch to B, close B). The system close runner
-            // shrinks the window into the closing task's own remembered icon, so the settle must
-            // target the same app; otherwise the hero icon pops on the wrong (earlier) app's slot.
-            if (cameFromBackground && com.ailife.clox.applist.AppListPrefs.detectClosingApp(this)) {
-                val pkg = com.ailife.clox.util.ClosingAppDetector.lastForegroundPackage(this)
-                if (pkg != null && pkg != packageName && pkg != lastLaunchedItem?.packageName)
-                    resolveAndApplyClosingApp(pkg)
-            }
+            // Target the app ACTUALLY closing — may differ from the last launch after app-switching
+            // (open A, switch to B, close B) — at its live icon slot, or screen centre if absent. The
+            // system close runner reads lastLaunchBounds (via the registerClose provider) to shrink the
+            // window into it, and the settle pops the same slot; both must aim at the closing app.
+            resolveCloseTarget(cameFromBackground)
             val settleItem = lastLaunchedItem; val settleBounds = lastLaunchBounds
             lastLaunchedItem = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
@@ -818,13 +814,33 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             com.ailife.clox.applist.AppListPrefs.closeSnapshot(this) &&
             cameFromBackground && !pendingGestureFollowOn) {
+            // Detect the app actually closing and target its live icon (or screen centre if absent),
+            // same as the in-app return — so the snapshot shrinks into the right slot after app-switching.
+            resolveCloseTarget(cameFromBackground)
             val item = lastLaunchedItem; val icon = lastLaunchBounds
-            val tid = com.ailife.clox.anim.RemoteAppAnimator.lastOpenedTaskId
+            // The snapshot must come from the task ACTUALLY closing. lastOpenedTaskId is only set when
+            // CloX itself opened the app (an app-list tap), so for any other launch source (notification,
+            // recents, chained start) it is stale/-1 and would snapshot the WRONG app (e.g. shrinking a
+            // previously list-launched app's window when closing Settings). Resolve the closing task by
+            // its package — resolveCloseTarget already identified it as lastClosingPkg — and only fall
+            // back to lastOpenedTaskId when no live task matches (e.g. Back finished the activity).
+            val lastOpened = com.ailife.clox.anim.RemoteAppAnimator.lastOpenedTaskId
+            val byPkg = lastClosingPkg?.let { com.ailife.clox.anim.TaskSnapshotHelper.taskIdForPackage(it) } ?: -1
+            val tid = if (byPkg >= 0) byPkg else lastOpened
+            Log.d("CloX/Return", "snapshot close tid resolve: pkg=$lastClosingPkg byPkg=$byPkg lastOpened=$lastOpened -> $tid")
             val settleWhenDone = appListOpen   // only settle when there's a visible icon slot
             lastLaunchedItem = null; lastLaunchBounds = null; lastLaunchIconView = null
             pendingGestureFollowOn = false
-            if (icon != null && tid >= 0) playSnapshotClose(item, Rect(icon), tid, settleWhenDone)
-            else Log.d("CloX/Return", "snapshot close: no icon/task (tid=$tid icon=$icon)")
+            if (icon != null && tid >= 0) {
+                playSnapshotClose(item, Rect(icon), tid, settleWhenDone)
+            } else if (item != null && icon != null) {
+                // No task id to snapshot (e.g. CloX just restarted, or return with no launch record).
+                // Still give a close animation via the icon-based window_expand instead of nothing.
+                Log.d("CloX/Return", "snapshot close: no task (tid=$tid) -> window_expand fallback")
+                playReturnWindowExpandAnimation(item, Rect(icon), null)
+            } else {
+                Log.d("CloX/Return", "snapshot close: no icon/item (tid=$tid icon=$icon) — clean close")
+            }
             return
         }
 
@@ -915,14 +931,31 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             if (isFinishing || isDestroyed) { pending = false; return }
             val snap = com.ailife.clox.anim.TaskSnapshotHelper.capture(tid)
             if (snap == null) {
-                if (n < 6) gestureRoot.postDelayed({ attempt(n + 1) }, 24L)
-                else { pending = false; Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid)") }
+                if (n < 6) { gestureRoot.postDelayed({ attempt(n + 1) }, 24L); return }
+                // WM never cached a task snapshot (common on Back — the activity finishes, so no
+                // snapshot is stored; Home usually caches one). Rather than end with NO animation,
+                // fall back to the window_expand close, which uses the app ICON and always works.
+                pending = false
+                stopPathAMorphBlur()   // drop the snapshot hold-blur; the fallback adds its own
+                Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid) -> window_expand fallback")
+                if (item != null) playReturnWindowExpandAnimation(item, icon, null)
                 return
             }
             val loc = IntArray(2); gestureRoot.getLocationOnScreen(loc)
             val db = windowManager.maximumWindowMetrics.bounds
             val win = Rect(-loc[0], -loc[1], db.width() - loc[0], db.height() - loc[1])
-            val ic = Rect(icon.left - loc[0], icon.top - loc[1], icon.right - loc[0], icon.bottom - loc[1])
+            var ic = Rect(icon.left - loc[0], icon.top - loc[1], icon.right - loc[0], icon.bottom - loc[1])
+            // No icon slot (app list closed / non-list launch) → resolveCloseTarget hands us a 0×0
+            // centre point. Shrinking the snapshot into a zero-size rect renders NOTHING — the morph
+            // is invisible. Give it a small non-zero square at the same centre so the snapshot visibly
+            // shrinks + fades into the middle of the watch (the intended no-icon close), instead of
+            // vanishing. CloseMorphSurface also rejects an empty icon, so this is required for it to run.
+            if (ic.isEmpty) {
+                val side = (win.width() / 6).coerceAtLeast(1)
+                val cx = win.exactCenterX().toInt(); val cy = win.exactCenterY().toInt()
+                ic = Rect(cx - side / 2, cy - side / 2, cx + side / 2, cy + side / 2)
+                Log.d("CloX/Return", "snapshot close: empty icon -> centre square $ic")
+            }
             surface = com.ailife.clox.anim.CloseMorphSurface.show(
                 this, gestureRoot, snap, ic, win, tid,
                 com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)) {}
@@ -1007,6 +1040,34 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         Log.d("CloX/Return", "resolve pkg=$pkg wasLaunched=$wasLaunchedApp hitItem=${hit?.item != null} " +
             "hitBounds=${hit?.bounds} appListOpen=$appListOpen -> bounds=$lastLaunchBounds")
         return true
+    }
+
+    /**
+     * Point lastLaunched{Item,Bounds} at the app ACTUALLY closing back to the launcher so the
+     * real-window and snapshot morphs collapse into the same target the in-app return animation uses:
+     * the closing app's LIVE icon slot in the open list, or screen CENTRE when no icon is present.
+     * Detects the closing app via usage-stats (it may differ from the launched one after app-switching)
+     * and, unlike the in-app path, is NOT gated on the detect-closing-app pref — the real morph always
+     * needs a valid target. Guarantees lastLaunchBounds is non-null so the morph never silently no-ops.
+     */
+    private fun resolveCloseTarget(cameFromBackground: Boolean) {
+        if (!cameFromBackground) return   // plain screen-wake, no app closing — leave bounds untouched
+        // Which app is returning to us? Prefer usage-stats (handles app-switching: open A, switch to
+        // B, close B), but that needs PACKAGE_USAGE_STATS which the user may not have granted. Fall
+        // back to the last app CloX launched/knew about (lastClosingPkg) — correct for the common
+        // "return from the app I just opened" case and needs NO permission. returnIconHit then gives
+        // the app's LIVE icon slot even if the list scrolled or it was resumed outside the list.
+        val pkg = (if (com.ailife.clox.util.ClosingAppDetector.hasUsagePermission(this))
+            com.ailife.clox.util.ClosingAppDetector.lastForegroundPackage(this) else null)
+            ?: lastClosingPkg
+        if (pkg != null && pkg != packageName) resolveAndApplyClosingApp(pkg)
+        if (lastLaunchBounds == null) {
+            val cx = (screenW / 2f).toInt(); val cy = (screenH / 2f).toInt()
+            lastLaunchBounds = Rect(cx, cy, cx, cy)   // no icon to collapse into → screen centre
+            Log.d("CloX/Return", "resolveCloseTarget: pkg=$pkg no icon -> centre ($cx,$cy)")
+        } else {
+            Log.d("CloX/Return", "resolveCloseTarget: pkg=$pkg -> bounds=$lastLaunchBounds")
+        }
     }
 
     /** Builds a minimal AppItem for an app that is closing but isn't in the launcher list. */
