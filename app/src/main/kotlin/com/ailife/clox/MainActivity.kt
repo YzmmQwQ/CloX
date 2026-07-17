@@ -7,6 +7,8 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
@@ -58,6 +60,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     companion object {
         const val ACTION_ENTER_RTOS = "com.ailife.clox.ACTION_ENTER_RTOS"
+        // Snapshot-close capture retry: poll every 8ms (on the bg snapshotHandler) up to ~180ms while
+        // WindowManager finishes caching the outgoing task's snapshot after the app→home transition.
+        private const val SNAPSHOT_RETRY_MS = 8L
+        private const val SNAPSHOT_MAX_RETRIES = 22
+        // Max time the main thread is held waiting for the close snapshot. Bounded well under the ANR
+        // window; a forced takeTaskSnapshot normally returns in ~1 frame, so the block is far shorter.
+        private const val SNAPSHOT_BLOCK_MS = 200L
         // Set on the HOME intent used to bring the launcher forward before layering another
         // activity on top of it (e.g. the watchface config dialog from Settings) — without
         // this, whatever overlay/app-list was left open before backgrounding would still be
@@ -119,6 +128,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private var pathACloseRegistered = false
     private var lastLaunchIconView: java.lang.ref.WeakReference<View>? = null
     private var lastClosingPkg: String? = null   // package of the app currently returning to us
+    // Dedicated background thread for capturing the outgoing task snapshot on close. Keeping the
+    // capture + retry OFF the main handler is what removes the ~230ms flicker gap: on resume the main
+    // thread is jammed re-establishing the GL/Axmol surface, so a main-handler retry poll runs late.
+    private val snapshotHandler: Handler by lazy {
+        Handler(HandlerThread("CloX-snapshot-capture").apply { start() }.looper)
+    }
     // Set when the launcher brings ITSELF to the front (AOD re-wake), so the next onResume can skip
     // the return animation when the "no animation on self-close" option is on. Consumed in onResume.
     private var selfForegroundPending = false
@@ -925,22 +940,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             val s = surface
             if (s != null) s.running to s.expansion else pending to 1f
         }
+        val t0 = android.os.SystemClock.uptimeMillis()
+        Log.d("CloX/Flicker", "playSnapshotClose enter tid=$tid icon=$icon settle=$settle appListOpen=$appListOpen -> startPathAMorphBlur")
         startPathAMorphBlur(src)
 
-        fun attempt(n: Int) {
+        // Build the morph surface — MUST run on the main thread (addView + ValueAnimator need the main
+        // looper). Called the instant a snapshot is captured.
+        fun present(snap: android.graphics.Bitmap) {
             if (isFinishing || isDestroyed) { pending = false; return }
-            val snap = com.ailife.clox.anim.TaskSnapshotHelper.capture(tid)
-            if (snap == null) {
-                if (n < 6) { gestureRoot.postDelayed({ attempt(n + 1) }, 24L); return }
-                // WM never cached a task snapshot (common on Back — the activity finishes, so no
-                // snapshot is stored; Home usually caches one). Rather than end with NO animation,
-                // fall back to the window_expand close, which uses the app ICON and always works.
-                pending = false
-                stopPathAMorphBlur()   // drop the snapshot hold-blur; the fallback adds its own
-                Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid) -> window_expand fallback")
-                if (item != null) playReturnWindowExpandAnimation(item, icon, null)
-                return
-            }
             val loc = IntArray(2); gestureRoot.getLocationOnScreen(loc)
             val db = windowManager.maximumWindowMetrics.bounds
             val win = Rect(-loc[0], -loc[1], db.width() - loc[0], db.height() - loc[1])
@@ -961,9 +968,46 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 com.ailife.clox.applist.AppListPrefs.closeAnimSpeed(this)) {}
             pending = false
             if (settle && item != null) scheduleCloseIconSettle(item, Rect(icon), src)
-            Log.d("CloX/Return", "snapshot close morph task=$tid attempt=$n snap=${snap.width}x${snap.height} settle=$settle")
+            Log.d("CloX/Return", "snapshot close morph task=$tid dt=${android.os.SystemClock.uptimeMillis() - t0} snap=${snap.width}x${snap.height} settle=$settle")
         }
-        attempt(0)
+
+        fun giveUp() {
+            if (!pending) return
+            pending = false
+            stopPathAMorphBlur()   // drop the snapshot hold-blur; the fallback adds its own
+            Log.d("CloX/Return", "snapshot close: no snapshot after retries (tid=$tid) -> window_expand fallback")
+            if (item != null) playReturnWindowExpandAnimation(item, icon, null)
+        }
+
+        // Capture the snapshot on a BACKGROUND thread while BLOCKING the main thread until it's ready.
+        // The reverse window_expand close has no flash because it never waits for a snapshot; the
+        // snapshot path's only defect was the ~130ms wait where the launcher painted the app list with
+        // no closing-window cover (the capture is fast, but present() was posted to a main thread jammed
+        // resuming the GL/Axmol surface). Holding main means those 1–2 wait frames are simply NOT
+        // rendered — the screen holds the prior (app-closing) frame, which is imperceptible — and the
+        // moment the snapshot lands we present it SYNCHRONOUSLY (no post), so the very next launcher
+        // frame already carries the morph. takeTaskSnapshot forces the capture, so the block is ~1 frame.
+        val ref = java.util.concurrent.atomic.AtomicReference<android.graphics.Bitmap?>()
+        val latch = java.util.concurrent.CountDownLatch(1)
+        snapshotHandler.post {
+            var snap: android.graphics.Bitmap? = null
+            var n = 0
+            while (n <= SNAPSHOT_MAX_RETRIES && !isFinishing && !isDestroyed) {
+                snap = com.ailife.clox.anim.TaskSnapshotHelper.capture(tid)
+                if (snap != null) break
+                n++
+                try { Thread.sleep(SNAPSHOT_RETRY_MS) } catch (_: InterruptedException) { break }
+            }
+            ref.set(snap)
+            latch.countDown()
+        }
+        // Block main (bounded) until the capture completes. Short — forced takeTaskSnapshot returns in
+        // ~one frame; the timeout only guards the rare no-snapshot case (then window_expand fallback).
+        val got = try { latch.await(SNAPSHOT_BLOCK_MS, java.util.concurrent.TimeUnit.MILLISECONDS) }
+            catch (_: InterruptedException) { false }
+        val snap = ref.get()
+        Log.d("CloX/Flicker", "blocked main dt=${android.os.SystemClock.uptimeMillis() - t0} got=$got snap=${if (snap != null) "${snap.width}x${snap.height}" else "null"}")
+        if (snap != null) present(snap) else giveUp()
     }
 
     private fun suppressSystemTransition() {

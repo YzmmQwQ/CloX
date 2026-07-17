@@ -125,10 +125,19 @@ object TaskSnapshotHelper {
         return runCatching {
             val atm = Class.forName("android.app.ActivityTaskManager")
                 .getMethod("getService").invoke(null) ?: return null
-            val snap = Class.forName("android.app.IActivityTaskManager")
-                .getMethod("getTaskSnapshot", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+            val iface = Class.forName("android.app.IActivityTaskManager")
+            // Prefer the CACHED snapshot (cheap read). But WindowManager doesn't store it until the
+            // app→home transition finishes (~200ms after Home), and during that gap home shows through
+            // and then our snapshot pops in fullscreen — the close "flicker". So when the cache is empty
+            // we FORCE a capture with takeTaskSnapshot (same READ_FRAME_BUFFER path, hooked), which grabs
+            // the outgoing window's pixels immediately instead of waiting for WM to cache them.
+            var snap = iface.getMethod("getTaskSnapshot", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
                 .invoke(atm, taskId, /* isLowResolution = */ false)
-            if (snap == null) { Log.w(TAG, "getTaskSnapshot: no cached snapshot for task $taskId"); return null }
+            if (snap == null) {
+                snap = takeTaskSnapshot(iface, atm, taskId)
+                if (snap == null) { Log.w(TAG, "getTaskSnapshot: no cached snapshot for task $taskId (force failed)"); return null }
+                Log.d(TAG, "snapshot task=$taskId via takeTaskSnapshot (forced)")
+            }
             val buffer = snap.javaClass.getMethod("getHardwareBuffer").invoke(snap) as? HardwareBuffer
                 ?: return null
             val cs = runCatching { snap.javaClass.getMethod("getColorSpace").invoke(snap) as? ColorSpace }.getOrNull()
@@ -138,5 +147,21 @@ object TaskSnapshotHelper {
                 Log.d(TAG, "snapshot task=$taskId -> ${it?.width}x${it?.height}")
             }
         }.onFailure { Log.e(TAG, "getTaskSnapshot($taskId) failed (LSPosed hook active?)", it) }.getOrNull()
+    }
+
+    /** Force WM to capture a fresh snapshot NOW (bypasses the cache-store latency). Tries both known
+     *  overloads; returns the TaskSnapshot object or null. */
+    private fun takeTaskSnapshot(iface: Class<*>, atm: Any, taskId: Int): Any? {
+        // API 33+: takeTaskSnapshot(int taskId, boolean updateCache)
+        runCatching {
+            val m = iface.getMethod("takeTaskSnapshot", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+            return m.invoke(atm, taskId, true)
+        }
+        // Older: takeTaskSnapshot(int taskId)
+        runCatching {
+            val m = iface.getMethod("takeTaskSnapshot", Int::class.javaPrimitiveType)
+            return m.invoke(atm, taskId)
+        }
+        return null
     }
 }
