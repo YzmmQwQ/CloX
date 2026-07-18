@@ -262,5 +262,6 @@ class WatchfaceWebServer(private val ctx: Context, port: Int = 8080) : NanoHTTPD
 
     companion object {
         const val DEFAULT_PORT = 8080
+        const val DEFAULT_HTTPS_PORT = 8443
     }
 }

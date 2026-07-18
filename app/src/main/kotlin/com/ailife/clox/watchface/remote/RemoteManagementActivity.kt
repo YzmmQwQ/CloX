@@ -88,8 +88,7 @@ class RemoteManagementActivity : AppCompatActivity() {
         super.onResume()
         if (WatchfaceServerManager.isRunning) {
             switchServer.isChecked = true
-            val ip = getLocalIpAddress() ?: "?.?.?.?"
-            showRunning("http://$ip:${WatchfaceServerManager.port}")
+            showRunning()
         } else {
             switchServer.isChecked = false
             showStopped()
@@ -105,24 +104,32 @@ class RemoteManagementActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.toast_remote_server_failed, Toast.LENGTH_LONG).show()
             return
         }
-        val ip = getLocalIpAddress() ?: "?.?.?.?"
-        showRunning("http://$ip:${WatchfaceServerManager.port}")
+        showRunning()
     }
 
-    private fun currentUrl(): String? {
+    private fun httpUrl(): String? {
         val ip = getLocalIpAddress() ?: return null
         return "http://$ip:${WatchfaceServerManager.port}"
     }
 
-    private fun showRunning(url: String) {
+    private fun httpsUrl(): String? {
+        val ip = getLocalIpAddress() ?: return null
+        return "https://$ip:${WatchfaceServerManager.httpsPort}"
+    }
+
+    // Copy/share/open/QR use the plain-HTTP URL — most compatible, no cert warning.
+    private fun currentUrl(): String? = httpUrl()
+
+    private fun showRunning() {
+        val url = currentUrl()
         tvServerStatus.text = getString(R.string.wf_remote_running)
-        tvAddress.text = url
+        tvAddress.text = listOfNotNull(httpUrl(), httpsUrl()).joinToString("\n")
         addressRow.visibility = View.VISIBLE
         btnOpenBrowser.visibility = View.VISIBLE
         ivQrCode.visibility = View.VISIBLE
         tvQrHint.visibility = View.VISIBLE
 
-        lifecycleScope.launch {
+        if (url != null) lifecycleScope.launch {
             val qrSize = (240 * resources.displayMetrics.density).toInt()
             val bmp = withContext(Dispatchers.Default) { QrCodeHelper.generate(url, qrSize) }
             ivQrCode.setImageBitmap(bmp)
