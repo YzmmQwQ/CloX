@@ -7,6 +7,7 @@ import android.widget.ImageView
 import androidx.preference.PreferenceManager
 import com.ailife.clox.gesture.SwipeDirection
 import com.ailife.clox.overlay.notifications.NotificationOverlay
+import com.ailife.clox.overlay.notifications.NotificationPrefs
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
 import com.ailife.clox.qs.QsPrefs
@@ -39,9 +40,20 @@ class OverlayController(
 
     // ── Open drag (finger pulls panel in) ───────────────────────────────────
 
-    fun startDrag(direction: SwipeDirection, sw: Float, sh: Float) {
+    /**
+     * Programmatically open a panel fully, bypassing the QS/notif enabled gate. Used by the
+     * "Expand Quick Settings" / "Expand notifications" gesture actions so a remapped gesture can
+     * still open a panel whose own swipe has been turned off.
+     */
+    fun expand(direction: SwipeDirection, sw: Float, sh: Float) {
         if (activeOverlay != null) return
-        val overlay = overlayFor(direction) ?: return
+        startDrag(direction, sw, sh, force = true)
+        commitDrag()
+    }
+
+    fun startDrag(direction: SwipeDirection, sw: Float, sh: Float, force: Boolean = false) {
+        if (activeOverlay != null) return
+        val overlay = overlayFor(direction, force) ?: return
 
         screenW = sw; screenH = sh
 
@@ -321,9 +333,12 @@ class OverlayController(
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun overlayFor(direction: SwipeDirection): View? {
+    private fun overlayFor(direction: SwipeDirection, force: Boolean = false): View? {
         val prefs = PreferenceManager.getDefaultSharedPreferences(quickSettings.context)
-        if (direction == SwipeDirection.DOWN && !prefs.getBoolean(QsPrefs.QS_ENABLED, true)) return null
+        if (!force) {
+            if (direction == SwipeDirection.DOWN && !prefs.getBoolean(QsPrefs.QS_ENABLED, true)) return null
+            if (direction == SwipeDirection.RIGHT && !prefs.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) return null
+        }
         return when (direction) {
             SwipeDirection.DOWN  -> quickSettings
             SwipeDirection.UP    -> widgets

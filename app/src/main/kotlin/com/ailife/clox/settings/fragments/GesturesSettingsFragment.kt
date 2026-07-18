@@ -1,19 +1,36 @@
 package com.ailife.clox.settings.fragments
 
+import android.content.Intent
+import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.preference.PreferenceManager
+import androidx.lifecycle.lifecycleScope
 import com.ailife.clox.R
 import com.ailife.clox.gesture.ButtonMappingPrefs
 import com.ailife.clox.gesture.ButtonRecordDialogFragment
+import com.ailife.clox.gesture.GestureAppPref
+import com.ailife.clox.icon.renderToBitmap
 import com.ailife.clox.qs.QsPermissionHelper
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GesturesSettingsFragment : BaseSettingsFragment() {
+
+    private lateinit var actionEntries: Array<String>
+    private lateinit var actionValues: Array<String>
+
+    private data class AppRow(val ri: ResolveInfo, val label: String, val icon: Bitmap)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         inflater.inflate(R.layout.fragment_settings_gestures, container, false)
@@ -21,21 +38,15 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val actionEntries = resources.getStringArray(R.array.gesture_action_entries)
-        val actionValues  = resources.getStringArray(R.array.gesture_action_values)
-
-        fun labelFor(value: String) = actionEntries.getOrElse(actionValues.indexOf(value)) { value }
+        actionEntries = resources.getStringArray(R.array.gesture_action_entries)
+        actionValues  = resources.getStringArray(R.array.gesture_action_values)
 
         // Double-tap
         val tvDoubleTap = view.findViewById<TextView>(R.id.tvDoubleTap)
-        fun refreshDoubleTap() {
-            tvDoubleTap.text = labelFor(prefs.getString("double_tap_action", "screen_off") ?: "screen_off")
-        }
+        fun refreshDoubleTap() { tvDoubleTap.text = summaryFor("double_tap_action", "screen_off") }
         refreshDoubleTap()
         view.findViewById<View>(R.id.rowDoubleTap).setOnClickListener {
-            showListPicker(getString(R.string.pref_double_tap_title), actionEntries, actionValues,
-                prefs.getString("double_tap_action", "screen_off") ?: "screen_off") { v, _ ->
-                prefs.edit().putString("double_tap_action", v).apply()
+            pickAction(getString(R.string.pref_double_tap_title), "double_tap_action", "screen_off") {
                 refreshDoubleTap()
             }
         }
@@ -49,14 +60,10 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
 
         // Long press
         val tvLongPress = view.findViewById<TextView>(R.id.tvLongPress)
-        fun refreshLongPress() {
-            tvLongPress.text = labelFor(prefs.getString("long_press_action", "watchface_selector") ?: "watchface_selector")
-        }
+        fun refreshLongPress() { tvLongPress.text = summaryFor("long_press_action", "watchface_selector") }
         refreshLongPress()
         view.findViewById<View>(R.id.rowLongPress).setOnClickListener {
-            showListPicker(getString(R.string.pref_long_press_title), actionEntries, actionValues,
-                prefs.getString("long_press_action", "watchface_selector") ?: "watchface_selector") { v, _ ->
-                prefs.edit().putString("long_press_action", v).apply()
+            pickAction(getString(R.string.pref_long_press_title), "long_press_action", "watchface_selector") {
                 refreshLongPress()
             }
         }
@@ -93,71 +100,140 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             }
         }
 
-        // Button mapping
-        val tvRecord = view.findViewById<TextView>(R.id.tvBtnRecord)
-        val tvSingle = view.findViewById<TextView>(R.id.tvBtnSingle)
-        val tvDouble = view.findViewById<TextView>(R.id.tvBtnDouble)
-        val tvLong   = view.findViewById<TextView>(R.id.tvBtnLong)
-        val rowSingle = view.findViewById<View>(R.id.rowBtnSingle)
-        val rowDouble = view.findViewById<View>(R.id.rowBtnDouble)
-        val rowLong   = view.findViewById<View>(R.id.rowBtnLong)
-        val btnClear  = view.findViewById<MaterialButton>(R.id.btnClearBtnMap)
-
-        fun refreshBtnState() {
-            val ctx = requireContext()
-            val keyCode = ButtonMappingPrefs.getMappedKeyCode(ctx)
-            val hasButton = keyCode != 0
-            val name = ButtonMappingPrefs.keyCodeToName(ctx, keyCode)
-            tvRecord.text = if (hasButton) getString(R.string.gesture_mapped_format, name) else getString(R.string.pref_btn_map_record_summary)
-            val alpha = if (hasButton) 1f else 0.4f
-            rowSingle.alpha = alpha; rowSingle.isEnabled = hasButton
-            rowDouble.alpha = alpha; rowDouble.isEnabled = hasButton
-            rowLong.alpha   = alpha; rowLong.isEnabled   = hasButton
-            btnClear.visibility = if (hasButton) View.VISIBLE else View.GONE
-            tvSingle.text = labelFor(prefs.getString(ButtonMappingPrefs.KEY_SINGLE, "nothing") ?: "nothing")
-            tvDouble.text = labelFor(prefs.getString(ButtonMappingPrefs.KEY_DOUBLE, "nothing") ?: "nothing")
-            tvLong.text   = labelFor(prefs.getString(ButtonMappingPrefs.KEY_LONG,   "nothing") ?: "nothing")
+        // Swipe actions (apply only when the matching panel is disabled)
+        val tvSwipeDown = view.findViewById<TextView>(R.id.tvSwipeDown)
+        fun refreshSwipeDown() { tvSwipeDown.text = summaryFor("swipe_down_action", "nothing") }
+        refreshSwipeDown()
+        view.findViewById<View>(R.id.rowSwipeDown).setOnClickListener {
+            pickAction(getString(R.string.pref_swipe_down_title), "swipe_down_action", "nothing") {
+                refreshSwipeDown()
+            }
         }
-        refreshBtnState()
+        val tvSwipeRight = view.findViewById<TextView>(R.id.tvSwipeRight)
+        fun refreshSwipeRight() { tvSwipeRight.text = summaryFor("swipe_right_action", "nothing") }
+        refreshSwipeRight()
+        view.findViewById<View>(R.id.rowSwipeRight).setOnClickListener {
+            pickAction(getString(R.string.pref_swipe_right_title), "swipe_right_action", "nothing") {
+                refreshSwipeRight()
+            }
+        }
 
+        // Hardware buttons (multiple)
+        val containerButtons = view.findViewById<LinearLayout>(R.id.containerButtons)
+        rebuildButtons(containerButtons)
         view.findViewById<View>(R.id.rowBtnRecord).setOnClickListener {
             val dialog = ButtonRecordDialogFragment()
             dialog.onKeyRecorded = { keyCode ->
-                ButtonMappingPrefs.setMappedKeyCode(requireContext(), keyCode)
-                PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
-                    .putString(ButtonMappingPrefs.KEY_SINGLE, "nothing")
-                    .putString(ButtonMappingPrefs.KEY_DOUBLE, "nothing")
-                    .putString(ButtonMappingPrefs.KEY_LONG,   "nothing")
-                    .apply()
-                refreshBtnState()
+                ButtonMappingPrefs.addKeyCode(requireContext(), keyCode)
+                rebuildButtons(containerButtons)
             }
             dialog.show(childFragmentManager, ButtonRecordDialogFragment.TAG)
         }
+    }
 
-        rowSingle.setOnClickListener {
-            showListPicker(getString(R.string.pref_btn_single_title), actionEntries, actionValues,
-                prefs.getString(ButtonMappingPrefs.KEY_SINGLE, "nothing") ?: "nothing") { v, _ ->
-                prefs.edit().putString(ButtonMappingPrefs.KEY_SINGLE, v).apply()
-                tvSingle.text = labelFor(v)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun labelFor(value: String) =
+        actionEntries.getOrElse(actionValues.indexOf(value)) { value }
+
+    /** Row summary for an action pref — shows the picked app when the action is "Open app". */
+    private fun summaryFor(baseKey: String, default: String): String {
+        val v = prefs.getString(baseKey, default) ?: default
+        if (v == "open_app") {
+            val app = GestureAppPref.getLabel(requireContext(), baseKey)
+                ?: getString(R.string.gesture_open_app_none)
+            return getString(R.string.gesture_open_app_summary, app)
+        }
+        return labelFor(v)
+    }
+
+    /** Pick an action for [baseKey]; if "Open app" is chosen, chain into the app picker. */
+    private fun pickAction(title: String, baseKey: String, default: String, onDone: () -> Unit) {
+        showListPicker(title, actionEntries, actionValues, prefs.getString(baseKey, default) ?: default) { v, _ ->
+            prefs.edit().putString(baseKey, v).apply()
+            if (v == "open_app") {
+                showAppPicker(title, baseKey) { onDone() }
+            } else {
+                onDone()
             }
         }
-        rowDouble.setOnClickListener {
-            showListPicker(getString(R.string.pref_btn_double_title), actionEntries, actionValues,
-                prefs.getString(ButtonMappingPrefs.KEY_DOUBLE, "nothing") ?: "nothing") { v, _ ->
-                prefs.edit().putString(ButtonMappingPrefs.KEY_DOUBLE, v).apply()
-                tvDouble.text = labelFor(v)
+    }
+
+    private fun showAppPicker(title: String, baseKey: String, onDone: () -> Unit) {
+        val ctx = requireContext()
+        val pm  = ctx.packageManager
+        val iconSizePx = (40 * resources.displayMetrics.density + 0.5f).toInt()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val rows = withContext(Dispatchers.IO) {
+                pm.queryIntentActivities(
+                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
+                ).sortedBy { it.loadLabel(pm).toString().lowercase() }
+                 .map { ri -> AppRow(ri, ri.loadLabel(pm).toString(), ri.loadIcon(pm).renderToBitmap(iconSizePx)) }
             }
-        }
-        rowLong.setOnClickListener {
-            showListPicker(getString(R.string.pref_btn_long_title), actionEntries, actionValues,
-                prefs.getString(ButtonMappingPrefs.KEY_LONG, "nothing") ?: "nothing") { v, _ ->
-                prefs.edit().putString(ButtonMappingPrefs.KEY_LONG, v).apply()
-                tvLong.text = labelFor(v)
+            if (!isAdded) return@launch
+
+            val labels = rows.map { it.label }
+            val adapter = object : ArrayAdapter<String>(ctx, R.layout.item_app_list, labels) {
+                override fun getView(pos: Int, convertView: View?, parent: ViewGroup): View {
+                    val v = convertView ?: LayoutInflater.from(ctx).inflate(R.layout.item_app_list, parent, false)
+                    v.findViewById<ImageView>(R.id.appIcon).setImageBitmap(rows[pos].icon)
+                    v.findViewById<TextView>(R.id.appLabel).text = labels[pos]
+                    return v
+                }
             }
+
+            MaterialAlertDialogBuilder(ctx)
+                .setTitle(title)
+                .setAdapter(adapter) { _, which ->
+                    val info = rows[which].ri.activityInfo
+                    GestureAppPref.setComponent(ctx, baseKey, "${info.packageName}/${info.name}")
+                    onDone()
+                }
+                .setNegativeButton(android.R.string.cancel) { _, _ -> onDone() }
+                .show()
         }
-        btnClear.setOnClickListener {
-            ButtonMappingPrefs.clearMappedKeyCode(requireContext())
-            refreshBtnState()
+    }
+
+    private fun rebuildButtons(container: LinearLayout) {
+        container.removeAllViews()
+        val ctx = requireContext()
+        val inflater = LayoutInflater.from(ctx)
+        val keyCodes = ButtonMappingPrefs.getMappedKeyCodes(ctx)
+
+        for ((index, keyCode) in keyCodes.withIndex()) {
+            val block = inflater.inflate(R.layout.item_button_mapping, container, false)
+            block.findViewById<TextView>(R.id.tvBtnName).text =
+                ButtonMappingPrefs.keyCodeToName(ctx, keyCode)
+
+            bindPressRow(block, R.id.rowBtnSingle, R.id.tvBtnSingle,
+                getString(R.string.pref_btn_single_title), keyCode, ButtonMappingPrefs.PRESS_SINGLE)
+            bindPressRow(block, R.id.rowBtnDouble, R.id.tvBtnDouble,
+                getString(R.string.pref_btn_double_title), keyCode, ButtonMappingPrefs.PRESS_DOUBLE)
+            bindPressRow(block, R.id.rowBtnLong, R.id.tvBtnLong,
+                getString(R.string.pref_btn_long_title), keyCode, ButtonMappingPrefs.PRESS_LONG)
+
+            block.findViewById<MaterialButton>(R.id.btnRemove).setOnClickListener {
+                ButtonMappingPrefs.removeKeyCode(ctx, keyCode)
+                rebuildButtons(container)
+            }
+            // Hide the trailing divider on the last button.
+            if (index == keyCodes.lastIndex) block.findViewById<View>(R.id.btnDivider).visibility = View.GONE
+
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            if (index > 0) lp.topMargin = (14 * resources.displayMetrics.density).toInt()
+            container.addView(block, lp)
+        }
+    }
+
+    private fun bindPressRow(block: View, rowId: Int, tvId: Int, title: String, keyCode: Int, press: String) {
+        val baseKey = ButtonMappingPrefs.actionKey(keyCode, press)
+        val tv = block.findViewById<TextView>(tvId)
+        tv.text = summaryFor(baseKey, "nothing")
+        block.findViewById<View>(rowId).setOnClickListener {
+            pickAction(title, baseKey, "nothing") { tv.text = summaryFor(baseKey, "nothing") }
         }
     }
 }

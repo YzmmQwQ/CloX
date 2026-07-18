@@ -37,6 +37,7 @@ import com.ailife.clox.applist.IconPickerDialog
 import com.ailife.clox.cocos.CocosManager
 import com.ailife.clox.gesture.ButtonMappingHandler
 import com.ailife.clox.gesture.GestureHandler
+import com.ailife.clox.gesture.GestureAppPref
 import com.ailife.clox.gesture.GestureInterceptorLayout
 import com.ailife.clox.gesture.GestureLockManager
 import com.ailife.clox.gesture.SwipeDirection
@@ -44,7 +45,10 @@ import com.ailife.clox.home.HomeFragment
 import com.ailife.clox.overlay.OverlayController
 import com.ailife.clox.overlay.notifications.CloXNotificationListenerService
 import com.ailife.clox.overlay.notifications.NotificationOverlay
+import com.ailife.clox.overlay.notifications.NotificationPrefs
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
+import com.ailife.clox.overlay.quicksettings.VolumeDialogFragment
+import com.ailife.clox.qs.QsPrefs
 import android.appwidget.AppWidgetManager
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
 import com.ailife.clox.overlay.widgets.WidgetHostManager
@@ -515,6 +519,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         gestureHandler = GestureHandler(this, window)
         gestureHandler.onCollapseToWatchface = { resetToWatchface() }
+        // "Expand Quick Settings" / "Expand notifications" gesture actions — force-open the panel
+        // even if its own swipe has been disabled.
+        gestureHandler.onExpandQuickSettings = {
+            if (!appListOpen && !overlayController.hasActiveOverlay() && !RtosManager.isActive)
+                overlayController.expand(SwipeDirection.DOWN, screenW, screenH)
+        }
+        gestureHandler.onExpandNotifications = {
+            if (!appListOpen && !overlayController.hasActiveOverlay() && !RtosManager.isActive)
+                overlayController.expand(SwipeDirection.RIGHT, screenW, screenH)
+        }
+        gestureHandler.onToggleFlashlight = {
+            if (!RtosManager.isActive) flashlightOverlay.show()
+        }
+        gestureHandler.onShowVolumePanel = {
+            if (!RtosManager.isActive) VolumeDialogFragment().show(supportFragmentManager, "volume")
+        }
         buttonMappingHandler = ButtonMappingHandler(this, gestureHandler)
         gestureLockIcon = findViewById(R.id.gestureLockIcon)
         setupGestures()
@@ -1968,6 +1988,29 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 springAppList(if (appListOpen) 0f else screenW)
             }
             return
+        }
+
+        // Priority 4: remapped swipe action when the panel for this direction is disabled.
+        // (When enabled, the swipe would have started an overlay drag in Priority 2 above.)
+        if (!appListOpen && !RtosManager.isActive) {
+            val p = PreferenceManager.getDefaultSharedPreferences(this)
+            val remapKey = when (direction) {
+                SwipeDirection.DOWN  -> if (!p.getBoolean(QsPrefs.QS_ENABLED, true)) "swipe_down_action" else null
+                SwipeDirection.RIGHT -> if (!p.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) "swipe_right_action" else null
+                else -> null
+            }
+            if (remapKey != null) {
+                val committed = when (direction) {
+                    SwipeDirection.DOWN  -> dy > screenH * 0.25f || vy > 600f
+                    SwipeDirection.RIGHT -> dx > screenW * 0.25f || vx > 600f
+                    else -> false
+                }
+                if (committed) {
+                    val action = p.getString(remapKey, "nothing") ?: "nothing"
+                    gestureHandler.executeAction(action, GestureAppPref.getComponent(this, remapKey))
+                }
+                return
+            }
         }
 
         val currentX = appListFragment?.view?.translationX ?: screenW

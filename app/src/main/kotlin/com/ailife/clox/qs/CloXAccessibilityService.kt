@@ -19,6 +19,18 @@ class CloXAccessibilityService : AccessibilityService() {
         fun triggerRecents(): Boolean =
             instance?.performGlobalAction(GLOBAL_ACTION_RECENTS) ?: false
 
+        fun triggerNotifications(): Boolean =
+            instance?.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) ?: false
+
+        /** System Quick Settings shade (API 31+); older devices fall back to the notification shade. */
+        fun triggerQuickSettings(): Boolean {
+            val svc = instance ?: return false
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                svc.performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
+            else
+                svc.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
+        }
+
         // GLOBAL_ACTION_LOCK_SCREEN doesn't exist below API 28 — callers should route through
         // ScreenOffHelper, which falls back to Device Admin on older devices.
         fun lockScreen(): Boolean {

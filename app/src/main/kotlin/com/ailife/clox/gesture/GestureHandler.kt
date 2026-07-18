@@ -1,5 +1,6 @@
 package com.ailife.clox.gesture
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.VibrationEffect
@@ -7,6 +8,8 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.Window
 import androidx.preference.PreferenceManager
+import com.ailife.clox.qs.CloXAccessibilityService
+import com.ailife.clox.qs.QsPermissionHelper
 import com.ailife.clox.qs.ScreenOffHelper
 import com.ailife.clox.rtos.RtosManager
 import com.ailife.clox.rtos.RtosPrefs
@@ -31,20 +34,35 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
      */
     var onScreenOffWhileAod: (() -> Boolean)? = null
 
+    /** Set by MainActivity: open (expand) the Quick Settings panel, even if swipe-down is disabled. */
+    var onExpandQuickSettings: (() -> Unit)? = null
+
+    /** Set by MainActivity: open (expand) the notification panel, even if swipe-right is disabled. */
+    var onExpandNotifications: (() -> Unit)? = null
+
+    /** Set by MainActivity: show the in-app screen flashlight overlay. */
+    var onToggleFlashlight: (() -> Unit)? = null
+
+    /** Set by MainActivity: show the in-app volume panel (VolumeDialogFragment). */
+    var onShowVolumePanel: (() -> Unit)? = null
+
     fun onLongPress() {
         vibrate()
         val action = PreferenceManager.getDefaultSharedPreferences(ctx)
             .getString("long_press_action", "watchface_selector") ?: "watchface_selector"
-        executeAction(action)
+        executeAction(action, GestureAppPref.getComponent(ctx, "long_press_action"))
     }
 
     fun onDoubleTap() {
         val action = PreferenceManager.getDefaultSharedPreferences(ctx)
             .getString("double_tap_action", "screen_off") ?: "screen_off"
-        executeAction(action)
+        executeAction(action, GestureAppPref.getComponent(ctx, "double_tap_action"))
     }
 
-    internal fun executeAction(action: String) {
+    /**
+     * @param appComponent "package/activity" to launch when [action] is "open_app"; ignored otherwise.
+     */
+    internal fun executeAction(action: String, appComponent: String? = null) {
         when (action) {
             "screen_off"         -> turnScreenOff()
             "watchface_selector" -> openWatchfaceSelector()
@@ -57,8 +75,43 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
             "watchface_config"   -> openWatchfaceConfig()
             "lock_gesture"       -> GestureLockManager.toggleManual()
             "start_rtos"         -> enterRtosMode()
+            "expand_qs"          -> onExpandQuickSettings?.invoke()
+            "expand_notif"       -> onExpandNotifications?.invoke()
+            "open_app"           -> launchApp(appComponent)
+            "system_qs"          -> globalAction { CloXAccessibilityService.triggerQuickSettings() }
+            "system_notif"       -> globalAction { CloXAccessibilityService.triggerNotifications() }
+            "open_recents"       -> globalAction { CloXAccessibilityService.triggerRecents() }
+            "power_menu"         -> globalAction { CloXAccessibilityService.triggerPowerMenu() }
+            "flashlight"         -> onToggleFlashlight?.invoke()
+            "volume_panel"       -> onShowVolumePanel?.invoke()
             // "nothing" — no-op
         }
+    }
+
+    /**
+     * Run an accessibility global action (system QS/notifications/recents/power menu). Collapses our
+     * own overlays first so the system UI isn't left behind them, and prompts to enable the
+     * accessibility service if it isn't running yet.
+     */
+    private fun globalAction(action: () -> Boolean) {
+        onCollapseToWatchface?.invoke()
+        if (!CloXAccessibilityService.isRunning()) {
+            QsPermissionHelper.ensureAccessibilityEnabled(ctx)
+            return
+        }
+        action()
+    }
+
+    private fun launchApp(component: String?) {
+        if (component.isNullOrBlank()) return
+        val parts = component.split("/", limit = 2)
+        if (parts.size < 2) return
+        // Drop overlays/app list so the launched app isn't left behind our surfaces.
+        onCollapseToWatchface?.invoke()
+        ctx.safeStartActivity(Intent().apply {
+            this.component = ComponentName(parts[0], parts[1])
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
     }
 
     private fun turnScreenOff() {

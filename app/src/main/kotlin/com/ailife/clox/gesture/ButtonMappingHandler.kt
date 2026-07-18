@@ -8,49 +8,53 @@ import android.view.KeyEvent
 class ButtonMappingHandler(private val ctx: Context, private val gestureHandler: GestureHandler) {
 
     private val handler = Handler(Looper.getMainLooper())
-    private var longPressRunnable: Runnable? = null
-    private var longPressTriggered = false
-    private var pendingSingleRunnable: Runnable? = null
+    // State is keyed by keycode so multiple mapped buttons don't clobber each other's timers.
+    private val longPressRunnables = HashMap<Int, Runnable>()
+    private val longPressTriggered = HashMap<Int, Boolean>()
+    private val pendingSingleRunnables = HashMap<Int, Runnable>()
 
     fun handleKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        val mapped = ButtonMappingPrefs.getMappedKeyCode(ctx)
-        if (mapped == 0 || keyCode != mapped) return false
+        if (!ButtonMappingPrefs.isMapped(ctx, keyCode)) return false
         if (event.repeatCount != 0) return true  // swallow repeats
 
-        longPressTriggered = false
+        longPressTriggered[keyCode] = false
         val r = Runnable {
-            longPressTriggered = true
-            pendingSingleRunnable?.let { handler.removeCallbacks(it) }
-            pendingSingleRunnable = null
-            gestureHandler.executeAction(ButtonMappingPrefs.getLongAction(ctx))
+            longPressTriggered[keyCode] = true
+            pendingSingleRunnables.remove(keyCode)?.let { handler.removeCallbacks(it) }
+            fire(keyCode, ButtonMappingPrefs.PRESS_LONG)
         }
-        longPressRunnable = r
+        longPressRunnables[keyCode] = r
         handler.postDelayed(r, 500L)
         return true
     }
 
     fun handleKeyUp(keyCode: Int, @Suppress("UNUSED_PARAMETER") event: KeyEvent): Boolean {
-        val mapped = ButtonMappingPrefs.getMappedKeyCode(ctx)
-        if (mapped == 0 || keyCode != mapped) return false
+        if (!ButtonMappingPrefs.isMapped(ctx, keyCode)) return false
 
-        longPressRunnable?.let { handler.removeCallbacks(it) }
-        longPressRunnable = null
+        longPressRunnables.remove(keyCode)?.let { handler.removeCallbacks(it) }
 
-        if (longPressTriggered) return true
+        if (longPressTriggered[keyCode] == true) return true
 
-        if (pendingSingleRunnable != null) {
+        val pending = pendingSingleRunnables[keyCode]
+        if (pending != null) {
             // Second tap within window → double press
-            handler.removeCallbacks(pendingSingleRunnable!!)
-            pendingSingleRunnable = null
-            gestureHandler.executeAction(ButtonMappingPrefs.getDoubleAction(ctx))
+            handler.removeCallbacks(pending)
+            pendingSingleRunnables.remove(keyCode)
+            fire(keyCode, ButtonMappingPrefs.PRESS_DOUBLE)
         } else {
             val r = Runnable {
-                pendingSingleRunnable = null
-                gestureHandler.executeAction(ButtonMappingPrefs.getSingleAction(ctx))
+                pendingSingleRunnables.remove(keyCode)
+                fire(keyCode, ButtonMappingPrefs.PRESS_SINGLE)
             }
-            pendingSingleRunnable = r
+            pendingSingleRunnables[keyCode] = r
             handler.postDelayed(r, 300L)
         }
         return true
+    }
+
+    private fun fire(keyCode: Int, press: String) {
+        val action = ButtonMappingPrefs.getAction(ctx, keyCode, press)
+        val app = GestureAppPref.getComponent(ctx, ButtonMappingPrefs.actionKey(keyCode, press))
+        gestureHandler.executeAction(action, app)
     }
 }

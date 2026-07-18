@@ -587,6 +587,15 @@
         <item>Watch face settings</item>
         <item>Toggle gesture lock</item>
         <item>Enter RTOS mode</item>
+        <item>Expand Quick Settings</item>
+        <item>Expand notifications</item>
+        <item>Open app</item>
+        <item>System Quick Settings</item>
+        <item>System notifications</item>
+        <item>Open recents</item>
+        <item>Power menu</item>
+        <item>Flashlight</item>
+        <item>Volume panel</item>
     </string-array>
     <string-array name="gesture_action_values">
         <item>nothing</item>
@@ -597,7 +606,31 @@
         <item>watchface_config</item>
         <item>lock_gesture</item>
         <item>start_rtos</item>
+        <item>expand_qs</item>
+        <item>expand_notif</item>
+        <item>open_app</item>
+        <item>system_qs</item>
+        <item>system_notif</item>
+        <item>open_recents</item>
+        <item>power_menu</item>
+        <item>flashlight</item>
+        <item>volume_panel</item>
     </string-array>
+
+    <!-- Open-app gesture action -->
+    <string name="gesture_open_app_summary">Open app: %1$s</string>
+    <string name="gesture_open_app_none">no app selected</string>
+
+    <!-- Swipe actions (used when the corresponding panel is disabled) -->
+    <string name="pref_swipe_category">Swipe actions</string>
+    <string name="pref_swipe_category_summary">These run when the matching panel is turned off.</string>
+    <string name="pref_swipe_down_title">Swipe down (Quick Settings off)</string>
+    <string name="pref_swipe_right_title">Swipe right (Notifications off)</string>
+
+    <!-- Multiple hardware buttons -->
+    <string name="pref_btn_add_title">Add button</string>
+    <string name="pref_btn_add_summary">Tap to record another button</string>
+    <string name="pref_btn_remove">Remove</string>
 
     <!-- Navigation bar visibility -->
     <string name="pref_nav_bar_title">Navigation bar</string>
