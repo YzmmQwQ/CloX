@@ -2523,13 +2523,15 @@ local function utf8chars(s)
     return out
 end
 
--- Text along a circular arc. Geometry ports UL WatchSkin:createTextCurved:
--- per-glyph widths measured off a whole-string label (getLetter), every char
--- advances by the WIDEST glyph's angle (spaces advance half), curve_dir "Up"
--- arcs over the TOP of the circle centred on the layer (x,y), "Down" arcs
--- under the BOTTOM; glyphs rotate to the local tangent. Rebuilt whenever the
--- text value changes (UL recreates on change; a static build went stale on
--- faces curving "{dh23z}:{dmz}").
+-- Text along a circular arc. Geometry matches WatchMaker v2 Studio (r0):
+-- per-glyph widths measured off a whole-string label (getLetter), each char
+-- advances by ITS OWN width as an arc slot (width*60deg/radius; spaces = 0.3*
+-- fontSize), curve_dir "Up" arcs over the TOP of the circle centred on the
+-- layer (x,y), "Down" arcs under the BOTTOM; glyphs rotate to the local
+-- tangent. (Was ported from UL createTextCurved, which used the widest glyph's
+-- atan(w/(radius+2h)) for every char and packed the string ~25% too tight.)
+-- Rebuilt whenever the text value changes (a static build went stale on faces
+-- curving "{dh23z}:{dmz}").
 function Builders.text_curved(self, rec)
     local L = rec.L
     local node = cc.Node:create()
@@ -2574,21 +2576,27 @@ function Builders.text_curved(self, rec)
             local ch = meas:getContentSize().height
             if ch > 0 then bmScale = 1.6 * size / ch end
         end
-        local maxAng = 0
+        -- WatchMaker v2 Studio geometry (r0): each glyph subtends an arc slot of
+        -- its OWN width -> slot = width_px * 60deg / radius = width * (pi/3)/radius rad.
+        -- UL/older CloX used the WIDEST glyph's atan(w/(radius+2*h)) for EVERY glyph;
+        -- the +2*h term plus atan (57.3 vs WM's flat 60 deg/px) packed the string
+        -- ~25% too tightly ("closer than intended"). This ports WM's real per-glyph
+        -- sweep. Radius, rotation, direction, and centering are unchanged.
+        local DEG60 = math.pi / 3                 -- WM's 60-deg-per-pixel arc factor
+        local spaceW = 0.3 * fontPx(size)         -- WM: space width = 0.3 * fontSize
+        local a = {}
+        local allAng = 0
         for i = 1, n do
-            local gt = meas.getLetter and meas:getLetter(i - 1)
-            if gt then
-                local bb = gt:getBoundingBox()
-                local w, h = bb.width * bmScale, bb.height * bmScale
-                -- UL: Up arcs measure against radius + 2*glyph height
-                local a = up and math.atan(w / (radius + 2 * h)) or math.atan(w / radius)
-                if a > maxAng then maxAng = a end
+            local w
+            if chars[i] == " " then
+                w = spaceW
+            else
+                local gt = meas.getLetter and meas:getLetter(i - 1)
+                w = gt and (gt:getBoundingBox().width * bmScale) or (size * 0.6)
             end
+            a[i] = w * DEG60 / radius
+            allAng = allAng + a[i]
         end
-        if maxAng == 0 then maxAng = (size * 0.9) / radius end   -- no letter info
-        local nspace = 0
-        for i = 1, n do if chars[i] == " " then nspace = nspace + 1 end end
-        local allAng = maxAng * (n - nspace / 2)
         local coef = up and 1 or -1
         local rot0 = math.pi / 2 + coef * allAng / 2
         -- shader mode bakes WHITE glyphs — the layer color arrives as tint
@@ -2596,8 +2604,7 @@ function Builders.text_curved(self, rec)
                     or c4b(rec:evalSub("color", "ffffff"), 100)
         local ang = 0
         for i = 1, n do
-            local step = (chars[i] == " ") and maxAng / 2 or maxAng
-            ang = ang + step / 2
+            ang = ang + a[i] / 2
             if chars[i] ~= " " then
                 local lab = mkLabel(chars[i])
                 if isBM then lab:setScale(bmScale) else lab:setTextColor(col) end
@@ -2606,7 +2613,7 @@ function Builders.text_curved(self, rec)
                 lab:setRotation(90 - math.deg(th))
                 node:addChild(lab)
             end
-            ang = ang + step / 2
+            ang = ang + a[i] / 2
         end
     end
     if L.shader and SHADER_UNIFORMS[L.shader] then
