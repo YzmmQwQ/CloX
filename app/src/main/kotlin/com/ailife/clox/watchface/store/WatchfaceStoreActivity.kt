@@ -239,10 +239,12 @@ class WatchfaceStoreActivity : AppCompatActivity() {
             try {
                 val json = withContext(Dispatchers.IO) { fetchJson("$BASE_API/watchfaces/${item.id}") }
                 val desc = json.optString("description", "")
+                // The author lives in the detail response only (uploader.username), not the list.
+                val author = json.optJSONObject("uploader")?.optString("username", "") ?: ""
                 // download_url is like "/api/watchfaces/.../download" — prepend domain
                 val downloadUrl = "$DOMAIN${json.optString("download_url")}"
                 StoreDetailBottomSheet.show(supportFragmentManager, item, desc, downloadUrl,
-                    item.uploadDate) { url, name ->
+                    item.uploadDate, author) { url, name ->
                     downloadWatchface(url, name)
                 }
             } catch (e: Exception) {
@@ -398,6 +400,7 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
         fun show(
             fm: FragmentManager, item: StoreItem,
             description: String, downloadUrl: String, uploadDate: String,
+            author: String = "",
             onDownload: suspend (String, String) -> Unit,
         ) = StoreDetailBottomSheet().apply {
             this.onDownload = onDownload
@@ -407,6 +410,7 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
                 putInt("downloadCount", item.downloadCount)
                 putString("desc", description); putString("durl", downloadUrl)
                 putString("uploadDate", uploadDate)
+                putString("author", author)
             }
             show(fm, "store_detail")
         }
@@ -423,6 +427,14 @@ class StoreDetailBottomSheet : BottomSheetDialogFragment() {
         val durl = args.getString("durl") ?: ""
 
         view.findViewById<TextView>(R.id.tvDetailName).text = name
+        val author = args.getString("author", "")
+        val tvAuthor = view.findViewById<TextView>(R.id.tvDetailAuthor)
+        if (author.isNotEmpty()) {
+            tvAuthor.text = getString(R.string.store_author_label, author)
+            tvAuthor.visibility = View.VISIBLE
+        } else {
+            tvAuthor.visibility = View.GONE
+        }
         view.findViewById<TextView>(R.id.tvDetailDesc).text = args.getString("desc")
         view.findViewById<TextView>(R.id.tvDetailDownloads).text =
             getString(R.string.store_downloads_label, args.getInt("downloadCount"))

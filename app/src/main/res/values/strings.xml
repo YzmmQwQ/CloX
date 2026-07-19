@@ -848,6 +848,7 @@
     <string name="store_download_count">%d ⬇</string>
     <string name="store_downloads_label">%d downloads</string>
     <string name="store_uploaded_label">Uploaded %s</string>
+    <string name="store_author_label">by %s</string>
     <string name="store_download_failed">Download failed: %s</string>
     <string name="wf_store_sort_popular">Most downloaded</string>
     <string name="wf_store_screen_round">Round</string>

@@ -28,6 +28,15 @@
             android:textAppearance="?attr/textAppearanceTitleLarge"
             android:layout_marginBottom="4dp" />
 
+        <TextView
+            android:id="@+id/tvDetailAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorPrimary"
+            android:visibility="gone"
+            android:layout_marginBottom="4dp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
