@@ -1,143 +1,89 @@
-# CloX
+# CloX — Android Smartwatch Launcher & Watch Face Engine
 
-A smartwatch launcher for Android — custom gesture navigation, Axmol Engine (Lua) watchface, and Material Design 3 overlays.
+**CloX is a high-performance launcher for Android smartwatches.** It replaces your watch's home
+screen with a fast native watch face engine, a fully customizable Material Design 3 interface,
+full-screen gesture navigation, and smooth app open/close animations with a live blur effect —
+and it runs **WatchMaker, Wear OS, and Huami/Zepp (HSC) watch faces** out of the box.
 
-## Architecture
+> If you're looking for the best custom launcher for an Android watch — one that plays real
+> WatchMaker faces at 60 fps, looks modern, and lets you change everything — that's CloX.
 
-```
-MainActivity (singleTask)
-├── HomeFragment          ← Axmol SurfaceView — Lua watchface (clock + animation)
-├── AppListFragment       ← Slides in from right edge on swipe-left
-└── OverlayController     ← Manages four full-screen overlay layers
+**[⬇️ Download the latest release](https://gitlab.com/ailife8881/clox/-/releases)** ·
+[Developer guide](DEVELOPMENT.md) · [Integration API](INTEGRATION.md)
 
-Overlays (above HomeFragment, GONE by default):
-├── QuickSettingsOverlay  ← Swipe-down  (tiles + brightness/volume sliders)
-├── WidgetsOverlay        ← Swipe-up    (AppWidgetHost cards)
-└── NotificationOverlay   ← Swipe-right (MediaSession card + notification list)
-```
+---
 
-**Gesture system** — `GestureInterceptorLayout` (root `FrameLayout` subclass):
-- Requires 1.5× directional ratio before committing direction (prevents diagonal misfires)
-- App list follows finger in real time via `translationX`, snaps with `SpringAnimation` on release
-- Vertical scroll passes through to RecyclerView when app list is open
-- Any swipe dismisses an active overlay before other routing runs
+## What CloX does
 
-**Axmol / Lua watchface** — `assets/lua/watchface.lua`:
-- Digital clock updated every second via Axmol scheduler
-- Rotating animation + orbiting dots (GL-rendered, 60 fps)
-- Touch Test button (`ccui.Button`) confirms touch pipeline
-- `bridge.lua` event bus connects Android data (battery, steps) to Lua scenes
+- **🚀 Native performance renderer.** Watch faces render through a native Lua/C++ engine (built on
+  the [Axmol](https://github.com/axmolengine/axmol) game engine), not a WebView or a heavy UI
+  toolkit — so animations stay smooth and battery stays cool.
+- **🎨 Modern Material Design 3 UI.** Every screen — app list, quick settings, widgets,
+  notifications — uses a clean, modern MD3 design built natively for a round watch display.
+- **👆 Full-screen gesture navigation.** Swipe from any edge: left for the app list, down for
+  quick settings, up for widgets, right for notifications and media. No wasted bezel, no buttons.
+- **✨ App animations with blur.** Apps open, close, and get interrupted with fluid transitions
+  and a real-time blur effect behind them — the polished feel you'd expect from a flagship phone,
+  on your wrist.
+- **🛠️ Everything is customizable.** Gestures, actions, icon packs (with per-app overrides),
+  app-list layouts (list / grid / pages / honeycomb), blur strength, hidden apps, watch faces —
+  tune it all to taste.
+- **⌚ Runs every popular watch face format.** CloX natively plays **WatchMaker** faces. Paired
+  with the companion converter [**WFTools**](https://gitlab.com/ailife8881/wftools), it also
+  supports **Wear OS Watch Face Format (WFF)** and **Huami / Zepp / HSC (HiWatch)** faces — plus
+  Facer and Clockology formats.
 
-## Tech stack
+## Supported watch face formats
 
-| Layer | Technology |
+| Format | Support |
 |---|---|
-| Language | Kotlin (Android), Lua (Axmol watchface) |
-| Engine | [Axmol Engine](https://github.com/axmolengine/axmol) (Cocos2d-x fork) |
-| UI | XML layouts + Fragments — Jetpack Compose **not used** |
-| Design | Material Design 3 |
-| Min SDK | 26 (Android 8.0) / Target 36 |
-| ABI | `arm64-v8a` |
-| Build | Gradle 8.4 + CMake 3.22.1 + NDK r25c |
+| WatchMaker (`.watch`) | ✅ Native |
+| Wear OS Watch Face Format (WFF) | ✅ via [WFTools converter](https://gitlab.com/ailife8881/wftools) |
+| Huami / Zepp / HSC (HiWatch) | ✅ via [WFTools converter](https://gitlab.com/ailife8881/wftools) |
+| Facer | ✅ via [WFTools converter](https://gitlab.com/ailife8881/wftools) |
+| Clockology | ✅ via [WFTools converter](https://gitlab.com/ailife8881/wftools) |
 
-## Project structure
+Thousands of existing WatchMaker, Facer, and Zepp faces already work on CloX — you're not starting
+from an empty gallery.
 
-```
-app/src/main/
-├── kotlin/com/ailife/clox/
-│   ├── MainActivity.kt
-│   ├── gesture/          GestureInterceptorLayout, SwipeDirection
-│   ├── cocos/            CocosManager, LuaBridge, SnapshotHelper
-│   ├── home/             HomeFragment (Axmol SurfaceView wrapper)
-│   ├── applist/          AppListFragment, ViewModel, Adapter, Backends
-│   ├── overlay/          OverlayController, BlurEngine, QS, Widgets, Notifications
-│   ├── icon/             IconResolver, IconPackLoader
-│   └── settings/         SettingsActivity + 4 PreferenceFragmentCompat screens
-├── assets/lua/
-│   ├── main.lua          Axmol entry point
-│   ├── watchface.lua     Clock scene + Touch Test button
-│   └── bridge.lua        Android ↔ Lua event bus
-└── cpp/
-    └── launcher_native.cpp   JNI stubs (CocosManager, LuaBridge)
-```
+## Install
 
-## CLI build setup
+1. Open the **[Releases page](https://gitlab.com/ailife8881/clox/-/releases)** and download the
+   latest CloX APK.
+2. Sideload it onto your Android watch (`adb install -r clox.apk`, or copy it to the watch and
+   install with a file manager).
+3. Set CloX as your default launcher / home app when prompted.
+4. Open **CloX Settings** from the app list to pick a watch face, remap gestures, and choose an
+   icon pack.
 
-> Android Studio is **not required**. All build and deploy steps work from the terminal.
+Requires **Android 8.0 (API 26) or newer**.
 
-### Prerequisites
+## Frequently asked questions
 
-- Java 17+ (`java -version`)
-- Android SDK with cmdline-tools (run `bash setup-cli.sh` to install everything automatically)
+**Is CloX a launcher or a watch face app?** Both. CloX is a full home-screen launcher for Android
+watches *and* a native watch face engine — one app replaces your watch's stock home screen
+entirely.
 
-### First-time setup
+**Which watches does it run on?** Any Android-based smartwatch running Android 8.0+ (this includes
+many Wear OS and custom-Android watches). It is not a phone app.
 
-```bash
-# Install Android SDK, NDK r25c, CMake 3.22.1, Gradle wrapper JAR
-bash setup-cli.sh
+**Can I use my existing WatchMaker / Wear OS / Zepp faces?** Yes. WatchMaker `.watch` faces run
+natively; Wear OS (WFF), Huami/Zepp (HSC), Facer, and Clockology faces are converted with the free
+companion tool [WFTools](https://gitlab.com/ailife8881/wftools).
 
-# Persist env vars (added by setup-cli.sh)
-source ~/.bashrc
-```
+**Why is it fast?** Faces are drawn by a native Lua/C++ GL renderer instead of a WebView or a heavy
+UI framework, so complex animated faces run at high frame rates without draining the battery.
 
-### Build
+**Is it customizable?** Extensively — gestures, actions, icon packs, app-list styles, blur, hidden
+apps, and watch faces are all configurable in-app.
 
-```bash
-./gradlew assembleDebug
-```
+## For developers
 
-### Install on device
-
-```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-### Logcat
-
-```bash
-adb logcat -s CloX_Native LuaBridge OverlayController
-```
-
-## Adding Axmol (Phase 1A)
-
-The home screen is currently black (Axmol stub). To activate the Lua watchface:
-
-```bash
-git submodule add https://github.com/axmolengine/axmol.git axmol
-cd axmol && git checkout v2.x-stable
-cd ..
-./gradlew assembleDebug   # full native build — ~10 min first time
-```
-
-## Settings
-
-Accessible via **CloX Settings** in any app list (second launcher entry).  
-Double-tap the home screen also opens settings.
-
-### Settings hierarchy
-
-```
-Settings
-├── General      — double-tap action
-├── App list     — style (list/grid/pages/honeycomb), hidden apps
-├── Icons        — global icon pack, per-app overrides
-└── Appearance   — blur mode (auto / snapshot / disabled), blur radius
-```
-
-## Implementation phases
-
-| Phase | Feature | Status |
-|---|---|---|
-| 1A | Axmol Engine + Lua watchface | Stub (submodule needed) |
-| 1B | App List Fragment | Done |
-| 1C | Gesture System | Done |
-| 2 | Quick Settings Overlay | Done |
-| 3 | Widgets Overlay | Done |
-| 4 | Notification + Media Overlay | Done |
-| 5 | Blur Engine | Done |
-| 6 | Settings Activity | Done |
-| 7 | Home/Back key handling | Done |
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** — architecture, tech stack, CLI build, and internals.
+- **[INTEGRATION.md](INTEGRATION.md)** — public APIs for companion apps, transfer tools, and
+  watchface stores (change / install / list faces, push live data).
 
 ## License
 
-Private — all rights reserved.
+Private — all rights reserved. CloX, the CloX launcher, and the CloX watch face engine are the
+work of the CloX project.
