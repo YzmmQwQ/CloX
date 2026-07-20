@@ -66,6 +66,60 @@ local function clamp(v, lo, hi) if v < lo then return lo elseif v > hi then retu
 local TTF_FONT_SCALE = 1.28
 local function fontPx(size) return math.min(492, floor(size * TTF_FONT_SCALE)) end
 
+-- Encode a single Unicode codepoint to UTF-8 (Lua 5.1 has no utf8.char). Only
+-- the <=0xFFFF range is needed here — Material Icons live in the Private-Use
+-- Area (0xE000-0xF8FF), always 3 bytes.
+local function utf8encode(cp)
+    if cp < 0x80 then return string.char(cp) end
+    if cp < 0x800 then
+        return string.char(0xC0 + floor(cp / 0x40), 0x80 + cp % 0x40)
+    end
+    return string.char(0xE0 + floor(cp / 0x1000),
+                       0x80 + floor(cp / 0x40) % 0x40,
+                       0x80 + cp % 0x40)
+end
+
+-- Material Icons (and its Outlined/Round/Sharp/TwoTone siblings) select glyphs
+-- through OpenType ligatures: the string "favorite" is shaped into one Private-
+-- Use glyph (U+E87D). Axmol's FreeType label does NO ligature shaping, and the
+-- font's component letters (f,a,v,...) are BLANK glyphs, so an un-substituted
+-- icon name renders as nothing (the empty gap on such faces). Translate icon
+-- names to their PUA codepoint before building the label. The name->codepoint
+-- table is canonical/stable across the classic variants and lazy-loaded once.
+local function isMaterialIconsFont(font) return font:sub(1, 13) == "MaterialIcons" end
+local materialMap
+-- Resolve a label string for a Material-Icons layer. Almost every icon layer is
+-- a single name (or an expression evaluating to one), so a whole-string lookup
+-- is the fast path — no Lua pattern matching per update (see the no-regex rule).
+-- `cache` memoises per layer since an icon usually cycles a handful of values.
+local function materialSubst(str, cache)
+    if not str or str == "" then return str end
+    local hit = cache[str]
+    if hit ~= nil then return hit end
+    materialMap = materialMap or require("wf_material_icons")
+    local out
+    local cp = materialMap[str]
+    if cp then
+        out = utf8encode(cp)                          -- whole string is one icon
+    elseif str:find(" ", 1, true) then               -- plain find, not a pattern
+        -- space-separated names: byte-walk split, translate each known token
+        local parts, start, n = {}, 1, #str
+        for i = 1, n + 1 do
+            if i > n or str:byte(i) == 32 then
+                local tok = str:sub(start, i - 1)
+                local tcp = tok ~= "" and materialMap[tok]
+                parts[#parts + 1] = tcp and utf8encode(tcp) or tok
+                start = i + 1
+            end
+        end
+        out = table.concat(parts, " ")
+    else
+        out = str                                     -- not an icon name; leave as-is
+    end
+    cache[str] = out
+    return out
+end
+
 -- Engine event names that are NOT bridge push categories (everything else
 -- active in the engine gets a WatchfaceBridge.onChange listener).
 local CLOCK_EVENTS = {
@@ -1060,7 +1114,12 @@ function Builders.text(self, rec)
         if not lab then lab = cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size)) end
         return lab
     end
+    local isIcon = isMaterialIconsFont(font)
+    local iconCache = isIcon and {} or nil
     local function caseOf(str)
+        -- icon-name -> Private-Use glyph first (before any case transform, which
+        -- would break the lowercase ligature names)
+        if isIcon then str = materialSubst(str, iconCache) end
         if rec.isBM then return str:upper() end
         if L.transform == "uc" then return str:upper()
         elseif L.transform == "lc" then return str:lower() end
@@ -1863,6 +1922,9 @@ function Builders.series(self, rec)
     local size1 = math.max(1, floor(rec:evalNum("text_size", 24)))
     local size2 = math.max(1, floor(rec:evalNum("text_size2", size1)))
     local step = rec:evalNum("spacing", 0) + size1     -- UL offsets use the CURRENT size
+    local isIcon0 = isMaterialIconsFont(L.font or "")
+    local isIcon1 = isMaterialIconsFont(L.font2 or L.font or "")
+    local iconCache = (isIcon0 or isIcon1) and {} or nil
     local function caseOf(s)
         if L.transform == "uc" then return s:upper()
         elseif L.transform == "lc" then return s:lower() end
@@ -1907,7 +1969,7 @@ function Builders.series(self, rec)
         -- below; horizontal: past left, future right (UL screen layout)
         if vertical then lab:setPosition(0, -k * step) else lab:setPosition(k * step, 0) end
         node:addChild(lab)
-        items[#items + 1] = { lab = lab, k = k, bm = isBM }
+        items[#items + 1] = { lab = lab, k = k, bm = isBM, icon = (k == 0) and isIcon0 or isIcon1 }
     end
     -- live step: text_size/spacing re-lay the window out. Glyph size is
     -- creation-time only (labels are built once at size1/size2 — recreating
@@ -1922,7 +1984,9 @@ function Builders.series(self, rec)
     end, { { "text_size", "num" }, { "spacing", "num" } })
     local function update()
         for _, it in ipairs(items) do
-            local s = caseOf(seriesValue(sname, it.k))
+            local raw = seriesValue(sname, it.k)
+            if it.icon then raw = materialSubst(raw, iconCache) end   -- icon name -> glyph
+            local s = caseOf(raw)
             -- BM atlases are usually uppercase-only (UL uppercases all bm text)
             it.lab:setString(it.bm and s:upper() or s)
         end
@@ -2417,6 +2481,8 @@ function Builders.text_ring(self, rec)
     rec.visual = node
     local font = L.font or ""
     local isBM = font:sub(1, 3) == "bm:"
+    local isIcon = isMaterialIconsFont(font)
+    local iconCache = isIcon and {} or nil
     local rotMode = L.rotated_text
     local hide = {}
     for h in (L.hide_text or ""):gmatch("-?%d+") do hide[tonumber(h)] = true end
@@ -2465,6 +2531,7 @@ function Builders.text_ring(self, rec)
         local rot = -aStart
         local colHex = r:evalSub("color", "ffffff")
         local function mkLabel(str)
+            if isIcon then str = materialSubst(str, iconCache) end   -- icon name -> glyph
             local lab
             if isBM then
                 local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
@@ -2551,6 +2618,8 @@ function Builders.text_curved(self, rec)
     local font = L.font or ""
     local up = (L.curve_dir or "Up") ~= "Down"
     local isBM = font:sub(1, 3) == "bm:"
+    local isIcon = isMaterialIconsFont(font)
+    local iconCache = isIcon and {} or nil
     local function mkLabel(s)
         local lab
         if isBM then
@@ -2564,6 +2633,9 @@ function Builders.text_curved(self, rec)
     end
     local function rebuild(str)
         node:removeAllChildren()
+        -- Material Icons -> PUA glyph on the WHOLE string, before the per-glyph
+        -- split below (a ligature can't survive being cut into single chars).
+        if isIcon then str = materialSubst(str, iconCache) end
         if L.transform == "uc" then str = str:upper()
         elseif L.transform == "lc" then str = str:lower() end
         local chars = utf8chars(str)
