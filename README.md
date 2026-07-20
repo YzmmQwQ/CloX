@@ -8,6 +8,11 @@ and it runs **WatchMaker, Wear OS, and Huami/Zepp (HSC) watch faces** out of the
 > If you're looking for the best custom launcher for an Android watch — one that plays real
 > WatchMaker faces at 60 fps, looks modern, and lets you change everything — that's CloX.
 
+**CloX is a full replacement for Universal Launcher.** It's a modern, drop-in successor that keeps
+**full backward compatibility** — everything Universal Launcher did, CloX does too — while
+improving on it with a native performance renderer, Material Design 3, edge gestures, and blur
+app animations. If you're using Universal Launcher today, CloX is the upgrade.
+
 **[⬇️ Download the latest release](https://gitlab.com/ailife8881/clox/-/releases)** ·
 [Developer guide](DEVELOPMENT.md) · [Integration API](INTEGRATION.md)
 
@@ -59,6 +64,11 @@ from an empty gallery.
 Requires **Android 8.0 (API 26) or newer**.
 
 ## Frequently asked questions
+
+**Is CloX a replacement for Universal Launcher?** Yes. CloX fully replaces Universal Launcher with
+**complete backward compatibility** — anything you did on Universal Launcher works on CloX — and
+adds a native watch face renderer, Material Design 3 UI, full-screen gestures, and blur app
+animations on top. It's the modern successor, not a side-grade.
 
 **Is CloX a launcher or a watch face app?** Both. CloX is a full home-screen launcher for Android
 watches *and* a native watch face engine — one app replaces your watch's stock home screen
