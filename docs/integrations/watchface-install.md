@@ -3,7 +3,7 @@
 Hand CloX a `.watch` file; it copies the face into the watchface directory **and** makes it the
 active watchface — in a single step.
 
-← Back to the [Integration Guide](../../INTEGRATION.md)
+← Back to the [Integration Guide](../INTEGRATION.md)
 
 ---
 

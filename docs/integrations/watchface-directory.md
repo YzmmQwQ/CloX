@@ -4,7 +4,7 @@ Programmatic read/write access to CloX's watchface directory: list, read, add, o
 face files, and create folders. This is the **management** API and is the only CloX surface guarded
 by a permission.
 
-← Back to the [Integration Guide](../../INTEGRATION.md)
+← Back to the [Integration Guide](../INTEGRATION.md)
 
 ---
 

@@ -2,7 +2,7 @@
 
 Switch CloX to a watchface **that is already installed**, by name, via a broadcast intent.
 
-← Back to the [Integration Guide](../../INTEGRATION.md)
+← Back to the [Integration Guide](../INTEGRATION.md)
 
 ---
 

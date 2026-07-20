@@ -1,7 +1,7 @@
 # CloX — Developer Guide
 
 Architecture, build, and internals for **CloX**, an Android smartwatch launcher and watchface
-engine (`com.ailife.clox`). For the product overview see the [main README](README.md). For
+engine (`com.ailife.clox`). For the product overview see the [main README](../README.md). For
 integrating other apps with CloX see the [Integration Guide](INTEGRATION.md).
 
 ## Architecture
@@ -133,7 +133,7 @@ change the active watchface, install faces, and manage the watchface directory. 
 
 - [INTEGRATION.md](INTEGRATION.md) — root index of all public APIs
 - [EXTERNAL_DATA_API.md](EXTERNAL_DATA_API.md) — push key/value data to the active face
-- [docs/integrations/](docs/integrations/) — change / install / directory references
+- [integrations/](integrations/) — change / install / directory references
 
 ## License
 

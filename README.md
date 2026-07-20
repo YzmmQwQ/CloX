@@ -14,7 +14,7 @@ improving on it with a native performance renderer, Material Design 3, edge gest
 app animations. If you're using Universal Launcher today, CloX is the upgrade.
 
 **[⬇️ Download the latest release](https://gitlab.com/ailife8881/clox/-/releases)** ·
-[Developer guide](DEVELOPMENT.md) · [Integration API](INTEGRATION.md)
+[Developer guide](docs/DEVELOPMENT.md) · [Integration API](docs/INTEGRATION.md)
 
 ---
 
@@ -89,8 +89,8 @@ apps, and watch faces are all configurable in-app.
 
 ## For developers
 
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** — architecture, tech stack, CLI build, and internals.
-- **[INTEGRATION.md](INTEGRATION.md)** — public APIs for companion apps, transfer tools, and
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** — architecture, tech stack, CLI build, and internals.
+- **[INTEGRATION.md](docs/INTEGRATION.md)** — public APIs for companion apps, transfer tools, and
   watchface stores (change / install / list faces, push live data).
 
 ## License

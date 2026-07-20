@@ -12,9 +12,9 @@ This page is the **root index**. Each API has its own reference page linked belo
 
 | I want to… | Mechanism | Component | Permission | Reference |
 |------------|-----------|-----------|------------|-----------|
-| Change the **active** watchface to one already installed | Broadcast | `ChangeFaceReceiver` | none | [Change watchface](docs/integrations/watchface-change.md) |
-| **Install** a `.watch` file and make it active in one step | Intent (`ACTION_VIEW`) | `WatchfaceImportHandlerActivity` | none | [Install watchface](docs/integrations/watchface-install.md) |
-| **List / read / write / delete** faces in the watchface folder | ContentProvider | `WatchfaceProvider` | `ACCESS_WATCHFACES` (grant once) | [Watchface directory](docs/integrations/watchface-directory.md) |
+| Change the **active** watchface to one already installed | Broadcast | `ChangeFaceReceiver` | none | [Change watchface](integrations/watchface-change.md) |
+| **Install** a `.watch` file and make it active in one step | Intent (`ACTION_VIEW`) | `WatchfaceImportHandlerActivity` | none | [Install watchface](integrations/watchface-install.md) |
+| **List / read / write / delete** faces in the watchface folder | ContentProvider | `WatchfaceProvider` | `ACCESS_WATCHFACES` (grant once) | [Watchface directory](integrations/watchface-directory.md) |
 | Push arbitrary key/value **data** to the active watchface | Broadcast | `ExternalDataReceiver` | none | [External data API](EXTERNAL_DATA_API.md) |
 
 All of the above work on **Android 10+** and while CloX is in the background.
@@ -49,7 +49,7 @@ raw read/write over the face files. It is protected by a single custom permissio
 `ACCESS_WATCHFACES` is `protectionLevel="dangerous"`: the requesting app calls
 `requestPermissions()` **once**, Android shows the system consent prompt, and the grant is managed
 (and revocable) in system Settings. CloX shows no dialog of its own. See the
-[Watchface directory](docs/integrations/watchface-directory.md) page for details.
+[Watchface directory](integrations/watchface-directory.md) page for details.
 
 > The permission controls **only** the watchface directory. It gives no access to any other CloX
 > data or storage.
@@ -60,9 +60,9 @@ raw read/write over the face files. It is protected by a single custom permissio
 
 The three watchface APIs overlap slightly — pick by what you have and what you want to happen:
 
-- **You know the name of a face already on the watch** → [broadcast a change](docs/integrations/watchface-change.md). No files, no permission.
-- **You have a `.watch` file to add and want it shown immediately** → [fire the install intent](docs/integrations/watchface-install.md). Installs *and* sets active. No permission.
-- **You need to browse, bulk-sync, overwrite, or delete faces programmatically** → [use the directory provider](docs/integrations/watchface-directory.md). Requires the `ACCESS_WATCHFACES` grant.
+- **You know the name of a face already on the watch** → [broadcast a change](integrations/watchface-change.md). No files, no permission.
+- **You have a `.watch` file to add and want it shown immediately** → [fire the install intent](integrations/watchface-install.md). Installs *and* sets active. No permission.
+- **You need to browse, bulk-sync, overwrite, or delete faces programmatically** → [use the directory provider](integrations/watchface-directory.md). Requires the `ACCESS_WATCHFACES` grant.
 
 A common pattern: push a face with the directory provider (or install intent), then broadcast a
 change to activate a specific one by name.
