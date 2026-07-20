@@ -1,5 +1,7 @@
 # CloX External Data API
 
+← Back to the [Integration Guide](INTEGRATION.md)
+
 Allows any Android app to push arbitrary string data into CloX's watchface bridge via a broadcast intent. Data is stored in 10 persistent slots and immediately available to the active watchface.
 
 ---

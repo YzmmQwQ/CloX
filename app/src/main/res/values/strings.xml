@@ -1088,6 +1088,10 @@
     <string name="dialog_enter_password_title">Enter password</string>
     <string name="dialog_enter_password_message">Minimum 4 digits</string>
 
+    <!-- ── Watchface directory API (WatchfaceProvider) permission ──────────── -->
+    <string name="permission_access_watchfaces_label">Access watch faces</string>
+    <string name="permission_access_watchfaces_desc">Read, add, and remove watch face files in this app\'s watch face folder.</string>
+
     <!-- ── Watch face toasts ────────────────────────────────────────────── -->
     <string name="toast_wf_selected">Selected %s</string>
     <string name="toast_remote_server_failed">Failed to start server</string>
