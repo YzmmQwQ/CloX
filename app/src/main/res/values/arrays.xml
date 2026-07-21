@@ -4,7 +4,7 @@
         <item>Watchface only</item>
         <item>Full RTOS simulation</item>
     </string-array>
-    <string-array name="rtos_mode_values">
+    <string-array name="rtos_mode_values" translatable="false">
         <item>watchface_only</item>
         <item>full</item>
     </string-array>
@@ -13,7 +13,7 @@
         <item>Keypad (invisible 3×3 grid)</item>
         <item>Morse code (long/short press)</item>
     </string-array>
-    <string-array name="rtos_password_values">
+    <string-array name="rtos_password_values" translatable="false">
         <item>keypad</item>
         <item>morse</item>
     </string-array>
@@ -22,7 +22,7 @@
         <item>Stroke (outlined)</item>
         <item>Solid (Material filled)</item>
     </string-array>
-    <string-array name="qs_tile_style_values">
+    <string-array name="qs_tile_style_values" translatable="false">
         <item>stroke</item>
         <item>solid</item>
     </string-array>
@@ -31,7 +31,7 @@
         <item>Glass (semi-transparent + outline)</item>
         <item>Solid (opaque grey, no outline)</item>
     </string-array>
-    <string-array name="notif_card_style_values">
+    <string-array name="notif_card_style_values" translatable="false">
         <item>glass</item>
         <item>solid</item>
     </string-array>
@@ -40,7 +40,7 @@
         <item>List view</item>
         <item>Page view</item>
     </string-array>
-    <string-array name="notif_style_values">
+    <string-array name="notif_style_values" translatable="false">
         <item>list</item>
         <item>page</item>
     </string-array>
@@ -50,7 +50,7 @@
         <item>Smoothstep</item>
         <item>Exponential</item>
     </string-array>
-    <string-array name="curve_values">
+    <string-array name="curve_values" translatable="false">
         <item>linear</item>
         <item>smoothstep</item>
         <item>exponential</item>

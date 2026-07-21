@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="blur_mode_entries">
+        <item>实时（GPU 着色器）</item>
+        <item>截图 + 真实模糊</item>
+        <item>截图 + 软件模糊</item>
+        <item>禁用（仅遮罩）</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>列表</item>
+        <item>网格</item>
+        <item>瀑布流</item>
+        <item>蜂巢</item>
+        <item>2D 网格</item>
+        <item>分页</item>
+        <item>重力</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>按字母顺序</item>
+        <item>自定义顺序</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>系统默认</item>
+        <item>Android 12 图标展开</item>
+    </string-array>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no（免费，无需密钥）</item>
+        <item>Open-Meteo（免费，无需密钥）</item>
+        <item>WeatherAPI.com（密钥可选）</item>
+        <item>OpenWeatherMap（需要密钥）</item>
+        <item>wttr.in（免费，仅 3 天预报）</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15 分钟</item>
+        <item>30 分钟</item>
+        <item>1 小时</item>
+        <item>2 小时</item>
+    </string-array>
+
+    <string-array name="health_interval_entries">
+        <item>5 分钟</item>
+        <item>10 分钟</item>
+        <item>15 分钟</item>
+        <item>30 分钟</item>
+    </string-array>
+
+    <string-array name="tile_columns_entries">
+        <item>2 列（磁贴更大）</item>
+        <item>3 列（紧凑）</item>
+    </string-array>
+    <string-array name="tile_rows_entries">
+        <item>2 行</item>
+        <item>3 行</item>
+    </string-array>
+
+    <string-array name="wf_selector_mode_entries">
+        <item>分页器（横向卡片）</item>
+        <item>网格（含文件夹）</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>按文件名</item>
+        <item>按最后修改时间</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>无操作</item>
+        <item>关闭屏幕</item>
+        <item>打开表盘选择器</item>
+        <item>随机表盘</item>
+        <item>打开设置</item>
+        <item>表盘设置</item>
+        <item>切换手势锁定</item>
+        <item>进入 RTOS 模式</item>
+        <item>展开快捷设置</item>
+        <item>展开通知</item>
+        <item>打开应用</item>
+        <item>系统快捷设置</item>
+        <item>系统通知</item>
+        <item>打开最近任务</item>
+        <item>电源菜单</item>
+        <item>手电筒</item>
+        <item>音量面板</item>
+    </string-array>
+
+    <string-array name="nav_bar_mode_entries">
+        <item>隐藏</item>
+        <item>始终显示</item>
+        <item>仅在应用列表中显示</item>
+    </string-array>
+
+    <string-array name="wf_auto_interval_entries">
+        <item>关闭</item>
+        <item>每小时</item>
+        <item>每天</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>无（回退到系统面板）</item>
+        <item>Shizuku</item>
+        <item>Root (su)</item>
+    </string-array>
+
+    <string-array name="open_anim_type_entries">
+        <item>图标缩放</item>
+        <item>窗口展开</item>
+    </string-array>
+
+    <string-array name="close_anim_type_entries">
+        <item>反向图标缩放</item>
+        <item>反向窗口展开</item>
+    </string-array>
+
+    <string-array name="gesture_return_anim_entries">
+        <item>淡入</item>
+        <item>圆形展开</item>
+    </string-array>
+
+    <string-array name="rtos_mode_entries">
+        <item>仅表盘</item>
+        <item>完整 RTOS 模拟</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>键盘（不可见 3×3 网格）</item>
+        <item>摩尔斯电码（长按/短按）</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>描边（轮廓）</item>
+        <item>实心（Material 填充）</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>玻璃（半透明 + 轮廓）</item>
+        <item>实心（不透明灰色，无轮廓）</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>列表视图</item>
+        <item>分页视图</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>线性</item>
+        <item>平滑曲线</item>
+        <item>指数</item>
+    </string-array>
+</resources>

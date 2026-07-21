@@ -184,7 +184,7 @@
                     android:src="@drawable/baseline_tune_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
-                    android:contentDescription="Launcher Settings"/>
+                    android:contentDescription="@string/cd_launcher_settings"/>
 
                 <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 
@@ -196,7 +196,7 @@
                     android:src="@drawable/ic_recents"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
-                    android:contentDescription="Recents"/>
+                    android:contentDescription="@string/cd_recents"/>
 
                 <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 
@@ -208,7 +208,7 @@
                     android:src="@drawable/baseline_flashlight_on_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
-                    android:contentDescription="Flashlight"/>
+                    android:contentDescription="@string/cd_flashlight"/>
 
                 <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 
@@ -220,7 +220,7 @@
                     android:src="@drawable/baseline_power_settings_new_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
-                    android:contentDescription="Power"/>
+                    android:contentDescription="@string/cd_power"/>
 
                 <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 
@@ -232,7 +232,7 @@
                     android:src="@drawable/baseline_settings_24"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
-                    android:contentDescription="Settings"/>
+                    android:contentDescription="@string/cd_settings"/>
 
                 <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 

@@ -62,7 +62,7 @@
             android:src="@drawable/ic_close"
             android:background="@drawable/bg_delete_badge"
             android:padding="6dp"
-            android:contentDescription="Delete row"
+            android:contentDescription="@string/cd_delete_row"
             android:visibility="gone" />
 
         <!-- Drag handle — inside card, top-start, edit mode only -->

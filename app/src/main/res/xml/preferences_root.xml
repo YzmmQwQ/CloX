@@ -3,22 +3,22 @@
 
     <Preference
         android:key="nav_notifications"
-        android:title="Notifications"
-        android:summary="Panel style, alerts, filtering, blocked apps"
+        android:title="@string/pref_notifications_title"
+        android:summary="@string/pref_notifications_summary"
         android:icon="@drawable/baseline_notifications_24"
         android:fragment="com.ailife.clox.settings.fragments.NotificationSettingsFragment" />
 
     <Preference
         android:key="nav_quick_settings"
         android:title="@string/qs_title"
-        android:summary="Tiles, columns, gestures, flashlight, colors, privileges"
+        android:summary="@string/pref_quick_settings_summary"
         android:icon="@drawable/baseline_tune_24"
         android:fragment="com.ailife.clox.settings.fragments.QuickSettingsSettingsFragment" />
 
     <Preference
         android:key="nav_app_list"
-        android:title="App list"
-        android:summary="Style, sort order, icon pack"
+        android:title="@string/pref_app_list_title"
+        android:summary="@string/pref_app_list_summary"
         android:icon="@drawable/baseline_apps_24"
         android:fragment="com.ailife.clox.settings.fragments.AppListSettingsFragment" />
 
@@ -38,8 +38,8 @@
 
     <Preference
         android:key="nav_gestures"
-        android:title="Gestures"
-        android:summary="Double-tap, long-press, hardware button mapping"
+        android:title="@string/pref_gestures_title"
+        android:summary="@string/pref_gestures_summary"
         android:icon="@drawable/baseline_gesture_24"
         android:fragment="com.ailife.clox.settings.fragments.GesturesSettingsFragment" />
 
@@ -52,8 +52,8 @@
 
     <Preference
         android:key="nav_appearance"
-        android:title="Appearance"
-        android:summary="Blur mode and radius"
+        android:title="@string/pref_appearance_title"
+        android:summary="@string/pref_appearance_summary"
         android:icon="@drawable/baseline_palette_24"
         android:fragment="com.ailife.clox.settings.fragments.AppearanceSettingsFragment" />
 
@@ -94,14 +94,14 @@
 
     <Preference
         android:key="nav_hide_apps"
-        android:title="Hidden apps"
-        android:summary="Blacklist or whitelist apps from the launcher"
+        android:title="@string/pref_hidden_apps_title"
+        android:summary="@string/pref_hidden_apps_summary"
         android:icon="@drawable/baseline_visibility_off_24" />
 
     <Preference
         android:key="nav_rtos"
-        android:title="RTOS Mode"
-        android:summary="Disguise launcher as a Bluetooth RTOS watch"
+        android:title="@string/pref_rtos_title"
+        android:summary="@string/pref_rtos_summary"
         android:icon="@drawable/baseline_developer_board_24"
         android:fragment="com.ailife.clox.rtos.settings.RtosSettingsFragment" />
 
@@ -114,8 +114,8 @@
 
     <Preference
         android:key="nav_about"
-        android:title="About &amp; Update"
-        android:summary="Version, developers, Onyx project, update checker"
+        android:title="@string/pref_about_title"
+        android:summary="@string/pref_about_summary"
         android:icon="@drawable/baseline_info_24"
         android:fragment="com.ailife.clox.settings.fragments.AboutFragment" />
 

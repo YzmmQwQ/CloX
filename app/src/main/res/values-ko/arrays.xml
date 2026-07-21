@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="blur_mode_entries">
+        <item>실시간(GPU 셰이더)</item>
+        <item>캡처 + 실제 블러</item>
+        <item>캡처 + 소프트웨어 블러</item>
+        <item>사용 안 함(스크림만)</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>목록</item>
+        <item>그리드</item>
+        <item>폭포</item>
+        <item>허니콤</item>
+        <item>그리드 2D</item>
+        <item>페이지</item>
+        <item>중력</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>알파벳순</item>
+        <item>사용자 지정 순서</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>시스템 기본값</item>
+        <item>Android 12 아이콘 확장</item>
+    </string-array>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no(무료, 키 불필요)</item>
+        <item>Open-Meteo(무료, 키 불필요)</item>
+        <item>WeatherAPI.com(키 선택 사항)</item>
+        <item>OpenWeatherMap(키 필요)</item>
+        <item>wttr.in(무료, 3일만 제공)</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15분</item>
+        <item>30분</item>
+        <item>1시간</item>
+        <item>2시간</item>
+    </string-array>
+
+    <string-array name="health_interval_entries">
+        <item>5분</item>
+        <item>10분</item>
+        <item>15분</item>
+        <item>30분</item>
+    </string-array>
+
+    <string-array name="tile_columns_entries">
+        <item>2열(큰 타일)</item>
+        <item>3열(컴팩트)</item>
+    </string-array>
+    <string-array name="tile_rows_entries">
+        <item>2행</item>
+        <item>3행</item>
+    </string-array>
+
+    <string-array name="wf_selector_mode_entries">
+        <item>페이저(가로 카드)</item>
+        <item>그리드(폴더 포함)</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>파일 이름순</item>
+        <item>마지막 수정순</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>없음</item>
+        <item>화면 끄기</item>
+        <item>워치 페이스 선택기 열기</item>
+        <item>무작위 워치 페이스</item>
+        <item>설정 열기</item>
+        <item>워치 페이스 설정</item>
+        <item>제스처 잠금 전환</item>
+        <item>RTOS 모드 진입</item>
+        <item>빠른 설정 펼치기</item>
+        <item>알림 펼치기</item>
+        <item>앱 열기</item>
+        <item>시스템 빠른 설정</item>
+        <item>시스템 알림</item>
+        <item>최근 앱 열기</item>
+        <item>전원 메뉴</item>
+        <item>손전등</item>
+        <item>볼륨 패널</item>
+    </string-array>
+
+    <string-array name="nav_bar_mode_entries">
+        <item>숨김</item>
+        <item>항상 표시</item>
+        <item>앱 목록에서만</item>
+    </string-array>
+
+    <string-array name="wf_auto_interval_entries">
+        <item>끄기</item>
+        <item>매시간</item>
+        <item>매일</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>없음(대체로 시스템 패널 사용)</item>
+        <item>Shizuku</item>
+        <item>Root(su)</item>
+    </string-array>
+
+    <string-array name="open_anim_type_entries">
+        <item>아이콘 확대</item>
+        <item>창 확장</item>
+    </string-array>
+
+    <string-array name="close_anim_type_entries">
+        <item>아이콘 축소(역방향)</item>
+        <item>창 축소(역방향)</item>
+    </string-array>
+
+    <string-array name="gesture_return_anim_entries">
+        <item>페이드 인</item>
+        <item>원형 열기</item>
+    </string-array>
+
+    <string-array name="rtos_mode_entries">
+        <item>워치 페이스만</item>
+        <item>전체 RTOS 시뮬레이션</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>키패드(보이지 않는 3×3 격자)</item>
+        <item>모스 부호(길게/짧게 누르기)</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>윤곽선(테두리만)</item>
+        <item>단색(Material 채움)</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>유리(반투명 + 테두리)</item>
+        <item>단색(불투명 회색, 테두리 없음)</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>목록 보기</item>
+        <item>페이지 보기</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>선형</item>
+        <item>스무스스텝</item>
+        <item>지수</item>
+    </string-array>
+</resources>

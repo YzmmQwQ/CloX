@@ -54,30 +54,22 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         contentFrame.removeAllViews()
         val col = columnLayout()
 
-        val title = label("How it works", 22f, Color.WHITE)
+        val title = label(getString(R.string.rtos_pw_how_it_works), 22f, Color.WHITE)
         col.addView(title)
         col.addView(spacer(dp(16)))
 
-        val body = if (passwordType == RtosPrefs.PASSWORD_KEYPAD) {
-            "The watch screen is divided into an invisible 3×3 grid:\n\n" +
-            "  [ 1 ][ 2 ][ 3 ]\n  [ 4 ][ 5 ][ 6 ]\n  [ 7 ][ 8 ][ 9 ]\n\n" +
-            "Tap the grid zones to enter your code. There is no visual feedback.\n\n" +
-            "The system checks after every tap using a sliding window — " +
-            "as long as your code appears anywhere in your recent taps it will unlock.\n\n" +
-            "Your code must be at least 4 digits and not all the same."
-        } else {
-            "Tap anywhere on the watch face to enter Morse code:\n\n" +
-            "  Short press = dot  (·)\n  Long press  = dash (—)\n\n" +
-            "There is no visual feedback. The system checks after each press.\n\n" +
-            "Your code must be at least 4 symbols and not all the same."
-        }
+        val body = if (passwordType == RtosPrefs.PASSWORD_KEYPAD)
+            getString(R.string.rtos_pw_keypad_explain)
+        else
+            getString(R.string.rtos_pw_morse_explain)
 
         val bodyTv = label(body, 13f, getColor(R.color.rtos_body_text))
         bodyTv.gravity = Gravity.START
         col.addView(bodyTv)
         col.addView(spacer(dp(32)))
 
-        val btn = roundedButton("Understood (5…)").apply { isEnabled = false; alpha = 0.5f }
+        val btn = roundedButton(getString(R.string.rtos_pw_understood_countdown, 5))
+            .apply { isEnabled = false; alpha = 0.5f }
         col.addView(btn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, dp(56)
         ))
@@ -89,10 +81,10 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         object : CountDownTimer(5000, 1000) {
             override fun onTick(ms: Long) {
                 val s = (ms / 1000 + 1).toInt()
-                btn.text = "Understood ($s…)"
+                btn.text = getString(R.string.rtos_pw_understood_countdown, s)
             }
             override fun onFinish() {
-                btn.text = "Understood — Set Password"
+                btn.text = getString(R.string.rtos_pw_understood_done)
                 btn.isEnabled = true
                 btn.alpha = 1f
                 btn.setOnClickListener { showInputScreen(isConfirm = false) }
@@ -110,11 +102,12 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         contentFrame.removeAllViews()
         inputWindow.clear()
 
-        val title = if (isConfirm) "Confirm Password" else "Set Password"
+        val title = if (isConfirm) getString(R.string.rtos_pw_confirm_title)
+                    else getString(R.string.rtos_pw_set_title)
         val hint = if (passwordType == RtosPrefs.PASSWORD_KEYPAD)
-            "Tap the grid zones to enter your code"
+            getString(R.string.rtos_pw_keypad_hint)
         else
-            "Short/long press to enter Morse dots and dashes"
+            getString(R.string.rtos_pw_morse_hint)
 
         val col = columnLayout()
         col.addView(label(title, 20f, Color.WHITE))
@@ -128,7 +121,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         inputIndicator = indicator
         col.addView(spacer(dp(16)))
 
-        val clearBtn = roundedButton("Clear").apply {
+        val clearBtn = roundedButton(getString(R.string.rtos_pw_clear)).apply {
             setOnClickListener {
                 inputWindow.clear()
                 updateIndicator()
@@ -139,7 +132,7 @@ class RtosPasswordSetupActivity : AppCompatActivity() {
         ))
         col.addView(spacer(dp(8)))
 
-        val doneBtn = roundedButton("Done").apply {
+        val doneBtn = roundedButton(getString(R.string.rtos_pw_done)).apply {
             setOnClickListener { onDonePressed(isConfirm) }
         }
         col.addView(doneBtn, LinearLayout.LayoutParams(

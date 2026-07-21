@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="blur_mode_entries">
+        <item>Czas rzeczywisty (shader GPU)</item>
+        <item>Zrzut ekranu + prawdziwe rozmycie</item>
+        <item>Zrzut ekranu + programowe rozmycie</item>
+        <item>Wyłączone (tylko przyciemnienie)</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>Lista</item>
+        <item>Siatka</item>
+        <item>Wodospad</item>
+        <item>Plaster miodu</item>
+        <item>Siatka 2D</item>
+        <item>Strony</item>
+        <item>Grawitacja</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>Alfabetycznie</item>
+        <item>Kolejność niestandardowa</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>Domyślne systemowe</item>
+        <item>Rozwinięcie ikony (Android 12)</item>
+    </string-array>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no (darmowy, bez klucza)</item>
+        <item>Open-Meteo (darmowy, bez klucza)</item>
+        <item>WeatherAPI.com (klucz opcjonalny)</item>
+        <item>OpenWeatherMap (wymagany klucz)</item>
+        <item>wttr.in (darmowy, tylko 3 dni)</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15 minut</item>
+        <item>30 minut</item>
+        <item>1 godzina</item>
+        <item>2 godziny</item>
+    </string-array>
+
+    <string-array name="health_interval_entries">
+        <item>5 minut</item>
+        <item>10 minut</item>
+        <item>15 minut</item>
+        <item>30 minut</item>
+    </string-array>
+
+    <string-array name="tile_columns_entries">
+        <item>2 kolumny (większe kafelki)</item>
+        <item>3 kolumny (kompaktowe)</item>
+    </string-array>
+
+    <string-array name="tile_rows_entries">
+        <item>2 rzędy</item>
+        <item>3 rzędy</item>
+    </string-array>
+
+    <string-array name="wf_selector_mode_entries">
+        <item>Karuzela (poziome karty)</item>
+        <item>Siatka (z folderami)</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>Według nazwy pliku</item>
+        <item>Według daty modyfikacji</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>Nic</item>
+        <item>Wyłącz ekran</item>
+        <item>Otwórz selektor tarcz</item>
+        <item>Losowa tarcza zegarka</item>
+        <item>Otwórz ustawienia</item>
+        <item>Ustawienia tarczy zegarka</item>
+        <item>Przełącz blokadę gestów</item>
+        <item>Wejdź w tryb RTOS</item>
+        <item>Rozwiń Szybkie ustawienia</item>
+        <item>Rozwiń powiadomienia</item>
+        <item>Otwórz aplikację</item>
+        <item>Systemowe Szybkie ustawienia</item>
+        <item>Systemowe powiadomienia</item>
+        <item>Otwórz ostatnie aplikacje</item>
+        <item>Menu zasilania</item>
+        <item>Latarka</item>
+        <item>Panel głośności</item>
+    </string-array>
+
+    <string-array name="nav_bar_mode_entries">
+        <item>Ukryty</item>
+        <item>Zawsze widoczny</item>
+        <item>Tylko na liście aplikacji</item>
+    </string-array>
+
+    <string-array name="wf_auto_interval_entries">
+        <item>Wyłączone</item>
+        <item>Co godzinę</item>
+        <item>Co dzień</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>Brak (panele systemowe jako rezerwa)</item>
+        <item>Shizuku</item>
+        <item>Root (su)</item>
+    </string-array>
+
+    <string-array name="open_anim_type_entries">
+        <item>Powiększenie ikony</item>
+        <item>Rozwinięcie okna</item>
+    </string-array>
+
+    <string-array name="close_anim_type_entries">
+        <item>Odwrotne powiększenie ikony</item>
+        <item>Odwrotne rozwinięcie okna</item>
+    </string-array>
+
+    <string-array name="gesture_return_anim_entries">
+        <item>Pojawienie się</item>
+        <item>Otwarcie kołowe</item>
+    </string-array>
+
+    <string-array name="rtos_mode_entries">
+        <item>Tylko tarcza zegarka</item>
+        <item>Pełna symulacja RTOS</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>Klawiatura (niewidzialna siatka 3×3)</item>
+        <item>Kod Morse\'a (długie/krótkie naciśnięcie)</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>Kontur (obrys)</item>
+        <item>Wypełnione (Material)</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>Szkło (półprzezroczyste + obrys)</item>
+        <item>Pełne (nieprzezroczysta szarość, bez obrysu)</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>Widok listy</item>
+        <item>Widok stron</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>Liniowa</item>
+        <item>Wygładzona (smoothstep)</item>
+        <item>Wykładnicza</item>
+    </string-array>
+</resources>

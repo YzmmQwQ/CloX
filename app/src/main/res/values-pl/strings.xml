@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Ustawienia</string>
+    <string name="add_widget">Dodaj widżet</string>
+
+    <string name="widget_edit">Edytuj</string>
+    <string name="widget_done">Gotowe</string>
+    <string name="widget_height_auto">Auto</string>
+    <string name="widget_add_card">Dodaj kartę</string>
+    <string name="widget_add_full_width">Widżet na całą szerokość</string>
+    <string name="widget_add_three_cell">Rząd z 3 slotami</string>
+    <string name="widget_pick_app">Wybierz aplikację</string>
+    <string name="widget_pick_slot_type">Dodaj do slotu</string>
+    <string name="widget_slot_appwidget">Widżet aplikacji</string>
+    <string name="widget_slot_activity">Aktywność aplikacji</string>
+    <string name="widget_slot_shortcut">Skrót aplikacji</string>
+    <string name="widget_shortcut_pinned">Skrót „%s” dodany do CloX</string>
+    <string name="widget_shortcut_empty">Brak skrótów. Przytrzymaj aplikację i wybierz Dodaj do ekranu głównego.</string>
+    <string name="widget_add_clock">Zegar</string>
+    <string name="widget_add_weather">Pogoda</string>
+    <string name="widget_weather_no_data">Brak danych pogodowych</string>
+    <string name="widget_weather_disabled">Pogoda jest wyłączona w ustawieniach</string>
+    <string name="widget_weather_location_not_set">Nazwa lokalizacji nie ustawiona</string>
+    <string name="widget_weather_today">Dziś</string>
+    <string name="widget_weather_now">Teraz</string>
+    <string name="weather_updated_just_now">przed chwilą</string>
+    <string name="weather_updated_minutes_ago">%dm temu</string>
+    <string name="weather_updated_hours_ago">%dh temu</string>
+
+    <string name="pref_double_tap_title">Akcja podwójnego dotknięcia</string>
+    <string name="pref_location_elevation_title">Wysokość n.p.m. (m)</string>
+    <string name="pref_location_elevation_summary">Nie ustawiono — aktualizuje się automatycznie przy automatycznej lokalizacji</string>
+    <string name="pref_location_elevation_invalid">Nieprawidłowa wysokość</string>
+    <string name="location_elevation_hint">np. 38.0</string>
+    <string name="pref_double_tap_hold_title">Zablokuj pierwsze dotknięcie podwójnego dotknięcia</string>
+    <string name="pref_double_tap_hold_summary">Krótko wstrzymuje dotknięcia tarczy zegarka, aby podwójne dotknięcie nie uruchamiało też akcji dotknięcia tarczy. Dodaje krótkie opóźnienie do każdego dotknięcia — wyłącz dla tarcz w stylu stopera.</string>
+    <string name="pref_icon_pack_title">Globalny pakiet ikon</string>
+    <string name="pref_icon_pack_none">Brak (ikony systemowe)</string>
+    <string name="pref_blur_mode_title">Tryb rozmycia</string>
+    <string name="pref_blur_radius_title">Promień rozmycia</string>
+
+    <string name="pref_app_list_style_title">Styl wyświetlania</string>
+    <string name="pref_app_list_sort_title">Kolejność sortowania</string>
+    <string name="pref_app_list_sort_custom_hint">Nowe aplikacje są dodawane na dole.\nPrzytrzymaj aplikację i przeciągnij, aby zmienić kolejność.</string>
+    <string name="pref_hidden_apps_title">Ukryte aplikacje</string>
+
+    <string name="pref_3d_min_scale_title">Minimalna skala (%)</string>
+    <string name="pref_3d_min_scale_summary">Najmniejszy rozmiar na krawędzi — niższa wartość = więcej głębi</string>
+    <string name="pref_3d_curve_title">Krzywa rozmiaru</string>
+
+    <string name="pref_list_search_title">Pokaż pasek wyszukiwania</string>
+    <string name="pref_list_3d_title">Efekt głębi 3D</string>
+    <string name="pref_list_3d_summary">Aplikacje blisko górnej i dolnej krawędzi ekranu zmniejszają się</string>
+
+    <string name="pref_grid_cols_title">Kolumny</string>
+    <string name="pref_grid_names_title">Pokaż nazwy aplikacji</string>
+
+    <string name="pref_waterfall_3d_title">Efekt głębi 3D</string>
+    <string name="pref_waterfall_3d_summary">Ikony dalej od środka ekranu zmniejszają się</string>
+
+    <string name="pref_honeycomb_3d_title">Efekt głębi 3D</string>
+    <string name="pref_honeycomb_3d_summary">Ikony dalej od środka ekranu zmniejszają się (2D)</string>
+    <string name="pref_honeycomb_icon_size_title">Rozmiar ikony (dp, 0 = auto)</string>
+
+    <string name="pref_grid2d_cols_title">Kolumny</string>
+    <string name="pref_grid2d_names_title">Pokaż nazwy aplikacji</string>
+    <string name="pref_grid2d_3d_title">Efekt głębi 3D</string>
+    <string name="pref_grid2d_icon_size_title">Rozmiar ikony (dp, 0 = auto)</string>
+
+    <string name="aod_overlay_perm_title">Zezwól na wyświetlanie nad innymi aplikacjami</string>
+    <string name="aod_overlay_perm_message">Aby uruchamiać AOD po wygaszeniu ekranu wewnątrz innej aplikacji, CloX potrzebuje uprawnienia „Wyświetlanie nad innymi aplikacjami”. Bez niego Android blokuje launcherowi możliwość wyświetlenia się na pierwszym planie.</string>
+    <string name="aod_overlay_perm_grant">Otwórz ustawienia</string>
+
+    <string name="pref_icon_size_title">Rozmiar ikony (dp, 0 = auto)</string>
+    <string name="pref_round_overscroll_title">Overscroll na okrągłym ekranie</string>
+    <string name="pref_round_overscroll_summary">Przewiń nawet o pół ekranu poza krawędź i zostań tam — pozwala dosięgnąć ikon w rogach na okrągłym ekranie</string>
+
+    <string name="pref_pages_cols_title">Ikony w rzędzie</string>
+    <string name="pref_pages_rows_title">Rzędy na stronę</string>
+
+    <string name="pref_gravity_accel_title">Podążaj za akcelerometrem</string>
+    <string name="pref_gravity_accel_summary">Przechyl zegarek, aby poruszać ikonami</string>
+    <string name="pref_gravity_strength_title">Siła grawitacji</string>
+    <string name="pref_gravity_bounce_title">Odbijanie</string>
+    <string name="pref_gravity_friction_title">Tarcie</string>
+
+    <string name="pref_notif_badge_category">Odznaki powiadomień</string>
+    <string name="pref_notif_badge_title">Pokaż odznaki powiadomień</string>
+    <string name="pref_notif_badge_summary">Pokaż kropkę na aplikacjach z nieprzeczytanymi powiadomieniami</string>
+    <string name="pref_notif_badge_count_title">Pokaż liczbę</string>
+    <string name="pref_notif_badge_count_summary">Wyświetl liczbę powiadomień na odznace</string>
+
+    <string name="menu_hide_app">Ukryj tę aplikację</string>
+    <string name="hide_confirm_title">Ukryć aplikację?</string>
+    <string name="hide_confirm_message">„%1$s” zostanie ukryta na liście aplikacji. Możesz ją odkryć w ustawieniach listy aplikacji.</string>
+    <string name="menu_uninstall">Odinstaluj</string>
+    <string name="menu_app_info">Informacje o aplikacji</string>
+    <string name="menu_change_icon">Zmień ikonę</string>
+    <string name="menu_reset_icon">Przywróć domyślną ikonę</string>
+    <string name="icon_picker_title">Wybierz ikonę</string>
+    <string name="icon_picker_search_hint">Szukaj ikon…</string>
+    <string name="icon_picker_from_gallery">Wybierz z galerii</string>
+
+    <string name="pref_tap_title">Akcje dotknięcia</string>
+    <string name="pref_tap_summary">Przypisz skróty tarczy zegarka do wybranych aplikacji</string>
+    <string name="pref_tap_category_builtin">Wbudowane akcje</string>
+    <string name="pref_tap_category_shortcuts">Skróty aplikacji</string>
+    <string name="pref_tap_builtin_desc">Są obsługiwane zawsze bezpośrednio — nie wymagają konfiguracji:\nvol_up · vol_down · media_play_pause · media_next · media_prev\nmedia_play · media_pause · set_alarm_HH:MM</string>
+    <string name="pref_tap_not_configured">Nie skonfigurowano — dotknij, aby ustawić</string>
+    <string name="pref_tap_clear">Wyczyść</string>
+    <string name="tap_action_not_configured_title">Akcja nieskonfigurowana</string>
+    <string name="tap_action_not_configured_msg">Do „%1$s” nie przypisano jeszcze żadnej aplikacji. Skonfiguruj ją, aby użyć tego skrótu.</string>
+    <string name="tap_action_configure_now">Skonfiguruj teraz</string>
+    <string name="tap_action_launch_failed_title">Nie można otworzyć aplikacji</string>
+    <string name="tap_action_launch_failed_msg">Nie można otworzyć „%1$s”. Aplikacja mogła zostać odinstalowana lub wyłączona.</string>
+    <string name="tap_action_launch_failed_msg_generic">Nie można otworzyć tego skrótu. Aplikacja mogła zostać odinstalowana lub wyłączona.</string>
+
+    <string name="pref_weather_title">Pogoda</string>
+    <string name="pref_weather_summary">Aktualne warunki, prognoza, ustawienia dostawcy</string>
+    <string name="pref_weather_enabled_title">Włącz pogodę</string>
+    <string name="pref_weather_enabled_summary">Pobieraj i przesyłaj dane pogodowe do tarcz zegarka</string>
+    <string name="pref_weather_category_source">Źródło danych</string>
+    <string name="pref_weather_category_display">Wyświetlanie</string>
+    <string name="pref_weather_category_update">Aktualizacja</string>
+    <string name="pref_weather_provider_title">Dostawca</string>
+    <string name="pref_weather_language_title">Użyj języka systemowego</string>
+    <string name="pref_weather_language_summary">Użyj języka urządzenia w opisach warunków pogodowych (nie wszyscy dostawcy to obsługują)</string>
+    <string name="pref_weather_weatherapi_key_title">Klucz WeatherAPI.com</string>
+    <string name="pref_weather_weatherapi_key_summary">Uzyskaj darmowy klucz na weatherapi.com — pozostaw puste, aby użyć wbudowanego</string>
+    <string name="pref_weather_owm_key_title">Klucz OpenWeatherMap</string>
+    <string name="pref_weather_owm_key_summary">Wymaga subskrypcji One Call API 3.0 — pozostaw puste, aby użyć wbudowanego</string>
+    <string name="pref_weather_round_title">Zaokrąglaj temperaturę</string>
+    <string name="pref_weather_round_summary">Pokazuj temperatury jako liczby całkowite (np. 22 zamiast 21.7)</string>
+    <string name="pref_weather_interval_title">Częstotliwość aktualizacji</string>
+    <string name="pref_weather_refresh_title">Odśwież teraz</string>
+    <string name="pref_weather_refresh_summary">Wymuś natychmiastowe pobranie pogody</string>
+    <string name="pref_weather_refreshing">Odświeżanie…</string>
+    <string name="pref_weather_disabled_toast">Najpierw włącz pogodę</string>
+    <string name="pref_weather_last_fetch">Ostatnio: %1$d° %2$s o %3$s</string>
+    <string name="pref_weather_refresh_error_title">Nie udało się pobrać pogody</string>
+
+    <string name="pref_location_title">Lokalizacja i strefy czasowe</string>
+    <string name="pref_location_summary">Główna lokalizacja dla pogody, dodatkowe zegary stref czasowych</string>
+    <string name="pref_location_category_primary">Główna lokalizacja</string>
+    <string name="pref_location_category_extra">Dodatkowe zegary stref czasowych</string>
+    <string name="pref_location_city_title">Nazwa miasta</string>
+    <string name="pref_location_city_summary">Nazwa wyświetlana na tarczy zegarka</string>
+    <string name="pref_location_lat_title">Szerokość geograficzna</string>
+    <string name="pref_location_lat_summary">Stopnie dziesiętne, np. 22.3193</string>
+    <string name="pref_location_lon_title">Długość geograficzna</string>
+    <string name="pref_location_lon_summary">Stopnie dziesiętne, np. 114.1694</string>
+    <string name="pref_location_gps_title">Ustaw raz z GPS</string>
+    <string name="pref_location_gps_summary">Odczytaj aktualne współrzędne GPS i zapisz jako główną lokalizację</string>
+    <string name="pref_location_gps_waiting">Oczekiwanie na sygnał GPS…</string>
+    <string name="pref_location_gps_denied">Odmówiono uprawnienia do lokalizacji</string>
+    <string name="pref_location_gps_disabled">GPS jest wyłączony — włącz go w ustawieniach systemowych</string>
+    <string name="pref_location_auto_title">Automatyczna aktualizacja przez internet</string>
+    <string name="pref_location_auto_summary">Odświeżaj współrzędne na podstawie geolokalizacji IP przy każdej aktualizacji pogody (GPS niepotrzebny)</string>
+    <string name="pref_location_lat_invalid">Szerokość geograficzna musi być między −90 a 90</string>
+    <string name="pref_location_lon_invalid">Długość geograficzna musi być między −180 a 180</string>
+    <string name="pref_location_slot2_city">Slot 2 — nazwa miasta</string>
+    <string name="pref_location_slot2_tz">Slot 2 — przesunięcie strefy czasowej</string>
+    <string name="pref_location_slot3_city">Slot 3 — nazwa miasta</string>
+    <string name="pref_location_slot3_tz">Slot 3 — przesunięcie strefy czasowej</string>
+    <string name="pref_location_slot4_city">Slot 4 — nazwa miasta</string>
+    <string name="pref_location_slot4_tz">Slot 4 — przesunięcie strefy czasowej</string>
+    <string name="pref_location_slot5_city">Slot 5 — nazwa miasta</string>
+    <string name="pref_location_slot5_tz">Slot 5 — przesunięcie strefy czasowej</string>
+
+    <string name="pref_health_title">Zdrowie</string>
+    <string name="pref_health_summary">Kroki, tętno, utlenowanie krwi przez TraX</string>
+    <string name="pref_health_category_metrics">Metryki</string>
+    <string name="pref_health_category_update">Aktualizacja</string>
+    <string name="pref_health_bht_installed">Zainstalowano — dostęp do danych gotowy</string>
+    <string name="pref_health_bht_not_installed">Nie zainstalowano — dotknij, aby pobrać</string>
+    <string name="pref_health_steps_title">Kroki</string>
+    <string name="pref_health_steps_summary">Dzienna liczba kroków, dystans i kalorie</string>
+    <string name="pref_health_instant_steps_title">Natychmiastowa liczba kroków</string>
+    <string name="pref_health_instant_steps_summary">Odczytuj czujnik bezpośrednio zamiast dziennika w tle (może być mniej dokładne)</string>
+    <string name="pref_health_hr_title">Tętno</string>
+    <string name="pref_health_hr_summary">Odczyt BPM z historią 10 pomiarów</string>
+    <string name="pref_health_spo2_title">Utlenowanie krwi</string>
+    <string name="pref_health_spo2_summary">Wartość procentowa SpO2</string>
+    <string name="pref_health_sleep_title">Sen</string>
+    <string name="pref_health_sleep_summary">Fazy snu z ostatniej nocy (wymaga rejestrowania tętna w nocy)</string>
+    <string name="pref_health_stress_title">Stres</string>
+    <string name="pref_health_stress_summary">Dzienny wskaźnik stresu 0–100</string>
+    <string name="pref_health_no_sleep_data">Nie wykryto snu</string>
+    <string name="pref_health_permission_toast">Wymagane jest uprawnienie do danych zdrowotnych — przyznaj je, aby odczytywać dane z TraX</string>
+    <string name="pref_health_instant_title">Natychmiastowy pomiar</string>
+    <string name="pref_health_instant_summary">Wywołaj odczyt czujnika w czasie rzeczywistym dla tętna i SpO2; trwa dłużej, ale odzwierciedla aktualną wartość</string>
+    <string name="pref_health_interval_title">Częstotliwość aktualizacji</string>
+    <string name="pref_health_not_installed_toast">TraX nie jest zainstalowany</string>
+    <string name="pref_health_refresh_title">Odśwież teraz</string>
+    <string name="pref_health_refresh_summary">Natychmiast pobierz wszystkie włączone metryki</string>
+    <string name="pref_health_refreshing">Odświeżanie…</string>
+
+    <string name="pref_sensors_title">Czujniki i prywatność</string>
+    <string name="pref_sensors_summary">Dostęp do kalendarza, akcelerometr, kompas, barometr</string>
+
+    <string name="pref_sensors_category_data">Dostęp do danych</string>
+    <string name="pref_sensors_category_motion">Czujniki ruchu</string>
+
+    <string name="pref_calendar_title">Dostęp do kalendarza</string>
+    <string name="pref_calendar_summary">Zezwól tarczom na odczyt nadchodzących wydarzeń z kalendarza</string>
+    <string name="pref_calendar_permission_denied">Odmówiono uprawnienia do kalendarza — dostęp pozostaje wyłączony</string>
+
+    <string name="pref_accelerometer_title">Akcelerometr</string>
+    <string name="pref_accelerometer_summary">Zezwól tarczom na odczyt danych o ruchu i przechyleniu</string>
+    <string name="pref_compass_title">Kompas</string>
+    <string name="pref_compass_summary">Zezwól tarczom na odczyt kierunku magnetycznego (wymaga magnetometru)</string>
+    <string name="pref_barometer_title">Barometr</string>
+    <string name="pref_barometer_summary">Zezwól tarczom na odczyt ciśnienia atmosferycznego</string>
+    <string name="pref_gyroscope_title">Żyroskop</string>
+    <string name="pref_gyroscope_summary">Zezwól tarczom na odczyt prędkości obrotowej</string>
+    <string name="pref_sensor_unavailable">Niedostępne na tym urządzeniu</string>
+
+    <string name="accessibility_service_label">Szybkie akcje CloX</string>
+    <string name="accessibility_service_description">Umożliwia CloX wyświetlanie menu zasilania i ostatnich aplikacji z poziomu Szybkich ustawień.</string>
+    <string name="qs_title">Szybkie ustawienia</string>
+    <string name="qs_enabled_title">Włącz Szybkie ustawienia</string>
+    <string name="qs_enabled_summary">Przesuń w dół od tarczy zegarka, aby otworzyć; wyłączenie wyłącza gest i wszystkie nasłuchiwacze w tle</string>
+    <string name="qs_sensitivity_title">Czułość gestu</string>
+    <string name="qs_tile_columns_title">Kolumny kafelków</string>
+    <string name="qs_tile_rows_title">Rzędy na stronę</string>
+    <string name="qs_system_color_title">Użyj koloru systemowego</string>
+    <string name="qs_system_color_summary">Użyj kolorów tapety Material You (Android 12+); wyłącza poniższe niestandardowe wybory kolorów</string>
+    <string name="qs_flashlight_hw_title">Użyj diody sprzętowej</string>
+    <string name="qs_flashlight_hw_summary">Wyłączone: rozjaśnia ekran na biało z maksymalną jasnością (działa w większości zegarków). Włączone: używa diody LED aparatu.</string>
+    <string name="qs_color_tiles_title">Kolorowe oznaczenia stanów kafelków</string>
+    <string name="qs_color_connected_title">Kolor połączenia</string>
+    <string name="qs_color_idle_title">Kolor bezczynności / łączenia</string>
+    <string name="qs_color_disconnected_title">Kolor rozłączenia</string>
+    <string name="qs_color_off_title">Kolor wyłączenia</string>
+    <string name="qs_privilege_title">Tryb uprawnień</string>
+    <string name="qs_privilege_status_title">Stan uprawnień</string>
+    <string name="qs_accessibility_status_title">Szybkie akcje CloX</string>
+    <string name="qs_accessibility_status_summary">Wymagane dla menu zasilania i ostatnich aplikacji</string>
+    <string name="qs_tile_editor_title">Uporządkuj kafelki</string>
+    <string name="qs_tile_editor_summary">Wybierz i zmień kolejność kafelków widocznych w panelu</string>
+
+    <string name="pref_watchface_title">Tarcze zegarka</string>
+    <string name="pref_watchface_summary">Styl selektora, kolejność sortowania, sklep i zarządzanie zdalne</string>
+    <string name="pref_wf_open_selector_title">Otwórz selektor tarcz</string>
+    <string name="pref_wf_open_selector_summary">Przeglądaj, zarządzaj i wybierz aktywną tarczę zegarka</string>
+    <string name="pref_wf_open_config_title">Dostosuj wyrównanie i zachowanie</string>
+    <string name="pref_wf_open_config_summary">Wyrównanie, zachowanie i liczba klatek na sekundę dla aktywnej tarczy zegarka</string>
+    <string name="pref_wf_defaults_title">Domyślne ustawienia tarczy zegarka</string>
+    <string name="pref_wf_defaults_summary">Domyślne wyrównanie, zachowanie i liczba klatek na sekundę dla wszystkich tarcz</string>
+
+    <string name="wfcfg_title_default">Domyślna tarcza zegarka</string>
+    <string name="wfcfg_defaults_title">Domyślne ustawienia tarczy zegarka</string>
+    <string name="wfcfg_done">Gotowe</string>
+    <string name="wfcfg_change">Zmień</string>
+    <string name="wfcfg_reload">Wczytaj ponownie</string>
+    <string name="wfcfg_tab_alignment">Wyrównanie</string>
+    <string name="wfcfg_tab_behavior">Zachowanie</string>
+    <string name="wfcfg_tab_framerate">Liczba klatek</string>
+    <string name="wfcfg_tab_info">Informacje</string>
+    <string name="wfcfg_use_default">Użyj domyślnych ustawień aplikacji</string>
+    <string name="wfcfg_use_default_summary">Użyj wartości domyślnej ustawionej globalnie w Ustawieniach</string>
+    <string name="wfcfg_align_vertical">Wypełnij wysokość</string>
+    <string name="wfcfg_align_horizontal">Dopasuj</string>
+    <string name="wfcfg_align_stretch">Rozciągnij</string>
+    <string name="wfcfg_align_custom">Niestandardowe</string>
+    <string name="wfcfg_width">Szerokość</string>
+    <string name="wfcfg_height">Wysokość</string>
+    <string name="wfcfg_h_offset">Przesunięcie poziome</string>
+    <string name="wfcfg_v_offset">Przesunięcie pionowe</string>
+    <string name="wfcfg_reset_alignment">Resetuj wyrównanie</string>
+    <string name="wfcfg_precise_set">Ustaw</string>
+    <string name="wfcfg_allow_sound">Zezwól na dźwięk</string>
+    <string name="wfcfg_allow_sound_summary">Efekty dźwiękowe i dźwięk wideo</string>
+    <string name="wfcfg_allow_vibrate">Zezwól na wibracje</string>
+    <string name="wfcfg_allow_vibrate_summary">Sprzężenie haptyczne z tarczy zegarka</string>
+    <string name="wfcfg_allow_sensors">Zezwól na czujniki</string>
+    <string name="wfcfg_allow_sensors_summary">Ruch, kompas i ciśnienie (wymaga włączenia globalnego ustawienia czujników)</string>
+    <string name="wfcfg_allow_weather">Zezwól na pogodę</string>
+    <string name="wfcfg_allow_weather_summary">Pozwól tej tarczy używać danych pogodowych</string>
+    <string name="wfcfg_allow_health">Zezwól na dane zdrowotne</string>
+    <string name="wfcfg_allow_health_summary">Pozwól tej tarczy używać kroków, tętna i SpO₂</string>
+    <string name="wfcfg_allow_tap">Zezwól na akcje dotknięcia</string>
+    <string name="wfcfg_allow_tap_summary">Pozwól dotknięciom uruchamiać aplikacje i akcje systemowe</string>
+    <string name="wfcfg_fps_unlimited">Bez limitu</string>
+    <string name="wfcfg_aod_hint">Tryb ambient (AOD) jest zawsze ograniczony do 1 FPS, aby oszczędzać energię.</string>
+    <string name="wfcfg_tab_color">Kolor</string>
+    <string name="wfcfg_color_default">Domyślny kolor tarczy</string>
+    <string name="wfcfg_color_theme">Użyj motywu launchera</string>
+    <string name="wfcfg_color_fixed">Niestandardowy kolor</string>
+    <string name="wfcfg_color_pick">Wybierz…</string>
+    <string name="wfcfg_color_theme_hint">Używa systemowego akcentu Material You, tak jak interfejs launchera.</string>
+    <string name="wfcfg_dynamic_fps">Dynamiczne FPS</string>
+    <string name="wfcfg_dynamic_fps_summary">Bezczynna tarcza spada do 1 FPS, pełna prędkość podczas interakcji; wstrzymana pod otwartą listą aplikacji</string>
+    <string name="wfcfg_optimize">Optymalizuj renderowanie</string>
+    <string name="wfcfg_optimize_summary">Scal statyczne warstwy w buforowane tekstury (szybciej, mniej energii)</string>
+    <string name="wfcfg_optimize_stat">Scalono %1$d z %2$d warstw w buforowane tekstury: %3$d</string>
+    <string name="wfcfg_optimize_stat_none">Na tej tarczy nie scalono żadnych warstw</string>
+    <string name="wfcfg_optimize_stat_off">Optymalizacja wyłączona — wszystkie warstwy renderowane na żywo</string>
+    <string name="wfcfg_info_name">Nazwa</string>
+    <string name="wfcfg_info_author">Autor</string>
+    <string name="wfcfg_info_desc">Opis</string>
+    <string name="wfcfg_info_tags">Tagi</string>
+    <string name="wfcfg_info_features">Używane funkcje</string>
+    <string name="wfcfg_info_format">Format</string>
+    <string name="wfcfg_info_protected">chronione</string>
+    <string name="wfcfg_info_layers">Warstwy</string>
+    <string name="wfcfg_info_size">Rozmiar tarczy zegarka</string>
+    <string name="wfcfg_info_storage">Zapisane dane</string>
+    <string name="wfcfg_info_clear">Wyczyść dane</string>
+    <string name="wfcfg_info_reserved">Zarezerwowane</string>
+    <string name="wfcfg_clear_confirm_title">Wyczyścić zapisane dane?</string>
+    <string name="wfcfg_clear_confirm_msg">Spowoduje to usunięcie zapisanych zmiennych tej tarczy zegarka i ponowne jej wczytanie. Tej czynności nie można cofnąć.</string>
+    <string name="pref_wf_category_selector">Selektor</string>
+    <string name="pref_wf_category_management">Zarządzanie</string>
+    <string name="pref_wf_selector_mode_title">Styl selektora</string>
+    <string name="pref_wf_sort_title">Kolejność sortowania</string>
+    <string name="pref_wf_store_title">Sklep z tarczami zegarka</string>
+    <string name="pref_wf_store_summary">Przeglądaj i pobieraj tarcze zegarka społeczności</string>
+    <string name="pref_wf_remote_title">Zarządzanie zdalne</string>
+    <string name="pref_wf_remote_summary">Zarządzaj tarczami zegarka przez przeglądarkę na dowolnym urządzeniu w tej samej sieci</string>
+    <string name="pref_wf_import_title">Importuj tarcze zegarka</string>
+    <string name="pref_wf_import_summary">Kopiuj pliki .watch z pamięci urządzenia</string>
+    <string name="pref_wf_gallery_title">Galeria obrazów</string>
+    <string name="pref_wf_gallery_summary">Zarządzaj obrazami używanymi przez tarcze Lua</string>
+
+    <string name="gallery_title">Galeria obrazów</string>
+    <string name="gallery_empty">Brak obrazów.\nDotknij +, aby zaimportować z urządzenia.</string>
+    <string name="gallery_fab_desc">Importuj obrazy</string>
+    <string name="gallery_item_desc">Obraz z galerii</string>
+    <string name="gallery_delete_title">Usuń obraz</string>
+    <string name="gallery_delete_message">Usunąć „%s” z galerii?</string>
+    <string name="gallery_delete_confirm">Usuń</string>
+
+    <string name="pref_gestures_watchface_category">Gesty tarczy zegarka</string>
+    <string name="pref_long_press_title">Akcja długiego naciśnięcia</string>
+    <string name="pref_home_press_screen_off_title">Przycisk Home wyłącza ekran</string>
+    <string name="pref_home_press_screen_off_summary">Gdy jesteś już na tarczy zegarka, naciśnięcie Home wyłącza ekran (wymaga uprawnienia Ułatwienia dostępu)</string>
+    <string name="pref_reset_watchface_on_screen_title">Przywróć tarczę po włączeniu ekranu</string>
+    <string name="pref_reset_watchface_on_screen_summary">Gdy ekran się wyłącza, zwiń listę aplikacji i panele, aby przy następnym włączeniu ekranu pokazała się tarcza zegarka</string>
+
+    <string name="pref_btn_map_category">Mapowanie przycisków sprzętowych</string>
+    <string name="pref_btn_map_record_title">Zmapowany przycisk</string>
+    <string name="pref_btn_map_record_summary">Dotknij, aby zarejestrować przycisk</string>
+    <string name="pref_btn_single_title">Pojedyncze naciśnięcie</string>
+    <string name="pref_btn_double_title">Podwójne naciśnięcie</string>
+    <string name="pref_btn_long_title">Długie naciśnięcie</string>
+    <string name="pref_btn_map_clear_title">Wyczyść mapowanie przycisku</string>
+
+    <string name="wf_selector_title">Tarcze zegarka</string>
+    <string name="wf_action_delete">Usuń</string>
+    <string name="wf_action_rename">Zmień nazwę</string>
+    <string name="wf_action_pin">Przypnij</string>
+    <string name="wf_action_unpin">Odepnij</string>
+    <string name="wf_action_move">Przenieś do folderu</string>
+    <string name="wf_open_store">Sklep</string>
+    <string name="wf_remote_management">Zdalne</string>
+    <string name="wf_import">Importuj</string>
+    <string name="wf_random">Losowa</string>
+    <string name="wf_default_watchface">Domyślna tarcza zegarka</string>
+    <string name="wf_default_watchface_desc">Wbudowana — plik niepotrzebny</string>
+    <string name="wf_store_download_btn">Pobierz i zainstaluj</string>
+    <string name="wf_store_downloading">Pobieranie…</string>
+    <string name="wf_store_download_done">Zainstalowano!</string>
+    <string name="wf_search_hint">Szukaj tarcz zegarka…</string>
+    <string name="wf_loading">Wczytywanie…</string>
+    <string name="wf_pinned_section">Przypięte</string>
+    <string name="wf_other_section">Pozostałe</string>
+    <string name="wf_add_folder">Dodaj folder</string>
+    <string name="wf_delete_folder">Usuń folder</string>
+    <string name="wf_rename_folder">Zmień nazwę folderu</string>
+    <string name="wf_move_all">Przenieś całą zawartość</string>
+    <string name="wf_move_to_root">Katalog główny (bez folderu)</string>
+    <string name="wf_confirm_delete">Usunąć %s?</string>
+    <string name="wf_confirm_delete_folder">Usunąć folder „%s” wraz ze wszystkimi tarczami zegarka?</string>
+    <string name="wf_rename_hint">Nowa nazwa</string>
+    <string name="wf_rename_failed">Tarcza zegarka o tej nazwie już istnieje</string>
+    <string name="wf_folder_name_hint">Nazwa folderu</string>
+    <string name="wf_import_progress">Importowanie…</string>
+    <string name="wf_import_done">Gotowe — zaimportowano tarcze zegarka: %d</string>
+    <string name="wf_import_pick_desc">Importuj pliki .watch z pamięci urządzenia</string>
+    <string name="wf_import_pick_folder">Wybierz folder (zaimportuj wszystkie pliki .watch)</string>
+    <string name="wf_import_pick_file">Wybierz pojedyncze pliki</string>
+    <string name="wf_invalid_file">To nie jest prawidłowy plik .watch</string>
+    <string name="wf_imported">Zaimportowano tarczę zegarka i ustawiono jako aktywną</string>
+    <string name="wf_import_failed">Nie udało się zaimportować tarczy zegarka</string>
+    <string name="wf_import_pick_zip">Wybierz zip (wiele tarcz zegarka)</string>
+    <string name="wf_import_zip_failed">Nie znaleziono tarcz zegarka w tym pliku zip</string>
+    <string name="wf_backup_desc">Zapisz wszystkie zainstalowane tarcze zegarka, wraz z podfolderami, do jednego pliku zip</string>
+    <string name="wf_backup_all_btn">Utwórz kopię zapasową (zip)</string>
+    <string name="wf_backup_progress">Tworzenie kopii zapasowej…</string>
+    <string name="wf_backup_done">Utworzono kopię zapasową tarcz zegarka: %d</string>
+    <string name="wf_backup_failed">Nie udało się utworzyć kopii zapasowej</string>
+    <string name="action_back">Wstecz</string>
+
+    <string name="wf_remote_status">Stan serwera</string>
+    <string name="wf_remote_running">Uruchomiony — otwórz w przeglądarce</string>
+    <string name="wf_remote_stopped">Zatrzymany</string>
+    <string name="wf_remote_copy">Kopiuj link</string>
+    <string name="wf_remote_share">Udostępnij link</string>
+    <string name="wf_remote_copied">Link skopiowany do schowka</string>
+    <string name="wf_remote_qr_hint">Zeskanuj telefonem, aby otworzyć na innym urządzeniu</string>
+    <string name="wf_remote_open_browser">Otwórz w przeglądarce</string>
+
+    <string name="gesture_open_app_summary">Otwórz aplikację: %1$s</string>
+    <string name="gesture_open_app_none">nie wybrano aplikacji</string>
+
+    <string name="pref_swipe_category">Akcje przesunięcia</string>
+    <string name="pref_swipe_category_summary">Uruchamiane, gdy odpowiedni panel jest wyłączony.</string>
+    <string name="pref_swipe_down_title">Przesunięcie w dół (Szybkie ustawienia wyłączone)</string>
+    <string name="pref_swipe_right_title">Przesunięcie w prawo (Powiadomienia wyłączone)</string>
+
+    <string name="pref_btn_add_title">Dodaj przycisk</string>
+    <string name="pref_btn_add_summary">Dotknij, aby zarejestrować kolejny przycisk</string>
+    <string name="pref_btn_remove">Usuń</string>
+
+    <string name="pref_nav_bar_title">Pasek nawigacji</string>
+
+    <string name="pref_wf_category_auto">Automatyczna zmiana</string>
+    <string name="pref_wf_auto_screen_on_title">Zmień przy włączeniu ekranu</string>
+    <string name="pref_wf_auto_screen_on_summary">Wybieraj losową tarczę zegarka za każdym razem, gdy ekran się włącza</string>
+    <string name="pref_wf_auto_interval_title">Zmieniaj co określony czas</string>
+    <string name="pref_wf_auto_interval_summary">Wybierz losową tarczę zegarka po upływie interwału (sprawdzane przy włączeniu ekranu)</string>
+
+    <string name="pref_aod_title">Ekran zawsze włączony (AOD)</string>
+    <string name="pref_aod_summary">Utrzymuj ekran włączony, pokazuj tarczę zegarka</string>
+    <string name="pref_aod_enabled_title">Włącz AOD</string>
+    <string name="pref_aod_enabled_summary">Utrzymuj ekran włączony i wyświetlaj tarczę zegarka</string>
+    <string name="pref_aod_when_charging_title">Zawsze włączony podczas ładowania</string>
+    <string name="pref_aod_when_charging_summary">Utrzymuj AOD aktywny podczas ładowania, nawet jeśli AOD jest wyłączony</string>
+    <string name="pref_aod_category_display">Wyświetlacz</string>
+    <string name="pref_aod_category_behavior">Zachowanie</string>
+    <string name="pref_aod_timeout_title">Czas bezczynności</string>
+    <string name="pref_aod_timeout_summary">Liczba sekund przed przyciemnieniem ekranu i zablokowaniem gestów</string>
+    <string name="pref_aod_brightness_title">Jasność przy przyciemnieniu</string>
+    <string name="pref_aod_brightness_summary">Jasność ekranu w trybie przyciemnionym (1–255)</string>
+    <string name="pref_aod_reawaken_title">Ponowne wybudzenie po wyłączeniu ekranu</string>
+    <string name="pref_aod_reawaken_summary">Ponownie włącz ekran, jeśli wyłączy go inna aplikacja</string>
+    <string name="pref_aod_lock_gesture_title">Zablokuj gesty przy bezczynności</string>
+    <string name="pref_aod_lock_gesture_summary">Blokuj gesty przesunięcia po upływie czasu bezczynności</string>
+    <string name="pref_aod_lock_gesture_delay_title">Opóźnienie blokady gestów</string>
+    <string name="pref_aod_lock_gesture_delay_summary">Liczba sekund po upływie czasu przed zablokowaniem gestów</string>
+    <string name="pref_aod_shallow_sleep_title">Płytki sen</string>
+    <string name="pref_aod_shallow_sleep_summary">Pojedyncze dotknięcie wybudza ekran, ale nie odblokowuje gestów</string>
+    <string name="pref_aod_power_button_exit_title">Przycisk zasilania wychodzi z AOD</string>
+    <string name="pref_aod_power_button_exit_summary">Naciśnięcie przycisku zasilania włącza ekran i wychodzi z AOD</string>
+
+    <string name="pref_debug_title">Debugowanie</string>
+    <string name="pref_debug_summary">Obsługa błędów, kopie zapasowe, konserwacja</string>
+    <string name="debug_ignore_lua_errors_title">Ignoruj błędy Lua</string>
+    <string name="debug_ignore_lua_errors_summary">Nie pokazuj okna dialogowego przy błędzie skryptu tarczy zegarka lub nieskonfigurowanej akcji dotknięcia</string>
+    <string name="debug_category_backup">Kopia zapasowa i przywracanie</string>
+    <string name="debug_export_settings_title">Eksportuj ustawienia</string>
+    <string name="debug_export_settings_summary">Zapisz wszystkie ustawienia i konfiguracje tarcz zegarka do pliku JSON</string>
+    <string name="debug_export_btn">Eksportuj</string>
+    <string name="debug_import_settings_title">Importuj ustawienia</string>
+    <string name="debug_import_settings_summary">Przywróć ustawienia z wcześniej wyeksportowanego pliku JSON</string>
+    <string name="debug_import_btn">Importuj</string>
+    <string name="debug_export_success">Ustawienia wyeksportowane</string>
+    <string name="debug_export_failed">Eksport nie powiódł się</string>
+    <string name="debug_import_success">Ustawienia zaimportowane — restartowanie launchera…</string>
+    <string name="debug_import_failed">Import nie powiódł się — plik może nie być prawidłowym eksportem ustawień CloX</string>
+    <string name="debug_category_danger">Strefa niebezpieczna</string>
+    <string name="debug_force_stop_title">Wymuś zatrzymanie launchera</string>
+    <string name="debug_force_stop_summary">Android nie pozwala aplikacjom na wymuszone zatrzymanie samych siebie tak jak robi to aplikacja Ustawienia — to zamiast tego zabija i restartuje proces launchera</string>
+    <string name="debug_force_stop_btn">Wymuś zatrzymanie</string>
+    <string name="debug_force_stop_confirm_title">Wymusić zatrzymanie launchera?</string>
+    <string name="debug_force_stop_confirm_message">Natychmiast zabija proces launchera. Uruchomi się ponownie automatycznie, ponieważ CloX jest domyślną aplikacją startową.</string>
+    <string name="debug_uninstall_title">Odinstaluj launcher</string>
+    <string name="debug_uninstall_summary">Dezaktywuje administratora urządzenia, a następnie otwiera systemowe okno odinstalowywania</string>
+    <string name="debug_uninstall_btn">Odinstaluj</string>
+    <string name="debug_uninstall_confirm_title">Odinstalować CloX?</string>
+    <string name="debug_uninstall_confirm_message">Dezaktywuje administratora urządzenia i otwiera systemowe okno odinstalowywania. Będziesz musiał tam potwierdzić odinstalowanie.</string>
+
+    <string name="crash_title">Aplikacja uległa awarii</string>
+    <string name="crash_message">Poniżej wyświetlono raport błędu. Możesz go skopiować lub udostępnić.</string>
+    <string name="crash_btn_close">Zamknij</string>
+    <string name="crash_btn_copy">Kopiuj</string>
+    <string name="crash_btn_share">Udostępnij</string>
+    <string name="crash_copied">Skopiowano do schowka</string>
+
+    <string name="notif_panel_title">Powiadomienia</string>
+    <string name="notif_grant_permission">Przyznaj uprawnienie</string>
+    <string name="notif_try_anyway">Spróbuj mimo to</string>
+    <string name="notif_empty">Brak powiadomień</string>
+    <string name="notif_dismiss_all_desc">Odrzuć wszystkie</string>
+
+    <string name="dialog_volume_title">Głośność</string>
+
+    <string name="toast_rtos_activated">Tryb RTOS aktywowany</string>
+    <string name="toast_rtos_deactivated">Tryb RTOS dezaktywowany</string>
+    <string name="toast_rtos_set_password_first">Najpierw ustaw hasło</string>
+    <string name="toast_rtos_password_cleared">Hasło wyczyszczone — ustaw nowe hasło dla wybranego typu</string>
+    <string name="toast_rtos_accessibility_first">Najpierw włącz usługę ułatwień dostępu</string>
+    <string name="toast_rtos_password_saved">Hasło zapisane</string>
+    <string name="toast_rtos_passwords_dont_match">Hasła się nie zgadzają — spróbuj ponownie</string>
+    <string name="toast_rtos_password_too_short">Wymagane co najmniej 4 symbole, nie wszystkie takie same</string>
+    <string name="rtos_accessibility_enabled">✓ Włączone</string>
+    <string name="rtos_accessibility_disabled">Dotknij, aby włączyć — wymagane do blokowania aplikacji</string>
+
+    <string name="tile_wifi">Wi-Fi</string>
+    <string name="tile_data">Dane</string>
+    <string name="tile_bluetooth">Bluetooth</string>
+    <string name="tile_volume">Głośność</string>
+    <string name="tile_dnd">DND</string>
+    <string name="tile_rotate">Obrót</string>
+    <string name="tile_flashlight">Latarka</string>
+    <string name="tile_location">Lokalizacja</string>
+    <string name="tile_aod">Zawsze wł.</string>
+    <string name="tile_airplane">Tryb samolotowy</string>
+    <string name="tile_hotspot">Hotspot</string>
+    <string name="tile_rtos_mode">Tryb RTOS</string>
+
+    <string name="btn_volume_up">Głośność w górę</string>
+    <string name="btn_volume_down">Głośność w dół</string>
+    <string name="btn_camera">Aparat</string>
+    <string name="btn_menu">Menu</string>
+    <string name="btn_search">Szukaj</string>
+    <string name="btn_play_pause">Odtwórz/Pauza</string>
+    <string name="btn_next_track">Następny utwór</string>
+    <string name="btn_prev_track">Poprzedni utwór</string>
+    <string name="btn_none">Brak</string>
+    <string name="btn_format">Przycisk (%d)</string>
+
+    <string name="tap_launcher_home">Launcher / Ekran główny</string>
+    <string name="tap_weather">Pogoda</string>
+    <string name="tap_health">Zdrowie</string>
+    <string name="tap_calendar_widget">Widżet kalendarza</string>
+    <string name="tap_agenda">Terminarz</string>
+    <string name="tap_fitness">Fitness</string>
+    <string name="tap_heart_rate">Tętno</string>
+    <string name="tap_compass">Kompas</string>
+    <string name="tap_notes">Notatki</string>
+    <string name="tap_email">E-mail</string>
+    <string name="tap_calendar_app">Aplikacja kalendarza</string>
+    <string name="tap_voice_search">Wyszukiwanie głosowe</string>
+    <string name="tap_contacts">Kontakty</string>
+    <string name="tap_sports">Sport</string>
+    <string name="tap_gallery_photos">Galeria / Zdjęcia</string>
+    <string name="tap_messages">Wiadomości</string>
+    <string name="tap_camera">Aparat</string>
+    <string name="tap_phone_dialer">Telefon / Wybieranie numeru</string>
+    <string name="tap_music_player">Odtwarzacz muzyki</string>
+    <string name="tap_clock_alarm">Zegar / Alarm</string>
+    <string name="tap_calculator">Kalkulator</string>
+    <string name="tap_wallet_payment">Portfel / Płatność</string>
+    <string name="tap_maps_navigation">Mapy / Nawigacja</string>
+    <string name="tap_browser">Przeglądarka</string>
+    <string name="tap_flashlight">Latarka</string>
+    <string name="tap_social_media">Media społecznościowe</string>
+
+    <string name="weather_clear_sky">Czyste niebo</string>
+    <string name="weather_mainly_clear">Przeważnie bezchmurnie</string>
+    <string name="weather_partly_cloudy">Częściowe zachmurzenie</string>
+    <string name="weather_overcast">Pochmurno</string>
+    <string name="weather_fog">Mgła</string>
+    <string name="weather_drizzle">Mżawka</string>
+    <string name="weather_rain">Deszcz</string>
+    <string name="weather_snow">Śnieg</string>
+    <string name="weather_rain_showers">Przelotne opady deszczu</string>
+    <string name="weather_snow_showers">Przelotne opady śniegu</string>
+    <string name="weather_thunderstorm">Burza</string>
+    <string name="weather_unknown">Nieznane</string>
+
+    <string name="custom_tile_label_hint">Etykieta kafelka</string>
+    <string name="custom_tile_launch_app">Uruchom aplikację</string>
+    <string name="custom_tile_write_setting">Zapisz ustawienie</string>
+    <string name="custom_tile_add_btn">Dodaj kafelek</string>
+    <string name="custom_tile_default_label">Niestandardowy</string>
+
+    <string name="appearance_density_default">0 = domyślne systemowe</string>
+
+    <string name="api_key_hint">Klucz API</string>
+
+    <string name="store_downloads_label">%d pobrań</string>
+    <string name="store_uploaded_label">Przesłano %s</string>
+    <string name="store_author_label">autor: %s</string>
+    <string name="store_download_failed">Pobieranie nie powiodło się: %s</string>
+    <string name="wf_store_sort_popular">Najczęściej pobierane</string>
+    <string name="wf_store_screen_round">Okrągły</string>
+    <string name="wf_store_screen_square">Kwadratowy</string>
+    <string name="wf_store_screen_rect">Prostokątny</string>
+
+    <string name="gesture_mapped_format">Zmapowano: %s — dotknij, aby zmienić</string>
+
+    <string name="notif_pick_card_style">Styl karty</string>
+    <string name="notif_pick_view_style">Styl widoku</string>
+
+    <string name="toast_qs_rtos_not_configured">Tryb RTOS nieskonfigurowany</string>
+    <string name="toast_qs_app_not_found">Nie znaleziono aplikacji: %s</string>
+    <string name="toast_qs_elevated_required">Wymaga podwyższonych uprawnień dla ustawień %s</string>
+
+    <string name="toast_ota_no_internet">Brak połączenia z internetem</string>
+    <string name="toast_ota_check_failed_code">Sprawdzanie aktualizacji nie powiodło się (%d)</string>
+    <string name="toast_ota_check_failed">Sprawdzanie aktualizacji nie powiodło się: %s</string>
+    <string name="toast_ota_no_apk">Nie znaleziono pliku APK w wydaniu</string>
+    <string name="toast_ota_parse_failed">Nie udało się przetworzyć informacji o wydaniu</string>
+    <string name="toast_ota_up_to_date">Już aktualne (%s)</string>
+    <string name="toast_ota_auto_disabled">Automatyczne sprawdzanie aktualizacji wyłączone</string>
+    <string name="toast_ota_downloading">Pobieranie aktualizacji…</string>
+    <string name="toast_ota_install_failed">Instalacja nie powiodła się: %s</string>
+
+    <string name="dialog_ota_update_title">Dostępna aktualizacja — v%s</string>
+    <string name="dialog_ota_update_positive">Aktualizuj</string>
+    <string name="dialog_ota_update_neutral">Później</string>
+    <string name="dialog_ota_update_negative">Nie pytaj ponownie</string>
+    <string name="dialog_ota_skip">Pomiń tę wersję</string>
+    <string name="toast_ota_checking">Sprawdzanie aktualizacji…</string>
+    <string name="toast_ota_skipped">Pominięto wersję %s</string>
+    <string name="dialog_ota_progress_title">Pobieranie aktualizacji…</string>
+    <string name="dialog_ota_progress_hide">Ukryj</string>
+    <string name="ota_download_notif_title">Aktualizacja CloX</string>
+
+    <string name="dialog_default_launcher_title">Ustaw jako domyślny launcher</string>
+    <string name="dialog_default_launcher_message">Aby CloX działał poprawnie, musi być ustawiony jako domyślny launcher.\n\nUwaga: Niektóre urządzenia nie pozwalają wybrać opcji „Zawsze” przy pierwszym wyborze — jeśli tak się stanie, po prostu wybierz ją ponownie.</string>
+    <string name="dialog_default_launcher_positive">Ustaw teraz</string>
+    <string name="dialog_default_launcher_neutral">Zapytaj później</string>
+    <string name="dialog_default_launcher_negative">Nigdy</string>
+
+    <string name="rtos_setting_enabled_title">Włącz tryb RTOS</string>
+    <string name="rtos_setting_enabled_summary">Zamaskuj launcher jako zegarek Bluetooth RTOS</string>
+    <string name="rtos_setting_options_category">Opcje</string>
+    <string name="rtos_setting_mode_title">Tryb</string>
+    <string name="rtos_setting_auto_enter_title">Automatyczne wejście po wyłączeniu ekranu</string>
+    <string name="rtos_setting_auto_enter_summary">Aktywuj tryb RTOS, gdy ekran się wyłącza</string>
+    <string name="rtos_setting_launcher_icon_title">Pokaż ikonę w launcherze</string>
+    <string name="rtos_setting_launcher_icon_summary">Dodaje ikonę do listy aplikacji, aby aktywować tryb RTOS</string>
+    <string name="rtos_setting_password_category">Hasło</string>
+    <string name="rtos_setting_password_type_title">Typ hasła</string>
+    <string name="rtos_setting_set_password_title">Ustaw hasło</string>
+    <string name="rtos_setting_set_password_summary">Skonfiguruj kod odblokowujący</string>
+    <string name="rtos_setting_app_restrictions_category">Ograniczenia aplikacji</string>
+    <string name="rtos_setting_allowed_apps_title">Dozwolone aplikacje (Tryb 2)</string>
+    <string name="rtos_setting_allowed_apps_summary">Wybierz, które aplikacje pojawiają się na liście aplikacji</string>
+    <string name="rtos_setting_block_apps_title">Blokuj aplikacje spoza białej listy</string>
+    <string name="rtos_setting_block_apps_summary">Najpierw włącz usługę ułatwień dostępu, a następnie włącz tę opcję</string>
+    <string name="rtos_setting_accessibility_category">Ułatwienia dostępu</string>
+    <string name="rtos_setting_accessibility_title">Usługa ułatwień dostępu</string>
+
+    <string name="hide_apps_tab_blacklist">Czarna lista</string>
+    <string name="hide_apps_tab_whitelist">Biała lista</string>
+    <string name="hide_apps_secret_code_btn">Ukryj kodem sekretnym</string>
+
+    <string name="tile_editor_active_tiles">Aktywne kafelki</string>
+    <string name="tile_editor_available_tiles">Dostępne kafelki</string>
+    <string name="tile_editor_add_custom">Dodaj niestandardowy</string>
+
+    <string name="notif_action_open">Otwórz</string>
+    <string name="notif_action_show_more">Pokaż więcej</string>
+
+    <string name="qs_setting_general_category">Ogólne</string>
+    <string name="qs_setting_tiles_category">Kafelki</string>
+    <string name="qs_setting_flashlight_category">Latarka</string>
+    <string name="qs_setting_appearance_category">Wygląd</string>
+    <string name="qs_setting_tile_style_title">Styl kafelka</string>
+    <string name="qs_setting_elevated_privileges_category">Podwyższone uprawnienia</string>
+    <string name="qs_setting_accessibility_category">Ułatwienia dostępu</string>
+
+    <string name="notif_setting_enabled_title">Włącz powiadomienia</string>
+    <string name="notif_setting_enabled_summary">Pokaż panel powiadomień po przesunięciu w prawo</string>
+    <string name="notif_setting_display_category">Wyświetlanie</string>
+    <string name="notif_setting_card_style_title">Styl karty</string>
+    <string name="notif_setting_view_style_title">Styl widoku</string>
+    <string name="notif_setting_text_size_title">Rozmiar tekstu</string>
+    <string name="notif_setting_media_controls_title">Sterowanie multimediami</string>
+    <string name="notif_setting_media_controls_summary">Pokaż kartę odtwarzacza muzyki podczas odtwarzania</string>
+    <string name="notif_setting_alerts_category">Alerty przy nowym powiadomieniu</string>
+    <string name="notif_setting_wake_title">Wybudź ekran</string>
+    <string name="notif_setting_open_panel_title">Otwórz panel powiadomień</string>
+    <string name="notif_setting_vibrate_title">Wibracje</string>
+    <string name="notif_setting_filtering_category">Filtrowanie</string>
+    <string name="notif_setting_group_title">Grupuj powiadomienia</string>
+    <string name="notif_setting_group_summary">Czaty na górze, zwykłe w środku, trwałe na dole</string>
+    <string name="notif_setting_hide_persistent_title">Ukryj trwałe powiadomienia</string>
+    <string name="notif_setting_hide_persistent_summary">Blokuj wyświetlanie trwających powiadomień</string>
+    <string name="notif_setting_access_title">Dostęp do powiadomień</string>
+
+    <string name="applist_setting_general_category">Ogólne</string>
+    <string name="applist_setting_hidden_apps_summary">Zarządzaj, które aplikacje pojawiają się w launcherze</string>
+    <string name="applist_setting_launch_anim_title">Animacja uruchamiania</string>
+    <string name="applist_setting_animations_title">Animacje</string>
+    <string name="applist_setting_animations_summary">Ustawienia animacji otwierania i powrotu</string>
+    <string name="applist_setting_background_category">Tło</string>
+    <string name="applist_setting_bg_image_title">Obraz tła</string>
+    <string name="applist_setting_bg_image_summary">Dotknij, aby wybrać obraz</string>
+    <string name="applist_setting_darken_bg_title">Przyciemnij tło</string>
+    <string name="applist_setting_clear_bg_btn">Usuń obraz tła</string>
+    <string name="applist_setting_set_wallpaper_btn">Ustaw pasującą tapetę urządzenia</string>
+    <string name="applist_setting_set_wallpaper_done">Tapeta urządzenia zaktualizowana</string>
+    <string name="applist_setting_set_wallpaper_failed">Nie udało się ustawić tapety urządzenia</string>
+    <string name="applist_setting_bg_using_wallpaper">Używanie tapety systemowej</string>
+    <string name="applist_setting_list_options_category">Opcje listy</string>
+    <string name="applist_setting_grid_options_category">Opcje siatki</string>
+    <string name="applist_setting_waterfall_options_category">Opcje wodospadu</string>
+    <string name="applist_setting_honeycomb_options_category">Opcje plastra miodu</string>
+    <string name="applist_setting_grid2d_options_category">Opcje siatki 2D</string>
+    <string name="applist_setting_pages_options_category">Opcje stron</string>
+    <string name="applist_setting_gravity_options_category">Opcje grawitacji</string>
+    <string name="pref_overscroll_title">Siła overscrolla</string>
+
+    <string name="anim_setting_open_category">Animacja otwierania</string>
+    <string name="anim_setting_open_title">Animuj otwieranie aplikacji</string>
+    <string name="anim_setting_open_summary">Odtwarzaj animację podczas uruchamiania aplikacji</string>
+    <string name="anim_setting_open_type_title">Styl animacji</string>
+    <string name="anim_setting_return_category">Animacja powrotu</string>
+    <string name="anim_setting_return_title">Animuj powrót do ekranu głównego</string>
+    <string name="anim_setting_return_summary_pre11">Animacja zmniejszania do ikony przy powrocie (Android 10 i niższy)</string>
+    <string name="anim_setting_return_summary_11plus">Wyłącza dodatkowe odbicie ikony; animacja gestu systemowego nadal się odtwarza</string>
+    <string name="anim_setting_speed_category">Prędkość otwierania</string>
+    <string name="anim_setting_speed_title">Prędkość animacji otwierania</string>
+    <string name="anim_setting_speed_hint">0.5× (wolno) — 2.0× (szybko)</string>
+    <string name="anim_setting_close_category">Animacja zamykania</string>
+    <string name="anim_setting_launch_blur_title">Rozmyj listę aplikacji</string>
+    <string name="anim_setting_launch_blur_summary">Rozmywa listę aplikacji za oknem otwieranej aplikacji, nasilając się w miarę jej rozwijania (i cofa rozmycie przy zamknięciu przyciskiem Wstecz).</string>
+    <string name="anim_setting_close_type_title">Styl animacji</string>
+    <string name="anim_setting_resume_close_title">Animacja zamykania bez listy aplikacji</string>
+    <string name="anim_setting_resume_close_summary">Zawsze odtwarzaj animację zamykania przy powrocie do tarczy zegarka, nawet gdy lista aplikacji nie jest otwarta — animacja przemieszcza się w kierunku środka ekranu. Wyłączenie powoduje przejście do tarczy bez animacji.</string>
+    <string name="anim_setting_close_speed_category">Prędkość zamykania</string>
+    <string name="anim_setting_close_speed_title">Prędkość animacji zamykania</string>
+    <string name="anim_setting_close_delay_title">Opóźnienie startu</string>
+    <string name="anim_setting_close_delay_hint">0 ms (natychmiast) — 500 ms</string>
+    <string name="anim_setting_gesture_return_category">Powrót gestem</string>
+    <string name="anim_setting_gesture_return_title">Animuj listę aplikacji przy powrocie</string>
+    <string name="anim_setting_gesture_return_summary">Gdy wracasz gestem z aplikacji do otwartej listy aplikacji, odsłoń ją animacją nad bieżącym tłem</string>
+    <string name="anim_setting_gesture_return_type_title">Styl odsłaniania</string>
+    <string name="anim_setting_gesture_return_speed_title">Prędkość odsłaniania</string>
+    <string name="anim_setting_gesture_return_delay_title">Opóźnienie startu</string>
+    <string name="anim_setting_detect_closing_title">Wykrywaj zamykaną aplikację</string>
+    <string name="anim_setting_detect_closing_summary">Animuj ikonę aplikacji, z której faktycznie wracasz — przyciski Wstecz/Home oraz kolejne uruchomienia aplikacji. Wymaga dostępu do danych o użyciu.</string>
+    <string name="anim_setting_detect_closing_perm_title">Wymagany dostęp do danych o użyciu</string>
+    <string name="anim_setting_detect_closing_perm_msg">Aby wykryć, z której aplikacji wracasz, CloX potrzebuje uprawnienia „Dostęp do danych o użyciu”. Przyznaj je na następnym ekranie, a następnie wróć tutaj.</string>
+    <string name="anim_setting_detect_closing_grant">Otwórz ustawienia</string>
+    <string name="anim_setting_gesture_return_only_title">Tylko przy geście przesunięcia do ekranu głównego</string>
+    <string name="anim_setting_gesture_return_only_summary">Wyłączone: odtwarzaj również przy powrocie przyciskiem Wstecz i sprzętowym Home</string>
+    <string name="anim_setting_real_window_entry">Prawdziwe okno (systemowe)</string>
+    <string name="anim_setting_snapshot_entry">Prawdziwe okno (migawka)</string>
+    <string name="anim_setting_gesture_handoff_title">Systemowe przekształcenie okna (prawdziwe)</string>
+    <string name="anim_setting_gesture_handoff_summary">Przy geście przesunięcia do ekranu głównego przekazuje ikonę aplikacji systemowi, aby przekształcił rzeczywiste zamykane okno aplikacji w tę ikonę. CloX nie odtwarza żadnej dodatkowej animacji — całe przejście obsługuje system. Dotyczy tylko gestu przesunięcia do ekranu głównego.</string>
+
+    <string name="btn_open_settings">Otwórz ustawienia</string>
+    <string name="btn_not_now">Nie teraz</string>
+    <string name="btn_confirm">Potwierdź</string>
+    <string name="btn_send">Wyślij</string>
+    <string name="btn_cancel">Anuluj</string>
+
+    <string name="dialog_btn_record_title">Zarejestruj przycisk</string>
+    <string name="dialog_btn_record_message">Naciśnij dowolny przycisk sprzętowy (Głośność w górę/dół, Aparat itp.), aby go zmapować.\n\nPrzycisk Wstecz anuluje.</string>
+
+    <string name="dialog_calendar_perm_message">Odmówiono uprawnienia do kalendarza. Włącz je w ustawieniach aplikacji.</string>
+
+    <string name="dialog_qs_permissions_title">Wymagane uprawnienia</string>
+    <string name="dialog_qs_permissions_message">Niektóre uprawnienia zostały trwale odrzucone. Otwórz ustawienia aplikacji i przyznaj je w sekcji Uprawnienia.</string>
+
+    <string name="dialog_device_admin_explanation">Wymagane do wyłączenia ekranu w tej wersji Androida.</string>
+
+    <string name="dialog_reply_title">Odpowiedz</string>
+
+    <string name="dialog_secret_code_title">Odblokowanie kodem sekretnym</string>
+    <string name="dialog_secret_code_message">Po ustawieniu ten ekran zostanie ukryty w Ustawieniach.\n\nAby uzyskać do niego dostęp ponownie, otwórz aplikację telefonu i wpisz:\n\n*#*#TWOJE_HASŁO#*#*\n\nZobaczysz powiadomienie potwierdzające dostęp.</string>
+    <string name="dialog_secret_code_positive">Ustaw hasło</string>
+    <string name="dialog_enter_password_title">Wprowadź hasło</string>
+    <string name="dialog_enter_password_message">Minimum 4 cyfry</string>
+
+    <string name="permission_access_watchfaces_label">Dostęp do tarcz zegarka</string>
+    <string name="permission_access_watchfaces_desc">Odczytuj, dodawaj i usuwaj pliki tarcz zegarka w folderze tarcz tej aplikacji.</string>
+
+    <string name="toast_wf_selected">Wybrano %s</string>
+    <string name="toast_remote_server_failed">Nie udało się uruchomić serwera</string>
+
+    <string name="crash_clip_label">Raport awarii CloX</string>
+    <string name="crash_subject">Raport awarii CloX</string>
+    <string name="crash_share_title">Udostępnij raport awarii</string>
+    <string name="crash_no_data">Brak danych o awarii.</string>
+    <string name="crash_read_failed">Nie udało się odczytać raportu awarii.</string>
+
+    <string name="secret_code_unlocked">Odblokowano ustawienia ukrytych aplikacji — otwórz Ustawienia, aby kontynuować</string>
+    <string name="secret_code_dial_hint">Wybierz *#*#%s#*#*, aby odblokować</string>
+
+    <string name="notif_block_app">Zablokuj aplikację</string>
+    <string name="notif_unblock_app">Odblokuj aplikację</string>
+    <string name="notif_app_notif_settings">Ustawienia powiadomień aplikacji</string>
+    <string name="notif_reply_hint">Odpowiedz</string>
+    <string name="notif_perm_not_supported">Nieobsługiwane</string>
+    <string name="notif_perm_not_supported_desc">Dostęp do powiadomień może być niedostępny na tym urządzeniu.</string>
+    <string name="notif_perm_view_btn">Zobacz powiadomienia</string>
+    <string name="notif_perm_title">Wymagane uprawnienie</string>
+    <string name="notif_perm_desc">Przyznaj dostęp do powiadomień, aby CloX mógł wyświetlać Twoje powiadomienia.</string>
+    <string name="notif_perm_grant_btn">Przyznaj uprawnienie</string>
+
+    <string name="qs_tile_connected">Połączono</string>
+    <string name="qs_tile_not_in_use">Nieużywane</string>
+    <string name="qs_tile_on">Wł.</string>
+    <string name="qs_tile_off">Wył.</string>
+    <string name="qs_tile_on_detail">wł.</string>
+    <string name="qs_tile_silent">Cichy</string>
+    <string name="qs_tile_vibrate">Wibracje</string>
+    <string name="qs_tile_auto">Auto</string>
+    <string name="qs_tile_locked">Zablokowane</string>
+    <string name="qs_privilege_shizuku">Shizuku aktywne</string>
+    <string name="qs_privilege_root">Root dostępny</string>
+    <string name="qs_privilege_none">Brak podwyższonych uprawnień</string>
+    <string name="qs_accessibility_enabled">Włączone — dostępne menu zasilania i ostatnie aplikacje</string>
+    <string name="qs_accessibility_disabled">Dotknij, aby włączyć w Ustawieniach ułatwień dostępu</string>
+
+    <string name="location_lat_hint">np. 22.3193</string>
+    <string name="location_lon_hint">np. 114.1694</string>
+    <string name="location_city_hint">Nazwa miasta</string>
+
+    <string name="app_list_search_hint">Szukaj aplikacji…</string>
+    <string name="app_list_bg_set">Obraz ustawiony — dotknij, aby zmienić</string>
+    <string name="app_list_bg_not_set">Dotknij, aby wybrać obraz</string>
+    <string name="hidden_apps_title">Ukryte aplikacje</string>
+
+    <string name="widget_unavailable">Widżet niedostępny</string>
+
+    <string name="about_version">Wersja %s</string>
+    <string name="about_version_unknown">Nieznana wersja</string>
+
+    <string name="appearance_section_display">Wyświetlacz</string>
+    <string name="appearance_dpi_label">Gęstość wyświetlania aplikacji (DPI)</string>
+    <string name="appearance_dpi_default">0 (domyślne systemowe)</string>
+    <string name="appearance_section_blur">Rozmycie</string>
+
+    <string name="sensors_section_data">Dane</string>
+
+    <string name="about_onyx_project">Część projektu Onyx</string>
+    <string name="about_onyx_description">CloX jest częścią otwartego systemu Onyx dla urządzeń ubieralnych z Androidem.</string>
+    <string name="about_developers_category">Deweloperzy</string>
+    <string name="about_updates_category">Aktualizacje</string>
+    <string name="about_auto_update_title">Automatyczne sprawdzanie aktualizacji</string>
+    <string name="about_auto_update_summary">Sprawdzaj nowe wydania przy uruchomieniu</string>
+    <string name="about_check_updates_btn">Sprawdź aktualizacje</string>
+
+    <string name="launch_error_title">Nie można otworzyć</string>
+    <string name="launch_error_no_app">Żadna aplikacja na tym urządzeniu nie obsługuje tej czynności. Może być konieczne zainstalowanie menedżera plików lub docelowej aplikacji.</string>
+    <string name="launch_error_not_permitted">System zablokował tę czynność. Sprawdź uprawnienia aplikacji i spróbuj ponownie.</string>
+    <string name="launch_error_generic">Nie udało się tego otworzyć. Spróbuj ponownie.</string>
+
+    <string name="fake_settings_title">Ustawienia</string>
+    <string name="fake_settings_general">Ogólne</string>
+    <string name="fake_settings_language">Język</string>
+    <string name="fake_settings_language_value">Angielski</string>
+    <string name="fake_settings_date_time">Data i godzina</string>
+    <string name="fake_settings_time_format">Format czasu</string>
+    <string name="fake_settings_time_zone">Strefa czasowa</string>
+    <string name="fake_settings_qr_code">Kod QR</string>
+    <string name="fake_settings_watch_face">Tarcza zegarka</string>
+    <string name="fake_settings_bluetooth">Bluetooth</string>
+    <string name="fake_settings_status">Stan</string>
+    <string name="fake_settings_connected">Połączono</string>
+    <string name="fake_settings_device">Urządzenie</string>
+    <string name="fake_settings_device_value">Telefon</string>
+    <string name="fake_settings_auto_conn">Auto-poł.</string>
+    <string name="fake_settings_on">Wł.</string>
+    <string name="fake_settings_off">Wył.</string>
+    <string name="fake_settings_sound">Dźwięk</string>
+    <string name="fake_settings_ringtone">Dzwonek</string>
+    <string name="fake_settings_vibration">Wibracje</string>
+    <string name="fake_settings_volume">Głośność</string>
+    <string name="fake_settings_display">Wyświetlacz</string>
+    <string name="fake_settings_brightness">Jasność</string>
+    <string name="fake_settings_brightness_value">Auto</string>
+    <string name="fake_settings_timeout">Czas oczekiwania</string>
+    <string name="fake_settings_always_on">Zawsze wł.</string>
+    <string name="fake_settings_about">Informacje</string>
+    <string name="fake_settings_model">Model</string>
+    <string name="fake_settings_firmware">Oprogramowanie układowe</string>
+    <string name="fake_settings_battery">Bateria</string>
+
+    <string name="rtos_pw_how_it_works">Jak to działa</string>
+    <string name="rtos_pw_keypad_explain">Ekran zegarka jest podzielony na niewidzialną siatkę 3×3:\n\n  [ 1 ][ 2 ][ 3 ]\n  [ 4 ][ 5 ][ 6 ]\n  [ 7 ][ 8 ][ 9 ]\n\nDotykaj pól siatki, aby wprowadzić swój kod. Nie ma żadnej informacji zwrotnej wizualnej.\n\nSystem sprawdza kod po każdym dotknięciu, korzystając z przesuwanego okna — wystarczy, że Twój kod pojawi się w dowolnym miejscu wśród ostatnich dotknięć, aby odblokować.\n\nTwój kod musi mieć co najmniej 4 cyfry i nie mogą być wszystkie takie same.</string>
+    <string name="rtos_pw_morse_explain">Dotknij dowolnego miejsca na tarczy zegarka, aby wprowadzić kod Morse\'a:\n\n  Krótkie naciśnięcie = kropka  (·)\n  Długie naciśnięcie  = kreska (—)\n\nNie ma żadnej informacji zwrotnej wizualnej. System sprawdza kod po każdym naciśnięciu.\n\nTwój kod musi mieć co najmniej 4 symbole i nie mogą być wszystkie takie same.</string>
+    <string name="rtos_pw_understood_countdown">Zrozumiałem (%1$d…)</string>
+    <string name="rtos_pw_understood_done">Zrozumiałem — Ustaw hasło</string>
+    <string name="rtos_pw_set_title">Ustaw hasło</string>
+    <string name="rtos_pw_confirm_title">Potwierdź hasło</string>
+    <string name="rtos_pw_keypad_hint">Dotykaj pól siatki, aby wprowadzić swój kod</string>
+    <string name="rtos_pw_morse_hint">Krótkie/długie naciśnięcie, aby wprowadzić kropki i kreski Morse\'a</string>
+    <string name="rtos_pw_clear">Wyczyść</string>
+    <string name="rtos_pw_done">Gotowe</string>
+
+    <string name="wf_renderer_dead_title">Renderer tarczy zegarka nie odpowiada</string>
+    <string name="wf_renderer_dead_message">Wyzwalacz: %1$s\n\n%2$s\n\nRestart launchera to naprawi.</string>
+    <string name="wf_renderer_dead_detail_load">Tarcza zegarka nie zakończyła wczytywania w ciągu %1$ds. Ekran pozostałby czarny lub zamrożony.</string>
+    <string name="wf_renderer_dead_detail_hang">Wątek renderowania nie odpowiada od %1$ds. Tarcza zegarka zawiesiła się lub silnik przestał działać.</string>
+    <string name="wf_renderer_dead_restart">Uruchom ponownie launcher</string>
+    <string name="wf_lua_error_default_context">Błąd Lua</string>
+    <string name="wf_lua_error_no_detail">(brak szczegółów)</string>
+
+    <string name="action_delete">Usuń</string>
+    <string name="action_dismiss">Odrzuć</string>
+    <string name="cd_launcher_settings">Ustawienia launchera</string>
+    <string name="cd_recents">Ostatnie aplikacje</string>
+    <string name="cd_flashlight">Latarka</string>
+    <string name="cd_power">Zasilanie</string>
+    <string name="cd_settings">Ustawienia</string>
+    <string name="cd_qr_code">Kod QR</string>
+    <string name="cd_delete_row">Usuń rząd</string>
+    <string name="cd_delete_slot">Usuń slot</string>
+    <string name="cd_decrease_height">Zmniejsz wysokość</string>
+    <string name="cd_increase_height">Zwiększ wysokość</string>
+    <string name="cd_select_all">Zaznacz wszystko</string>
+    <string name="cd_deselect_all">Odznacz wszystko</string>
+    <string name="cd_watchface_preview">Podgląd tarczy zegarka</string>
+    <string name="cd_preview">Podgląd</string>
+    <string name="cd_downloaded">Pobrano</string>
+    <string name="dialog_password_hint">Hasło (tylko cyfry)</string>
+
+    <string name="appearance_dpi_summary">Zastąp gęstość ekranu. 0 lub puste = domyślne systemowe. Wymaga ponownego uruchomienia.</string>
+    <string name="notif_setting_wake_summary">Włącz ekran po nadejściu nowego powiadomienia</string>
+    <string name="notif_setting_open_panel_summary">Automatycznie otwórz panel po nadejściu nowego powiadomienia</string>
+    <string name="notif_setting_vibrate_summary">Wibruj po nadejściu nowego powiadomienia</string>
+    <string name="rtos_setting_show_icon_title">Pokaż ikonę launchera, aby wejść w tryb RTOS</string>
+    <string name="pref_notifications_title">Powiadomienia</string>
+    <string name="pref_notifications_summary">Styl panelu, alerty, filtrowanie, zablokowane aplikacje</string>
+    <string name="pref_quick_settings_summary">Kafelki, kolumny, gesty, latarka, kolory, uprawnienia</string>
+    <string name="pref_app_list_title">Lista aplikacji</string>
+    <string name="pref_app_list_summary">Styl, kolejność sortowania, pakiet ikon</string>
+    <string name="pref_gestures_title">Gesty</string>
+    <string name="pref_gestures_summary">Podwójne dotknięcie, długie naciśnięcie, mapowanie przycisków sprzętowych</string>
+    <string name="pref_appearance_title">Wygląd</string>
+    <string name="pref_appearance_summary">Tryb i promień rozmycia</string>
+    <string name="pref_hidden_apps_summary">Czarna lub biała lista aplikacji w launcherze</string>
+    <string name="pref_rtos_title">Tryb RTOS</string>
+    <string name="pref_rtos_summary">Zamaskuj launcher jako zegarek Bluetooth RTOS</string>
+    <string name="pref_about_title">Informacje &amp; aktualizacje</string>
+    <string name="pref_about_summary">Wersja, twórcy, projekt Onyx, sprawdzanie aktualizacji</string>
+</resources>

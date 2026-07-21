@@ -47,7 +47,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             app:icon="@drawable/ic_check_circle"
-            android:contentDescription="Select all" />
+            android:contentDescription="@string/cd_select_all" />
 
         <!-- Deselect all as compact icon button -->
         <com.google.android.material.button.MaterialButton
@@ -56,7 +56,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             app:icon="@drawable/ic_close"
-            android:contentDescription="Deselect all" />
+            android:contentDescription="@string/cd_deselect_all" />
 
     </LinearLayout>
 

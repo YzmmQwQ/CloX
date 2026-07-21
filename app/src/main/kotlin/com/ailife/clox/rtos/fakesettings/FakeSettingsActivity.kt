@@ -50,12 +50,13 @@ class FakeSettingsActivity : AppCompatActivity() {
 
     private lateinit var contentFrame: FrameLayout
     private val fakeBleMac = generateMac()
-    private var currentTitle = "Settings"
+    private var currentTitle = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         hideSystemBars()
+        currentTitle = getString(R.string.fake_settings_title)
 
         val root = FrameLayout(this).apply { setBackgroundColor(BG) }
 
@@ -140,44 +141,53 @@ class FakeSettingsActivity : AppCompatActivity() {
 
     private fun showMenuPage() {
         backAction = null   // top-level: back exits
-        setTitle("General")
+        setTitle(getString(R.string.fake_settings_general))
+        val language = getString(R.string.fake_settings_language)
+        val dateTime = getString(R.string.fake_settings_date_time)
         showList(listOf(
-            "General"     to { showGeneralPage() },
-            "Language"    to { showFakePage("Language", listOf("Language" to "English")) },
-            "Date & time" to { showFakePage("Date & time", listOf(
-                "Time format" to "24h",
-                "Time zone"   to "UTC+8"
+            getString(R.string.fake_settings_general)  to { showGeneralPage() },
+            language                                   to { showFakePage(language, listOf(
+                language to getString(R.string.fake_settings_language_value)
             )) },
-            "QR code"     to { showQrPage() }
+            dateTime                                   to { showFakePage(dateTime, listOf(
+                getString(R.string.fake_settings_time_format) to getString(R.string.fake_settings_time_format_value),
+                getString(R.string.fake_settings_time_zone)   to getString(R.string.fake_settings_time_zone_value)
+            )) },
+            getString(R.string.fake_settings_qr_code)  to { showQrPage() }
         ))
     }
 
     private fun showGeneralPage() {
         backAction = { showMenuPage() }
-        setTitle("General")
+        setTitle(getString(R.string.fake_settings_general))
+        val bluetooth = getString(R.string.fake_settings_bluetooth)
+        val sound     = getString(R.string.fake_settings_sound)
+        val display   = getString(R.string.fake_settings_display)
+        val about     = getString(R.string.fake_settings_about)
+        val on        = getString(R.string.fake_settings_on)
         showList(listOf(
-            "Watch Face"  to { openWatchfaceSelector() },
-            "Bluetooth"   to { showFakePage("Bluetooth", listOf(
-                "Status"     to "Connected",
-                "Device"     to "Phone",
-                "MAC"        to fakeBleMac,
-                "Auto-conn." to "On"
+            getString(R.string.fake_settings_watch_face) to { openWatchfaceSelector() },
+            bluetooth to { showFakePage(bluetooth, listOf(
+                getString(R.string.fake_settings_status)    to getString(R.string.fake_settings_connected),
+                getString(R.string.fake_settings_device)    to getString(R.string.fake_settings_device_value),
+                getString(R.string.fake_settings_mac)       to fakeBleMac,
+                getString(R.string.fake_settings_auto_conn) to on
             )) },
-            "Sound"       to { showFakePage("Sound", listOf(
-                "Ringtone"   to "On",
-                "Vibration"  to "On",
-                "Volume"     to "75%"
+            sound to { showFakePage(sound, listOf(
+                getString(R.string.fake_settings_ringtone)  to on,
+                getString(R.string.fake_settings_vibration) to on,
+                getString(R.string.fake_settings_volume)    to getString(R.string.fake_settings_volume_value)
             )) },
-            "Display"     to { showFakePage("Display", listOf(
-                "Brightness" to "Auto",
-                "Timeout"    to "15s",
-                "Always On"  to "Off"
+            display to { showFakePage(display, listOf(
+                getString(R.string.fake_settings_brightness) to getString(R.string.fake_settings_brightness_value),
+                getString(R.string.fake_settings_timeout)    to getString(R.string.fake_settings_timeout_value),
+                getString(R.string.fake_settings_always_on)  to getString(R.string.fake_settings_off)
             )) },
-            "About"       to { showFakePage("About", listOf(
-                "Model"      to "SmartWatch Pro",
-                "Firmware"   to "v2.4.1",
-                "MAC"        to fakeBleMac,
-                "Battery"    to "${getBattery()}%"
+            about to { showFakePage(about, listOf(
+                getString(R.string.fake_settings_model)    to getString(R.string.fake_settings_model_value),
+                getString(R.string.fake_settings_firmware) to getString(R.string.fake_settings_firmware_value),
+                getString(R.string.fake_settings_mac)      to fakeBleMac,
+                getString(R.string.fake_settings_battery)  to getString(R.string.fake_settings_battery_value, getBattery())
             )) }
         ))
     }
