@@ -133,18 +133,17 @@ class RtosWhitelistActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), 0, dp(8), 0)
 
-            val back = TextView(this@RtosWhitelistActivity).apply {
-                text = "✕"
-                textSize = 18f
-                setTextColor(Color.WHITE)
-                gravity = Gravity.CENTER
-                setPadding(dp(12), 0, dp(12), 0)
+            val back = ImageView(this@RtosWhitelistActivity).apply {
+                setImageResource(R.drawable.ic_close)
+                imageTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(12), dp(16), dp(12), dp(16))
                 setOnClickListener { finish() }
             }
             addView(back, LinearLayout.LayoutParams(dp(48), dp(56)))
 
             val title = TextView(this@RtosWhitelistActivity).apply {
-                text = "Allowed Apps"
+                text = getString(R.string.rtos_whitelist_title)
                 textSize = 16f
                 setTextColor(Color.WHITE)
             }

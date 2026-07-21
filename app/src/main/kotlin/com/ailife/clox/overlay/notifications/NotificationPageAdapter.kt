@@ -165,7 +165,8 @@ class NotificationPageAdapter(
     }
 
     private fun bindExpanded(h: PageVH, notif: Notification, sbn: StatusBarNotification, expanded: Boolean) {
-        h.btnShowMore.text = if (expanded) "Show less" else "Show more"
+        h.btnShowMore.text = h.itemView.context.getString(
+            if (expanded) R.string.notif_action_show_less else R.string.notif_action_show_more)
 
         if (!expanded) {
             h.bigPicture.visibility = View.GONE

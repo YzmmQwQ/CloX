@@ -202,7 +202,7 @@ class WatchfaceStoreActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "Load page failed", e)
                 Toast.makeText(this@WatchfaceStoreActivity,
-                    "Failed to load: ${e.message}", Toast.LENGTH_SHORT).show()
+                    getString(R.string.wf_store_load_failed, e.message), Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
                 progressBar.visibility = View.GONE
@@ -217,7 +217,7 @@ class WatchfaceStoreActivity : AppCompatActivity() {
                 val json = withContext(Dispatchers.IO) { fetchJson("$BASE_API/categories") }
                 val data = json.getJSONArray("data")
                 Chip(this@WatchfaceStoreActivity).apply {
-                    text = "All"; isCheckable = true; isChecked = true
+                    text = getString(R.string.wf_store_filter_all); isCheckable = true; isChecked = true
                     setOnClickListener { reload(category = "") }
                 }.also { chipGroup.addView(it) }
                 (0 until data.length()).forEach { i ->
@@ -250,7 +250,7 @@ class WatchfaceStoreActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "Detail failed", e)
                 Toast.makeText(this@WatchfaceStoreActivity,
-                    "Failed to load detail: ${e.message}", Toast.LENGTH_SHORT).show()
+                    getString(R.string.wf_store_load_detail_failed, e.message), Toast.LENGTH_SHORT).show()
             }
         }
     }

@@ -21,6 +21,8 @@ import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
+import com.ailife.clox.R;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -436,14 +438,14 @@ public class OTAManager3 {
         // Respect the user's disable preference.
         if (!force && !isUpdateCheckEnabled()) {
             logDebug("Update check disabled by user");
-            dispatchError(OTAError.DISABLED, "Update checks are disabled", null);
+            dispatchError(OTAError.DISABLED, context.getString(R.string.ota3_err_disabled), null);
             return;
         }
 
         // WiFi-only gate.
         if (!force && wifiOnly && !isOnWifi()) {
             logDebug("Not on WiFi, skipping update check");
-            dispatchError(OTAError.NOT_ON_WIFI, "Not on WiFi", null);
+            dispatchError(OTAError.NOT_ON_WIFI, context.getString(R.string.ota3_err_not_on_wifi), null);
             return;
         }
 
@@ -469,7 +471,7 @@ public class OTAManager3 {
                     int responseCode = connection.getResponseCode();
                     if (responseCode != HttpURLConnection.HTTP_OK) {
                         logError("API request failed with code: " + responseCode);
-                        dispatchError(OTAError.SERVER, "Update server returned " + responseCode, null);
+                        dispatchError(OTAError.SERVER, context.getString(R.string.ota3_err_server_code, responseCode), null);
                         return;
                     }
 
@@ -477,17 +479,17 @@ public class OTAManager3 {
                     List<VersionInfo> versions = parseReleases(response);
                     if (versions.isEmpty()) {
                         logError("No releases found");
-                        dispatchError(OTAError.NO_RELEASE, "No releases found", null);
+                        dispatchError(OTAError.NO_RELEASE, context.getString(R.string.ota3_err_no_release), null);
                         return;
                     }
                     evaluate(versions, force);
 
                 } catch (JSONException e) {
                     logError("JSON parsing error: " + e.getMessage());
-                    dispatchError(OTAError.PARSE, "Failed to read update info", e);
+                    dispatchError(OTAError.PARSE, context.getString(R.string.ota3_err_parse), e);
                 } catch (Exception e) {
                     logError("API request failed: " + e.getMessage());
-                    dispatchError(OTAError.NETWORK, "Update check failed: " + e.getMessage(), e);
+                    dispatchError(OTAError.NETWORK, context.getString(R.string.ota3_err_network, e.getMessage()), e);
                 } finally {
                     if (connection != null) {
                         connection.disconnect();
@@ -621,7 +623,7 @@ public class OTAManager3 {
             currentVersion = pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
             logError("Failed to get package info: " + e.getMessage());
-            dispatchError(OTAError.PARSE, "Failed to read current version", e);
+            dispatchError(OTAError.PARSE, context.getString(R.string.ota3_err_read_current), e);
             return;
         }
 
@@ -661,7 +663,7 @@ public class OTAManager3 {
             }
             if (info.downloadUrl == null) {
                 logError("Update available but no APK asset matched");
-                dispatchError(OTAError.NO_APK, "No downloadable APK in the latest release", null);
+                dispatchError(OTAError.NO_APK, context.getString(R.string.ota3_err_no_apk), null);
                 return;
             }
             dispatchUpdateAvailable(info);
@@ -680,7 +682,7 @@ public class OTAManager3 {
                 }
                 sb.append("v").append(v.version).append("\n");
                 sb.append(v.changelog == null || v.changelog.isEmpty()
-                        ? "No changelog available" : v.changelog);
+                        ? context.getString(R.string.ota3_changelog_none) : v.changelog);
             }
         }
         return sb.length() == 0 ? "" : sb.toString().trim();
@@ -715,7 +717,7 @@ public class OTAManager3 {
                 if (callback != null) {
                     callback.onUpToDate(info);
                 } else if (showNoUpdateToast) {
-                    toast(info.prerelease ? "You are running prerelease" : "You are up to date");
+                    toast(context.getString(info.prerelease ? R.string.ota3_prerelease : R.string.ota3_up_to_date));
                 }
             }
         });
@@ -750,18 +752,18 @@ public class OTAManager3 {
                 String body = info.changelogSinceCurrent != null && !info.changelogSinceCurrent.isEmpty()
                         ? info.changelogSinceCurrent
                         : (info.changelog == null || info.changelog.isEmpty()
-                            ? "No changelog available" : info.changelog);
+                            ? context.getString(R.string.ota3_changelog_none) : info.changelog);
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(context)
-                    .setTitle("Update Available: V" + info.latestVersion)
+                    .setTitle(context.getString(R.string.ota3_dialog_title, info.latestVersion))
                     .setMessage(body)
                     .setCancelable(true)
-                    .setPositiveButton("Update", new DialogInterface.OnClickListener() {
+                    .setPositiveButton(context.getString(R.string.ota3_btn_update), new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface d, int w) {
                             download(info, downloadMode);
                         }
                     })
-                    .setNeutralButton("Later", new DialogInterface.OnClickListener() {
+                    .setNeutralButton(context.getString(R.string.ota3_btn_later), new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface d, int w) {
                             if (callback != null) callback.onUpdateDeclined(false);
                             d.dismiss();
@@ -770,23 +772,23 @@ public class OTAManager3 {
 
                 if (showSkipButton) {
                     // Skip this version instead of disabling all future checks.
-                    builder.setNegativeButton("Skip this version", new DialogInterface.OnClickListener() {
+                    builder.setNegativeButton(context.getString(R.string.ota3_btn_skip), new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface d, int w) {
                             skipVersion(info.latestVersion);
                             if (callback == null) {
-                                toast("Skipped version " + info.latestVersion);
+                                toast(context.getString(R.string.ota3_toast_skipped, info.latestVersion));
                             }
                             d.dismiss();
                         }
                     });
                 } else {
-                    builder.setNegativeButton("Do not remind", new DialogInterface.OnClickListener() {
+                    builder.setNegativeButton(context.getString(R.string.ota3_btn_do_not_remind), new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface d, int w) {
                             setUpdateCheckEnabled(false);
                             if (callback != null) {
                                 callback.onUpdateDeclined(true);
                             } else {
-                                toast("Update checks disabled. You can re-enable in settings.");
+                                toast(context.getString(R.string.ota3_toast_disabled));
                             }
                             d.dismiss();
                         }
@@ -809,12 +811,12 @@ public class OTAManager3 {
                         DownloadMode.DOWNLOAD_MODE_BROWSER
                 };
                 final String[] labels = {
-                        "Download in app",
-                        "Download with Download Manager",
-                        "Open in browser"
+                        context.getString(R.string.ota3_chooser_item_in_app),
+                        context.getString(R.string.ota3_chooser_item_manager),
+                        context.getString(R.string.ota3_chooser_item_browser)
                 };
                 new AlertDialog.Builder(context)
-                    .setTitle("How would you like to update?")
+                    .setTitle(context.getString(R.string.ota3_chooser_title))
                     .setItems(labels, new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface d, int which) {
                             download(info, modes[which]);
@@ -832,7 +834,7 @@ public class OTAManager3 {
     /** Start a download/install using the given mode. */
     public void download(UpdateInfo info, DownloadMode mode) {
         if (info == null || info.downloadUrl == null) {
-            dispatchDownloadFailed("No download URL available", null);
+            dispatchDownloadFailed(context.getString(R.string.ota3_err_no_url), null);
             return;
         }
         switch (mode) {
@@ -864,7 +866,7 @@ public class OTAManager3 {
     private void downloadWithManager(final UpdateInfo info) {
         File dir = context.getExternalFilesDir(null);
         if (dir == null) {
-            dispatchDownloadFailed("External storage unavailable", null);
+            dispatchDownloadFailed(context.getString(R.string.ota3_err_storage_unavailable), null);
             return;
         }
         try {
@@ -877,8 +879,8 @@ public class OTAManager3 {
             DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(info.downloadUrl));
             request.setMimeType(MIME_TYPE);
-            request.setTitle("Downloading Update");
-            request.setDescription("Downloading version " + info.latestVersion);
+            request.setTitle(context.getString(R.string.ota3_notif_title));
+            request.setDescription(context.getString(R.string.ota3_notif_desc, info.latestVersion));
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalFilesDir(context, null, downloadFileName);
 
@@ -887,7 +889,7 @@ public class OTAManager3 {
             downloadManager.enqueue(request);
             dispatchDownloadStarted(DownloadMode.DOWNLOAD_MODE_IN_APP);
             if (callback == null) {
-                toast("Downloading update...");
+                toast(context.getString(R.string.ota3_toast_downloading));
             }
             logDebug("DownloadManager started: " + info.downloadUrl);
         } catch (Throwable t) {
@@ -895,8 +897,8 @@ public class OTAManager3 {
             // "Unsupported path" when running in a cloned/secondary user profile),
             // or fail for other reasons. Don't crash — report failure and offer browser fallback.
             logError("In-app download failed: " + t);
-            dispatchDownloadFailed("In-app download failed", t instanceof Exception ? (Exception) t : null);
-            toast("下载失败，请重试或在浏览器中下载");
+            dispatchDownloadFailed(context.getString(R.string.ota3_err_inapp_failed), t instanceof Exception ? (Exception) t : null);
+            toast(context.getString(R.string.ota3_toast_inapp_failed));
             try {
                 openInBrowser(info.downloadUrl);
             } catch (Throwable t2) {
@@ -912,7 +914,7 @@ public class OTAManager3 {
                 logDebug("Download complete, installing APK");
                 File apkFile = new File(destination);
                 if (!apkFile.exists()) {
-                    dispatchDownloadFailed("Downloaded file is missing", null);
+                    dispatchDownloadFailed(context.getString(R.string.ota3_err_file_missing), null);
                     try { ctx.unregisterReceiver(this); } catch (Exception ignored) { }
                     return;
                 }
@@ -937,7 +939,7 @@ public class OTAManager3 {
     private void downloadDirect(final UpdateInfo info) {
         File dir = context.getExternalFilesDir(null);
         if (dir == null) {
-            dispatchDownloadFailed("External storage unavailable", null);
+            dispatchDownloadFailed(context.getString(R.string.ota3_err_storage_unavailable), null);
             return;
         }
         final File apkFile = new File(dir, downloadFileName);
@@ -947,7 +949,7 @@ public class OTAManager3 {
 
         dispatchDownloadStarted(DownloadMode.DOWNLOAD_MODE_DIRECT);
         if (callback == null) {
-            toast("Downloading update...");
+            toast(context.getString(R.string.ota3_toast_downloading));
         }
 
         new Thread(new Runnable() {
@@ -967,7 +969,7 @@ public class OTAManager3 {
 
                     int code = connection.getResponseCode();
                     if (code != HttpURLConnection.HTTP_OK) {
-                        dispatchDownloadFailed("Download failed: server returned " + code, null);
+                        dispatchDownloadFailed(context.getString(R.string.ota3_err_download_server_code, code), null);
                         return;
                     }
 
@@ -998,7 +1000,7 @@ public class OTAManager3 {
 
                 } catch (Exception e) {
                     logError("Direct download failed: " + e.getMessage());
-                    dispatchDownloadFailed("Download failed: " + e.getMessage(), e);
+                    dispatchDownloadFailed(context.getString(R.string.ota3_err_download, e.getMessage()), e);
                 } finally {
                     closeQuietly(output);
                     closeQuietly(input);
@@ -1021,12 +1023,12 @@ public class OTAManager3 {
             context.startActivity(browserIntent);
             dispatchDownloadStarted(DownloadMode.DOWNLOAD_MODE_BROWSER);
             if (callback == null) {
-                toast("Downloading in browser...");
+                toast(context.getString(R.string.ota3_toast_browser));
             }
             logDebug("Opened in browser: " + downloadUrl);
         } catch (Exception e) {
             logError("Failed to open browser: " + e.getMessage());
-            dispatchDownloadFailed("Failed to open browser", e);
+            dispatchDownloadFailed(context.getString(R.string.ota3_err_browser), e);
         }
     }
 
@@ -1037,7 +1039,7 @@ public class OTAManager3 {
     private void installApk(Context ctx, File apkFile) {
         try {
             if (!apkFile.exists()) {
-                dispatchDownloadFailed("Downloaded file is missing", null);
+                dispatchDownloadFailed(context.getString(R.string.ota3_err_file_missing), null);
                 return;
             }
             Uri apkUri;
@@ -1054,7 +1056,7 @@ public class OTAManager3 {
             ctx.startActivity(install);
         } catch (Exception e) {
             logError("Failed to install APK: " + e.getMessage());
-            dispatchDownloadFailed("Installation failed: " + e.getMessage(), e);
+            dispatchDownloadFailed(context.getString(R.string.ota3_err_install, e.getMessage()), e);
         }
     }
 

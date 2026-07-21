@@ -854,6 +854,9 @@
     <string name="wf_store_screen_round">Round</string>
     <string name="wf_store_screen_square">Square</string>
     <string name="wf_store_screen_rect">Rectangular</string>
+    <string name="wf_store_load_failed">Failed to load: %s</string>
+    <string name="wf_store_load_detail_failed">Failed to load detail: %s</string>
+    <string name="wf_store_filter_all">All</string>
 
     <!-- ── Notification badge ──────────────────────────────────────────── -->
     <string name="badge_overflow" translatable="false">99+</string>
@@ -898,6 +901,43 @@
     <string name="ota_progress_size" translatable="false">%1$.1f / %2$.1f MB</string>
     <string name="ota_download_notif_title">CloX update</string>
 
+    <!-- ── OTAManager3 built-in UI / status messages ────────────────────── -->
+    <string name="ota3_err_disabled">Update checks are disabled</string>
+    <string name="ota3_err_not_on_wifi">Not on WiFi</string>
+    <string name="ota3_err_server_code">Update server returned %d</string>
+    <string name="ota3_err_no_release">No releases found</string>
+    <string name="ota3_err_parse">Failed to read update info</string>
+    <string name="ota3_err_network">Update check failed: %s</string>
+    <string name="ota3_err_read_current">Failed to read current version</string>
+    <string name="ota3_err_no_apk">No downloadable APK in the latest release</string>
+    <string name="ota3_err_no_url">No download URL available</string>
+    <string name="ota3_err_storage_unavailable">External storage unavailable</string>
+    <string name="ota3_err_inapp_failed">In-app download failed</string>
+    <string name="ota3_err_file_missing">Downloaded file is missing</string>
+    <string name="ota3_err_download_server_code">Download failed: server returned %d</string>
+    <string name="ota3_err_download">Download failed: %s</string>
+    <string name="ota3_err_browser">Failed to open browser</string>
+    <string name="ota3_err_install">Installation failed: %s</string>
+    <string name="ota3_changelog_none">No changelog available</string>
+    <string name="ota3_up_to_date">You are up to date</string>
+    <string name="ota3_prerelease">You are running prerelease</string>
+    <string name="ota3_dialog_title">Update Available: V%s</string>
+    <string name="ota3_btn_update">Update</string>
+    <string name="ota3_btn_later">Later</string>
+    <string name="ota3_btn_skip">Skip this version</string>
+    <string name="ota3_toast_skipped">Skipped version %s</string>
+    <string name="ota3_btn_do_not_remind">Do not remind</string>
+    <string name="ota3_toast_disabled">Update checks disabled. You can re-enable in settings.</string>
+    <string name="ota3_chooser_item_in_app">Download in app</string>
+    <string name="ota3_chooser_item_manager">Download with Download Manager</string>
+    <string name="ota3_chooser_item_browser">Open in browser</string>
+    <string name="ota3_chooser_title">How would you like to update?</string>
+    <string name="ota3_notif_title">Downloading Update</string>
+    <string name="ota3_notif_desc">Downloading version %s</string>
+    <string name="ota3_toast_downloading">Downloading update…</string>
+    <string name="ota3_toast_inapp_failed">Download failed, please retry or download in browser</string>
+    <string name="ota3_toast_browser">Downloading in browser…</string>
+
     <!-- ── Default launcher dialog ──────────────────────────────────────── -->
     <string name="dialog_default_launcher_title">Set as Default Launcher</string>
     <string name="dialog_default_launcher_message">CloX needs to be set as your default launcher to work properly.\n\nNote: Some devices don\'t allow setting \'Always\' on first selection — if that happens, just select it again.</string>
@@ -925,6 +965,7 @@
     <string name="rtos_setting_block_apps_summary">Enable accessibility service first, then turn this on</string>
     <string name="rtos_setting_accessibility_category">Accessibility</string>
     <string name="rtos_setting_accessibility_title">Accessibility Service</string>
+    <string name="rtos_whitelist_title">Allowed Apps</string>
 
     <!-- ── Hide apps fragment ────────────────────────────────────────────── -->
     <string name="hide_apps_tab_blacklist">Blacklist</string>
@@ -939,6 +980,7 @@
     <!-- ── Notification item actions ────────────────────────────────────── -->
     <string name="notif_action_open">Open</string>
     <string name="notif_action_show_more">Show more</string>
+    <string name="notif_action_show_less">Show less</string>
 
     <!-- ── Quick Settings settings fragment ─────────────────────────────── -->
     <string name="qs_setting_general_category">General</string>
@@ -1118,6 +1160,9 @@
     <string name="notif_perm_title">Permission required</string>
     <string name="notif_perm_desc">Grant notification access so CloX can display your notifications.</string>
     <string name="notif_perm_grant_btn">Grant permission</string>
+    <string name="notif_perm_status_not_granted">Not granted — tap to open settings</string>
+    <string name="notif_perm_status_service_down">Granted but service not running — tap to fix</string>
+    <string name="notif_perm_status_active">Active</string>
 
     <!-- ── Weather card ─────────────────────────────────────────────────- -->
     <string name="weather_temp_placeholder" translatable="false">--</string>
@@ -1252,6 +1297,11 @@
     <string name="wf_renderer_dead_detail_load">The watchface did not finish loading within %1$ds. The screen would stay black or frozen.</string>
     <string name="wf_renderer_dead_detail_hang">The rendering thread has not responded for %1$ds. The watchface is hung or the engine is dead.</string>
     <string name="wf_renderer_dead_restart">Restart launcher</string>
+    <string name="wf_trigger_face_change">watchface change</string>
+    <string name="wf_trigger_reload">reload watchface</string>
+    <string name="wf_trigger_reset">reset watchface</string>
+    <string name="wf_trigger_clear_vars">clear watchface vars</string>
+    <string name="wf_trigger_startup">startup</string>
     <string name="wf_lua_error_default_context">Lua error</string>
     <string name="wf_lua_error_no_detail">(no detail)</string>
 

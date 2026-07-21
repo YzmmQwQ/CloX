@@ -138,9 +138,9 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
         val granted = isListenerEnabled()
         val running = CloXNotificationListenerService.isRunning()
         tv.text = when {
-            !granted -> "Not granted — tap to open settings"
-            !running -> "Granted but service not running — tap to fix"
-            else     -> "Active"
+            !granted -> getString(R.string.notif_perm_status_not_granted)
+            !running -> getString(R.string.notif_perm_status_service_down)
+            else     -> getString(R.string.notif_perm_status_active)
         }
     }
 

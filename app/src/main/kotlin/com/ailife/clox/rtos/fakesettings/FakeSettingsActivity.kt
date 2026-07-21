@@ -203,7 +203,7 @@ class FakeSettingsActivity : AppCompatActivity() {
 
     private fun showQrPage() {
         backAction = { showMenuPage() }
-        setTitle("QR code")
+        setTitle(getString(R.string.fake_settings_qr_code))
         contentFrame.removeAllViews()
 
         val col = LinearLayout(this).apply {

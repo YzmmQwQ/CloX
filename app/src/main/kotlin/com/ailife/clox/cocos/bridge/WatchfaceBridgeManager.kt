@@ -241,9 +241,18 @@ class WatchfaceBridgeManager(
     private fun showRendererDeadDialog(reason: String, detail: String) {
         if (deadDialog?.isShowing == true) return
         try {
+            // `reason` stays an English token for logs; the dialog shows a localized label.
+            val reasonDisplay = when (reason) {
+                "watchface change"    -> ctx.getString(com.ailife.clox.R.string.wf_trigger_face_change)
+                "reload watchface"    -> ctx.getString(com.ailife.clox.R.string.wf_trigger_reload)
+                "reset watchface"     -> ctx.getString(com.ailife.clox.R.string.wf_trigger_reset)
+                "clear watchface vars"-> ctx.getString(com.ailife.clox.R.string.wf_trigger_clear_vars)
+                "startup"             -> ctx.getString(com.ailife.clox.R.string.wf_trigger_startup)
+                else                  -> reason
+            }
             deadDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
                 .setTitle(com.ailife.clox.R.string.wf_renderer_dead_title)
-                .setMessage(ctx.getString(com.ailife.clox.R.string.wf_renderer_dead_message, reason, detail))
+                .setMessage(ctx.getString(com.ailife.clox.R.string.wf_renderer_dead_message, reasonDisplay, detail))
                 .setPositiveButton(com.ailife.clox.R.string.wf_renderer_dead_restart) { _, _ -> CocosManager.restartProcess(ctx) }
                 .setNegativeButton(com.ailife.clox.R.string.action_dismiss, null)
                 .show()

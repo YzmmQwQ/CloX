@@ -109,7 +109,7 @@ class QuickSettingsSettingsFragment : BaseSettingsFragment() {
         }
         refreshTileStyle()
         view.findViewById<View>(R.id.rowQsTileStyle).setOnClickListener {
-            showListPicker("Tile style", tileStyleEntries, tileStyleValues,
+            showListPicker(getString(R.string.qs_setting_tile_style_title), tileStyleEntries, tileStyleValues,
                 prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) ?: QsPrefs.TILE_STYLE_STROKE) { v, _ ->
                 prefs.edit().putString(QsPrefs.TILE_STYLE, v).apply()
                 refreshTileStyle()
