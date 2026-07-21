@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="blur_mode_entries">
+        <item>即時（GPU著色器）</item>
+        <item>擷取畫面 + 真實模糊</item>
+        <item>擷取畫面 + 軟件模糊</item>
+        <item>停用（僅遮罩）</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>清單</item>
+        <item>格線</item>
+        <item>瀑布流</item>
+        <item>蜂巢</item>
+        <item>2D格線</item>
+        <item>分頁</item>
+        <item>重力</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>按字母順序</item>
+        <item>自訂順序</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>系統預設</item>
+        <item>Android 12圖示展開</item>
+    </string-array>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no（免費，不需金鑰）</item>
+        <item>Open-Meteo（免費，不需金鑰）</item>
+        <item>WeatherAPI.com（金鑰可選）</item>
+        <item>OpenWeatherMap（需要金鑰）</item>
+        <item>wttr.in（免費，僅3日預報）</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15分鐘</item>
+        <item>30分鐘</item>
+        <item>1小時</item>
+        <item>2小時</item>
+    </string-array>
+
+    <string-array name="health_interval_entries">
+        <item>5分鐘</item>
+        <item>10分鐘</item>
+        <item>15分鐘</item>
+        <item>30分鐘</item>
+    </string-array>
+
+    <string-array name="tile_columns_entries">
+        <item>2欄（較大圖塊）</item>
+        <item>3欄（緊湊）</item>
+    </string-array>
+
+    <string-array name="tile_rows_entries">
+        <item>2行</item>
+        <item>3行</item>
+    </string-array>
+
+    <string-array name="wf_selector_mode_entries">
+        <item>分頁瀏覽（水平卡片）</item>
+        <item>格線（含資料夾）</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>按檔案名稱</item>
+        <item>按最後修改時間</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>沒有動作</item>
+        <item>關閉螢幕</item>
+        <item>開啟錶面選擇器</item>
+        <item>隨機錶面</item>
+        <item>開啟設定</item>
+        <item>錶面設定</item>
+        <item>切換手勢鎖定</item>
+        <item>進入RTOS模式</item>
+        <item>展開快速設定</item>
+        <item>展開通知</item>
+        <item>開啟應用程式</item>
+        <item>系統快速設定</item>
+        <item>系統通知</item>
+        <item>開啟最近使用項目</item>
+        <item>電源選單</item>
+        <item>電筒</item>
+        <item>音量面板</item>
+    </string-array>
+
+    <string-array name="nav_bar_mode_entries">
+        <item>隱藏</item>
+        <item>一律顯示</item>
+        <item>僅在應用程式清單中</item>
+    </string-array>
+
+    <string-array name="wf_auto_interval_entries">
+        <item>關閉</item>
+        <item>每小時</item>
+        <item>每日</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>無（以系統面板作為後備）</item>
+        <item>Shizuku</item>
+        <item>Root（su）</item>
+    </string-array>
+
+    <string-array name="open_anim_type_entries">
+        <item>圖示縮放</item>
+        <item>視窗展開</item>
+    </string-array>
+
+    <string-array name="close_anim_type_entries">
+        <item>反向圖示縮放</item>
+        <item>反向視窗展開</item>
+    </string-array>
+
+    <string-array name="gesture_return_anim_entries">
+        <item>淡入</item>
+        <item>圓形展開</item>
+    </string-array>
+
+    <string-array name="rtos_mode_entries">
+        <item>僅錶面</item>
+        <item>完整RTOS模擬</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>鍵盤（隱形3×3格線）</item>
+        <item>摩斯密碼（長按/短按）</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>線框（外框）</item>
+        <item>實心（Material填色）</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>玻璃（半透明 + 外框）</item>
+        <item>實心（不透明灰色，無外框）</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>清單檢視</item>
+        <item>分頁檢視</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>線性</item>
+        <item>平滑步進</item>
+        <item>指數</item>
+    </string-array>
+</resources>

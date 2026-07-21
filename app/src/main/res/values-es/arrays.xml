@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="blur_mode_entries">
+        <item>Tiempo real (shader de GPU)</item>
+        <item>Captura + desenfoque real</item>
+        <item>Captura + desenfoque por software</item>
+        <item>Desactivado (solo capa oscura)</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>Lista</item>
+        <item>Cuadrícula</item>
+        <item>Cascada</item>
+        <item>Panal</item>
+        <item>Cuadrícula 2D</item>
+        <item>Páginas</item>
+        <item>Gravedad</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>Alfabético</item>
+        <item>Orden personalizado</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>Predeterminado del sistema</item>
+        <item>Expansión de icono de Android 12</item>
+    </string-array>
+
+    <!-- ── Tap Actions ───────────────────────────────────────────────────── -->
+
+    <!-- ── Weather ──────────────────────────────────────────────────────── -->
+    <string-array name="weather_provider_entries">
+        <item>MET.no (gratis, sin clave)</item>
+        <item>Open-Meteo (gratis, sin clave)</item>
+        <item>WeatherAPI.com (clave opcional)</item>
+        <item>OpenWeatherMap (clave requerida)</item>
+        <item>wttr.in (gratis, solo 3 días)</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15 minutos</item>
+        <item>30 minutos</item>
+        <item>1 hora</item>
+        <item>2 horas</item>
+    </string-array>
+
+    <!-- ── Health ────────────────────────────────────────────────────────── -->
+    <string-array name="health_interval_entries">
+        <item>5 minutos</item>
+        <item>10 minutos</item>
+        <item>15 minutos</item>
+        <item>30 minutos</item>
+    </string-array>
+
+    <!-- ── Quick Settings ─────────────────────────────────────────────────── -->
+    <string-array name="tile_columns_entries">
+        <item>2 columnas (mosaicos más grandes)</item>
+        <item>3 columnas (compacto)</item>
+    </string-array>
+    <string-array name="tile_rows_entries">
+        <item>2 filas</item>
+        <item>3 filas</item>
+    </string-array>
+
+    <!-- ── Watch Faces ─────────────────────────────────────────────────────── -->
+    <string-array name="wf_selector_mode_entries">
+        <item>Paginador (tarjetas horizontales)</item>
+        <item>Cuadrícula (con carpetas)</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>Por nombre de archivo</item>
+        <item>Por última modificación</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>Nada</item>
+        <item>Apagar pantalla</item>
+        <item>Abrir selector de esferas</item>
+        <item>Esfera aleatoria</item>
+        <item>Abrir ajustes</item>
+        <item>Ajustes de esfera</item>
+        <item>Alternar bloqueo de gestos</item>
+        <item>Entrar en modo RTOS</item>
+        <item>Expandir Ajustes rápidos</item>
+        <item>Expandir notificaciones</item>
+        <item>Abrir aplicación</item>
+        <item>Ajustes rápidos del sistema</item>
+        <item>Notificaciones del sistema</item>
+        <item>Abrir recientes</item>
+        <item>Menú de encendido</item>
+        <item>Linterna</item>
+        <item>Panel de volumen</item>
+    </string-array>
+
+    <!-- Navigation bar visibility -->
+    <string-array name="nav_bar_mode_entries">
+        <item>Oculta</item>
+        <item>Siempre visible</item>
+        <item>Solo en la lista de aplicaciones</item>
+    </string-array>
+
+    <!-- Watch face auto-change -->
+    <string-array name="wf_auto_interval_entries">
+        <item>Desactivado</item>
+        <item>Cada hora</item>
+        <item>Cada día</item>
+    </string-array>
+
+    <!-- Debug settings -->
+    <string-array name="privilege_entries">
+        <item>Ninguno (paneles del sistema como alternativa)</item>
+        <item>Shizuku</item>
+        <item>Root (su)</item>
+    </string-array>
+
+    <!-- ── Animation settings fragment ──────────────────────────────────── -->
+    <string-array name="open_anim_type_entries">
+        <item>Zoom de icono</item>
+        <item>Expansión de ventana</item>
+    </string-array>
+    <string-array name="close_anim_type_entries">
+        <item>Zoom de icono inverso</item>
+        <item>Expansión de ventana inversa</item>
+    </string-array>
+    <string-array name="gesture_return_anim_entries">
+        <item>Aparición gradual</item>
+        <item>Apertura circular</item>
+    </string-array>
+
+    <!-- ── RTOS mode ─────────────────────────────────────────────────────── -->
+    <string-array name="rtos_mode_entries">
+        <item>Solo esfera</item>
+        <item>Simulación RTOS completa</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>Teclado (cuadrícula invisible 3×3)</item>
+        <item>Código Morse (pulsación larga/corta)</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>Contorno (delineado)</item>
+        <item>Sólido (relleno Material)</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>Cristal (semitransparente + contorno)</item>
+        <item>Sólido (gris opaco, sin contorno)</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>Vista de lista</item>
+        <item>Vista de página</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>Lineal</item>
+        <item>Suave</item>
+        <item>Exponencial</item>
+    </string-array>
+</resources>

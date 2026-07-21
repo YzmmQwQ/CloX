@@ -215,14 +215,13 @@ class WatchfaceBridgeManager(
             }
             if (strikes >= 2) {
                 Log.e(TAG, "watchdog($reason): renderer unresponsive for 2 rounds (${2 * WATCHDOG_MS}ms)")
+                val seconds = (2 * WATCHDOG_MS / 1000).toInt()
                 showRendererDeadDialog(
                     reason,
                     if (expectLoadAfter != null)
-                        "The watchface did not finish loading within ${2 * WATCHDOG_MS / 1000}s. " +
-                        "The screen would stay black or frozen."
+                        ctx.getString(com.ailife.clox.R.string.wf_renderer_dead_detail_load, seconds)
                     else
-                        "The rendering thread has not responded for ${2 * WATCHDOG_MS / 1000}s. " +
-                        "The watchface is hung or the engine is dead."
+                        ctx.getString(com.ailife.clox.R.string.wf_renderer_dead_detail_hang, seconds)
                 )
                 return@Runnable
             }
@@ -243,10 +242,10 @@ class WatchfaceBridgeManager(
         if (deadDialog?.isShowing == true) return
         try {
             deadDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
-                .setTitle("Watchface renderer not responding")
-                .setMessage("Trigger: $reason\n\n$detail\n\nRestarting the launcher recovers it.")
-                .setPositiveButton("Restart launcher") { _, _ -> CocosManager.restartProcess(ctx) }
-                .setNegativeButton("Dismiss", null)
+                .setTitle(com.ailife.clox.R.string.wf_renderer_dead_title)
+                .setMessage(ctx.getString(com.ailife.clox.R.string.wf_renderer_dead_message, reason, detail))
+                .setPositiveButton(com.ailife.clox.R.string.wf_renderer_dead_restart) { _, _ -> CocosManager.restartProcess(ctx) }
+                .setNegativeButton(com.ailife.clox.R.string.action_dismiss, null)
                 .show()
         } catch (e: Exception) {
             Log.e(TAG, "showRendererDeadDialog failed", e)
@@ -648,7 +647,7 @@ class WatchfaceBridgeManager(
                     // rather than silently rendering black/partial. The Debug settings
                     // "Ignore Lua errors" toggle opts back into silent failure.
                     if (!com.ailife.clox.debug.DebugPrefs.ignoreLuaErrors(ctx)) {
-                        val context = json.optString("context", "Lua error")
+                        val context = json.optString("context", ctx.getString(com.ailife.clox.R.string.wf_lua_error_default_context))
                         val trace   = json.optString("trace")
                         Handler(Looper.getMainLooper()).post { showLuaErrorDialog(context, trace) }
                     }
@@ -668,7 +667,7 @@ class WatchfaceBridgeManager(
         try {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
                 .setTitle(title)
-                .setMessage(if (trace.isBlank()) "(no detail)" else trace)
+                .setMessage(if (trace.isBlank()) ctx.getString(com.ailife.clox.R.string.wf_lua_error_no_detail) else trace)
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
         } catch (e: Exception) {

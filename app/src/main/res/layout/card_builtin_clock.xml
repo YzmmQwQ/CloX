@@ -68,7 +68,7 @@
         android:src="@drawable/ic_close"
         android:background="@drawable/bg_delete_badge"
         android:padding="6dp"
-        android:contentDescription="Delete"
+        android:contentDescription="@string/action_delete"
         android:visibility="gone" />
 
     <ImageView

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="blur_mode_entries">
+        <item>リアルタイム(GPUシェーダー)</item>
+        <item>キャプチャ + 実ぼかし</item>
+        <item>キャプチャ + ソフトウェアぼかし</item>
+        <item>無効(スクリムのみ)</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>リスト</item>
+        <item>グリッド</item>
+        <item>ウォーターフォール</item>
+        <item>ハニカム</item>
+        <item>グリッド2D</item>
+        <item>ページ</item>
+        <item>重力</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>アルファベット順</item>
+        <item>カスタム順</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>システムの既定</item>
+        <item>Android 12 アイコン展開</item>
+    </string-array>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no(無料、キー不要)</item>
+        <item>Open-Meteo(無料、キー不要)</item>
+        <item>WeatherAPI.com(キー任意)</item>
+        <item>OpenWeatherMap(キー必須)</item>
+        <item>wttr.in(無料、3日間のみ)</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15分</item>
+        <item>30分</item>
+        <item>1時間</item>
+        <item>2時間</item>
+    </string-array>
+
+    <string-array name="health_interval_entries">
+        <item>5分</item>
+        <item>10分</item>
+        <item>15分</item>
+        <item>30分</item>
+    </string-array>
+
+    <string-array name="tile_columns_entries">
+        <item>2列(大きいタイル)</item>
+        <item>3列(コンパクト)</item>
+    </string-array>
+    <string-array name="tile_rows_entries">
+        <item>2行</item>
+        <item>3行</item>
+    </string-array>
+
+    <string-array name="wf_selector_mode_entries">
+        <item>ページャー(横型カード)</item>
+        <item>グリッド(フォルダ対応)</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>ファイル名順</item>
+        <item>更新日時順</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>なし</item>
+        <item>画面をオフにする</item>
+        <item>ウォッチフェイスセレクターを開く</item>
+        <item>ランダムなウォッチフェイス</item>
+        <item>設定を開く</item>
+        <item>ウォッチフェイス設定</item>
+        <item>ジェスチャーロックの切り替え</item>
+        <item>RTOSモードに入る</item>
+        <item>クイック設定を開く</item>
+        <item>通知を開く</item>
+        <item>アプリを開く</item>
+        <item>システムのクイック設定</item>
+        <item>システムの通知</item>
+        <item>最近使ったアプリを開く</item>
+        <item>電源メニュー</item>
+        <item>懐中電灯</item>
+        <item>音量パネル</item>
+    </string-array>
+
+    <!-- Navigation bar visibility -->
+    <string-array name="nav_bar_mode_entries">
+        <item>非表示</item>
+        <item>常に表示</item>
+        <item>アプリ一覧内のみ</item>
+    </string-array>
+
+    <!-- Watch face auto-change -->
+    <string-array name="wf_auto_interval_entries">
+        <item>オフ</item>
+        <item>1時間ごと</item>
+        <item>毎日</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>なし(システムパネルにフォールバック)</item>
+        <item>Shizuku</item>
+        <item>Root (su)</item>
+    </string-array>
+
+    <string-array name="open_anim_type_entries">
+        <item>アイコンズーム</item>
+        <item>ウィンドウ展開</item>
+    </string-array>
+
+    <string-array name="close_anim_type_entries">
+        <item>逆アイコンズーム</item>
+        <item>逆ウィンドウ展開</item>
+    </string-array>
+
+    <string-array name="gesture_return_anim_entries">
+        <item>フェードイン</item>
+        <item>円形展開</item>
+    </string-array>
+
+    <!-- From arrays.xml -->
+    <string-array name="rtos_mode_entries">
+        <item>ウォッチフェイスのみ</item>
+        <item>完全なRTOSシミュレーション</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>キーパッド(見えない3×3グリッド)</item>
+        <item>モールス信号(長押し/短押し)</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>ストローク(アウトライン)</item>
+        <item>ソリッド(Material塗りつぶし)</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>ガラス(半透明 + アウトライン)</item>
+        <item>ソリッド(不透明グレー、アウトラインなし)</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>リスト表示</item>
+        <item>ページ表示</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>線形</item>
+        <item>スムーズステップ</item>
+        <item>指数関数</item>
+    </string-array>
+</resources>

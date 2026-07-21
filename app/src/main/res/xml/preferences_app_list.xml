@@ -14,7 +14,7 @@
     <!-- ── List sub-settings ─────────────────────────────────────────────────── -->
     <PreferenceCategory
         android:key="cat_list"
-        android:title="List options">
+        android:title="@string/applist_setting_list_options_category">
 
         <SwitchPreferenceCompat
             android:key="list_search"
@@ -51,7 +51,7 @@
     <!-- ── Grid sub-settings ─────────────────────────────────────────────────── -->
     <PreferenceCategory
         android:key="cat_grid"
-        android:title="Grid options">
+        android:title="@string/applist_setting_grid_options_category">
 
         <SeekBarPreference
             android:key="grid_cols"
@@ -71,7 +71,7 @@
     <!-- ── Waterfall sub-settings ─────────────────────────────────────────────── -->
     <PreferenceCategory
         android:key="cat_waterfall"
-        android:title="Waterfall options">
+        android:title="@string/applist_setting_waterfall_options_category">
 
         <SwitchPreferenceCompat
             android:key="waterfall_3d"
@@ -103,7 +103,7 @@
     <!-- ── Honeycomb sub-settings ─────────────────────────────────────────────── -->
     <PreferenceCategory
         android:key="cat_honeycomb"
-        android:title="Honeycomb options">
+        android:title="@string/applist_setting_honeycomb_options_category">
 
         <SwitchPreferenceCompat
             android:key="honeycomb_3d"
@@ -143,7 +143,7 @@
     <!-- ── Grid 2D sub-settings ───────────────────────────────────────────────── -->
     <PreferenceCategory
         android:key="cat_grid2d"
-        android:title="Grid 2D options">
+        android:title="@string/applist_setting_grid2d_options_category">
 
         <SwitchPreferenceCompat
             android:key="grid2d_names"
@@ -187,7 +187,7 @@
     <!-- ── Pages sub-settings ─────────────────────────────────────────────────── -->
     <PreferenceCategory
         android:key="cat_pages"
-        android:title="Pages options">
+        android:title="@string/applist_setting_pages_options_category">
 
         <SeekBarPreference
             android:key="pages_cols"
@@ -226,7 +226,7 @@
     </PreferenceCategory>
 
     <!-- ── Generic / global settings ─────────────────────────────────────────── -->
-    <PreferenceCategory android:title="General">
+    <PreferenceCategory android:title="@string/applist_setting_general_category">
 
         <ListPreference
             android:key="sort"
@@ -250,21 +250,21 @@
         <Preference
             android:key="hidden_apps"
             android:title="@string/pref_hidden_apps_title"
-            android:summary="Manage which apps appear in the launcher" />
+            android:summary="@string/applist_setting_hidden_apps_summary" />
 
         <Preference
             android:key="bg_image_pick"
-            android:title="Background image"
-            android:summary="Tap to choose an image" />
+            android:title="@string/applist_setting_bg_image_title"
+            android:summary="@string/applist_setting_bg_image_summary" />
 
         <Preference
             android:key="bg_image_clear"
-            android:title="Clear background image"
+            android:title="@string/applist_setting_clear_bg_btn"
             android:visible="false" />
 
         <SeekBarPreference
             android:key="wallpaper_dim"
-            android:title="Darken background"
+            android:title="@string/applist_setting_darken_bg_title"
             android:defaultValue="0"
             android:min="0"
             android:max="90"

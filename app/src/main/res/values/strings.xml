@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">CloX</string>
+    <string name="app_name" translatable="false">CloX</string>
     <string name="settings_title">Settings</string>
     <string name="add_widget">Add Widget</string>
 
@@ -34,7 +34,7 @@
     <string name="pref_location_elevation_title">Elevation (m)</string>
     <string name="pref_location_elevation_summary">Not set — updates automatically with auto-location</string>
     <string name="pref_location_elevation_invalid">Invalid elevation</string>
-    <string name="pref_location_elevation_format">%s m</string>
+    <string name="pref_location_elevation_format" translatable="false">%s m</string>
     <string name="location_elevation_hint">e.g. 38.0</string>
     <string name="pref_double_tap_hold_title">Block first tap of double-tap</string>
     <string name="pref_double_tap_hold_summary">Hold watchface taps briefly so a double-tap doesn\'t also trigger the face\'s tap action. Adds a short delay to every tap — turn off for stopwatch-style faces.</string>
@@ -124,7 +124,7 @@
         <item>Capture + software blur</item>
         <item>Disabled (scrim only)</item>
     </string-array>
-    <string-array name="blur_mode_values">
+    <string-array name="blur_mode_values" translatable="false">
         <item>REALTIME</item>
         <item>BLURVIEW</item>
         <item>SNAPSHOT</item>
@@ -140,7 +140,7 @@
         <item>Pages</item>
         <item>Gravity</item>
     </string-array>
-    <string-array name="app_list_style_values">
+    <string-array name="app_list_style_values" translatable="false">
         <item>list</item>
         <item>grid</item>
         <item>waterfall</item>
@@ -154,7 +154,7 @@
         <item>Alphabetical</item>
         <item>Custom order</item>
     </string-array>
-    <string-array name="app_list_sort_values">
+    <string-array name="app_list_sort_values" translatable="false">
         <item>alpha</item>
         <item>custom</item>
     </string-array>
@@ -163,7 +163,7 @@
         <item>System default</item>
         <item>Android 12 icon expand</item>
     </string-array>
-    <string-array name="launch_anim_values">
+    <string-array name="launch_anim_values" translatable="false">
         <item>system</item>
         <item>custom</item>
     </string-array>
@@ -216,7 +216,7 @@
         <item>OpenWeatherMap (key required)</item>
         <item>wttr.in (free, 3-day only)</item>
     </string-array>
-    <string-array name="weather_provider_values">
+    <string-array name="weather_provider_values" translatable="false">
         <item>metno</item>
         <item>openmeteo</item>
         <item>weatherapi</item>
@@ -230,7 +230,7 @@
         <item>1 hour</item>
         <item>2 hours</item>
     </string-array>
-    <string-array name="weather_interval_values">
+    <string-array name="weather_interval_values" translatable="false">
         <item>15</item>
         <item>30</item>
         <item>60</item>
@@ -266,7 +266,7 @@
     <string name="pref_location_slot5_city">Slot 5 — city name</string>
     <string name="pref_location_slot5_tz">Slot 5 — timezone offset</string>
 
-    <string-array name="timezone_offset_entries">
+    <string-array name="timezone_offset_entries" translatable="false">
         <item>UTC−11</item><item>UTC−10</item><item>UTC−9</item><item>UTC−8</item>
         <item>UTC−7</item><item>UTC−6</item><item>UTC−5</item><item>UTC−4</item>
         <item>UTC−3</item><item>UTC−2</item><item>UTC−1</item><item>UTC+0</item>
@@ -274,7 +274,7 @@
         <item>UTC+5</item><item>UTC+6</item><item>UTC+7</item><item>UTC+8</item>
         <item>UTC+9</item><item>UTC+10</item><item>UTC+11</item>
     </string-array>
-    <string-array name="timezone_offset_values">
+    <string-array name="timezone_offset_values" translatable="false">
         <item>-11</item><item>-10</item><item>-9</item><item>-8</item>
         <item>-7</item><item>-6</item><item>-5</item><item>-4</item>
         <item>-3</item><item>-2</item><item>-1</item><item>0</item>
@@ -285,8 +285,8 @@
 
     <!-- ── Health ────────────────────────────────────────────────────────── -->
     <string name="pref_health_title">Health</string>
-    <string name="pref_health_summary">Steps, heart rate, blood oxygen via Better Health Tracker</string>
-    <string name="pref_health_category_status">Better Health Tracker</string>
+    <string name="pref_health_summary">Steps, heart rate, blood oxygen via TraX</string>
+    <string name="pref_health_category_status" translatable="false">TraX</string>
     <string name="pref_health_category_metrics">Metrics</string>
     <string name="pref_health_category_update">Update</string>
     <string name="pref_health_bht_installed">Installed — data access ready</string>
@@ -304,11 +304,11 @@
     <string name="pref_health_stress_title">Stress</string>
     <string name="pref_health_stress_summary">Daily stress score 0–100</string>
     <string name="pref_health_no_sleep_data">No sleep detected</string>
-    <string name="pref_health_permission_toast">Health data permission is required — grant it to read data from Better Health Tracker</string>
+    <string name="pref_health_permission_toast">Health data permission is required — grant it to read data from TraX</string>
     <string name="pref_health_instant_title">Instant measurement</string>
     <string name="pref_health_instant_summary">Trigger real-time sensor read for heart rate and SpO2; takes longer but reflects current value</string>
     <string name="pref_health_interval_title">Update interval</string>
-    <string name="pref_health_not_installed_toast">Better Health Tracker is not installed</string>
+    <string name="pref_health_not_installed_toast">TraX is not installed</string>
     <string name="pref_health_refresh_title">Refresh now</string>
     <string name="pref_health_refresh_summary">Fetch all enabled metrics immediately</string>
     <string name="pref_health_refreshing">Refreshing…</string>
@@ -319,7 +319,7 @@
         <item>15 minutes</item>
         <item>30 minutes</item>
     </string-array>
-    <string-array name="health_interval_values">
+    <string-array name="health_interval_values" translatable="false">
         <item>5</item>
         <item>10</item>
         <item>15</item>
@@ -376,7 +376,7 @@
         <item>2 columns (larger tiles)</item>
         <item>3 columns (compact)</item>
     </string-array>
-    <string-array name="tile_columns_values">
+    <string-array name="tile_columns_values" translatable="false">
         <item>2</item>
         <item>3</item>
     </string-array>
@@ -384,7 +384,7 @@
         <item>2 rows</item>
         <item>3 rows</item>
     </string-array>
-    <string-array name="tile_rows_values">
+    <string-array name="tile_rows_values" translatable="false">
         <item>2</item>
         <item>3</item>
     </string-array>
@@ -433,7 +433,7 @@
     <string name="wfcfg_allow_health_summary">Let this face use steps, heart rate and SpO₂</string>
     <string name="wfcfg_allow_tap">Allow tap actions</string>
     <string name="wfcfg_allow_tap_summary">Let taps launch apps and system actions</string>
-    <string name="wfcfg_fps_value">%1$d FPS</string>
+    <string name="wfcfg_fps_value" translatable="false">%1$d FPS</string>
     <string name="wfcfg_fps_unlimited">Unlimited</string>
     <string name="wfcfg_aod_hint">Ambient (AOD) is always capped at 1 FPS to save power.</string>
     <string name="wfcfg_tab_color">Color</string>
@@ -441,7 +441,7 @@
     <string name="wfcfg_color_theme">Follow launcher theme</string>
     <string name="wfcfg_color_fixed">Custom color</string>
     <string name="wfcfg_color_pick">Pick…</string>
-    <string name="wfcfg_color_hex_hint">rrggbb</string>
+    <string name="wfcfg_color_hex_hint" translatable="false">rrggbb</string>
     <string name="wfcfg_color_theme_hint">Uses the system Material You accent, like the launcher UI.</string>
     <string name="wfcfg_dynamic_fps">Dynamic FPS</string>
     <string name="wfcfg_dynamic_fps_summary">Idle face drops to 1 FPS, full rate while you interact; pauses under the opened app list</string>
@@ -564,7 +564,7 @@
         <item>Pager (horizontal cards)</item>
         <item>Grid (with folders)</item>
     </string-array>
-    <string-array name="wf_selector_mode_values">
+    <string-array name="wf_selector_mode_values" translatable="false">
         <item>pager</item>
         <item>grid</item>
     </string-array>
@@ -573,7 +573,7 @@
         <item>By file name</item>
         <item>By last modified</item>
     </string-array>
-    <string-array name="wf_sort_values">
+    <string-array name="wf_sort_values" translatable="false">
         <item>name</item>
         <item>modified</item>
     </string-array>
@@ -597,7 +597,7 @@
         <item>Flashlight</item>
         <item>Volume panel</item>
     </string-array>
-    <string-array name="gesture_action_values">
+    <string-array name="gesture_action_values" translatable="false">
         <item>nothing</item>
         <item>screen_off</item>
         <item>watchface_selector</item>
@@ -639,7 +639,7 @@
         <item>Always shown</item>
         <item>Only in app list</item>
     </string-array>
-    <string-array name="nav_bar_mode_values">
+    <string-array name="nav_bar_mode_values" translatable="false">
         <item>hidden</item>
         <item>show</item>
         <item>applist</item>
@@ -656,7 +656,7 @@
         <item>Every hour</item>
         <item>Every day</item>
     </string-array>
-    <string-array name="wf_auto_interval_values">
+    <string-array name="wf_auto_interval_values" translatable="false">
         <item>none</item>
         <item>hourly</item>
         <item>daily</item>
@@ -719,7 +719,7 @@
         <item>Shizuku</item>
         <item>Root (su)</item>
     </string-array>
-    <string-array name="privilege_values">
+    <string-array name="privilege_values" translatable="false">
         <item>none</item>
         <item>shizuku</item>
         <item>root</item>
@@ -827,8 +827,8 @@
     <string name="custom_tile_label_hint">Tile label</string>
     <string name="custom_tile_launch_app">Launch App</string>
     <string name="custom_tile_write_setting">Write Setting</string>
-    <string name="custom_tile_component_hint">com.pkg/.Activity</string>
-    <string name="custom_tile_settings_key_hint">settings_key</string>
+    <string name="custom_tile_component_hint" translatable="false">com.pkg/.Activity</string>
+    <string name="custom_tile_settings_key_hint" translatable="false">settings_key</string>
     <string name="custom_tile_add_btn">Add Tile</string>
     <string name="custom_tile_default_label">Custom</string>
 
@@ -836,16 +836,16 @@
     <string name="appearance_density_default">0 = system default</string>
 
     <!-- ── Base settings ───────────────────────────────────────────────── -->
-    <string name="color_picker_hint">#RRGGBB</string>
+    <string name="color_picker_hint" translatable="false">#RRGGBB</string>
 
     <!-- ── Weather API ─────────────────────────────────────────────────── -->
     <string name="api_key_hint">API key</string>
 
     <!-- ── OTA ─────────────────────────────────────────────────────────── -->
-    <string name="ota_version_label">v%s</string>
+    <string name="ota_version_label" translatable="false">v%s</string>
 
     <!-- ── Watchface store ─────────────────────────────────────────────── -->
-    <string name="store_download_count">%d ⬇</string>
+    <string name="store_download_count" translatable="false">%d ⬇</string>
     <string name="store_downloads_label">%d downloads</string>
     <string name="store_uploaded_label">Uploaded %s</string>
     <string name="store_author_label">by %s</string>
@@ -856,11 +856,11 @@
     <string name="wf_store_screen_rect">Rectangular</string>
 
     <!-- ── Notification badge ──────────────────────────────────────────── -->
-    <string name="badge_overflow">99+</string>
+    <string name="badge_overflow" translatable="false">99+</string>
 
     <!-- ── Unit suffixes ───────────────────────────────────────────────── -->
-    <string name="unit_seconds">%ds</string>
-    <string name="unit_sp">%dsp</string>
+    <string name="unit_seconds" translatable="false">%ds</string>
+    <string name="unit_sp" translatable="false">%dsp</string>
 
     <!-- ── Gestures ────────────────────────────────────────────────────── -->
     <string name="gesture_mapped_format">Mapped: %s — tap to change</string>
@@ -895,7 +895,7 @@
     <string name="toast_ota_skipped">Skipped version %s</string>
     <string name="dialog_ota_progress_title">Downloading update…</string>
     <string name="dialog_ota_progress_hide">Hide</string>
-    <string name="ota_progress_size">%1$.1f / %2$.1f MB</string>
+    <string name="ota_progress_size" translatable="false">%1$.1f / %2$.1f MB</string>
     <string name="ota_download_notif_title">CloX update</string>
 
     <!-- ── Default launcher dialog ──────────────────────────────────────── -->
@@ -1009,7 +1009,7 @@
         <item>Icon zoom</item>
         <item>Window expand</item>
     </string-array>
-    <string-array name="open_anim_type_values">
+    <string-array name="open_anim_type_values" translatable="false">
         <item>icon_zoom</item>
         <item>window_expand</item>
     </string-array>
@@ -1027,7 +1027,7 @@
         <item>Reverse icon zoom</item>
         <item>Reverse window expand</item>
     </string-array>
-    <string-array name="close_anim_type_values">
+    <string-array name="close_anim_type_values" translatable="false">
         <item>icon_zoom</item>
         <item>window_expand</item>
     </string-array>
@@ -1052,7 +1052,7 @@
         <item>Fade in</item>
         <item>Circle open</item>
     </string-array>
-    <string-array name="gesture_return_anim_values">
+    <string-array name="gesture_return_anim_values" translatable="false">
         <item>fade</item>
         <item>circle</item>
     </string-array>
@@ -1120,9 +1120,9 @@
     <string name="notif_perm_grant_btn">Grant permission</string>
 
     <!-- ── Weather card ─────────────────────────────────────────────────- -->
-    <string name="weather_temp_placeholder">--</string>
-    <string name="weather_high_indicator">↑ %s</string>
-    <string name="weather_low_indicator">↓ %s</string>
+    <string name="weather_temp_placeholder" translatable="false">--</string>
+    <string name="weather_high_indicator" translatable="false">↑ %s</string>
+    <string name="weather_low_indicator" translatable="false">↓ %s</string>
 
     <!-- ── QS tile states ───────────────────────────────────────────────- -->
     <string name="qs_tile_connected">Connected</string>
@@ -1144,7 +1144,7 @@
     <string name="location_lat_hint">e.g. 22.3193</string>
     <string name="location_lon_hint">e.g. 114.1694</string>
     <string name="location_city_hint">City name</string>
-    <string name="location_slot_placeholder">—</string>
+    <string name="location_slot_placeholder" translatable="false">—</string>
 
     <!-- ── App list ───────────────────────────────────────────────────── -->
     <string name="app_list_search_hint">Search apps…</string>
@@ -1169,27 +1169,131 @@
     <string name="sensors_section_data">Data</string>
 
     <!-- ── Health ───────────────────────────────────────────────────────── -->
-    <string name="health_bht_name">Better Health Tracker</string>
+    <string name="health_bht_name" translatable="false">TraX</string>
 
     <!-- ── About fragment ───────────────────────────────────────────────── -->
     <string name="about_onyx_project">Part of Onyx Project</string>
     <string name="about_onyx_description">CloX is part of the Onyx open-source system for Android wearables.</string>
-    <string name="about_onyxui_name">OnyxUI</string>
-    <string name="about_onyxui_url">codeberg.org/OnyxUI/OnyxUI</string>
+    <string name="about_onyxui_name" translatable="false">OnyxUI</string>
+    <string name="about_onyxui_url" translatable="false">codeberg.org/OnyxUI/OnyxUI</string>
     <string name="about_developers_category">Developers</string>
-    <string name="about_dev1_name">AILIFE</string>
-    <string name="about_dev1_url">gitlab.com/ailife8881</string>
-    <string name="about_dev2_name">4NF</string>
-    <string name="about_dev2_url">gitlab.com/Iroha9876</string>
+    <string name="about_dev1_name" translatable="false">AILIFE</string>
+    <string name="about_dev1_url" translatable="false">gitlab.com/ailife8881</string>
+    <string name="about_dev2_name" translatable="false">4NF</string>
+    <string name="about_dev2_url" translatable="false">gitlab.com/Iroha9876</string>
     <string name="about_updates_category">Updates</string>
     <string name="about_auto_update_title">Auto-update checks</string>
     <string name="about_auto_update_summary">Check for new releases on launch</string>
     <string name="about_check_updates_btn">Check for updates</string>
-    <string name="about_repo_url">gitlab.com/ailife8881/clox</string>
+    <string name="about_repo_url" translatable="false">gitlab.com/ailife8881/clox</string>
 
     <!-- Crash-safe activity launching (SafeActivityLauncher) -->
     <string name="launch_error_title">Can\'t open</string>
     <string name="launch_error_no_app">No app on this device can handle that. You may need to install a file manager or the target app.</string>
     <string name="launch_error_not_permitted">The system blocked this action. Check the app\'s permissions and try again.</string>
     <string name="launch_error_generic">Couldn\'t open that. Please try again.</string>
+
+    <!-- ── RTOS fake-settings decoy screen ──────────────────────────────── -->
+    <string name="fake_settings_title">Settings</string>
+    <string name="fake_settings_general">General</string>
+    <string name="fake_settings_language">Language</string>
+    <string name="fake_settings_language_value">English</string>
+    <string name="fake_settings_date_time">Date &amp; time</string>
+    <string name="fake_settings_time_format">Time format</string>
+    <string name="fake_settings_time_format_value" translatable="false">24h</string>
+    <string name="fake_settings_time_zone">Time zone</string>
+    <string name="fake_settings_time_zone_value" translatable="false">UTC+8</string>
+    <string name="fake_settings_qr_code">QR code</string>
+    <string name="fake_settings_watch_face">Watch Face</string>
+    <string name="fake_settings_bluetooth">Bluetooth</string>
+    <string name="fake_settings_status">Status</string>
+    <string name="fake_settings_connected">Connected</string>
+    <string name="fake_settings_device">Device</string>
+    <string name="fake_settings_device_value">Phone</string>
+    <string name="fake_settings_mac" translatable="false">MAC</string>
+    <string name="fake_settings_auto_conn">Auto-conn.</string>
+    <string name="fake_settings_on">On</string>
+    <string name="fake_settings_off">Off</string>
+    <string name="fake_settings_sound">Sound</string>
+    <string name="fake_settings_ringtone">Ringtone</string>
+    <string name="fake_settings_vibration">Vibration</string>
+    <string name="fake_settings_volume">Volume</string>
+    <string name="fake_settings_volume_value" translatable="false">75%</string>
+    <string name="fake_settings_display">Display</string>
+    <string name="fake_settings_brightness">Brightness</string>
+    <string name="fake_settings_brightness_value">Auto</string>
+    <string name="fake_settings_timeout">Timeout</string>
+    <string name="fake_settings_timeout_value" translatable="false">15s</string>
+    <string name="fake_settings_always_on">Always On</string>
+    <string name="fake_settings_about">About</string>
+    <string name="fake_settings_model">Model</string>
+    <string name="fake_settings_model_value" translatable="false">SmartWatch Pro</string>
+    <string name="fake_settings_firmware">Firmware</string>
+    <string name="fake_settings_firmware_value" translatable="false">v2.4.1</string>
+    <string name="fake_settings_battery">Battery</string>
+    <string name="fake_settings_battery_value" translatable="false">%1$d%%</string>
+
+    <!-- ── RTOS password setup ──────────────────────────────────────────── -->
+    <string name="rtos_pw_how_it_works">How it works</string>
+    <string name="rtos_pw_keypad_explain">The watch screen is divided into an invisible 3×3 grid:\n\n  [ 1 ][ 2 ][ 3 ]\n  [ 4 ][ 5 ][ 6 ]\n  [ 7 ][ 8 ][ 9 ]\n\nTap the grid zones to enter your code. There is no visual feedback.\n\nThe system checks after every tap using a sliding window — as long as your code appears anywhere in your recent taps it will unlock.\n\nYour code must be at least 4 digits and not all the same.</string>
+    <string name="rtos_pw_morse_explain">Tap anywhere on the watch face to enter Morse code:\n\n  Short press = dot  (·)\n  Long press  = dash (—)\n\nThere is no visual feedback. The system checks after each press.\n\nYour code must be at least 4 symbols and not all the same.</string>
+    <string name="rtos_pw_understood_countdown">Understood (%1$d…)</string>
+    <string name="rtos_pw_understood_done">Understood — Set Password</string>
+    <string name="rtos_pw_set_title">Set Password</string>
+    <string name="rtos_pw_confirm_title">Confirm Password</string>
+    <string name="rtos_pw_keypad_hint">Tap the grid zones to enter your code</string>
+    <string name="rtos_pw_morse_hint">Short/long press to enter Morse dots and dashes</string>
+    <string name="rtos_pw_clear">Clear</string>
+    <string name="rtos_pw_done">Done</string>
+
+    <!-- ── Watchface renderer recovery dialog ───────────────────────────── -->
+    <string name="wf_renderer_dead_title">Watchface renderer not responding</string>
+    <string name="wf_renderer_dead_message">Trigger: %1$s\n\n%2$s\n\nRestarting the launcher recovers it.</string>
+    <string name="wf_renderer_dead_detail_load">The watchface did not finish loading within %1$ds. The screen would stay black or frozen.</string>
+    <string name="wf_renderer_dead_detail_hang">The rendering thread has not responded for %1$ds. The watchface is hung or the engine is dead.</string>
+    <string name="wf_renderer_dead_restart">Restart launcher</string>
+    <string name="wf_lua_error_default_context">Lua error</string>
+    <string name="wf_lua_error_no_detail">(no detail)</string>
+
+    <!-- ── Accessibility content descriptions ───────────────────────────── -->
+    <string name="action_delete">Delete</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="cd_launcher_settings">Launcher Settings</string>
+    <string name="cd_recents">Recents</string>
+    <string name="cd_flashlight">Flashlight</string>
+    <string name="cd_power">Power</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_qr_code">QR code</string>
+    <string name="cd_delete_row">Delete row</string>
+    <string name="cd_delete_slot">Delete slot</string>
+    <string name="cd_decrease_height">Decrease height</string>
+    <string name="cd_increase_height">Increase height</string>
+    <string name="cd_select_all">Select all</string>
+    <string name="cd_deselect_all">Deselect all</string>
+    <string name="cd_watchface_preview">Watchface preview</string>
+    <string name="cd_preview">Preview</string>
+    <string name="cd_downloaded">Downloaded</string>
+    <string name="dialog_password_hint">Password (digits only)</string>
+
+    <!-- Settings preference-screen titles/summaries (moved out of preferences_*.xml) -->
+    <string name="appearance_dpi_summary">Override display density. 0 or empty = system default. Restart required.</string>
+    <string name="notif_setting_wake_summary">Turn on the display when a new notification arrives</string>
+    <string name="notif_setting_open_panel_summary">Automatically slide open the panel on new notification</string>
+    <string name="notif_setting_vibrate_summary">Vibrate when a new notification arrives</string>
+    <string name="rtos_setting_show_icon_title">Show launcher icon to enter RTOS mode</string>
+    <string name="pref_notifications_title">Notifications</string>
+    <string name="pref_notifications_summary">Panel style, alerts, filtering, blocked apps</string>
+    <string name="pref_quick_settings_summary">Tiles, columns, gestures, flashlight, colors, privileges</string>
+    <string name="pref_app_list_title">App list</string>
+    <string name="pref_app_list_summary">Style, sort order, icon pack</string>
+    <string name="pref_gestures_title">Gestures</string>
+    <string name="pref_gestures_summary">Double-tap, long-press, hardware button mapping</string>
+    <string name="pref_appearance_title">Appearance</string>
+    <string name="pref_appearance_summary">Blur mode and radius</string>
+    <string name="pref_hidden_apps_summary">Blacklist or whitelist apps from the launcher</string>
+    <string name="pref_rtos_title">RTOS Mode</string>
+    <string name="pref_rtos_summary">Disguise launcher as a Bluetooth RTOS watch</string>
+    <string name="pref_about_title">About &amp; Update</string>
+    <string name="pref_about_summary">Version, developers, Onyx project, update checker</string>
+
 </resources>

@@ -26,7 +26,7 @@
                 android:maxHeight="180dp"
                 android:scaleType="centerCrop"
                 android:background="?attr/colorSurfaceVariant"
-                android:contentDescription="Watchface preview" />
+                android:contentDescription="@string/cd_watchface_preview" />
 
             <!-- Downloaded indicator badge -->
             <ImageView
@@ -37,7 +37,7 @@
                 android:layout_margin="6dp"
                 android:src="@drawable/ic_check_circle"
                 android:visibility="gone"
-                android:contentDescription="Downloaded" />
+                android:contentDescription="@string/cd_downloaded" />
 
         </FrameLayout>
 

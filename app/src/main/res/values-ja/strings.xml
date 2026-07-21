@@ -1,0 +1,1014 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">設定</string>
+    <string name="add_widget">ウィジェットを追加</string>
+
+    <!-- ── Widget drawer ─────────────────────────────────────────────────────── -->
+    <string name="widget_edit">編集</string>
+    <string name="widget_done">完了</string>
+    <string name="widget_height_auto">自動</string>
+    <string name="widget_add_card">カードを追加</string>
+    <string name="widget_add_full_width">全幅ウィジェット</string>
+    <string name="widget_add_three_cell">3分割行</string>
+    <string name="widget_pick_app">アプリを選択</string>
+    <string name="widget_pick_slot_type">スロットに追加</string>
+    <string name="widget_slot_appwidget">アプリウィジェット</string>
+    <string name="widget_slot_activity">アプリアクティビティ</string>
+    <string name="widget_slot_shortcut">アプリショートカット</string>
+    <string name="widget_shortcut_pinned">ショートカット「%s」をCloXに追加しました</string>
+    <string name="widget_shortcut_empty">ショートカットがありません。アプリを長押しして「ホーム画面に追加」を選択してください。</string>
+    <string name="widget_add_clock">時計</string>
+    <string name="widget_add_weather">天気</string>
+    <string name="widget_weather_no_data">天気データがありません</string>
+    <string name="widget_weather_disabled">天気は設定で無効になっています</string>
+    <string name="widget_weather_location_not_set">地名が設定されていません</string>
+    <string name="widget_weather_today">今日</string>
+    <string name="widget_weather_now">現在</string>
+    <string name="weather_updated_just_now">たった今</string>
+    <string name="weather_updated_minutes_ago">%d分前</string>
+    <string name="weather_updated_hours_ago">%d時間前</string>
+
+    <!-- ── Settings ─────────────────────────────────────────────────────────── -->
+    <string name="pref_double_tap_title">ダブルタップの操作</string>
+    <string name="pref_location_elevation_title">標高 (m)</string>
+    <string name="pref_location_elevation_summary">未設定 — 自動位置情報で自動的に更新されます</string>
+    <string name="pref_location_elevation_invalid">無効な標高です</string>
+    <string name="location_elevation_hint">例: 38.0</string>
+    <string name="pref_double_tap_hold_title">ダブルタップの最初のタップをブロック</string>
+    <string name="pref_double_tap_hold_summary">ダブルタップがウォッチフェイスのタップ操作を誤って実行しないよう、タップを少し保持します。すべてのタップにわずかな遅延が加わります — ストップウォッチ系のフェイスではオフにしてください。</string>
+    <string name="pref_icon_pack_title">グローバルアイコンパック</string>
+    <string name="pref_icon_pack_none">なし(システムアイコン)</string>
+    <string name="pref_blur_mode_title">ぼかしモード</string>
+    <string name="pref_blur_radius_title">ぼかし半径</string>
+
+    <!-- App list top-level -->
+    <string name="pref_app_list_style_title">表示スタイル</string>
+    <string name="pref_app_list_sort_title">並べ替え順</string>
+    <string name="pref_app_list_sort_custom_hint">新しいアプリは下部に追加されます。\n長押ししてドラッグすると順序を変更できます。</string>
+    <string name="pref_hidden_apps_title">非表示のアプリ</string>
+
+    <!-- 3D effect (used by all styles with 3D effect) -->
+    <string name="pref_3d_min_scale_title">最小スケール(%)</string>
+    <string name="pref_3d_min_scale_summary">端での最小サイズ — 低いほど奥行きが強調されます</string>
+    <string name="pref_3d_curve_title">サイズカーブ</string>
+
+    <!-- List sub-settings -->
+    <string name="pref_list_search_title">検索バーを表示</string>
+    <string name="pref_list_3d_title">3D奥行き効果</string>
+    <string name="pref_list_3d_summary">画面の上下付近のアプリが縮小表示されます</string>
+
+    <!-- Grid sub-settings -->
+    <string name="pref_grid_cols_title">列数</string>
+    <string name="pref_grid_names_title">アプリ名を表示</string>
+
+    <!-- Waterfall sub-settings -->
+    <string name="pref_waterfall_3d_title">3D奥行き効果</string>
+    <string name="pref_waterfall_3d_summary">画面中央から離れたアイコンが縮小表示されます</string>
+
+    <!-- Honeycomb sub-settings -->
+    <string name="pref_honeycomb_3d_title">3D奥行き効果</string>
+    <string name="pref_honeycomb_3d_summary">画面中央から離れたアイコンが縮小表示されます(2D)</string>
+    <string name="pref_honeycomb_icon_size_title">アイコンサイズ (dp、0=自動)</string>
+
+    <!-- Grid 2D sub-settings -->
+    <string name="pref_grid2d_cols_title">列数</string>
+    <string name="pref_grid2d_names_title">アプリ名を表示</string>
+    <string name="pref_grid2d_3d_title">3D奥行き効果</string>
+    <string name="pref_grid2d_icon_size_title">アイコンサイズ (dp、0=自動)</string>
+
+    <!-- AOD overlay permission prompt -->
+    <string name="aod_overlay_perm_title">他のアプリの上に表示することを許可</string>
+    <string name="aod_overlay_perm_message">他のアプリを使用中に画面がオフになったときに常時表示(AOD)へ復帰するには、CloXに「他のアプリの上に表示」権限が必要です。この権限がないと、Androidはランチャーを前面に表示することをブロックします。</string>
+    <string name="aod_overlay_perm_grant">設定を開く</string>
+
+    <!-- Round overscroll + icon size (shared by all app-list styles) -->
+    <string name="pref_icon_size_title">アイコンサイズ (dp、0=自動)</string>
+    <string name="pref_round_overscroll_title">丸型オーバースクロール</string>
+    <string name="pref_round_overscroll_summary">画面端から半画面分パンした状態を保持 — 丸型画面の隅のアイコンに届きやすくなります</string>
+
+    <!-- Pages sub-settings -->
+    <string name="pref_pages_cols_title">1行あたりのアイコン数</string>
+    <string name="pref_pages_rows_title">1ページあたりの行数</string>
+
+    <!-- Gravity sub-settings -->
+    <string name="pref_gravity_accel_title">加速度センサーに追従</string>
+    <string name="pref_gravity_accel_summary">時計を傾けてアイコンを動かします</string>
+    <string name="pref_gravity_strength_title">重力の強さ</string>
+    <string name="pref_gravity_bounce_title">跳ね返り</string>
+    <string name="pref_gravity_friction_title">摩擦</string>
+
+    <!-- Context menu -->
+    <string name="pref_notif_badge_category">通知バッジ</string>
+    <string name="pref_notif_badge_title">通知バッジを表示</string>
+    <string name="pref_notif_badge_summary">未読通知のあるアプリにドットを表示します</string>
+    <string name="pref_notif_badge_count_title">件数を表示</string>
+    <string name="pref_notif_badge_count_summary">バッジに通知件数を表示します</string>
+
+    <string name="menu_hide_app">このアプリを非表示にする</string>
+    <string name="hide_confirm_title">アプリを非表示にしますか?</string>
+    <string name="hide_confirm_message">「%1$s」はアプリ一覧から非表示になります。アプリ一覧の設定から再表示できます。</string>
+    <string name="menu_uninstall">アンインストール</string>
+    <string name="menu_app_info">アプリ情報</string>
+    <string name="menu_change_icon">アイコンを変更</string>
+    <string name="menu_reset_icon">デフォルトアイコンに戻す</string>
+    <string name="icon_picker_title">アイコンを選択</string>
+    <string name="icon_picker_search_hint">アイコンを検索…</string>
+    <string name="icon_picker_from_gallery">ギャラリーから選択</string>
+
+    <!-- ── Tap Actions ───────────────────────────────────────────────────── -->
+    <string name="pref_tap_title">タップ操作</string>
+    <string name="pref_tap_summary">ウォッチフェイスのショートカットをお好みのアプリに割り当てます</string>
+    <string name="pref_tap_category_builtin">組み込み操作</string>
+    <string name="pref_tap_category_shortcuts">アプリショートカット</string>
+    <string name="pref_tap_builtin_desc">これらは常に直接処理され、設定は不要です:\nvol_up · vol_down · media_play_pause · media_next · media_prev\nmedia_play · media_pause · set_alarm_HH:MM</string>
+    <string name="pref_tap_not_configured">未設定 — タップして設定</string>
+    <string name="pref_tap_clear">クリア</string>
+    <!-- Tap-action runtime error dialogs -->
+    <string name="tap_action_not_configured_title">操作が未設定です</string>
+    <string name="tap_action_not_configured_msg">「%1$s」にはまだアプリが割り当てられていません。このショートカットを使用するには設定してください。</string>
+    <string name="tap_action_configure_now">今すぐ設定</string>
+    <string name="tap_action_launch_failed_title">アプリを開けません</string>
+    <string name="tap_action_launch_failed_msg">「%1$s」を開けませんでした。アンインストールまたは無効化されている可能性があります。</string>
+    <string name="tap_action_launch_failed_msg_generic">このショートカットを開けませんでした。アプリがアンインストールまたは無効化されている可能性があります。</string>
+
+    <!-- ── Weather ──────────────────────────────────────────────────────── -->
+    <string name="pref_weather_title">天気</string>
+    <string name="pref_weather_summary">現在の天気、予報、プロバイダー設定</string>
+    <string name="pref_weather_enabled_title">天気を有効にする</string>
+    <string name="pref_weather_enabled_summary">天気データを取得してウォッチフェイスに送信します</string>
+    <string name="pref_weather_category_source">データソース</string>
+    <string name="pref_weather_category_display">表示</string>
+    <string name="pref_weather_category_update">更新</string>
+    <string name="pref_weather_provider_title">プロバイダー</string>
+    <string name="pref_weather_language_title">システム言語に従う</string>
+    <string name="pref_weather_language_summary">天候の説明にデバイスの言語を使用します(一部のプロバイダーは非対応)</string>
+    <string name="pref_weather_weatherapi_key_title">WeatherAPI.comキー</string>
+    <string name="pref_weather_weatherapi_key_summary">weatherapi.comで無料キーを取得 — 空欄の場合は組み込みのキーを使用します</string>
+    <string name="pref_weather_owm_key_title">OpenWeatherMapキー</string>
+    <string name="pref_weather_owm_key_summary">One Call API 3.0の契約が必要です — 空欄の場合は組み込みのキーを使用します</string>
+    <string name="pref_weather_round_title">気温を丸める</string>
+    <string name="pref_weather_round_summary">整数の気温を表示します(例: 21.7ではなく22)</string>
+    <string name="pref_weather_interval_title">更新間隔</string>
+    <string name="pref_weather_refresh_title">今すぐ更新</string>
+    <string name="pref_weather_refresh_summary">天気データを即座に取得します</string>
+    <string name="pref_weather_refreshing">更新中…</string>
+    <string name="pref_weather_disabled_toast">まず天気を有効にしてください</string>
+    <string name="pref_weather_last_fetch">最終取得: %1$d° %2$s (%3$s)</string>
+    <string name="pref_weather_refresh_error_title">天気の取得に失敗しました</string>
+
+    <!-- ── Location ──────────────────────────────────────────────────────── -->
+    <string name="pref_location_title">位置情報とタイムゾーン</string>
+    <string name="pref_location_summary">天気の基準位置、追加のタイムゾーン時計</string>
+    <string name="pref_location_category_primary">主要位置情報</string>
+    <string name="pref_location_category_extra">追加のタイムゾーン時計</string>
+    <string name="pref_location_city_title">都市名</string>
+    <string name="pref_location_city_summary">ウォッチフェイスに表示される名称</string>
+    <string name="pref_location_lat_title">緯度</string>
+    <string name="pref_location_lat_summary">10進数表記、例: 22.3193</string>
+    <string name="pref_location_lon_title">経度</string>
+    <string name="pref_location_lon_summary">10進数表記、例: 114.1694</string>
+    <string name="pref_location_gps_title">GPSから一度取得</string>
+    <string name="pref_location_gps_summary">現在のGPS座標を読み取り、主要位置情報として保存します</string>
+    <string name="pref_location_gps_waiting">GPS測位を待っています…</string>
+    <string name="pref_location_gps_denied">位置情報の権限が拒否されました</string>
+    <string name="pref_location_gps_disabled">GPSが無効です — システム設定で有効にしてください</string>
+    <string name="pref_location_auto_title">インターネット経由で自動更新</string>
+    <string name="pref_location_auto_summary">天気更新のたびにIPジオロケーションから座標を更新します(GPS不要)</string>
+    <string name="pref_location_lat_invalid">緯度は−90から90の間で入力してください</string>
+    <string name="pref_location_lon_invalid">経度は−180から180の間で入力してください</string>
+    <string name="pref_location_slot2_city">スロット2 — 都市名</string>
+    <string name="pref_location_slot2_tz">スロット2 — タイムゾーンオフセット</string>
+    <string name="pref_location_slot3_city">スロット3 — 都市名</string>
+    <string name="pref_location_slot3_tz">スロット3 — タイムゾーンオフセット</string>
+    <string name="pref_location_slot4_city">スロット4 — 都市名</string>
+    <string name="pref_location_slot4_tz">スロット4 — タイムゾーンオフセット</string>
+    <string name="pref_location_slot5_city">スロット5 — 都市名</string>
+    <string name="pref_location_slot5_tz">スロット5 — タイムゾーンオフセット</string>
+
+    <!-- ── Health ────────────────────────────────────────────────────────── -->
+    <string name="pref_health_title">健康</string>
+    <string name="pref_health_summary">TraXによる歩数、心拍数、血中酸素</string>
+    <string name="pref_health_category_metrics">測定項目</string>
+    <string name="pref_health_category_update">更新</string>
+    <string name="pref_health_bht_installed">インストール済み — データアクセス可能</string>
+    <string name="pref_health_bht_not_installed">未インストール — タップしてダウンロード</string>
+    <string name="pref_health_steps_title">歩数</string>
+    <string name="pref_health_steps_summary">1日の歩数、距離、消費カロリー</string>
+    <string name="pref_health_instant_steps_title">瞬間歩数</string>
+    <string name="pref_health_instant_steps_summary">バックグラウンドログではなくセンサーを直接読み取ります(精度が落ちる場合があります)</string>
+    <string name="pref_health_hr_title">心拍数</string>
+    <string name="pref_health_hr_summary">直近10件の履歴付きBPM測定値</string>
+    <string name="pref_health_spo2_title">血中酸素</string>
+    <string name="pref_health_spo2_summary">SpO2パーセンテージ</string>
+    <string name="pref_health_sleep_title">睡眠</string>
+    <string name="pref_health_sleep_summary">前夜の睡眠ステージ(夜間の心拍ログが必要です)</string>
+    <string name="pref_health_stress_title">ストレス</string>
+    <string name="pref_health_stress_summary">1日のストレススコア 0〜100</string>
+    <string name="pref_health_no_sleep_data">睡眠データが検出されませんでした</string>
+    <string name="pref_health_permission_toast">健康データの権限が必要です — TraXからデータを読み取るために許可してください</string>
+    <string name="pref_health_instant_title">瞬間測定</string>
+    <string name="pref_health_instant_summary">心拍数とSpO2のリアルタイムセンサー測定を実行します。時間はかかりますが現在値を反映します</string>
+    <string name="pref_health_interval_title">更新間隔</string>
+    <string name="pref_health_not_installed_toast">TraXがインストールされていません</string>
+    <string name="pref_health_refresh_title">今すぐ更新</string>
+    <string name="pref_health_refresh_summary">有効なすべての項目を即座に取得します</string>
+    <string name="pref_health_refreshing">更新中…</string>
+
+    <!-- ── Sensors &amp; Privacy ─────────────────────────────────────────────── -->
+    <string name="pref_sensors_title">センサーとプライバシー</string>
+    <string name="pref_sensors_summary">カレンダーアクセス、加速度センサー、コンパス、気圧計</string>
+
+    <string name="pref_sensors_category_data">データアクセス</string>
+    <string name="pref_sensors_category_motion">モーションセンサー</string>
+
+    <string name="pref_calendar_title">カレンダーアクセス</string>
+    <string name="pref_calendar_summary">ウォッチフェイスが今後のカレンダーの予定を読み取ることを許可します</string>
+    <string name="pref_calendar_permission_denied">カレンダーの権限が拒否されました — アクセスはオフのままです</string>
+
+    <string name="pref_accelerometer_title">加速度センサー</string>
+    <string name="pref_accelerometer_summary">ウォッチフェイスがモーションと傾きのデータを読み取ることを許可します</string>
+    <string name="pref_compass_title">コンパス</string>
+    <string name="pref_compass_summary">ウォッチフェイスが磁気方位を読み取ることを許可します(磁力センサーが必要です)</string>
+    <string name="pref_barometer_title">気圧計</string>
+    <string name="pref_barometer_summary">ウォッチフェイスが気圧を読み取ることを許可します</string>
+    <string name="pref_gyroscope_title">ジャイロスコープ</string>
+    <string name="pref_gyroscope_summary">ウォッチフェイスが回転速度を読み取ることを許可します</string>
+    <string name="pref_sensor_unavailable">このデバイスでは利用できません</string>
+
+    <!-- ── Quick Settings ─────────────────────────────────────────────────── -->
+    <string name="accessibility_service_label">CloXクイック操作</string>
+    <string name="accessibility_service_description">クイック設定から電源メニューと最近使ったアプリを表示できるようにします。</string>
+    <string name="qs_title">クイック設定</string>
+    <string name="qs_enabled_title">クイック設定を有効にする</string>
+    <string name="qs_enabled_summary">ウォッチフェイスから下にスワイプして開きます。オフにするとジェスチャーとすべてのバックグラウンドリスナーが無効になります</string>
+    <string name="qs_sensitivity_title">ジェスチャー感度</string>
+    <string name="qs_tile_columns_title">タイルの列数</string>
+    <string name="qs_tile_rows_title">1ページあたりの行数</string>
+    <string name="qs_system_color_title">システムカラーを使用</string>
+    <string name="qs_system_color_summary">Material Youの壁紙カラーに従います(Android 12以降)。下のカスタムカラー選択は無効になります</string>
+    <string name="qs_flashlight_hw_title">ハードウェアLEDを使用</string>
+    <string name="qs_flashlight_hw_summary">オフ: 画面を最大輝度の白色にします(ほとんどの時計で動作)。オン: カメラのフラッシュLEDを使用します。</string>
+    <string name="qs_color_tiles_title">タイル状態を色分け</string>
+    <string name="qs_color_connected_title">接続時の色</string>
+    <string name="qs_color_idle_title">待機中/接続中の色</string>
+    <string name="qs_color_disconnected_title">切断時の色</string>
+    <string name="qs_color_off_title">オフ時の色</string>
+    <string name="qs_privilege_title">権限モード</string>
+    <string name="qs_privilege_status_title">権限ステータス</string>
+    <string name="qs_accessibility_status_title">CloXクイック操作</string>
+    <string name="qs_accessibility_status_summary">電源メニューと最近使ったアプリに必要です</string>
+    <string name="qs_tile_editor_title">タイルを配置</string>
+    <string name="qs_tile_editor_summary">パネルに表示するタイルの選択と並べ替え</string>
+
+    <!-- ── Watch Faces ─────────────────────────────────────────────────────── -->
+    <string name="pref_watchface_title">ウォッチフェイス</string>
+    <string name="pref_watchface_summary">セレクタースタイル、並べ替え順、ストア、リモート管理</string>
+    <string name="pref_wf_open_selector_title">ウォッチフェイスセレクターを開く</string>
+    <string name="pref_wf_open_selector_summary">使用するウォッチフェイスの閲覧、管理、選択</string>
+    <string name="pref_wf_open_config_title">配置と動作を調整</string>
+    <string name="pref_wf_open_config_summary">現在のウォッチフェイスの配置、動作、フレームレート</string>
+    <string name="pref_wf_defaults_title">デフォルトのウォッチフェイス設定</string>
+    <string name="pref_wf_defaults_summary">すべてのフェイスに対する配置、動作、フレームレートの既定値</string>
+
+    <!-- Watch face config dialog (WatchfaceConfigActivity) -->
+    <string name="wfcfg_title_default">デフォルトのウォッチフェイス</string>
+    <string name="wfcfg_defaults_title">デフォルトのウォッチフェイス設定</string>
+    <string name="wfcfg_done">完了</string>
+    <string name="wfcfg_change">変更</string>
+    <string name="wfcfg_reload">再読み込み</string>
+    <string name="wfcfg_tab_alignment">配置</string>
+    <string name="wfcfg_tab_behavior">動作</string>
+    <string name="wfcfg_tab_framerate">フレームレート</string>
+    <string name="wfcfg_tab_info">情報</string>
+    <string name="wfcfg_use_default">アプリの既定値を使用</string>
+    <string name="wfcfg_use_default_summary">設定内のアプリ全体の既定値に従います</string>
+    <string name="wfcfg_align_vertical">高さを合わせる</string>
+    <string name="wfcfg_align_horizontal">フィット</string>
+    <string name="wfcfg_align_stretch">引き伸ばす</string>
+    <string name="wfcfg_align_custom">カスタム</string>
+    <string name="wfcfg_width">幅</string>
+    <string name="wfcfg_height">高さ</string>
+    <string name="wfcfg_h_offset">水平オフセット</string>
+    <string name="wfcfg_v_offset">垂直オフセット</string>
+    <string name="wfcfg_reset_alignment">配置をリセット</string>
+    <string name="wfcfg_precise_set">設定</string>
+    <string name="wfcfg_allow_sound">音を許可</string>
+    <string name="wfcfg_allow_sound_summary">効果音と動画の音声</string>
+    <string name="wfcfg_allow_vibrate">振動を許可</string>
+    <string name="wfcfg_allow_vibrate_summary">ウォッチフェイスによる触覚フィードバック</string>
+    <string name="wfcfg_allow_sensors">センサーを許可</string>
+    <string name="wfcfg_allow_sensors_summary">モーション、コンパス、気圧(グローバルのセンサー設定を有効にする必要があります)</string>
+    <string name="wfcfg_allow_weather">天気を許可</string>
+    <string name="wfcfg_allow_weather_summary">このフェイスが天気データを使用できるようにします</string>
+    <string name="wfcfg_allow_health">健康データを許可</string>
+    <string name="wfcfg_allow_health_summary">このフェイスが歩数、心拍数、SpO₂を使用できるようにします</string>
+    <string name="wfcfg_allow_tap">タップ操作を許可</string>
+    <string name="wfcfg_allow_tap_summary">タップでアプリやシステム操作を起動できるようにします</string>
+    <string name="wfcfg_fps_unlimited">無制限</string>
+    <string name="wfcfg_aod_hint">常時表示(AOD)は省電力のため常に1FPSに制限されます。</string>
+    <string name="wfcfg_tab_color">カラー</string>
+    <string name="wfcfg_color_default">フェイスの既定値</string>
+    <string name="wfcfg_color_theme">ランチャーのテーマに従う</string>
+    <string name="wfcfg_color_fixed">カスタムカラー</string>
+    <string name="wfcfg_color_pick">選択…</string>
+    <string name="wfcfg_color_theme_hint">ランチャーUIと同様に、システムのMaterial Youアクセントカラーを使用します。</string>
+    <string name="wfcfg_dynamic_fps">動的FPS</string>
+    <string name="wfcfg_dynamic_fps_summary">アイドル時のフェイスは1FPSに低下し、操作中はフルレートになります。アプリ一覧を開いている間は一時停止します</string>
+    <string name="wfcfg_optimize">レンダリングを最適化</string>
+    <string name="wfcfg_optimize_summary">静的なレイヤーをキャッシュテクスチャに統合します(高速化・省電力)</string>
+    <string name="wfcfg_optimize_stat">%2$d個のレイヤーのうち%1$d個を%3$d個のキャッシュテクスチャに統合しました</string>
+    <string name="wfcfg_optimize_stat_none">このフェイスでは統合されたレイヤーはありません</string>
+    <string name="wfcfg_optimize_stat_off">最適化は無効です — すべてのレイヤーがそのまま描画されます</string>
+    <string name="wfcfg_info_name">名前</string>
+    <string name="wfcfg_info_author">作者</string>
+    <string name="wfcfg_info_desc">説明</string>
+    <string name="wfcfg_info_tags">タグ</string>
+    <string name="wfcfg_info_features">使用機能</string>
+    <string name="wfcfg_info_format">フォーマット</string>
+    <string name="wfcfg_info_protected">保護済み</string>
+    <string name="wfcfg_info_layers">レイヤー</string>
+    <string name="wfcfg_info_size">ウォッチフェイスのサイズ</string>
+    <string name="wfcfg_info_storage">保存データ</string>
+    <string name="wfcfg_info_clear">データを消去</string>
+    <string name="wfcfg_info_reserved">予約済み</string>
+    <string name="wfcfg_clear_confirm_title">保存データを消去しますか?</string>
+    <string name="wfcfg_clear_confirm_msg">このウォッチフェイスの保存済み変数を削除して再読み込みします。この操作は元に戻せません。</string>
+    <string name="pref_wf_category_selector">セレクター</string>
+    <string name="pref_wf_category_management">管理</string>
+    <string name="pref_wf_selector_mode_title">セレクタースタイル</string>
+    <string name="pref_wf_sort_title">並べ替え順</string>
+    <string name="pref_wf_store_title">ウォッチフェイスストア</string>
+    <string name="pref_wf_store_summary">コミュニティのウォッチフェイスを閲覧してダウンロード</string>
+    <string name="pref_wf_remote_title">リモート管理</string>
+    <string name="pref_wf_remote_summary">同一ネットワーク上の任意のデバイスからブラウザでウォッチフェイスを管理します</string>
+    <string name="pref_wf_import_title">ウォッチフェイスをインポート</string>
+    <string name="pref_wf_import_summary">デバイスストレージから.watchファイルをコピーします</string>
+    <string name="pref_wf_gallery_title">画像ギャラリー</string>
+    <string name="pref_wf_gallery_summary">Luaウォッチフェイスで使用する画像を管理します</string>
+
+    <!-- Gallery -->
+    <string name="gallery_title">画像ギャラリー</string>
+    <string name="gallery_empty">画像がまだありません。\n+をタップしてデバイスからインポートしてください。</string>
+    <string name="gallery_fab_desc">画像をインポート</string>
+    <string name="gallery_item_desc">ギャラリー画像</string>
+    <string name="gallery_delete_title">画像を削除</string>
+    <string name="gallery_delete_message">ギャラリーから「%s」を削除しますか?</string>
+    <string name="gallery_delete_confirm">削除</string>
+
+    <!-- Gesture settings -->
+    <string name="pref_gestures_watchface_category">ウォッチフェイスジェスチャー</string>
+    <string name="pref_long_press_title">長押しの操作</string>
+    <string name="pref_home_press_screen_off_title">ホームボタンで画面をオフにする</string>
+    <string name="pref_home_press_screen_off_summary">既にウォッチフェイス表示中にホームを押すと画面がオフになります(アクセシビリティ権限が必要です)</string>
+    <string name="pref_reset_watchface_on_screen_title">画面オン時にウォッチフェイスへリセット</string>
+    <string name="pref_reset_watchface_on_screen_summary">画面がオフになるとアプリ一覧とパネルを閉じ、次に画面がオンになったときにウォッチフェイスを表示します</string>
+
+    <!-- Button mapping -->
+    <string name="pref_btn_map_category">ハードウェアボタンの割り当て</string>
+    <string name="pref_btn_map_record_title">割り当てたボタン</string>
+    <string name="pref_btn_map_record_summary">タップしてボタンを記録</string>
+    <string name="pref_btn_single_title">1回押し</string>
+    <string name="pref_btn_double_title">2回押し</string>
+    <string name="pref_btn_long_title">長押し</string>
+    <string name="pref_btn_map_clear_title">ボタンの割り当てを解除</string>
+
+    <!-- Watchface selector UI -->
+    <string name="wf_selector_title">ウォッチフェイス</string>
+    <string name="wf_action_delete">削除</string>
+    <string name="wf_action_rename">名前を変更</string>
+    <string name="wf_action_pin">ピン留め</string>
+    <string name="wf_action_unpin">ピン留めを解除</string>
+    <string name="wf_action_move">フォルダに移動</string>
+    <string name="wf_open_store">ストア</string>
+    <string name="wf_remote_management">リモート</string>
+    <string name="wf_import">インポート</string>
+    <string name="wf_random">ランダム</string>
+    <string name="wf_default_watchface">デフォルトのウォッチフェイス</string>
+    <string name="wf_default_watchface_desc">組み込み — ファイル不要</string>
+    <string name="wf_store_download_btn">ダウンロードしてインストール</string>
+    <string name="wf_store_downloading">ダウンロード中…</string>
+    <string name="wf_store_download_done">インストール完了!</string>
+    <string name="wf_search_hint">ウォッチフェイスを検索…</string>
+    <string name="wf_loading">読み込み中…</string>
+    <string name="wf_pinned_section">ピン留め</string>
+    <string name="wf_other_section">その他</string>
+    <string name="wf_add_folder">フォルダを追加</string>
+    <string name="wf_delete_folder">フォルダを削除</string>
+    <string name="wf_rename_folder">フォルダ名を変更</string>
+    <string name="wf_move_all">すべての内容を移動</string>
+    <string name="wf_move_to_root">ルート(フォルダなし)</string>
+    <string name="wf_confirm_delete">%sを削除しますか?</string>
+    <string name="wf_confirm_delete_folder">フォルダ「%s」とその中のすべてのウォッチフェイスを削除しますか?</string>
+    <string name="wf_rename_hint">新しい名前</string>
+    <string name="wf_rename_failed">同じ名前のウォッチフェイスが既に存在します</string>
+    <string name="wf_folder_name_hint">フォルダ名</string>
+    <string name="wf_import_progress">インポート中…</string>
+    <string name="wf_import_done">完了 — %d件のウォッチフェイスをインポートしました</string>
+    <string name="wf_import_pick_desc">デバイスストレージから.watchファイルをインポート</string>
+    <string name="wf_import_pick_folder">フォルダを選択(すべての.watchファイルをインポート)</string>
+    <string name="wf_import_pick_file">個別のファイルを選択</string>
+    <string name="wf_invalid_file">有効な.watchファイルではありません</string>
+    <string name="wf_imported">ウォッチフェイスをインポートして使用中に設定しました</string>
+    <string name="wf_import_failed">ウォッチフェイスのインポートに失敗しました</string>
+    <string name="wf_import_pick_zip">zipを選択(複数のウォッチフェイス)</string>
+    <string name="wf_import_zip_failed">そのzipにウォッチフェイスが見つかりませんでした</string>
+    <string name="wf_backup_desc">サブフォルダを含む、インストール済みのすべてのウォッチフェイスを1つのzipファイルに保存します</string>
+    <string name="wf_backup_all_btn">すべてをzipにバックアップ</string>
+    <string name="wf_backup_progress">バックアップ中…</string>
+    <string name="wf_backup_done">%d件のウォッチフェイスをバックアップしました</string>
+    <string name="wf_backup_failed">バックアップに失敗しました</string>
+    <string name="action_back">戻る</string>
+
+    <!-- Remote management -->
+    <string name="wf_remote_status">サーバーステータス</string>
+    <string name="wf_remote_running">実行中 — ブラウザで開く</string>
+    <string name="wf_remote_stopped">停止中</string>
+    <string name="wf_remote_copy">リンクをコピー</string>
+    <string name="wf_remote_share">リンクを共有</string>
+    <string name="wf_remote_copied">リンクをクリップボードにコピーしました</string>
+    <string name="wf_remote_qr_hint">スマートフォンでスキャンして別のデバイスで開きます</string>
+    <string name="wf_remote_open_browser">ブラウザで開く</string>
+
+    <!-- Open-app gesture action -->
+    <string name="gesture_open_app_summary">アプリを開く: %1$s</string>
+    <string name="gesture_open_app_none">アプリが選択されていません</string>
+
+    <!-- Swipe actions (used when the corresponding panel is disabled) -->
+    <string name="pref_swipe_category">スワイプ操作</string>
+    <string name="pref_swipe_category_summary">対応するパネルがオフのときに実行されます。</string>
+    <string name="pref_swipe_down_title">下スワイプ(クイック設定オフ時)</string>
+    <string name="pref_swipe_right_title">右スワイプ(通知オフ時)</string>
+
+    <!-- Multiple hardware buttons -->
+    <string name="pref_btn_add_title">ボタンを追加</string>
+    <string name="pref_btn_add_summary">タップして別のボタンを記録</string>
+    <string name="pref_btn_remove">削除</string>
+
+    <!-- Navigation bar visibility -->
+    <string name="pref_nav_bar_title">ナビゲーションバー</string>
+
+    <!-- Watch face auto-change -->
+    <string name="pref_wf_category_auto">自動切り替え</string>
+    <string name="pref_wf_auto_screen_on_title">画面オン時に切り替え</string>
+    <string name="pref_wf_auto_screen_on_summary">画面がオンになるたびにランダムなウォッチフェイスを選択します</string>
+    <string name="pref_wf_auto_interval_title">間隔で切り替え</string>
+    <string name="pref_wf_auto_interval_summary">設定した間隔が経過するとランダムなウォッチフェイスを選択します(画面オン時に確認)</string>
+
+    <!-- AOD settings -->
+    <string name="pref_aod_title">常時表示(AOD)</string>
+    <string name="pref_aod_summary">画面をオンのままにしてウォッチフェイスを表示</string>
+    <string name="pref_aod_enabled_title">AODを有効にする</string>
+    <string name="pref_aod_enabled_summary">画面をオンのままにしてウォッチフェイスを表示します</string>
+    <string name="pref_aod_when_charging_title">充電中は常にオン</string>
+    <string name="pref_aod_when_charging_summary">AODがオフでも、充電中は常にAODを有効にします</string>
+    <string name="pref_aod_category_display">表示</string>
+    <string name="pref_aod_category_behavior">動作</string>
+    <string name="pref_aod_timeout_title">アイドルタイムアウト</string>
+    <string name="pref_aod_timeout_summary">画面が暗くなりジェスチャーがロックされるまでの秒数</string>
+    <string name="pref_aod_brightness_title">減光時の輝度</string>
+    <string name="pref_aod_brightness_summary">減光時の画面輝度(1〜255)</string>
+    <string name="pref_aod_reawaken_title">画面オフ時に再点灯</string>
+    <string name="pref_aod_reawaken_summary">他のアプリが画面をオフにした場合に画面を再度オンにします</string>
+    <string name="pref_aod_lock_gesture_title">アイドル時にジェスチャーをロック</string>
+    <string name="pref_aod_lock_gesture_summary">タイムアウト後にスワイプジェスチャーをブロックします</string>
+    <string name="pref_aod_lock_gesture_delay_title">ジェスチャーロックの遅延</string>
+    <string name="pref_aod_lock_gesture_delay_summary">タイムアウト後、ジェスチャーをロックするまでの秒数</string>
+    <string name="pref_aod_shallow_sleep_title">浅いスリープ</string>
+    <string name="pref_aod_shallow_sleep_summary">1回のタッチで画面は点灯しますが、ジェスチャーのロックは解除されません</string>
+    <string name="pref_aod_power_button_exit_title">電源ボタンでAODを終了</string>
+    <string name="pref_aod_power_button_exit_summary">電源ボタンを押すと画面がオンになりAODを終了します</string>
+
+    <!-- Debug settings -->
+    <string name="pref_debug_title">デバッグ</string>
+    <string name="pref_debug_summary">エラー処理、バックアップ、メンテナンス</string>
+    <string name="debug_ignore_lua_errors_title">Luaエラーを無視</string>
+    <string name="debug_ignore_lua_errors_summary">ウォッチフェイスのスクリプトエラーやタップ操作の未設定時にダイアログを表示せず、失敗を無視します</string>
+    <string name="debug_category_backup">バックアップと復元</string>
+    <string name="debug_export_settings_title">設定をエクスポート</string>
+    <string name="debug_export_settings_summary">すべての設定とウォッチフェイス構成をJSONファイルに保存します</string>
+    <string name="debug_export_btn">エクスポート</string>
+    <string name="debug_import_settings_title">設定をインポート</string>
+    <string name="debug_import_settings_summary">以前にエクスポートしたJSONファイルから設定を復元します</string>
+    <string name="debug_import_btn">インポート</string>
+    <string name="debug_export_success">設定をエクスポートしました</string>
+    <string name="debug_export_failed">エクスポートに失敗しました</string>
+    <string name="debug_import_success">設定をインポートしました — ランチャーを再起動しています…</string>
+    <string name="debug_import_failed">インポートに失敗しました — 有効なCloX設定のエクスポートファイルではない可能性があります</string>
+    <string name="debug_category_danger">危険ゾーン</string>
+    <string name="debug_force_stop_title">ランチャーを強制停止</string>
+    <string name="debug_force_stop_summary">Androidでは設定アプリのようにアプリ自身を強制停止することはできないため、ランチャープロセスを強制終了して再起動します</string>
+    <string name="debug_force_stop_btn">強制停止</string>
+    <string name="debug_force_stop_confirm_title">ランチャーを強制停止しますか?</string>
+    <string name="debug_force_stop_confirm_message">ランチャープロセスを直ちに終了します。CloXはデフォルトのホームアプリのため自動的に再起動します。</string>
+    <string name="debug_uninstall_title">ランチャーをアンインストール</string>
+    <string name="debug_uninstall_summary">デバイス管理者を無効化した後、システムのアンインストールダイアログを開きます</string>
+    <string name="debug_uninstall_btn">アンインストール</string>
+    <string name="debug_uninstall_confirm_title">CloXをアンインストールしますか?</string>
+    <string name="debug_uninstall_confirm_message">デバイス管理者を無効化し、システムのアンインストールダイアログを開きます。そこでアンインストールを確認する必要があります。</string>
+
+    <!-- ── Crash activity ───────────────────────────────────────────────── -->
+    <string name="crash_title">アプリがクラッシュしました</string>
+    <string name="crash_message">エラーレポートは以下の通りです。コピーまたは共有できます。</string>
+    <string name="crash_btn_close">閉じる</string>
+    <string name="crash_btn_copy">コピー</string>
+    <string name="crash_btn_share">共有</string>
+    <string name="crash_copied">クリップボードにコピーしました</string>
+
+    <!-- ── Notification overlay ─────────────────────────────────────────── -->
+    <string name="notif_panel_title">通知</string>
+    <string name="notif_grant_permission">権限を付与</string>
+    <string name="notif_try_anyway">とにかく試す</string>
+    <string name="notif_empty">通知はありません</string>
+    <string name="notif_dismiss_all_desc">すべて閉じる</string>
+
+    <!-- ── Volume dialog ────────────────────────────────────────────────── -->
+    <string name="dialog_volume_title">音量</string>
+
+    <!-- ── RTOS toast messages ──────────────────────────────────────────── -->
+    <string name="toast_rtos_activated">RTOSモードを有効にしました</string>
+    <string name="toast_rtos_deactivated">RTOSモードを無効にしました</string>
+    <string name="toast_rtos_set_password_first">まずパスワードを設定してください</string>
+    <string name="toast_rtos_password_cleared">パスワードをクリアしました — 選択した種類の新しいパスワードを設定してください</string>
+    <string name="toast_rtos_accessibility_first">まずアクセシビリティサービスを有効にしてください</string>
+    <string name="toast_rtos_password_saved">パスワードを保存しました</string>
+    <string name="toast_rtos_passwords_dont_match">パスワードが一致しません — もう一度試してください</string>
+    <string name="toast_rtos_password_too_short">4文字以上、かつすべて同じ記号でないパスワードが必要です</string>
+    <string name="rtos_accessibility_enabled">✓ 有効</string>
+    <string name="rtos_accessibility_disabled">タップして有効化 — アプリのブロックに必要です</string>
+
+    <!-- ── Quick Settings tile labels ──────────────────────────────────── -->
+    <string name="tile_wifi">Wi-Fi</string>
+    <string name="tile_data">データ通信</string>
+    <string name="tile_bluetooth">Bluetooth</string>
+    <string name="tile_volume">音量</string>
+    <string name="tile_dnd">DND</string>
+    <string name="tile_rotate">回転</string>
+    <string name="tile_flashlight">懐中電灯</string>
+    <string name="tile_location">位置情報</string>
+    <string name="tile_aod">常時表示</string>
+    <string name="tile_airplane">機内モード</string>
+    <string name="tile_hotspot">テザリング</string>
+    <string name="tile_rtos_mode">RTOSモード</string>
+
+    <!-- ── Button mapping ───────────────────────────────────────────────── -->
+    <string name="btn_volume_up">音量アップ</string>
+    <string name="btn_volume_down">音量ダウン</string>
+    <string name="btn_camera">カメラ</string>
+    <string name="btn_menu">メニュー</string>
+    <string name="btn_search">検索</string>
+    <string name="btn_play_pause">再生/一時停止</string>
+    <string name="btn_next_track">次のトラック</string>
+    <string name="btn_prev_track">前のトラック</string>
+    <string name="btn_none">なし</string>
+    <string name="btn_format">ボタン (%d)</string>
+
+    <!-- ── Tap action labels ────────────────────────────────────────────── -->
+    <string name="tap_launcher_home">ランチャー / ホーム</string>
+    <string name="tap_weather">天気</string>
+    <string name="tap_health">健康</string>
+    <string name="tap_calendar_widget">カレンダーウィジェット</string>
+    <string name="tap_agenda">予定表</string>
+    <string name="tap_fitness">フィットネス</string>
+    <string name="tap_heart_rate">心拍数</string>
+    <string name="tap_compass">コンパス</string>
+    <string name="tap_notes">メモ</string>
+    <string name="tap_email">メール</string>
+    <string name="tap_calendar_app">カレンダーアプリ</string>
+    <string name="tap_voice_search">音声検索</string>
+    <string name="tap_contacts">連絡先</string>
+    <string name="tap_sports">スポーツ</string>
+    <string name="tap_gallery_photos">ギャラリー / 写真</string>
+    <string name="tap_messages">メッセージ</string>
+    <string name="tap_camera">カメラ</string>
+    <string name="tap_phone_dialer">電話 / ダイヤラー</string>
+    <string name="tap_music_player">音楽プレーヤー</string>
+    <string name="tap_clock_alarm">時計 / アラーム</string>
+    <string name="tap_calculator">電卓</string>
+    <string name="tap_wallet_payment">ウォレット / 決済</string>
+    <string name="tap_maps_navigation">地図 / ナビゲーション</string>
+    <string name="tap_browser">ブラウザ</string>
+    <string name="tap_flashlight">懐中電灯</string>
+    <string name="tap_social_media">ソーシャルメディア</string>
+
+    <!-- ── Weather condition labels ─────────────────────────────────────── -->
+    <string name="weather_clear_sky">快晴</string>
+    <string name="weather_mainly_clear">ほぼ晴れ</string>
+    <string name="weather_partly_cloudy">一部曇り</string>
+    <string name="weather_overcast">曇り</string>
+    <string name="weather_fog">霧</string>
+    <string name="weather_drizzle">霧雨</string>
+    <string name="weather_rain">雨</string>
+    <string name="weather_snow">雪</string>
+    <string name="weather_rain_showers">にわか雨</string>
+    <string name="weather_snow_showers">にわか雪</string>
+    <string name="weather_thunderstorm">雷雨</string>
+    <string name="weather_unknown">不明</string>
+
+    <!-- ── Custom tile dialog ──────────────────────────────────────────── -->
+    <string name="custom_tile_label_hint">タイルのラベル</string>
+    <string name="custom_tile_launch_app">アプリを起動</string>
+    <string name="custom_tile_write_setting">設定を書き込み</string>
+    <string name="custom_tile_add_btn">タイルを追加</string>
+    <string name="custom_tile_default_label">カスタム</string>
+
+    <!-- ── Appearance ──────────────────────────────────────────────────── -->
+    <string name="appearance_density_default">0 = システムの既定値</string>
+
+    <!-- ── Weather API ─────────────────────────────────────────────────── -->
+    <string name="api_key_hint">APIキー</string>
+
+    <!-- ── Watchface store ─────────────────────────────────────────────── -->
+    <string name="store_downloads_label">%d回ダウンロード</string>
+    <string name="store_uploaded_label">%sにアップロード</string>
+    <string name="store_author_label">%s 作</string>
+    <string name="store_download_failed">ダウンロードに失敗しました: %s</string>
+    <string name="wf_store_sort_popular">人気順</string>
+    <string name="wf_store_screen_round">丸型</string>
+    <string name="wf_store_screen_square">正方形</string>
+    <string name="wf_store_screen_rect">長方形</string>
+
+    <!-- ── Gestures ────────────────────────────────────────────────────── -->
+    <string name="gesture_mapped_format">割り当て済み: %s — タップして変更</string>
+
+    <!-- ── Notification style pickers ───────────────────────────────────- -->
+    <string name="notif_pick_card_style">カードスタイル</string>
+    <string name="notif_pick_view_style">表示スタイル</string>
+
+    <!-- ── Quick Settings toast messages ────────────────────────────────── -->
+    <string name="toast_qs_rtos_not_configured">RTOSモードが未設定です</string>
+    <string name="toast_qs_app_not_found">アプリが見つかりません: %s</string>
+    <string name="toast_qs_elevated_required">%s の設定には昇格した権限が必要です</string>
+
+    <!-- ── OTA toast messages ───────────────────────────────────────────── -->
+    <string name="toast_ota_no_internet">インターネット接続がありません</string>
+    <string name="toast_ota_check_failed_code">アップデートの確認に失敗しました (%d)</string>
+    <string name="toast_ota_check_failed">アップデートの確認に失敗しました: %s</string>
+    <string name="toast_ota_no_apk">リリースにAPKが見つかりませんでした</string>
+    <string name="toast_ota_parse_failed">リリース情報の解析に失敗しました</string>
+    <string name="toast_ota_up_to_date">既に最新です (%s)</string>
+    <string name="toast_ota_auto_disabled">自動アップデート確認は無効です</string>
+    <string name="toast_ota_downloading">アップデートをダウンロード中…</string>
+    <string name="toast_ota_install_failed">インストールに失敗しました: %s</string>
+
+    <!-- ── OTA dialog ────────────────────────────────────────────────────── -->
+    <string name="dialog_ota_update_title">アップデートがあります — v%s</string>
+    <string name="dialog_ota_update_positive">アップデート</string>
+    <string name="dialog_ota_update_neutral">あとで</string>
+    <string name="dialog_ota_update_negative">今後表示しない</string>
+    <string name="dialog_ota_skip">このバージョンをスキップ</string>
+    <string name="toast_ota_checking">アップデートを確認中…</string>
+    <string name="toast_ota_skipped">バージョン %s をスキップしました</string>
+    <string name="dialog_ota_progress_title">アップデートをダウンロード中…</string>
+    <string name="dialog_ota_progress_hide">非表示</string>
+    <string name="ota_download_notif_title">CloXアップデート</string>
+
+    <!-- ── Default launcher dialog ──────────────────────────────────────── -->
+    <string name="dialog_default_launcher_title">デフォルトランチャーに設定</string>
+    <string name="dialog_default_launcher_message">CloXを正常に動作させるには、デフォルトランチャーに設定する必要があります。\n\n注意: 一部のデバイスでは初回選択時に「常時」を設定できない場合があります — その場合はもう一度選択してください。</string>
+    <string name="dialog_default_launcher_positive">今すぐ設定</string>
+    <string name="dialog_default_launcher_neutral">あとで確認</string>
+    <string name="dialog_default_launcher_negative">しない</string>
+
+    <!-- ── RTOS settings fragment ────────────────────────────────────────── -->
+    <string name="rtos_setting_enabled_title">RTOSモードを有効にする</string>
+    <string name="rtos_setting_enabled_summary">ランチャーをRTOS Bluetoothウォッチに偽装します</string>
+    <string name="rtos_setting_options_category">オプション</string>
+    <string name="rtos_setting_mode_title">モード</string>
+    <string name="rtos_setting_auto_enter_title">画面オフ時に自動的に開始</string>
+    <string name="rtos_setting_auto_enter_summary">画面がオフになるとRTOSモードを有効にします</string>
+    <string name="rtos_setting_launcher_icon_title">ランチャーアイコンを表示</string>
+    <string name="rtos_setting_launcher_icon_summary">RTOSモードを開始するアイコンをアプリ一覧に追加します</string>
+    <string name="rtos_setting_password_category">パスワード</string>
+    <string name="rtos_setting_password_type_title">パスワードの種類</string>
+    <string name="rtos_setting_set_password_title">パスワードを設定</string>
+    <string name="rtos_setting_set_password_summary">解除コードを設定します</string>
+    <string name="rtos_setting_app_restrictions_category">アプリ制限</string>
+    <string name="rtos_setting_allowed_apps_title">許可アプリ(モード2)</string>
+    <string name="rtos_setting_allowed_apps_summary">アプリ一覧に表示するアプリを選択します</string>
+    <string name="rtos_setting_block_apps_title">ホワイトリスト外のアプリをブロック</string>
+    <string name="rtos_setting_block_apps_summary">まずアクセシビリティサービスを有効にしてから、これをオンにしてください</string>
+    <string name="rtos_setting_accessibility_category">アクセシビリティ</string>
+    <string name="rtos_setting_accessibility_title">アクセシビリティサービス</string>
+
+    <!-- ── Hide apps fragment ────────────────────────────────────────────── -->
+    <string name="hide_apps_tab_blacklist">ブラックリスト</string>
+    <string name="hide_apps_tab_whitelist">ホワイトリスト</string>
+    <string name="hide_apps_secret_code_btn">シークレットコードで非表示にする</string>
+
+    <!-- ── Tile editor ───────────────────────────────────────────────────── -->
+    <string name="tile_editor_active_tiles">有効なタイル</string>
+    <string name="tile_editor_available_tiles">利用可能なタイル</string>
+    <string name="tile_editor_add_custom">カスタムを追加</string>
+
+    <!-- ── Notification item actions ────────────────────────────────────── -->
+    <string name="notif_action_open">開く</string>
+    <string name="notif_action_show_more">もっと見る</string>
+
+    <!-- ── Quick Settings settings fragment ─────────────────────────────── -->
+    <string name="qs_setting_general_category">一般</string>
+    <string name="qs_setting_tiles_category">タイル</string>
+    <string name="qs_setting_flashlight_category">懐中電灯</string>
+    <string name="qs_setting_appearance_category">外観</string>
+    <string name="qs_setting_tile_style_title">タイルスタイル</string>
+    <string name="qs_setting_elevated_privileges_category">昇格した権限</string>
+    <string name="qs_setting_accessibility_category">アクセシビリティ</string>
+
+    <!-- ── Notifications settings fragment ──────────────────────────────── -->
+    <string name="notif_setting_enabled_title">通知を有効にする</string>
+    <string name="notif_setting_enabled_summary">右スワイプで通知パネルを表示します</string>
+    <string name="notif_setting_display_category">表示</string>
+    <string name="notif_setting_card_style_title">カードスタイル</string>
+    <string name="notif_setting_view_style_title">表示スタイル</string>
+    <string name="notif_setting_text_size_title">文字サイズ</string>
+    <string name="notif_setting_media_controls_title">メディアコントロール</string>
+    <string name="notif_setting_media_controls_summary">再生中に音楽プレーヤーカードを表示します</string>
+    <string name="notif_setting_alerts_category">新着通知時のアラート</string>
+    <string name="notif_setting_wake_title">画面を起動</string>
+    <string name="notif_setting_open_panel_title">通知パネルを開く</string>
+    <string name="notif_setting_vibrate_title">振動</string>
+    <string name="notif_setting_filtering_category">フィルタリング</string>
+    <string name="notif_setting_group_title">通知をグループ化</string>
+    <string name="notif_setting_group_summary">チャットを上部、通常は中央、持続的な通知を下部に表示します</string>
+    <string name="notif_setting_hide_persistent_title">持続的な通知を非表示</string>
+    <string name="notif_setting_hide_persistent_summary">継続中の通知の表示をブロックします</string>
+    <string name="notif_setting_access_title">通知へのアクセス</string>
+
+    <!-- ── App list settings fragment ───────────────────────────────────── -->
+    <string name="applist_setting_general_category">一般</string>
+    <string name="applist_setting_hidden_apps_summary">ランチャーに表示するアプリを管理します</string>
+    <string name="applist_setting_launch_anim_title">起動アニメーション</string>
+    <string name="applist_setting_animations_title">アニメーション</string>
+    <string name="applist_setting_animations_summary">開閉・復帰アニメーションの設定</string>
+    <string name="applist_setting_background_category">背景</string>
+    <string name="applist_setting_bg_image_title">背景画像</string>
+    <string name="applist_setting_bg_image_summary">タップして画像を選択</string>
+    <string name="applist_setting_darken_bg_title">背景を暗くする</string>
+    <string name="applist_setting_clear_bg_btn">背景画像を消去</string>
+    <string name="applist_setting_set_wallpaper_btn">デバイスの壁紙を合わせる</string>
+    <string name="applist_setting_set_wallpaper_done">デバイスの壁紙を更新しました</string>
+    <string name="applist_setting_set_wallpaper_failed">デバイスの壁紙を設定できませんでした</string>
+    <string name="applist_setting_bg_using_wallpaper">システムの壁紙を使用中</string>
+    <string name="applist_setting_list_options_category">リストオプション</string>
+    <string name="applist_setting_grid_options_category">グリッドオプション</string>
+    <string name="applist_setting_waterfall_options_category">ウォーターフォールオプション</string>
+    <string name="applist_setting_honeycomb_options_category">ハニカムオプション</string>
+    <string name="applist_setting_grid2d_options_category">グリッド2Dオプション</string>
+    <string name="applist_setting_pages_options_category">ページオプション</string>
+    <string name="applist_setting_gravity_options_category">重力オプション</string>
+    <string name="pref_overscroll_title">オーバースクロールの強さ</string>
+
+    <!-- ── Animation settings fragment ──────────────────────────────────── -->
+    <string name="anim_setting_open_category">起動アニメーション</string>
+    <string name="anim_setting_open_title">アプリ起動時にアニメーションする</string>
+    <string name="anim_setting_open_summary">アプリ起動時にアニメーションを再生します</string>
+    <string name="anim_setting_open_type_title">アニメーションスタイル</string>
+    <string name="anim_setting_return_category">復帰アニメーション</string>
+    <string name="anim_setting_return_title">ホームへの復帰時にアニメーションする</string>
+    <string name="anim_setting_return_summary_pre11">復帰時にアイコンへ縮小するアニメーション(Android 10以下)</string>
+    <string name="anim_setting_return_summary_11plus">追従アイコンの跳ね返りを抑制します。システムのジェスチャーアニメーションはそのまま再生されます</string>
+    <string name="anim_setting_speed_category">起動速度</string>
+    <string name="anim_setting_speed_title">起動アニメーション速度</string>
+    <string name="anim_setting_speed_hint">0.5倍(遅い) — 2.0倍(速い)</string>
+    <string name="anim_setting_close_category">終了アニメーション</string>
+    <string name="anim_setting_launch_blur_title">アプリ一覧をぼかす</string>
+    <string name="anim_setting_launch_blur_summary">起動するアプリのウィンドウが展開するにつれて、その背後のアプリ一覧を強くぼかします(戻るボタンで閉じるとぼかしが解除されます)。</string>
+    <string name="anim_setting_close_type_title">アニメーションスタイル</string>
+    <string name="anim_setting_resume_close_title">アプリ一覧なしでの終了アニメーション</string>
+    <string name="anim_setting_resume_close_summary">アプリ一覧が開いていない場合でも、ウォッチフェイスに戻るときは常に終了アニメーションを再生します — 画面中央に向かってアニメーションします。オフの場合はアニメーションなしでウォッチフェイスに移動します。</string>
+    <string name="anim_setting_close_speed_category">終了速度</string>
+    <string name="anim_setting_close_speed_title">終了アニメーション速度</string>
+    <string name="anim_setting_close_delay_title">開始の遅延</string>
+    <string name="anim_setting_close_delay_hint">0ミリ秒(即時) — 500ミリ秒</string>
+    <string name="anim_setting_gesture_return_category">ジェスチャー復帰</string>
+    <string name="anim_setting_gesture_return_title">復帰時にアプリ一覧をアニメーションする</string>
+    <string name="anim_setting_gesture_return_summary">アプリからスワイプで戻ってアプリ一覧を開くとき、現在の背景の上にアニメーションで表示します</string>
+    <string name="anim_setting_gesture_return_type_title">表示スタイル</string>
+    <string name="anim_setting_gesture_return_speed_title">表示速度</string>
+    <string name="anim_setting_gesture_return_delay_title">開始の遅延</string>
+    <string name="anim_setting_detect_closing_title">終了するアプリを検出</string>
+    <string name="anim_setting_detect_closing_summary">実際に戻ってきたアプリのアイコンをアニメーションします — 戻る/ホームキーと連鎖するアプリ起動に対応。使用状況へのアクセスが必要です。</string>
+    <string name="anim_setting_detect_closing_perm_title">使用状況へのアクセスが必要です</string>
+    <string name="anim_setting_detect_closing_perm_msg">どのアプリから戻ってきたかを検出するには、CloXに「使用状況へのアクセス」権限が必要です。次の画面で許可してから、ここに戻ってください。</string>
+    <string name="anim_setting_detect_closing_grant">設定を開く</string>
+    <string name="anim_setting_gesture_return_only_title">スワイプでホームに戻るジェスチャーのみ</string>
+    <string name="anim_setting_gesture_return_only_summary">オフ: 戻るボタンとハードウェアのホームボタンでの復帰時にも再生します</string>
+    <string name="anim_setting_real_window_entry">実際のウィンドウ(システム)</string>
+    <string name="anim_setting_snapshot_entry">実際のウィンドウ(スナップショット)</string>
+    <string name="anim_setting_gesture_handoff_title">システムウィンドウの変形(実際)</string>
+    <string name="anim_setting_gesture_handoff_summary">スワイプでホームに戻るとき、アプリアイコンをシステムに渡し、実際に閉じるアプリのウィンドウをそのアイコンへ変形させます。CloXは後続のアニメーションを再生せず、システムが遷移全体を制御します。スワイプでホームに戻るジェスチャーのみ対応。</string>
+
+    <!-- ── Common dialog buttons ────────────────────────────────────────── -->
+    <string name="btn_open_settings">設定を開く</string>
+    <string name="btn_not_now">今はしない</string>
+    <string name="btn_confirm">確認</string>
+    <string name="btn_send">送信</string>
+    <string name="btn_cancel">キャンセル</string>
+
+    <!-- ── Button record dialog ──────────────────────────────────────────── -->
+    <string name="dialog_btn_record_title">ボタンを記録</string>
+    <string name="dialog_btn_record_message">割り当てたいハードウェアボタン(音量アップ/ダウン、カメラなど)を押してください。\n\n戻るボタンでキャンセルします。</string>
+
+    <!-- ── Calendar permission dialog ───────────────────────────────────── -->
+    <string name="dialog_calendar_perm_message">カレンダーの権限が拒否されました。アプリ設定で有効にしてください。</string>
+
+    <!-- ── QS permissions dialog ────────────────────────────────────────── -->
+    <string name="dialog_qs_permissions_title">権限が必要です</string>
+    <string name="dialog_qs_permissions_message">一部の権限が完全に拒否されています。アプリ設定を開き、権限の項目から許可してください。</string>
+
+    <!-- ── Device admin (pre-Android-P screen-off fallback) ────────────────── -->
+    <string name="dialog_device_admin_explanation">このAndroidバージョンで画面をオフにするために必要です。</string>
+
+    <!-- ── Notification reply dialog ────────────────────────────────────── -->
+    <string name="dialog_reply_title">返信</string>
+
+    <!-- ── Secret code unlock dialog ────────────────────────────────────── -->
+    <string name="dialog_secret_code_title">シークレットコードで解除</string>
+    <string name="dialog_secret_code_message">設定すると、この画面は設定から非表示になります。\n\n再度アクセスするには、電話のダイヤラーを開いて次を入力してください:\n\n*#*#YOUR_PASSWORD#*#*\n\nアクセスを確認する通知が表示されます。</string>
+    <string name="dialog_secret_code_positive">パスワードを設定</string>
+    <string name="dialog_enter_password_title">パスワードを入力</string>
+    <string name="dialog_enter_password_message">最低4桁</string>
+
+    <!-- ── Watchface directory API (WatchfaceProvider) permission ──────────── -->
+    <string name="permission_access_watchfaces_label">ウォッチフェイスへのアクセス</string>
+    <string name="permission_access_watchfaces_desc">このアプリのウォッチフェイスフォルダ内のファイルを読み取り、追加、削除します。</string>
+
+    <!-- ── Watch face toasts ────────────────────────────────────────────── -->
+    <string name="toast_wf_selected">%s を選択しました</string>
+    <string name="toast_remote_server_failed">サーバーの起動に失敗しました</string>
+
+    <!-- ── Crash activity ──────────────────────────────────────────────── -->
+    <string name="crash_clip_label">CloXクラッシュレポート</string>
+    <string name="crash_subject">CloXクラッシュレポート</string>
+    <string name="crash_share_title">クラッシュレポートを共有</string>
+    <string name="crash_no_data">クラッシュデータがありません。</string>
+    <string name="crash_read_failed">クラッシュレポートの読み取りに失敗しました。</string>
+
+    <!-- ── Secret code ─────────────────────────────────────────────────── -->
+    <string name="secret_code_unlocked">非表示アプリの設定を解除しました — 設定を開いて続行してください</string>
+    <string name="secret_code_dial_hint">*#*#%s#*#* をダイヤルして解除</string>
+
+    <!-- ── Notifications ───────────────────────────────────────────────── -->
+    <string name="notif_block_app">アプリをブロック</string>
+    <string name="notif_unblock_app">アプリのブロックを解除</string>
+    <string name="notif_app_notif_settings">アプリの通知設定</string>
+    <string name="notif_reply_hint">返信</string>
+    <string name="notif_perm_not_supported">非対応</string>
+    <string name="notif_perm_not_supported_desc">このデバイスでは通知アクセスが利用できない場合があります。</string>
+    <string name="notif_perm_view_btn">通知を表示</string>
+    <string name="notif_perm_title">権限が必要です</string>
+    <string name="notif_perm_desc">CloXが通知を表示できるよう、通知アクセスを許可してください。</string>
+    <string name="notif_perm_grant_btn">権限を付与</string>
+
+    <!-- ── QS tile states ───────────────────────────────────────────────- -->
+    <string name="qs_tile_connected">接続済み</string>
+    <string name="qs_tile_not_in_use">未使用</string>
+    <string name="qs_tile_on">オン</string>
+    <string name="qs_tile_off">オフ</string>
+    <string name="qs_tile_on_detail">オン</string>
+    <string name="qs_tile_silent">サイレント</string>
+    <string name="qs_tile_vibrate">バイブ</string>
+    <string name="qs_tile_auto">自動</string>
+    <string name="qs_tile_locked">ロック中</string>
+    <string name="qs_privilege_shizuku">Shizuku有効</string>
+    <string name="qs_privilege_root">Root利用可能</string>
+    <string name="qs_privilege_none">昇格した権限なし</string>
+    <string name="qs_accessibility_enabled">有効 — 電源メニューと最近使ったアプリが利用可能</string>
+    <string name="qs_accessibility_disabled">タップしてアクセシビリティ設定で有効化</string>
+
+    <!-- ── Location hints ─────────────────────────────────────────────── -->
+    <string name="location_lat_hint">例: 22.3193</string>
+    <string name="location_lon_hint">例: 114.1694</string>
+    <string name="location_city_hint">都市名</string>
+
+    <!-- ── App list ───────────────────────────────────────────────────── -->
+    <string name="app_list_search_hint">アプリを検索…</string>
+    <string name="app_list_bg_set">画像を設定済み — タップして変更</string>
+    <string name="app_list_bg_not_set">タップして画像を選択</string>
+    <string name="hidden_apps_title">非表示のアプリ</string>
+
+    <!-- ── Widget ─────────────────────────────────────────────────────── -->
+    <string name="widget_unavailable">ウィジェットを利用できません</string>
+
+    <!-- ── About ──────────────────────────────────────────────────────── -->
+    <string name="about_version">バージョン %s</string>
+    <string name="about_version_unknown">バージョン不明</string>
+
+    <!-- ── Appearance section labels ──────────────────────────────────── -->
+    <string name="appearance_section_display">表示</string>
+    <string name="appearance_dpi_label">アプリの表示密度 (DPI)</string>
+    <string name="appearance_dpi_default">0 (システムの既定値)</string>
+    <string name="appearance_section_blur">ぼかし</string>
+
+    <!-- ── Sensors section labels ─────────────────────────────────────── -->
+    <string name="sensors_section_data">データ</string>
+
+    <!-- ── About fragment ───────────────────────────────────────────────── -->
+    <string name="about_onyx_project">Onyx Projectの一部</string>
+    <string name="about_onyx_description">CloXは、Android搭載ウェアラブル向けのオープンソースシステムOnyxの一部です。</string>
+    <string name="about_developers_category">開発者</string>
+    <string name="about_updates_category">アップデート</string>
+    <string name="about_auto_update_title">自動アップデート確認</string>
+    <string name="about_auto_update_summary">起動時に新しいリリースを確認します</string>
+    <string name="about_check_updates_btn">アップデートを確認</string>
+
+    <!-- Crash-safe activity launching (SafeActivityLauncher) -->
+    <string name="launch_error_title">開けません</string>
+    <string name="launch_error_no_app">このデバイスでその操作を処理できるアプリがありません。ファイルマネージャーまたは対象のアプリをインストールする必要があるかもしれません。</string>
+    <string name="launch_error_not_permitted">システムによってこの操作がブロックされました。アプリの権限を確認して再試行してください。</string>
+    <string name="launch_error_generic">開けませんでした。もう一度お試しください。</string>
+
+    <!-- ── RTOS fake-settings decoy screen ──────────────────────────────── -->
+    <string name="fake_settings_title">設定</string>
+    <string name="fake_settings_general">一般</string>
+    <string name="fake_settings_language">言語</string>
+    <string name="fake_settings_language_value">英語</string>
+    <string name="fake_settings_date_time">日付と時刻</string>
+    <string name="fake_settings_time_format">時刻の形式</string>
+    <string name="fake_settings_time_zone">タイムゾーン</string>
+    <string name="fake_settings_qr_code">QRコード</string>
+    <string name="fake_settings_watch_face">ウォッチフェイス</string>
+    <string name="fake_settings_bluetooth">Bluetooth</string>
+    <string name="fake_settings_status">ステータス</string>
+    <string name="fake_settings_connected">接続済み</string>
+    <string name="fake_settings_device">デバイス</string>
+    <string name="fake_settings_device_value">電話</string>
+    <string name="fake_settings_auto_conn">自動接続</string>
+    <string name="fake_settings_on">オン</string>
+    <string name="fake_settings_off">オフ</string>
+    <string name="fake_settings_sound">サウンド</string>
+    <string name="fake_settings_ringtone">着信音</string>
+    <string name="fake_settings_vibration">振動</string>
+    <string name="fake_settings_volume">音量</string>
+    <string name="fake_settings_display">表示</string>
+    <string name="fake_settings_brightness">輝度</string>
+    <string name="fake_settings_brightness_value">自動</string>
+    <string name="fake_settings_timeout">タイムアウト</string>
+    <string name="fake_settings_always_on">常時表示</string>
+    <string name="fake_settings_about">情報</string>
+    <string name="fake_settings_model">モデル</string>
+    <string name="fake_settings_firmware">ファームウェア</string>
+    <string name="fake_settings_battery">バッテリー</string>
+
+    <!-- ── RTOS password setup ──────────────────────────────────────────── -->
+    <string name="rtos_pw_how_it_works">仕組み</string>
+    <string name="rtos_pw_keypad_explain">時計の画面は目に見えない3×3のグリッドに分かれています:\n\n  [ 1 ][ 2 ][ 3 ]\n  [ 4 ][ 5 ][ 6 ]\n  [ 7 ][ 8 ][ 9 ]\n\nグリッドの区画をタップしてコードを入力します。視覚的なフィードバックはありません。\n\nシステムはタップのたびにスライディングウィンドウ方式で確認します — 最近のタップの中にコードが現れれば、いつでも解除されます。\n\nコードは4桁以上で、すべて同じ数字であってはいけません。</string>
+    <string name="rtos_pw_morse_explain">ウォッチフェイスの画面上のどこかをタップしてモールス信号を入力します:\n\n  短押し = 短点(・)\n  長押し = 長音(—)\n\n視覚的なフィードバックはありません。システムは押すたびに確認します。\n\nコードは4記号以上で、すべて同じ記号であってはいけません。</string>
+    <string name="rtos_pw_understood_countdown">理解しました (%1$d…)</string>
+    <string name="rtos_pw_understood_done">理解しました — パスワードを設定</string>
+    <string name="rtos_pw_set_title">パスワードを設定</string>
+    <string name="rtos_pw_confirm_title">パスワードを確認</string>
+    <string name="rtos_pw_keypad_hint">グリッドの区画をタップしてコードを入力</string>
+    <string name="rtos_pw_morse_hint">短押し/長押しでモールス信号の短点と長音を入力</string>
+    <string name="rtos_pw_clear">クリア</string>
+    <string name="rtos_pw_done">完了</string>
+
+    <!-- ── Watchface renderer recovery dialog ───────────────────────────── -->
+    <string name="wf_renderer_dead_title">ウォッチフェイスレンダラーが応答していません</string>
+    <string name="wf_renderer_dead_message">トリガー: %1$s\n\n%2$s\n\nランチャーを再起動すると復旧します。</string>
+    <string name="wf_renderer_dead_detail_load">ウォッチフェイスが%1$d秒以内に読み込みを完了しませんでした。画面が黒いまままたはフリーズしたままになる可能性があります。</string>
+    <string name="wf_renderer_dead_detail_hang">レンダリングスレッドが%1$d秒間応答していません。ウォッチフェイスがハングしているか、エンジンが停止しています。</string>
+    <string name="wf_renderer_dead_restart">ランチャーを再起動</string>
+    <string name="wf_lua_error_default_context">Luaエラー</string>
+    <string name="wf_lua_error_no_detail">(詳細なし)</string>
+
+    <!-- ── Accessibility content descriptions ───────────────────────────── -->
+    <string name="action_delete">削除</string>
+    <string name="action_dismiss">閉じる</string>
+    <string name="cd_launcher_settings">ランチャー設定</string>
+    <string name="cd_recents">最近使ったアプリ</string>
+    <string name="cd_flashlight">懐中電灯</string>
+    <string name="cd_power">電源</string>
+    <string name="cd_settings">設定</string>
+    <string name="cd_qr_code">QRコード</string>
+    <string name="cd_delete_row">行を削除</string>
+    <string name="cd_delete_slot">スロットを削除</string>
+    <string name="cd_decrease_height">高さを減らす</string>
+    <string name="cd_increase_height">高さを増やす</string>
+    <string name="cd_select_all">すべて選択</string>
+    <string name="cd_deselect_all">すべて選択解除</string>
+    <string name="cd_watchface_preview">ウォッチフェイスのプレビュー</string>
+    <string name="cd_preview">プレビュー</string>
+    <string name="cd_downloaded">ダウンロード済み</string>
+    <string name="dialog_password_hint">パスワード(数字のみ)</string>
+
+    <!-- ── Settings top-level (added) ────────────────────────────────────── -->
+    <string name="appearance_dpi_summary">表示密度を上書きします。0または空欄でシステムの既定値になります。再起動が必要です。</string>
+    <string name="notif_setting_wake_summary">新しい通知が届いたときに画面を起動します</string>
+    <string name="notif_setting_open_panel_summary">新しい通知が届いたときに自動的にパネルをスライドして開きます</string>
+    <string name="notif_setting_vibrate_summary">新しい通知が届いたときに振動します</string>
+    <string name="rtos_setting_show_icon_title">RTOSモードに入るランチャーアイコンを表示</string>
+    <string name="pref_notifications_title">通知</string>
+    <string name="pref_notifications_summary">パネルスタイル、アラート、フィルタリング、ブロックしたアプリ</string>
+    <string name="pref_quick_settings_summary">タイル、列数、ジェスチャー、懐中電灯、カラー、権限</string>
+    <string name="pref_app_list_title">アプリ一覧</string>
+    <string name="pref_app_list_summary">スタイル、並べ替え順、アイコンパック</string>
+    <string name="pref_gestures_title">ジェスチャー</string>
+    <string name="pref_gestures_summary">ダブルタップ、長押し、ハードウェアボタンの割り当て</string>
+    <string name="pref_appearance_title">外観</string>
+    <string name="pref_appearance_summary">ぼかしモードと半径</string>
+    <string name="pref_hidden_apps_summary">ランチャーでアプリをブラックリストまたはホワイトリストに登録します</string>
+    <string name="pref_rtos_title">RTOSモード</string>
+    <string name="pref_rtos_summary">ランチャーをRTOS Bluetoothウォッチに偽装します</string>
+    <string name="pref_about_title">情報 &amp; アップデート</string>
+    <string name="pref_about_summary">バージョン、開発者、Onyxプロジェクト、アップデート確認</string>
+</resources>

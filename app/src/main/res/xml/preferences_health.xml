@@ -5,7 +5,7 @@
 
         <Preference
             android:key="health_bht_status"
-            android:title="Better Health Tracker" />
+            android:title="@string/pref_health_category_status" />
 
     </PreferenceCategory>
 

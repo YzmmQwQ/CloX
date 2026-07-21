@@ -1,0 +1,1014 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">설정</string>
+    <string name="add_widget">위젯 추가</string>
+
+    <!-- ── Widget drawer ─────────────────────────────────────────────────────── -->
+    <string name="widget_edit">편집</string>
+    <string name="widget_done">완료</string>
+    <string name="widget_height_auto">자동</string>
+    <string name="widget_add_card">카드 추가</string>
+    <string name="widget_add_full_width">전체 너비 위젯</string>
+    <string name="widget_add_three_cell">3분할 행</string>
+    <string name="widget_pick_app">앱 선택</string>
+    <string name="widget_pick_slot_type">슬롯에 추가</string>
+    <string name="widget_slot_appwidget">앱 위젯</string>
+    <string name="widget_slot_activity">앱 액티비티</string>
+    <string name="widget_slot_shortcut">앱 바로가기</string>
+    <string name="widget_shortcut_pinned">\"%s\" 바로가기가 CloX에 추가되었습니다</string>
+    <string name="widget_shortcut_empty">아직 바로가기가 없습니다. 앱을 길게 눌러 홈 화면에 추가를 선택하세요.</string>
+    <string name="widget_add_clock">시계</string>
+    <string name="widget_add_weather">날씨</string>
+    <string name="widget_weather_no_data">날씨 데이터 없음</string>
+    <string name="widget_weather_disabled">설정에서 날씨가 비활성화되어 있습니다</string>
+    <string name="widget_weather_location_not_set">위치 이름이 설정되지 않음</string>
+    <string name="widget_weather_today">오늘</string>
+    <string name="widget_weather_now">지금</string>
+    <string name="weather_updated_just_now">방금 전</string>
+    <string name="weather_updated_minutes_ago">%d분 전</string>
+    <string name="weather_updated_hours_ago">%d시간 전</string>
+
+    <!-- ── Settings ─────────────────────────────────────────────────────────── -->
+    <string name="pref_double_tap_title">더블 탭 동작</string>
+    <string name="pref_location_elevation_title">고도(m)</string>
+    <string name="pref_location_elevation_summary">설정되지 않음 — 자동 위치로 자동 업데이트됩니다</string>
+    <string name="pref_location_elevation_invalid">잘못된 고도</string>
+    <string name="location_elevation_hint">예: 38.0</string>
+    <string name="pref_double_tap_hold_title">더블 탭의 첫 번째 탭 차단</string>
+    <string name="pref_double_tap_hold_summary">워치 페이스 탭을 잠시 지연시켜 더블 탭이 페이스의 탭 동작도 실행하지 않도록 합니다. 모든 탭에 짧은 지연이 추가됩니다 — 스톱워치 스타일 페이스에서는 꺼두세요.</string>
+    <string name="pref_icon_pack_title">전역 아이콘 팩</string>
+    <string name="pref_icon_pack_none">없음(시스템 아이콘)</string>
+    <string name="pref_blur_mode_title">블러 모드</string>
+    <string name="pref_blur_radius_title">블러 반경</string>
+
+    <!-- App list top-level -->
+    <string name="pref_app_list_style_title">표시 스타일</string>
+    <string name="pref_app_list_sort_title">정렬 순서</string>
+    <string name="pref_app_list_sort_custom_hint">새 앱은 목록 맨 아래에 추가됩니다.\n앱을 길게 눌러 드래그하면 순서를 바꿀 수 있습니다.</string>
+    <string name="pref_hidden_apps_title">숨긴 앱</string>
+
+    <!-- 3D effect (used by all styles with 3D effect) -->
+    <string name="pref_3d_min_scale_title">최소 크기(%)</string>
+    <string name="pref_3d_min_scale_summary">가장자리에서의 최소 크기 — 값이 작을수록 입체감이 커집니다</string>
+    <string name="pref_3d_curve_title">크기 곡선</string>
+
+    <!-- List sub-settings -->
+    <string name="pref_list_search_title">검색창 표시</string>
+    <string name="pref_list_3d_title">3D 입체 효과</string>
+    <string name="pref_list_3d_summary">화면 상단과 하단에 가까운 앱은 크기가 축소됩니다</string>
+
+    <!-- Grid sub-settings -->
+    <string name="pref_grid_cols_title">열 수</string>
+    <string name="pref_grid_names_title">앱 이름 표시</string>
+
+    <!-- Waterfall sub-settings -->
+    <string name="pref_waterfall_3d_title">3D 입체 효과</string>
+    <string name="pref_waterfall_3d_summary">화면 중앙에서 멀어질수록 아이콘 크기가 축소됩니다</string>
+
+    <!-- Honeycomb sub-settings -->
+    <string name="pref_honeycomb_3d_title">3D 입체 효과</string>
+    <string name="pref_honeycomb_3d_summary">화면 중앙에서 멀어질수록 아이콘 크기가 축소됩니다(2D)</string>
+    <string name="pref_honeycomb_icon_size_title">아이콘 크기(dp, 0 = 자동)</string>
+
+    <!-- Grid 2D sub-settings -->
+    <string name="pref_grid2d_cols_title">열 수</string>
+    <string name="pref_grid2d_names_title">앱 이름 표시</string>
+    <string name="pref_grid2d_3d_title">3D 입체 효과</string>
+    <string name="pref_grid2d_icon_size_title">아이콘 크기(dp, 0 = 자동)</string>
+
+    <!-- AOD overlay permission prompt -->
+    <string name="aod_overlay_perm_title">다른 앱 위에 표시 허용</string>
+    <string name="aod_overlay_perm_message">다른 앱 안에서 화면이 꺼졌을 때 화면 켜짐 유지(AOD)로 깨어나려면 CloX에 “다른 앱 위에 표시” 권한이 필요합니다. 이 권한이 없으면 Android가 런처를 앞으로 가져오지 못하게 막습니다.</string>
+    <string name="aod_overlay_perm_grant">설정 열기</string>
+
+    <!-- Round overscroll + icon size (shared by all app-list styles) -->
+    <string name="pref_icon_size_title">아이콘 크기(dp, 0 = 자동)</string>
+    <string name="pref_round_overscroll_title">원형 오버스크롤</string>
+    <string name="pref_round_overscroll_summary">가장자리를 넘어 화면 절반까지 이동한 뒤 그 상태를 유지합니다 — 원형 화면에서 모서리 아이콘에 닿을 수 있습니다</string>
+
+    <!-- Pages sub-settings -->
+    <string name="pref_pages_cols_title">행당 아이콘 수</string>
+    <string name="pref_pages_rows_title">페이지당 행 수</string>
+
+    <!-- Gravity sub-settings -->
+    <string name="pref_gravity_accel_title">가속도계 따라가기</string>
+    <string name="pref_gravity_accel_summary">시계를 기울여 아이콘을 움직입니다</string>
+    <string name="pref_gravity_strength_title">중력 강도</string>
+    <string name="pref_gravity_bounce_title">탄성</string>
+    <string name="pref_gravity_friction_title">마찰</string>
+
+    <!-- Context menu -->
+    <string name="pref_notif_badge_category">알림 배지</string>
+    <string name="pref_notif_badge_title">알림 배지 표시</string>
+    <string name="pref_notif_badge_summary">읽지 않은 알림이 있는 앱에 점 표시</string>
+    <string name="pref_notif_badge_count_title">개수 표시</string>
+    <string name="pref_notif_badge_count_summary">배지에 알림 개수를 표시합니다</string>
+
+    <string name="menu_hide_app">이 앱 숨기기</string>
+    <string name="hide_confirm_title">앱을 숨기시겠습니까?</string>
+    <string name="hide_confirm_message">\"%1$s\"이(가) 앱 목록에서 숨겨집니다. 앱 목록 설정에서 다시 표시할 수 있습니다.</string>
+    <string name="menu_uninstall">제거</string>
+    <string name="menu_app_info">앱 정보</string>
+    <string name="menu_change_icon">아이콘 변경</string>
+    <string name="menu_reset_icon">기본 아이콘으로 재설정</string>
+    <string name="icon_picker_title">아이콘 선택</string>
+    <string name="icon_picker_search_hint">아이콘 검색…</string>
+    <string name="icon_picker_from_gallery">갤러리에서 선택</string>
+
+    <!-- ── Tap Actions ───────────────────────────────────────────────────── -->
+    <string name="pref_tap_title">탭 동작</string>
+    <string name="pref_tap_summary">워치 페이스 바로가기를 원하는 앱에 매핑합니다</string>
+    <string name="pref_tap_category_builtin">내장 동작</string>
+    <string name="pref_tap_category_shortcuts">앱 바로가기</string>
+    <string name="pref_tap_builtin_desc">다음 항목은 항상 직접 처리되며 별도 설정이 필요하지 않습니다:\nvol_up · vol_down · media_play_pause · media_next · media_prev\nmedia_play · media_pause · set_alarm_HH:MM</string>
+    <string name="pref_tap_not_configured">설정되지 않음 — 탭하여 설정</string>
+    <string name="pref_tap_clear">지우기</string>
+    <!-- Tap-action runtime error dialogs -->
+    <string name="tap_action_not_configured_title">동작이 설정되지 않음</string>
+    <string name="tap_action_not_configured_msg">\"%1$s\"에 아직 할당된 앱이 없습니다. 이 바로가기를 사용하려면 설정하세요.</string>
+    <string name="tap_action_configure_now">지금 설정</string>
+    <string name="tap_action_launch_failed_title">앱을 열 수 없음</string>
+    <string name="tap_action_launch_failed_msg">\"%1$s\"을(를) 열 수 없습니다. 제거되었거나 비활성화되었을 수 있습니다.</string>
+    <string name="tap_action_launch_failed_msg_generic">이 바로가기를 열 수 없습니다. 앱이 제거되었거나 비활성화되었을 수 있습니다.</string>
+
+    <!-- ── Weather ──────────────────────────────────────────────────────── -->
+    <string name="pref_weather_title">날씨</string>
+    <string name="pref_weather_summary">현재 상태, 예보, 제공자 설정</string>
+    <string name="pref_weather_enabled_title">날씨 사용</string>
+    <string name="pref_weather_enabled_summary">날씨 데이터를 가져와 워치 페이스로 전달합니다</string>
+    <string name="pref_weather_category_source">데이터 소스</string>
+    <string name="pref_weather_category_display">표시</string>
+    <string name="pref_weather_category_update">업데이트</string>
+    <string name="pref_weather_provider_title">제공자</string>
+    <string name="pref_weather_language_title">시스템 언어 따르기</string>
+    <string name="pref_weather_language_summary">날씨 상태 설명에 기기 언어를 사용합니다(일부 제공자는 지원하지 않을 수 있음)</string>
+    <string name="pref_weather_weatherapi_key_title">WeatherAPI.com 키</string>
+    <string name="pref_weather_weatherapi_key_summary">weatherapi.com에서 무료 키를 발급받으세요 — 비워두면 내장 키를 사용합니다</string>
+    <string name="pref_weather_owm_key_title">OpenWeatherMap 키</string>
+    <string name="pref_weather_owm_key_summary">One Call API 3.0 구독이 필요합니다 — 비워두면 내장 키를 사용합니다</string>
+    <string name="pref_weather_round_title">온도 반올림</string>
+    <string name="pref_weather_round_summary">온도를 정수로 표시합니다(예: 21.7 대신 22)</string>
+    <string name="pref_weather_interval_title">업데이트 간격</string>
+    <string name="pref_weather_refresh_title">지금 새로고침</string>
+    <string name="pref_weather_refresh_summary">즉시 날씨 정보를 강제로 가져옵니다</string>
+    <string name="pref_weather_refreshing">새로고침 중…</string>
+    <string name="pref_weather_disabled_toast">먼저 날씨를 활성화하세요</string>
+    <string name="pref_weather_last_fetch">마지막: %1$d° %2$s · %3$s</string>
+    <string name="pref_weather_refresh_error_title">날씨 정보 가져오기 실패</string>
+
+    <!-- ── Location ──────────────────────────────────────────────────────── -->
+    <string name="pref_location_title">위치 및 시간대</string>
+    <string name="pref_location_summary">날씨의 기본 위치, 추가 시간대 시계</string>
+    <string name="pref_location_category_primary">기본 위치</string>
+    <string name="pref_location_category_extra">추가 시간대 시계</string>
+    <string name="pref_location_city_title">도시 이름</string>
+    <string name="pref_location_city_summary">워치 페이스에 표시되는 이름</string>
+    <string name="pref_location_lat_title">위도</string>
+    <string name="pref_location_lat_summary">십진 좌표, 예: 22.3193</string>
+    <string name="pref_location_lon_title">경도</string>
+    <string name="pref_location_lon_summary">십진 좌표, 예: 114.1694</string>
+    <string name="pref_location_gps_title">GPS로 한 번 설정</string>
+    <string name="pref_location_gps_summary">현재 GPS 좌표를 읽어 기본 위치로 저장합니다</string>
+    <string name="pref_location_gps_waiting">GPS 신호 대기 중…</string>
+    <string name="pref_location_gps_denied">위치 권한이 거부됨</string>
+    <string name="pref_location_gps_disabled">GPS가 꺼져 있습니다 — 시스템 설정에서 활성화하세요</string>
+    <string name="pref_location_auto_title">인터넷으로 자동 업데이트</string>
+    <string name="pref_location_auto_summary">날씨를 업데이트할 때마다 IP 위치 정보로 좌표를 갱신합니다(GPS 불필요)</string>
+    <string name="pref_location_lat_invalid">위도는 −90에서 90 사이여야 합니다</string>
+    <string name="pref_location_lon_invalid">경도는 −180에서 180 사이여야 합니다</string>
+    <string name="pref_location_slot2_city">슬롯 2 — 도시 이름</string>
+    <string name="pref_location_slot2_tz">슬롯 2 — 시간대 오프셋</string>
+    <string name="pref_location_slot3_city">슬롯 3 — 도시 이름</string>
+    <string name="pref_location_slot3_tz">슬롯 3 — 시간대 오프셋</string>
+    <string name="pref_location_slot4_city">슬롯 4 — 도시 이름</string>
+    <string name="pref_location_slot4_tz">슬롯 4 — 시간대 오프셋</string>
+    <string name="pref_location_slot5_city">슬롯 5 — 도시 이름</string>
+    <string name="pref_location_slot5_tz">슬롯 5 — 시간대 오프셋</string>
+
+    <!-- ── Health ────────────────────────────────────────────────────────── -->
+    <string name="pref_health_title">건강</string>
+    <string name="pref_health_summary">TraX를 통한 걸음 수, 심박수, 혈중 산소</string>
+    <string name="pref_health_category_metrics">측정 항목</string>
+    <string name="pref_health_category_update">업데이트</string>
+    <string name="pref_health_bht_installed">설치됨 — 데이터 접근 준비 완료</string>
+    <string name="pref_health_bht_not_installed">설치되지 않음 — 탭하여 다운로드</string>
+    <string name="pref_health_steps_title">걸음 수</string>
+    <string name="pref_health_steps_summary">일일 걸음 수, 거리, 칼로리</string>
+    <string name="pref_health_instant_steps_title">즉시 걸음 수</string>
+    <string name="pref_health_instant_steps_summary">백그라운드 기록 대신 센서를 직접 읽습니다(정확도가 낮을 수 있음)</string>
+    <string name="pref_health_hr_title">심박수</string>
+    <string name="pref_health_hr_summary">최근 10개 기록이 포함된 BPM 측정값</string>
+    <string name="pref_health_spo2_title">혈중 산소</string>
+    <string name="pref_health_spo2_summary">SpO2 백분율</string>
+    <string name="pref_health_sleep_title">수면</string>
+    <string name="pref_health_sleep_summary">지난밤 수면 단계(야간 심박수 기록 필요)</string>
+    <string name="pref_health_stress_title">스트레스</string>
+    <string name="pref_health_stress_summary">일일 스트레스 점수 0–100</string>
+    <string name="pref_health_no_sleep_data">감지된 수면 없음</string>
+    <string name="pref_health_permission_toast">건강 데이터 권한이 필요합니다 — TraX에서 데이터를 읽으려면 권한을 허용하세요</string>
+    <string name="pref_health_instant_title">즉시 측정</string>
+    <string name="pref_health_instant_summary">심박수와 SpO2를 실시간 센서로 측정합니다. 시간은 더 걸리지만 현재 값을 반영합니다</string>
+    <string name="pref_health_interval_title">업데이트 간격</string>
+    <string name="pref_health_not_installed_toast">TraX가 설치되어 있지 않습니다</string>
+    <string name="pref_health_refresh_title">지금 새로고침</string>
+    <string name="pref_health_refresh_summary">활성화된 모든 측정 항목을 즉시 가져옵니다</string>
+    <string name="pref_health_refreshing">새로고침 중…</string>
+
+    <!-- ── Sensors & Privacy ─────────────────────────────────────────────── -->
+    <string name="pref_sensors_title">센서 및 개인정보</string>
+    <string name="pref_sensors_summary">캘린더 접근, 가속도계, 나침반, 기압계</string>
+
+    <string name="pref_sensors_category_data">데이터 접근</string>
+    <string name="pref_sensors_category_motion">동작 센서</string>
+
+    <string name="pref_calendar_title">캘린더 접근</string>
+    <string name="pref_calendar_summary">워치 페이스가 예정된 캘린더 일정을 읽도록 허용합니다</string>
+    <string name="pref_calendar_permission_denied">캘린더 권한이 거부됨 — 접근이 계속 꺼져 있습니다</string>
+
+    <string name="pref_accelerometer_title">가속도계</string>
+    <string name="pref_accelerometer_summary">워치 페이스가 동작 및 기울기 데이터를 읽도록 허용합니다</string>
+    <string name="pref_compass_title">나침반</string>
+    <string name="pref_compass_summary">워치 페이스가 자기 방위를 읽도록 허용합니다(지자기 센서 필요)</string>
+    <string name="pref_barometer_title">기압계</string>
+    <string name="pref_barometer_summary">워치 페이스가 기압을 읽도록 허용합니다</string>
+    <string name="pref_gyroscope_title">자이로스코프</string>
+    <string name="pref_gyroscope_summary">워치 페이스가 회전 속도를 읽도록 허용합니다</string>
+    <string name="pref_sensor_unavailable">이 기기에서는 사용할 수 없음</string>
+
+    <!-- ── Quick Settings ─────────────────────────────────────────────────── -->
+    <string name="accessibility_service_label">CloX 빠른 작업</string>
+    <string name="accessibility_service_description">CloX가 빠른 설정에서 전원 메뉴와 최근 앱을 표시하도록 허용합니다.</string>
+    <string name="qs_title">빠른 설정</string>
+    <string name="qs_enabled_title">빠른 설정 사용</string>
+    <string name="qs_enabled_summary">워치 페이스에서 아래로 스와이프하여 엽니다. 꺼두면 제스처와 모든 백그라운드 리스너가 비활성화됩니다</string>
+    <string name="qs_sensitivity_title">제스처 감도</string>
+    <string name="qs_tile_columns_title">타일 열 수</string>
+    <string name="qs_tile_rows_title">페이지당 행 수</string>
+    <string name="qs_system_color_title">시스템 색상 사용</string>
+    <string name="qs_system_color_summary">Material You 배경화면 색상을 따릅니다(Android 12 이상). 아래의 사용자 지정 색상 선택기가 비활성화됩니다</string>
+    <string name="qs_flashlight_hw_title">하드웨어 LED 사용</string>
+    <string name="qs_flashlight_hw_summary">끄면: 화면을 최대 밝기의 흰색으로 전환합니다(대부분의 시계에서 작동). 켜면: 카메라 플래시 LED를 사용합니다.</string>
+    <string name="qs_color_tiles_title">색상으로 타일 상태 표시</string>
+    <string name="qs_color_connected_title">연결됨 색상</string>
+    <string name="qs_color_idle_title">대기/연결 중 색상</string>
+    <string name="qs_color_disconnected_title">연결 끊김 색상</string>
+    <string name="qs_color_off_title">꺼짐 색상</string>
+    <string name="qs_privilege_title">권한 모드</string>
+    <string name="qs_privilege_status_title">권한 상태</string>
+    <string name="qs_accessibility_status_title">CloX 빠른 작업</string>
+    <string name="qs_accessibility_status_summary">전원 메뉴 및 최근 앱에 필요</string>
+    <string name="qs_tile_editor_title">타일 배치</string>
+    <string name="qs_tile_editor_summary">패널에 표시할 타일을 선택하고 순서를 변경합니다</string>
+
+    <!-- ── Watch Faces ─────────────────────────────────────────────────────── -->
+    <string name="pref_watchface_title">워치 페이스</string>
+    <string name="pref_watchface_summary">선택기 스타일, 정렬 순서, 스토어 및 원격 관리</string>
+    <string name="pref_wf_open_selector_title">워치 페이스 선택기 열기</string>
+    <string name="pref_wf_open_selector_summary">활성 워치 페이스를 찾아보고 관리하고 선택합니다</string>
+    <string name="pref_wf_open_config_title">정렬 및 동작 조정</string>
+    <string name="pref_wf_open_config_summary">활성 워치 페이스의 정렬, 동작, 프레임 속도</string>
+    <string name="pref_wf_defaults_title">기본 워치 페이스 설정</string>
+    <string name="pref_wf_defaults_summary">모든 페이스에 대한 정렬, 동작, 프레임 속도 기본값</string>
+
+    <!-- Watch face config dialog (WatchfaceConfigActivity) -->
+    <string name="wfcfg_title_default">기본 워치 페이스</string>
+    <string name="wfcfg_defaults_title">기본 워치 페이스 설정</string>
+    <string name="wfcfg_done">완료</string>
+    <string name="wfcfg_change">변경</string>
+    <string name="wfcfg_reload">다시 로드</string>
+    <string name="wfcfg_tab_alignment">정렬</string>
+    <string name="wfcfg_tab_behavior">동작</string>
+    <string name="wfcfg_tab_framerate">프레임 속도</string>
+    <string name="wfcfg_tab_info">정보</string>
+    <string name="wfcfg_use_default">앱 기본값 사용</string>
+    <string name="wfcfg_use_default_summary">설정에서 지정한 앱 전체 기본값을 따릅니다</string>
+    <string name="wfcfg_align_vertical">높이 채우기</string>
+    <string name="wfcfg_align_horizontal">맞춤</string>
+    <string name="wfcfg_align_stretch">늘이기</string>
+    <string name="wfcfg_align_custom">사용자 지정</string>
+    <string name="wfcfg_width">너비</string>
+    <string name="wfcfg_height">높이</string>
+    <string name="wfcfg_h_offset">가로 오프셋</string>
+    <string name="wfcfg_v_offset">세로 오프셋</string>
+    <string name="wfcfg_reset_alignment">정렬 재설정</string>
+    <string name="wfcfg_precise_set">설정</string>
+    <string name="wfcfg_allow_sound">소리 허용</string>
+    <string name="wfcfg_allow_sound_summary">효과음 및 동영상 오디오</string>
+    <string name="wfcfg_allow_vibrate">진동 허용</string>
+    <string name="wfcfg_allow_vibrate_summary">워치 페이스의 햅틱 피드백</string>
+    <string name="wfcfg_allow_sensors">센서 허용</string>
+    <string name="wfcfg_allow_sensors_summary">동작, 나침반, 기압(전역 센서 설정을 켜야 함)</string>
+    <string name="wfcfg_allow_weather">날씨 허용</string>
+    <string name="wfcfg_allow_weather_summary">이 페이스가 날씨 데이터를 사용하도록 허용합니다</string>
+    <string name="wfcfg_allow_health">건강 허용</string>
+    <string name="wfcfg_allow_health_summary">이 페이스가 걸음 수, 심박수, SpO₂를 사용하도록 허용합니다</string>
+    <string name="wfcfg_allow_tap">탭 동작 허용</string>
+    <string name="wfcfg_allow_tap_summary">탭으로 앱과 시스템 동작을 실행하도록 허용합니다</string>
+    <string name="wfcfg_fps_unlimited">무제한</string>
+    <string name="wfcfg_aod_hint">화면 켜짐 유지(AOD) 상태에서는 절전을 위해 항상 1 FPS로 제한됩니다.</string>
+    <string name="wfcfg_tab_color">색상</string>
+    <string name="wfcfg_color_default">페이스 기본값</string>
+    <string name="wfcfg_color_theme">런처 테마 따르기</string>
+    <string name="wfcfg_color_fixed">사용자 지정 색상</string>
+    <string name="wfcfg_color_pick">선택…</string>
+    <string name="wfcfg_color_theme_hint">런처 UI와 동일하게 시스템 Material You 강조 색상을 사용합니다.</string>
+    <string name="wfcfg_dynamic_fps">동적 FPS</string>
+    <string name="wfcfg_dynamic_fps_summary">대기 중에는 1 FPS로 낮아지고 조작 중에는 전체 속도로 동작하며, 앱 목록이 열려 있을 때는 일시 중지됩니다</string>
+    <string name="wfcfg_optimize">렌더링 최적화</string>
+    <string name="wfcfg_optimize_summary">정적 레이어를 캐시된 텍스처로 병합합니다(더 빠르고 절전)</string>
+    <string name="wfcfg_optimize_stat">레이어 %2$d개 중 %1$d개가 캐시된 텍스처 %3$d개로 병합됨</string>
+    <string name="wfcfg_optimize_stat_none">이 페이스에서는 병합된 레이어가 없습니다</string>
+    <string name="wfcfg_optimize_stat_off">최적화가 비활성화됨 — 모든 레이어가 실시간으로 렌더링됩니다</string>
+    <string name="wfcfg_info_name">이름</string>
+    <string name="wfcfg_info_author">제작자</string>
+    <string name="wfcfg_info_desc">설명</string>
+    <string name="wfcfg_info_tags">태그</string>
+    <string name="wfcfg_info_features">사용 기능</string>
+    <string name="wfcfg_info_format">형식</string>
+    <string name="wfcfg_info_protected">보호됨</string>
+    <string name="wfcfg_info_layers">레이어</string>
+    <string name="wfcfg_info_size">워치 페이스 크기</string>
+    <string name="wfcfg_info_storage">저장된 데이터</string>
+    <string name="wfcfg_info_clear">데이터 지우기</string>
+    <string name="wfcfg_info_reserved">예약됨</string>
+    <string name="wfcfg_clear_confirm_title">저장된 데이터를 지우시겠습니까?</string>
+    <string name="wfcfg_clear_confirm_msg">이 워치 페이스의 저장된 변수가 삭제되고 다시 로드됩니다. 이 작업은 취소할 수 없습니다.</string>
+    <string name="pref_wf_category_selector">선택기</string>
+    <string name="pref_wf_category_management">관리</string>
+    <string name="pref_wf_selector_mode_title">선택기 스타일</string>
+    <string name="pref_wf_sort_title">정렬 순서</string>
+    <string name="pref_wf_store_title">워치 페이스 스토어</string>
+    <string name="pref_wf_store_summary">커뮤니티 워치 페이스를 찾아보고 다운로드합니다</string>
+    <string name="pref_wf_remote_title">원격 관리</string>
+    <string name="pref_wf_remote_summary">같은 네트워크의 모든 기기에서 브라우저로 워치 페이스를 관리합니다</string>
+    <string name="pref_wf_import_title">워치 페이스 가져오기</string>
+    <string name="pref_wf_import_summary">기기 저장소에서 .watch 파일을 복사합니다</string>
+    <string name="pref_wf_gallery_title">이미지 갤러리</string>
+    <string name="pref_wf_gallery_summary">Lua 워치 페이스에서 사용하는 이미지를 관리합니다</string>
+
+    <!-- Gallery -->
+    <string name="gallery_title">이미지 갤러리</string>
+    <string name="gallery_empty">아직 이미지가 없습니다.\n+를 탭하여 기기에서 가져오세요.</string>
+    <string name="gallery_fab_desc">이미지 가져오기</string>
+    <string name="gallery_item_desc">갤러리 이미지</string>
+    <string name="gallery_delete_title">이미지 삭제</string>
+    <string name="gallery_delete_message">갤러리에서 \"%s\"을(를) 삭제하시겠습니까?</string>
+    <string name="gallery_delete_confirm">삭제</string>
+
+    <!-- Gesture settings -->
+    <string name="pref_gestures_watchface_category">워치 페이스 제스처</string>
+    <string name="pref_long_press_title">길게 누르기 동작</string>
+    <string name="pref_home_press_screen_off_title">홈 버튼으로 화면 끄기</string>
+    <string name="pref_home_press_screen_off_summary">이미 워치 페이스 화면에 있을 때 홈 버튼을 누르면 화면이 꺼집니다(접근성 권한 필요)</string>
+    <string name="pref_reset_watchface_on_screen_title">화면 켤 때 워치 페이스로 초기화</string>
+    <string name="pref_reset_watchface_on_screen_summary">화면이 꺼지면 앱 목록과 패널을 접어서 다음에 화면을 켤 때 워치 페이스가 표시되도록 합니다</string>
+
+    <!-- Button mapping -->
+    <string name="pref_btn_map_category">하드웨어 버튼 매핑</string>
+    <string name="pref_btn_map_record_title">매핑된 버튼</string>
+    <string name="pref_btn_map_record_summary">탭하여 버튼 기록</string>
+    <string name="pref_btn_single_title">한 번 누르기</string>
+    <string name="pref_btn_double_title">두 번 누르기</string>
+    <string name="pref_btn_long_title">길게 누르기</string>
+    <string name="pref_btn_map_clear_title">버튼 매핑 지우기</string>
+
+    <!-- Watchface selector UI -->
+    <string name="wf_selector_title">워치 페이스</string>
+    <string name="wf_action_delete">삭제</string>
+    <string name="wf_action_rename">이름 변경</string>
+    <string name="wf_action_pin">고정</string>
+    <string name="wf_action_unpin">고정 해제</string>
+    <string name="wf_action_move">폴더로 이동</string>
+    <string name="wf_open_store">스토어</string>
+    <string name="wf_remote_management">원격</string>
+    <string name="wf_import">가져오기</string>
+    <string name="wf_random">무작위</string>
+    <string name="wf_default_watchface">기본 워치 페이스</string>
+    <string name="wf_default_watchface_desc">내장됨 — 파일 불필요</string>
+    <string name="wf_store_download_btn">다운로드 및 설치</string>
+    <string name="wf_store_downloading">다운로드 중…</string>
+    <string name="wf_store_download_done">설치됨!</string>
+    <string name="wf_search_hint">워치 페이스 검색…</string>
+    <string name="wf_loading">로드 중…</string>
+    <string name="wf_pinned_section">고정됨</string>
+    <string name="wf_other_section">기타</string>
+    <string name="wf_add_folder">폴더 추가</string>
+    <string name="wf_delete_folder">폴더 삭제</string>
+    <string name="wf_rename_folder">폴더 이름 변경</string>
+    <string name="wf_move_all">모든 항목 이동</string>
+    <string name="wf_move_to_root">최상위(폴더 없음)</string>
+    <string name="wf_confirm_delete">%s을(를) 삭제하시겠습니까?</string>
+    <string name="wf_confirm_delete_folder">\"%s\" 폴더와 그 안의 모든 워치 페이스를 삭제하시겠습니까?</string>
+    <string name="wf_rename_hint">새 이름</string>
+    <string name="wf_rename_failed">같은 이름의 워치 페이스가 이미 있습니다</string>
+    <string name="wf_folder_name_hint">폴더 이름</string>
+    <string name="wf_import_progress">가져오는 중…</string>
+    <string name="wf_import_done">완료 — 워치 페이스 %d개를 가져왔습니다</string>
+    <string name="wf_import_pick_desc">기기 저장소에서 .watch 파일 가져오기</string>
+    <string name="wf_import_pick_folder">폴더 선택(모든 .watch 파일 가져오기)</string>
+    <string name="wf_import_pick_file">개별 파일 선택</string>
+    <string name="wf_invalid_file">올바른 .watch 파일이 아닙니다</string>
+    <string name="wf_imported">워치 페이스를 가져와 활성으로 설정했습니다</string>
+    <string name="wf_import_failed">워치 페이스 가져오기 실패</string>
+    <string name="wf_import_pick_zip">zip 선택(여러 워치 페이스)</string>
+    <string name="wf_import_zip_failed">해당 zip에서 워치 페이스를 찾을 수 없습니다</string>
+    <string name="wf_backup_desc">하위 폴더를 포함한 설치된 모든 워치 페이스를 하나의 zip 파일로 저장합니다</string>
+    <string name="wf_backup_all_btn">모두 zip으로 백업</string>
+    <string name="wf_backup_progress">백업 중…</string>
+    <string name="wf_backup_done">워치 페이스 %d개를 백업했습니다</string>
+    <string name="wf_backup_failed">백업 실패</string>
+    <string name="action_back">뒤로</string>
+
+    <!-- Remote management -->
+    <string name="wf_remote_status">서버 상태</string>
+    <string name="wf_remote_running">실행 중 — 브라우저에서 열기</string>
+    <string name="wf_remote_stopped">중지됨</string>
+    <string name="wf_remote_copy">링크 복사</string>
+    <string name="wf_remote_share">링크 공유</string>
+    <string name="wf_remote_copied">링크가 클립보드에 복사되었습니다</string>
+    <string name="wf_remote_qr_hint">휴대전화로 스캔하여 다른 기기에서 엽니다</string>
+    <string name="wf_remote_open_browser">브라우저에서 열기</string>
+
+    <!-- Open-app gesture action -->
+    <string name="gesture_open_app_summary">앱 열기: %1$s</string>
+    <string name="gesture_open_app_none">선택된 앱 없음</string>
+
+    <!-- Swipe actions (used when the corresponding panel is disabled) -->
+    <string name="pref_swipe_category">스와이프 동작</string>
+    <string name="pref_swipe_category_summary">해당 패널이 꺼져 있을 때 실행됩니다.</string>
+    <string name="pref_swipe_down_title">아래로 스와이프(빠른 설정 꺼짐)</string>
+    <string name="pref_swipe_right_title">오른쪽으로 스와이프(알림 꺼짐)</string>
+
+    <!-- Multiple hardware buttons -->
+    <string name="pref_btn_add_title">버튼 추가</string>
+    <string name="pref_btn_add_summary">탭하여 다른 버튼 기록</string>
+    <string name="pref_btn_remove">제거</string>
+
+    <!-- Navigation bar visibility -->
+    <string name="pref_nav_bar_title">내비게이션 바</string>
+
+    <!-- Watch face auto-change -->
+    <string name="pref_wf_category_auto">자동 변경</string>
+    <string name="pref_wf_auto_screen_on_title">화면 켤 때 변경</string>
+    <string name="pref_wf_auto_screen_on_summary">화면을 켤 때마다 무작위 워치 페이스를 선택합니다</string>
+    <string name="pref_wf_auto_interval_title">일정 간격으로 변경</string>
+    <string name="pref_wf_auto_interval_summary">설정한 간격이 지나면 무작위 워치 페이스를 선택합니다(화면을 켤 때 확인됨)</string>
+
+    <!-- AOD settings -->
+    <string name="pref_aod_title">화면 켜짐 유지(AOD)</string>
+    <string name="pref_aod_summary">화면을 켜둔 채 워치 페이스를 표시합니다</string>
+    <string name="pref_aod_enabled_title">화면 켜짐 유지(AOD) 사용</string>
+    <string name="pref_aod_enabled_summary">화면을 켜둔 채 워치 페이스를 표시합니다</string>
+    <string name="pref_aod_when_charging_title">충전 중 항상 켜짐</string>
+    <string name="pref_aod_when_charging_summary">화면 켜짐 유지(AOD)가 꺼져 있어도 충전 중에는 항상 활성화합니다</string>
+    <string name="pref_aod_category_display">표시</string>
+    <string name="pref_aod_category_behavior">동작</string>
+    <string name="pref_aod_timeout_title">대기 시간 제한</string>
+    <string name="pref_aod_timeout_summary">화면이 어두워지고 제스처가 잠기기까지의 시간(초)</string>
+    <string name="pref_aod_brightness_title">어두운 상태 밝기</string>
+    <string name="pref_aod_brightness_summary">어두운 상태의 화면 밝기(1–255)</string>
+    <string name="pref_aod_reawaken_title">화면 꺼질 때 다시 깨우기</string>
+    <string name="pref_aod_reawaken_summary">다른 앱이 화면을 끄면 다시 켭니다</string>
+    <string name="pref_aod_lock_gesture_title">대기 시 제스처 잠금</string>
+    <string name="pref_aod_lock_gesture_summary">시간 제한 이후 스와이프 제스처를 차단합니다</string>
+    <string name="pref_aod_lock_gesture_delay_title">제스처 잠금 지연</string>
+    <string name="pref_aod_lock_gesture_delay_summary">시간 제한 이후 제스처가 잠기기까지의 시간(초)</string>
+    <string name="pref_aod_shallow_sleep_title">얕은 절전</string>
+    <string name="pref_aod_shallow_sleep_summary">한 번 터치하면 화면이 켜지지만 제스처는 잠금 해제되지 않습니다</string>
+    <string name="pref_aod_power_button_exit_title">전원 버튼으로 화면 켜짐 유지(AOD) 종료</string>
+    <string name="pref_aod_power_button_exit_summary">전원 버튼을 누르면 화면이 켜지고 화면 켜짐 유지(AOD)가 종료됩니다</string>
+
+    <!-- Debug settings -->
+    <string name="pref_debug_title">디버그</string>
+    <string name="pref_debug_summary">오류 처리, 백업, 유지 관리</string>
+    <string name="debug_ignore_lua_errors_title">Lua 오류 무시</string>
+    <string name="debug_ignore_lua_errors_summary">워치 페이스 스크립트 오류나 탭 동작 미설정 시 대화상자 대신 조용히 무시합니다</string>
+    <string name="debug_category_backup">백업 및 복원</string>
+    <string name="debug_export_settings_title">설정 내보내기</string>
+    <string name="debug_export_settings_summary">모든 설정과 워치 페이스 구성을 JSON 파일로 저장합니다</string>
+    <string name="debug_export_btn">내보내기</string>
+    <string name="debug_import_settings_title">설정 가져오기</string>
+    <string name="debug_import_settings_summary">이전에 내보낸 JSON 파일에서 설정을 복원합니다</string>
+    <string name="debug_import_btn">가져오기</string>
+    <string name="debug_export_success">설정을 내보냈습니다</string>
+    <string name="debug_export_failed">내보내기 실패</string>
+    <string name="debug_import_success">설정을 가져왔습니다 — 런처를 다시 시작하는 중…</string>
+    <string name="debug_import_failed">가져오기 실패 — 올바른 CloX 설정 내보내기 파일이 아닐 수 있습니다</string>
+    <string name="debug_category_danger">위험 구역</string>
+    <string name="debug_force_stop_title">런처 강제 종료</string>
+    <string name="debug_force_stop_summary">Android는 앱이 설정 앱처럼 스스로를 강제 종료하도록 허용하지 않습니다 — 대신 런처 프로세스를 종료하고 다시 시작합니다</string>
+    <string name="debug_force_stop_btn">강제 종료</string>
+    <string name="debug_force_stop_confirm_title">런처를 강제 종료하시겠습니까?</string>
+    <string name="debug_force_stop_confirm_message">런처 프로세스를 즉시 종료합니다. CloX가 기본 홈 앱이므로 자동으로 다시 시작됩니다.</string>
+    <string name="debug_uninstall_title">런처 제거</string>
+    <string name="debug_uninstall_summary">기기 관리자를 비활성화한 후 시스템 제거 대화상자를 엽니다</string>
+    <string name="debug_uninstall_btn">제거</string>
+    <string name="debug_uninstall_confirm_title">CloX를 제거하시겠습니까?</string>
+    <string name="debug_uninstall_confirm_message">기기 관리자를 비활성화하고 시스템 제거 대화상자를 엽니다. 해당 화면에서 제거를 확인해야 합니다.</string>
+
+    <!-- ── Crash activity ───────────────────────────────────────────────── -->
+    <string name="crash_title">앱이 충돌함</string>
+    <string name="crash_message">아래에 오류 보고서가 표시됩니다. 복사하거나 공유할 수 있습니다.</string>
+    <string name="crash_btn_close">닫기</string>
+    <string name="crash_btn_copy">복사</string>
+    <string name="crash_btn_share">공유</string>
+    <string name="crash_copied">클립보드에 복사되었습니다</string>
+
+    <!-- ── Notification overlay ─────────────────────────────────────────── -->
+    <string name="notif_panel_title">알림</string>
+    <string name="notif_grant_permission">권한 허용</string>
+    <string name="notif_try_anyway">그래도 시도</string>
+    <string name="notif_empty">알림 없음</string>
+    <string name="notif_dismiss_all_desc">모두 지우기</string>
+
+    <!-- ── Volume dialog ────────────────────────────────────────────────── -->
+    <string name="dialog_volume_title">볼륨</string>
+
+    <!-- ── RTOS toast messages ──────────────────────────────────────────── -->
+    <string name="toast_rtos_activated">RTOS 모드 활성화됨</string>
+    <string name="toast_rtos_deactivated">RTOS 모드 비활성화됨</string>
+    <string name="toast_rtos_set_password_first">먼저 비밀번호를 설정하세요</string>
+    <string name="toast_rtos_password_cleared">비밀번호가 지워졌습니다 — 선택한 유형에 대해 새 비밀번호를 설정하세요</string>
+    <string name="toast_rtos_accessibility_first">먼저 접근성 서비스를 활성화하세요</string>
+    <string name="toast_rtos_password_saved">비밀번호가 저장되었습니다</string>
+    <string name="toast_rtos_passwords_dont_match">비밀번호가 일치하지 않습니다 — 다시 시도하세요</string>
+    <string name="toast_rtos_password_too_short">최소 4개의 기호가 필요하며 모두 같을 수 없습니다</string>
+    <string name="rtos_accessibility_enabled">✓ 활성화됨</string>
+    <string name="rtos_accessibility_disabled">탭하여 활성화 — 앱 차단에 필요합니다</string>
+
+    <!-- ── Quick Settings tile labels ──────────────────────────────────── -->
+    <string name="tile_wifi">Wi-Fi</string>
+    <string name="tile_data">데이터</string>
+    <string name="tile_bluetooth">Bluetooth</string>
+    <string name="tile_volume">볼륨</string>
+    <string name="tile_dnd">DND</string>
+    <string name="tile_rotate">회전</string>
+    <string name="tile_flashlight">손전등</string>
+    <string name="tile_location">위치</string>
+    <string name="tile_aod">화면 켜짐 유지</string>
+    <string name="tile_airplane">비행기 모드</string>
+    <string name="tile_hotspot">핫스팟</string>
+    <string name="tile_rtos_mode">RTOS 모드</string>
+
+    <!-- ── Button mapping ───────────────────────────────────────────────── -->
+    <string name="btn_volume_up">볼륨 올리기</string>
+    <string name="btn_volume_down">볼륨 내리기</string>
+    <string name="btn_camera">카메라</string>
+    <string name="btn_menu">메뉴</string>
+    <string name="btn_search">검색</string>
+    <string name="btn_play_pause">재생/일시정지</string>
+    <string name="btn_next_track">다음 트랙</string>
+    <string name="btn_prev_track">이전 트랙</string>
+    <string name="btn_none">없음</string>
+    <string name="btn_format">버튼 (%d)</string>
+
+    <!-- ── Tap action labels ────────────────────────────────────────────── -->
+    <string name="tap_launcher_home">런처/홈</string>
+    <string name="tap_weather">날씨</string>
+    <string name="tap_health">건강</string>
+    <string name="tap_calendar_widget">캘린더 위젯</string>
+    <string name="tap_agenda">일정</string>
+    <string name="tap_fitness">피트니스</string>
+    <string name="tap_heart_rate">심박수</string>
+    <string name="tap_compass">나침반</string>
+    <string name="tap_notes">메모</string>
+    <string name="tap_email">이메일</string>
+    <string name="tap_calendar_app">캘린더 앱</string>
+    <string name="tap_voice_search">음성 검색</string>
+    <string name="tap_contacts">연락처</string>
+    <string name="tap_sports">스포츠</string>
+    <string name="tap_gallery_photos">갤러리/사진</string>
+    <string name="tap_messages">메시지</string>
+    <string name="tap_camera">카메라</string>
+    <string name="tap_phone_dialer">전화/다이얼러</string>
+    <string name="tap_music_player">음악 플레이어</string>
+    <string name="tap_clock_alarm">시계/알람</string>
+    <string name="tap_calculator">계산기</string>
+    <string name="tap_wallet_payment">지갑/결제</string>
+    <string name="tap_maps_navigation">지도/내비게이션</string>
+    <string name="tap_browser">브라우저</string>
+    <string name="tap_flashlight">손전등</string>
+    <string name="tap_social_media">소셜 미디어</string>
+
+    <!-- ── Weather condition labels ─────────────────────────────────────── -->
+    <string name="weather_clear_sky">맑음</string>
+    <string name="weather_mainly_clear">대체로 맑음</string>
+    <string name="weather_partly_cloudy">부분적으로 흐림</string>
+    <string name="weather_overcast">흐림</string>
+    <string name="weather_fog">안개</string>
+    <string name="weather_drizzle">이슬비</string>
+    <string name="weather_rain">비</string>
+    <string name="weather_snow">눈</string>
+    <string name="weather_rain_showers">소나기</string>
+    <string name="weather_snow_showers">소나기눈</string>
+    <string name="weather_thunderstorm">뇌우</string>
+    <string name="weather_unknown">알 수 없음</string>
+
+    <!-- ── Custom tile dialog ──────────────────────────────────────────── -->
+    <string name="custom_tile_label_hint">타일 레이블</string>
+    <string name="custom_tile_launch_app">앱 실행</string>
+    <string name="custom_tile_write_setting">설정 쓰기</string>
+    <string name="custom_tile_add_btn">타일 추가</string>
+    <string name="custom_tile_default_label">사용자 지정</string>
+
+    <!-- ── Appearance ──────────────────────────────────────────────────── -->
+    <string name="appearance_density_default">0 = 시스템 기본값</string>
+
+    <!-- ── Weather API ─────────────────────────────────────────────────── -->
+    <string name="api_key_hint">API 키</string>
+
+    <!-- ── Watchface store ─────────────────────────────────────────────── -->
+    <string name="store_downloads_label">다운로드 %d회</string>
+    <string name="store_uploaded_label">%s 업로드됨</string>
+    <string name="store_author_label">%s 제작</string>
+    <string name="store_download_failed">다운로드 실패: %s</string>
+    <string name="wf_store_sort_popular">다운로드 많은 순</string>
+    <string name="wf_store_screen_round">원형</string>
+    <string name="wf_store_screen_square">정사각형</string>
+    <string name="wf_store_screen_rect">직사각형</string>
+
+    <!-- ── Gestures ────────────────────────────────────────────────────── -->
+    <string name="gesture_mapped_format">매핑됨: %s — 탭하여 변경</string>
+
+    <!-- ── Notification style pickers ───────────────────────────────────- -->
+    <string name="notif_pick_card_style">카드 스타일</string>
+    <string name="notif_pick_view_style">보기 스타일</string>
+
+    <!-- ── Quick Settings toast messages ────────────────────────────────── -->
+    <string name="toast_qs_rtos_not_configured">RTOS 모드가 설정되지 않음</string>
+    <string name="toast_qs_app_not_found">앱을 찾을 수 없음: %s</string>
+    <string name="toast_qs_elevated_required">%s 설정에는 상승된 권한이 필요합니다</string>
+
+    <!-- ── OTA toast messages ───────────────────────────────────────────── -->
+    <string name="toast_ota_no_internet">인터넷 연결 없음</string>
+    <string name="toast_ota_check_failed_code">업데이트 확인 실패 (%d)</string>
+    <string name="toast_ota_check_failed">업데이트 확인 실패: %s</string>
+    <string name="toast_ota_no_apk">릴리스에서 APK를 찾을 수 없음</string>
+    <string name="toast_ota_parse_failed">릴리스 정보 파싱 실패</string>
+    <string name="toast_ota_up_to_date">이미 최신 버전임 (%s)</string>
+    <string name="toast_ota_auto_disabled">자동 업데이트 확인이 비활성화됨</string>
+    <string name="toast_ota_downloading">업데이트 다운로드 중…</string>
+    <string name="toast_ota_install_failed">설치 실패: %s</string>
+
+    <!-- ── OTA dialog ────────────────────────────────────────────────────── -->
+    <string name="dialog_ota_update_title">업데이트 가능 — v%s</string>
+    <string name="dialog_ota_update_positive">업데이트</string>
+    <string name="dialog_ota_update_neutral">나중에</string>
+    <string name="dialog_ota_update_negative">다시 묻지 않기</string>
+    <string name="dialog_ota_skip">이 버전 건너뛰기</string>
+    <string name="toast_ota_checking">업데이트 확인 중…</string>
+    <string name="toast_ota_skipped">%s 버전 건너뜀</string>
+    <string name="dialog_ota_progress_title">업데이트 다운로드 중…</string>
+    <string name="dialog_ota_progress_hide">숨기기</string>
+    <string name="ota_download_notif_title">CloX 업데이트</string>
+
+    <!-- ── Default launcher dialog ──────────────────────────────────────── -->
+    <string name="dialog_default_launcher_title">기본 런처로 설정</string>
+    <string name="dialog_default_launcher_message">CloX가 제대로 작동하려면 기본 런처로 설정해야 합니다.\n\n참고: 일부 기기에서는 처음 선택할 때 \'항상\'을 설정할 수 없습니다 — 이 경우 다시 선택하세요.</string>
+    <string name="dialog_default_launcher_positive">지금 설정</string>
+    <string name="dialog_default_launcher_neutral">나중에 묻기</string>
+    <string name="dialog_default_launcher_negative">안 함</string>
+
+    <!-- ── RTOS settings fragment ────────────────────────────────────────── -->
+    <string name="rtos_setting_enabled_title">RTOS 모드 사용</string>
+    <string name="rtos_setting_enabled_summary">런처를 RTOS 블루투스 시계로 위장합니다</string>
+    <string name="rtos_setting_options_category">옵션</string>
+    <string name="rtos_setting_mode_title">모드</string>
+    <string name="rtos_setting_auto_enter_title">화면 꺼질 때 자동 진입</string>
+    <string name="rtos_setting_auto_enter_summary">화면이 꺼지면 RTOS 모드를 활성화합니다</string>
+    <string name="rtos_setting_launcher_icon_title">런처 아이콘 표시</string>
+    <string name="rtos_setting_launcher_icon_summary">RTOS 모드를 활성화하는 아이콘을 앱 런처에 추가합니다</string>
+    <string name="rtos_setting_password_category">비밀번호</string>
+    <string name="rtos_setting_password_type_title">비밀번호 유형</string>
+    <string name="rtos_setting_set_password_title">비밀번호 설정</string>
+    <string name="rtos_setting_set_password_summary">잠금 해제 코드를 설정합니다</string>
+    <string name="rtos_setting_app_restrictions_category">앱 제한</string>
+    <string name="rtos_setting_allowed_apps_title">허용된 앱(모드 2)</string>
+    <string name="rtos_setting_allowed_apps_summary">앱 목록에 표시할 앱을 선택합니다</string>
+    <string name="rtos_setting_block_apps_title">허용 목록에 없는 앱 차단</string>
+    <string name="rtos_setting_block_apps_summary">먼저 접근성 서비스를 활성화한 후 이 설정을 켜세요</string>
+    <string name="rtos_setting_accessibility_category">접근성</string>
+    <string name="rtos_setting_accessibility_title">접근성 서비스</string>
+
+    <!-- ── Hide apps fragment ────────────────────────────────────────────── -->
+    <string name="hide_apps_tab_blacklist">차단 목록</string>
+    <string name="hide_apps_tab_whitelist">허용 목록</string>
+    <string name="hide_apps_secret_code_btn">비밀 코드로 숨기기</string>
+
+    <!-- ── Tile editor ───────────────────────────────────────────────────── -->
+    <string name="tile_editor_active_tiles">활성 타일</string>
+    <string name="tile_editor_available_tiles">사용 가능한 타일</string>
+    <string name="tile_editor_add_custom">사용자 지정 추가</string>
+
+    <!-- ── Notification item actions ────────────────────────────────────── -->
+    <string name="notif_action_open">열기</string>
+    <string name="notif_action_show_more">더 보기</string>
+
+    <!-- ── Quick Settings settings fragment ─────────────────────────────── -->
+    <string name="qs_setting_general_category">일반</string>
+    <string name="qs_setting_tiles_category">타일</string>
+    <string name="qs_setting_flashlight_category">손전등</string>
+    <string name="qs_setting_appearance_category">외관</string>
+    <string name="qs_setting_tile_style_title">타일 스타일</string>
+    <string name="qs_setting_elevated_privileges_category">상승된 권한</string>
+    <string name="qs_setting_accessibility_category">접근성</string>
+
+    <!-- ── Notifications settings fragment ──────────────────────────────── -->
+    <string name="notif_setting_enabled_title">알림 사용</string>
+    <string name="notif_setting_enabled_summary">오른쪽으로 스와이프하면 알림 패널을 표시합니다</string>
+    <string name="notif_setting_display_category">표시</string>
+    <string name="notif_setting_card_style_title">카드 스타일</string>
+    <string name="notif_setting_view_style_title">보기 스타일</string>
+    <string name="notif_setting_text_size_title">텍스트 크기</string>
+    <string name="notif_setting_media_controls_title">미디어 컨트롤</string>
+    <string name="notif_setting_media_controls_summary">재생 중일 때 음악 플레이어 카드를 표시합니다</string>
+    <string name="notif_setting_alerts_category">새 알림 경고</string>
+    <string name="notif_setting_wake_title">화면 깨우기</string>
+    <string name="notif_setting_open_panel_title">알림 패널 열기</string>
+    <string name="notif_setting_vibrate_title">진동</string>
+    <string name="notif_setting_filtering_category">필터링</string>
+    <string name="notif_setting_group_title">알림 그룹화</string>
+    <string name="notif_setting_group_summary">채팅은 상단, 일반은 중간, 지속 알림은 하단에 표시됩니다</string>
+    <string name="notif_setting_hide_persistent_title">지속 알림 숨기기</string>
+    <string name="notif_setting_hide_persistent_summary">진행 중인 알림이 표시되지 않도록 차단합니다</string>
+    <string name="notif_setting_access_title">알림 접근</string>
+
+    <!-- ── App list settings fragment ───────────────────────────────────── -->
+    <string name="applist_setting_general_category">일반</string>
+    <string name="applist_setting_hidden_apps_summary">런처에 표시할 앱을 관리합니다</string>
+    <string name="applist_setting_launch_anim_title">실행 애니메이션</string>
+    <string name="applist_setting_animations_title">애니메이션</string>
+    <string name="applist_setting_animations_summary">열기 및 복귀 애니메이션 설정</string>
+    <string name="applist_setting_background_category">배경</string>
+    <string name="applist_setting_bg_image_title">배경 이미지</string>
+    <string name="applist_setting_bg_image_summary">탭하여 이미지 선택</string>
+    <string name="applist_setting_darken_bg_title">배경 어둡게 하기</string>
+    <string name="applist_setting_clear_bg_btn">배경 이미지 지우기</string>
+    <string name="applist_setting_set_wallpaper_btn">기기 배경화면을 일치시키기</string>
+    <string name="applist_setting_set_wallpaper_done">기기 배경화면이 업데이트되었습니다</string>
+    <string name="applist_setting_set_wallpaper_failed">기기 배경화면을 설정할 수 없습니다</string>
+    <string name="applist_setting_bg_using_wallpaper">시스템 배경화면 사용 중</string>
+    <string name="applist_setting_list_options_category">목록 옵션</string>
+    <string name="applist_setting_grid_options_category">그리드 옵션</string>
+    <string name="applist_setting_waterfall_options_category">폭포 옵션</string>
+    <string name="applist_setting_honeycomb_options_category">허니콤 옵션</string>
+    <string name="applist_setting_grid2d_options_category">그리드 2D 옵션</string>
+    <string name="applist_setting_pages_options_category">페이지 옵션</string>
+    <string name="applist_setting_gravity_options_category">중력 옵션</string>
+    <string name="pref_overscroll_title">오버스크롤 강도</string>
+
+    <!-- ── Animation settings fragment ──────────────────────────────────── -->
+    <string name="anim_setting_open_category">열기 애니메이션</string>
+    <string name="anim_setting_open_title">앱 열기 애니메이션</string>
+    <string name="anim_setting_open_summary">앱을 실행할 때 애니메이션을 재생합니다</string>
+    <string name="anim_setting_open_type_title">애니메이션 스타일</string>
+    <string name="anim_setting_return_category">복귀 애니메이션</string>
+    <string name="anim_setting_return_title">홈으로 복귀 애니메이션</string>
+    <string name="anim_setting_return_summary_pre11">복귀 시 아이콘으로 축소되는 애니메이션(Android 10 이하)</string>
+    <string name="anim_setting_return_summary_11plus">후속 아이콘 반동을 억제합니다. 시스템 제스처 애니메이션은 계속 재생됩니다</string>
+    <string name="anim_setting_speed_category">열기 속도</string>
+    <string name="anim_setting_speed_title">열기 애니메이션 속도</string>
+    <string name="anim_setting_speed_hint">0.5×(느림) — 2.0×(빠름)</string>
+    <string name="anim_setting_close_category">닫기 애니메이션</string>
+    <string name="anim_setting_launch_blur_title">앱 목록 블러 처리</string>
+    <string name="anim_setting_launch_blur_summary">앱 창이 열릴 때 뒤쪽의 앱 목록을 블러 처리하며 창이 확장될수록 진해집니다(뒤로 가기로 닫으면 블러가 사라집니다).</string>
+    <string name="anim_setting_close_type_title">애니메이션 스타일</string>
+    <string name="anim_setting_resume_close_title">앱 목록 없이 닫기 애니메이션</string>
+    <string name="anim_setting_resume_close_summary">앱 목록이 열려 있지 않아도 워치 페이스로 돌아갈 때 항상 닫기 애니메이션을 재생합니다 — 화면 중앙을 향해 애니메이션이 진행됩니다. 꺼두면 애니메이션 없이 워치 페이스로 이동합니다.</string>
+    <string name="anim_setting_close_speed_category">닫기 속도</string>
+    <string name="anim_setting_close_speed_title">닫기 애니메이션 속도</string>
+    <string name="anim_setting_close_delay_title">시작 지연</string>
+    <string name="anim_setting_close_delay_hint">0ms(즉시) — 500ms</string>
+    <string name="anim_setting_gesture_return_category">제스처 복귀</string>
+    <string name="anim_setting_gesture_return_title">복귀 시 앱 목록 애니메이션</string>
+    <string name="anim_setting_gesture_return_summary">앱에서 뒤로 스와이프하여 열린 앱 목록으로 돌아갈 때 현재 배경 위에 애니메이션으로 나타납니다</string>
+    <string name="anim_setting_gesture_return_type_title">표시 스타일</string>
+    <string name="anim_setting_gesture_return_speed_title">표시 속도</string>
+    <string name="anim_setting_gesture_return_delay_title">시작 지연</string>
+    <string name="anim_setting_detect_closing_title">종료 중인 앱 감지</string>
+    <string name="anim_setting_detect_closing_summary">실제로 복귀한 앱의 아이콘을 애니메이션으로 표시합니다 — 뒤로 가기/홈 키 및 연쇄 앱 실행 포함. 사용 정보 접근 권한이 필요합니다.</string>
+    <string name="anim_setting_detect_closing_perm_title">사용 정보 접근 권한 필요</string>
+    <string name="anim_setting_detect_closing_perm_msg">어떤 앱에서 돌아왔는지 감지하려면 CloX에 \"사용 정보 접근\" 권한이 필요합니다. 다음 화면에서 권한을 허용한 후 여기로 돌아오세요.</string>
+    <string name="anim_setting_detect_closing_grant">설정 열기</string>
+    <string name="anim_setting_gesture_return_only_title">홈 스와이프 제스처에서만</string>
+    <string name="anim_setting_gesture_return_only_summary">끄면: 뒤로 가기 및 하드웨어 홈 복귀 시에도 재생됩니다</string>
+    <string name="anim_setting_real_window_entry">실제 창(시스템)</string>
+    <string name="anim_setting_snapshot_entry">실제 창(스냅샷)</string>
+    <string name="anim_setting_gesture_handoff_title">시스템 창 변형(실제)</string>
+    <string name="anim_setting_gesture_handoff_summary">홈 스와이프 시 앱 아이콘을 시스템에 넘겨 실제로 닫히는 앱 창이 아이콘으로 변형되도록 합니다. CloX는 후속 애니메이션을 재생하지 않으며 전환 전체를 시스템이 담당합니다. 홈 스와이프 제스처에만 적용됩니다.</string>
+
+    <!-- ── Common dialog buttons ────────────────────────────────────────── -->
+    <string name="btn_open_settings">설정 열기</string>
+    <string name="btn_not_now">나중에</string>
+    <string name="btn_confirm">확인</string>
+    <string name="btn_send">보내기</string>
+    <string name="btn_cancel">취소</string>
+
+    <!-- ── Button record dialog ──────────────────────────────────────────── -->
+    <string name="dialog_btn_record_title">버튼 기록</string>
+    <string name="dialog_btn_record_message">매핑할 하드웨어 버튼(볼륨 올리기/내리기, 카메라 등)을 누르세요.\n\n뒤로 가기 버튼을 누르면 취소됩니다.</string>
+
+    <!-- ── Calendar permission dialog ───────────────────────────────────── -->
+    <string name="dialog_calendar_perm_message">캘린더 권한이 거부되었습니다. 앱 설정에서 권한을 활성화하세요.</string>
+
+    <!-- ── QS permissions dialog ────────────────────────────────────────── -->
+    <string name="dialog_qs_permissions_title">권한 필요</string>
+    <string name="dialog_qs_permissions_message">일부 권한이 영구적으로 거부되었습니다. 앱 설정을 열어 권한 항목에서 허용하세요.</string>
+
+    <!-- ── Device admin (pre-Android-P screen-off fallback) ────────────────── -->
+    <string name="dialog_device_admin_explanation">이 Android 버전에서 화면을 끄려면 필요합니다.</string>
+
+    <!-- ── Notification reply dialog ────────────────────────────────────── -->
+    <string name="dialog_reply_title">답장</string>
+
+    <!-- ── Secret code unlock dialog ────────────────────────────────────── -->
+    <string name="dialog_secret_code_title">비밀 코드 잠금 해제</string>
+    <string name="dialog_secret_code_message">설정을 완료하면 이 화면은 설정 메뉴에서 숨겨집니다.\n\n다시 접근하려면 전화 다이얼러를 열고 다음을 입력하세요:\n\n*#*#YOUR_PASSWORD#*#*\n\n접근이 확인되면 알림이 표시됩니다.</string>
+    <string name="dialog_secret_code_positive">비밀번호 설정</string>
+    <string name="dialog_enter_password_title">비밀번호 입력</string>
+    <string name="dialog_enter_password_message">최소 4자리 숫자</string>
+
+    <!-- ── Watchface directory API (WatchfaceProvider) permission ──────────── -->
+    <string name="permission_access_watchfaces_label">워치 페이스 접근</string>
+    <string name="permission_access_watchfaces_desc">이 앱의 워치 페이스 폴더에서 워치 페이스 파일을 읽고 추가하고 제거합니다.</string>
+
+    <!-- ── Watch face toasts ────────────────────────────────────────────── -->
+    <string name="toast_wf_selected">%s 선택됨</string>
+    <string name="toast_remote_server_failed">서버 시작 실패</string>
+
+    <!-- ── Crash activity ──────────────────────────────────────────────── -->
+    <string name="crash_clip_label">CloX 충돌 보고서</string>
+    <string name="crash_subject">CloX 충돌 보고서</string>
+    <string name="crash_share_title">충돌 보고서 공유</string>
+    <string name="crash_no_data">사용할 수 있는 충돌 데이터가 없습니다.</string>
+    <string name="crash_read_failed">충돌 보고서를 읽지 못했습니다.</string>
+
+    <!-- ── Secret code ─────────────────────────────────────────────────── -->
+    <string name="secret_code_unlocked">숨긴 앱 설정 잠금이 해제되었습니다 — 계속하려면 설정을 여세요</string>
+    <string name="secret_code_dial_hint">*#*#%s#*#*을(를) 눌러 잠금 해제</string>
+
+    <!-- ── Notifications ───────────────────────────────────────────────── -->
+    <string name="notif_block_app">앱 차단</string>
+    <string name="notif_unblock_app">앱 차단 해제</string>
+    <string name="notif_app_notif_settings">앱 알림 설정</string>
+    <string name="notif_reply_hint">답장</string>
+    <string name="notif_perm_not_supported">지원되지 않음</string>
+    <string name="notif_perm_not_supported_desc">이 기기에서는 알림 접근이 지원되지 않을 수 있습니다.</string>
+    <string name="notif_perm_view_btn">알림 보기</string>
+    <string name="notif_perm_title">권한 필요</string>
+    <string name="notif_perm_desc">CloX가 알림을 표시할 수 있도록 알림 접근 권한을 허용하세요.</string>
+    <string name="notif_perm_grant_btn">권한 허용</string>
+
+    <!-- ── QS tile states ───────────────────────────────────────────────- -->
+    <string name="qs_tile_connected">연결됨</string>
+    <string name="qs_tile_not_in_use">사용 안 함</string>
+    <string name="qs_tile_on">켜짐</string>
+    <string name="qs_tile_off">꺼짐</string>
+    <string name="qs_tile_on_detail">켜짐</string>
+    <string name="qs_tile_silent">무음</string>
+    <string name="qs_tile_vibrate">진동</string>
+    <string name="qs_tile_auto">자동</string>
+    <string name="qs_tile_locked">잠김</string>
+    <string name="qs_privilege_shizuku">Shizuku 활성</string>
+    <string name="qs_privilege_root">Root 사용 가능</string>
+    <string name="qs_privilege_none">상승된 권한 없음</string>
+    <string name="qs_accessibility_enabled">활성화됨 — 전원 메뉴 및 최근 앱 사용 가능</string>
+    <string name="qs_accessibility_disabled">탭하여 접근성 설정에서 활성화</string>
+
+    <!-- ── Location hints ─────────────────────────────────────────────── -->
+    <string name="location_lat_hint">예: 22.3193</string>
+    <string name="location_lon_hint">예: 114.1694</string>
+    <string name="location_city_hint">도시 이름</string>
+
+    <!-- ── App list ───────────────────────────────────────────────────── -->
+    <string name="app_list_search_hint">앱 검색…</string>
+    <string name="app_list_bg_set">이미지 설정됨 — 탭하여 교체</string>
+    <string name="app_list_bg_not_set">탭하여 이미지 선택</string>
+    <string name="hidden_apps_title">숨긴 앱</string>
+
+    <!-- ── Widget ─────────────────────────────────────────────────────── -->
+    <string name="widget_unavailable">위젯을 사용할 수 없음</string>
+
+    <!-- ── About ──────────────────────────────────────────────────────── -->
+    <string name="about_version">버전 %s</string>
+    <string name="about_version_unknown">버전 알 수 없음</string>
+
+    <!-- ── Appearance section labels ──────────────────────────────────── -->
+    <string name="appearance_section_display">표시</string>
+    <string name="appearance_dpi_label">앱 표시 밀도(DPI)</string>
+    <string name="appearance_dpi_default">0(시스템 기본값)</string>
+    <string name="appearance_section_blur">블러</string>
+
+    <!-- ── Sensors section labels ─────────────────────────────────────── -->
+    <string name="sensors_section_data">데이터</string>
+
+    <!-- ── About fragment ───────────────────────────────────────────────── -->
+    <string name="about_onyx_project">Onyx 프로젝트의 일부</string>
+    <string name="about_onyx_description">CloX는 Android 웨어러블용 오픈소스 시스템인 Onyx의 일부입니다.</string>
+    <string name="about_developers_category">개발자</string>
+    <string name="about_updates_category">업데이트</string>
+    <string name="about_auto_update_title">자동 업데이트 확인</string>
+    <string name="about_auto_update_summary">실행 시 새 릴리스를 확인합니다</string>
+    <string name="about_check_updates_btn">업데이트 확인</string>
+
+    <!-- Crash-safe activity launching (SafeActivityLauncher) -->
+    <string name="launch_error_title">열 수 없음</string>
+    <string name="launch_error_no_app">이 기기에는 이를 처리할 수 있는 앱이 없습니다. 파일 관리자나 대상 앱을 설치해야 할 수 있습니다.</string>
+    <string name="launch_error_not_permitted">시스템이 이 작업을 차단했습니다. 앱 권한을 확인하고 다시 시도하세요.</string>
+    <string name="launch_error_generic">열 수 없습니다. 다시 시도하세요.</string>
+
+    <!-- ── RTOS fake-settings decoy screen ──────────────────────────────── -->
+    <string name="fake_settings_title">설정</string>
+    <string name="fake_settings_general">일반</string>
+    <string name="fake_settings_language">언어</string>
+    <string name="fake_settings_language_value">영어</string>
+    <string name="fake_settings_date_time">날짜 및 시간</string>
+    <string name="fake_settings_time_format">시간 형식</string>
+    <string name="fake_settings_time_zone">시간대</string>
+    <string name="fake_settings_qr_code">QR 코드</string>
+    <string name="fake_settings_watch_face">워치 페이스</string>
+    <string name="fake_settings_bluetooth">Bluetooth</string>
+    <string name="fake_settings_status">상태</string>
+    <string name="fake_settings_connected">연결됨</string>
+    <string name="fake_settings_device">기기</string>
+    <string name="fake_settings_device_value">휴대전화</string>
+    <string name="fake_settings_auto_conn">자동 연결</string>
+    <string name="fake_settings_on">켜짐</string>
+    <string name="fake_settings_off">꺼짐</string>
+    <string name="fake_settings_sound">소리</string>
+    <string name="fake_settings_ringtone">벨소리</string>
+    <string name="fake_settings_vibration">진동</string>
+    <string name="fake_settings_volume">볼륨</string>
+    <string name="fake_settings_display">디스플레이</string>
+    <string name="fake_settings_brightness">밝기</string>
+    <string name="fake_settings_brightness_value">자동</string>
+    <string name="fake_settings_timeout">시간 제한</string>
+    <string name="fake_settings_always_on">항상 켜짐</string>
+    <string name="fake_settings_about">정보</string>
+    <string name="fake_settings_model">모델</string>
+    <string name="fake_settings_firmware">펌웨어</string>
+    <string name="fake_settings_battery">배터리</string>
+
+    <!-- ── RTOS password setup ──────────────────────────────────────────── -->
+    <string name="rtos_pw_how_it_works">작동 방식</string>
+    <string name="rtos_pw_keypad_explain">시계 화면은 보이지 않는 3×3 격자로 나뉩니다:\n\n  [ 1 ][ 2 ][ 3 ]\n  [ 4 ][ 5 ][ 6 ]\n  [ 7 ][ 8 ][ 9 ]\n\n격자 영역을 탭하여 코드를 입력하세요. 시각적 표시는 없습니다.\n\n시스템은 슬라이딩 윈도우 방식으로 매 탭 이후 확인합니다 — 최근 탭 기록 어딘가에 코드가 나타나면 잠금이 해제됩니다.\n\n코드는 최소 4자리 숫자여야 하며 모두 같을 수 없습니다.</string>
+    <string name="rtos_pw_morse_explain">워치 페이스 어디든 탭하여 모스 부호를 입력하세요:\n\n  짧게 누르기 = 점  (·)\n  길게 누르기 = 대시 (—)\n\n시각적 표시는 없습니다. 시스템은 매 입력 후 확인합니다.\n\n코드는 최소 4개의 기호여야 하며 모두 같을 수 없습니다.</string>
+    <string name="rtos_pw_understood_countdown">확인함 (%1$d…)</string>
+    <string name="rtos_pw_understood_done">확인함 — 비밀번호 설정</string>
+    <string name="rtos_pw_set_title">비밀번호 설정</string>
+    <string name="rtos_pw_confirm_title">비밀번호 확인</string>
+    <string name="rtos_pw_keypad_hint">격자 영역을 탭하여 코드를 입력하세요</string>
+    <string name="rtos_pw_morse_hint">짧게/길게 눌러 모스 부호의 점과 대시를 입력하세요</string>
+    <string name="rtos_pw_clear">지우기</string>
+    <string name="rtos_pw_done">완료</string>
+
+    <!-- ── Watchface renderer recovery dialog ───────────────────────────── -->
+    <string name="wf_renderer_dead_title">워치 페이스 렌더러가 응답하지 않음</string>
+    <string name="wf_renderer_dead_message">트리거: %1$s\n\n%2$s\n\n런처를 다시 시작하면 복구됩니다.</string>
+    <string name="wf_renderer_dead_detail_load">워치 페이스가 %1$d초 이내에 로드를 완료하지 못했습니다. 화면이 검게 나오거나 멈춘 상태로 유지될 수 있습니다.</string>
+    <string name="wf_renderer_dead_detail_hang">렌더링 스레드가 %1$d초 동안 응답하지 않았습니다. 워치 페이스가 멈췄거나 엔진이 중단되었습니다.</string>
+    <string name="wf_renderer_dead_restart">런처 다시 시작</string>
+    <string name="wf_lua_error_default_context">Lua 오류</string>
+    <string name="wf_lua_error_no_detail">(세부 정보 없음)</string>
+
+    <!-- ── Accessibility content descriptions ───────────────────────────── -->
+    <string name="action_delete">삭제</string>
+    <string name="action_dismiss">닫기</string>
+    <string name="cd_launcher_settings">런처 설정</string>
+    <string name="cd_recents">최근 앱</string>
+    <string name="cd_flashlight">손전등</string>
+    <string name="cd_power">전원</string>
+    <string name="cd_settings">설정</string>
+    <string name="cd_qr_code">QR 코드</string>
+    <string name="cd_delete_row">행 삭제</string>
+    <string name="cd_delete_slot">슬롯 삭제</string>
+    <string name="cd_decrease_height">높이 줄이기</string>
+    <string name="cd_increase_height">높이 늘리기</string>
+    <string name="cd_select_all">모두 선택</string>
+    <string name="cd_deselect_all">모두 선택 해제</string>
+    <string name="cd_watchface_preview">워치 페이스 미리보기</string>
+    <string name="cd_preview">미리보기</string>
+    <string name="cd_downloaded">다운로드됨</string>
+    <string name="dialog_password_hint">비밀번호(숫자만)</string>
+
+    <!-- ── New settings entries ──────────────────────────────────────────── -->
+    <string name="appearance_dpi_summary">디스플레이 밀도를 재정의합니다. 0 또는 비워두면 시스템 기본값이며, 재시작이 필요합니다.</string>
+    <string name="notif_setting_wake_summary">새 알림이 도착하면 화면을 켭니다</string>
+    <string name="notif_setting_open_panel_summary">새 알림이 오면 패널을 자동으로 엽니다</string>
+    <string name="notif_setting_vibrate_summary">새 알림이 도착하면 진동합니다</string>
+    <string name="rtos_setting_show_icon_title">RTOS 모드로 진입하는 런처 아이콘 표시</string>
+    <string name="pref_notifications_title">알림</string>
+    <string name="pref_notifications_summary">패널 스타일, 알림, 필터링, 차단된 앱</string>
+    <string name="pref_quick_settings_summary">타일, 열 수, 제스처, 손전등, 색상, 권한</string>
+    <string name="pref_app_list_title">앱 목록</string>
+    <string name="pref_app_list_summary">스타일, 정렬 순서, 아이콘 팩</string>
+    <string name="pref_gestures_title">제스처</string>
+    <string name="pref_gestures_summary">더블 탭, 길게 누르기, 하드웨어 버튼 매핑</string>
+    <string name="pref_appearance_title">외관</string>
+    <string name="pref_appearance_summary">블러 모드 및 반경</string>
+    <string name="pref_hidden_apps_summary">런처에서 앱을 차단 목록 또는 허용 목록으로 관리합니다</string>
+    <string name="pref_rtos_title">RTOS 모드</string>
+    <string name="pref_rtos_summary">런처를 RTOS 블루투스 시계로 위장합니다</string>
+    <string name="pref_about_title">정보 &amp; 업데이트</string>
+    <string name="pref_about_summary">버전, 개발자, Onyx 프로젝트, 업데이트 확인</string>
+</resources>

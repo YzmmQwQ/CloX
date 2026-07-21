@@ -3,13 +3,13 @@
 
     <SwitchPreferenceCompat
         android:key="notif_enabled"
-        android:title="Enable notifications"
-        android:summary="Show notification panel on swipe right. Disable to save power."
+        android:title="@string/notif_setting_enabled_title"
+        android:summary="@string/notif_setting_enabled_summary"
         android:defaultValue="true" />
 
     <ListPreference
         android:key="notif_card_style"
-        android:title="Card style"
+        android:title="@string/notif_setting_card_style_title"
         android:summary="%s"
         android:entries="@array/notif_card_style_entries"
         android:entryValues="@array/notif_card_style_values"
@@ -18,7 +18,7 @@
 
     <ListPreference
         android:key="notif_style"
-        android:title="View style"
+        android:title="@string/notif_setting_view_style_title"
         android:summary="%s"
         android:entries="@array/notif_style_entries"
         android:entryValues="@array/notif_style_values"
@@ -27,7 +27,7 @@
 
     <SeekBarPreference
         android:key="notif_text_size"
-        android:title="Text size"
+        android:title="@string/notif_setting_text_size_title"
         android:min="10"
         android:max="30"
         android:defaultValue="14"
@@ -37,56 +37,56 @@
 
     <SwitchPreferenceCompat
         android:key="notif_media_enabled"
-        android:title="Media controls"
-        android:summary="Show music player card at the top when music is playing"
+        android:title="@string/notif_setting_media_controls_title"
+        android:summary="@string/notif_setting_media_controls_summary"
         android:defaultValue="true"
         android:dependency="notif_enabled" />
 
     <PreferenceCategory
-        android:title="Alerts on new notification"
+        android:title="@string/notif_setting_alerts_category"
         android:dependency="notif_enabled">
 
         <SwitchPreferenceCompat
             android:key="notif_wake_screen"
-            android:title="Wake screen"
-            android:summary="Turn on the display when a new notification arrives"
+            android:title="@string/notif_setting_wake_title"
+            android:summary="@string/notif_setting_wake_summary"
             android:defaultValue="false" />
 
         <SwitchPreferenceCompat
             android:key="notif_open_panel"
-            android:title="Open notification panel"
-            android:summary="Automatically slide open the panel on new notification"
+            android:title="@string/notif_setting_open_panel_title"
+            android:summary="@string/notif_setting_open_panel_summary"
             android:defaultValue="false" />
 
         <SwitchPreferenceCompat
             android:key="notif_vibrate"
-            android:title="Vibrate"
-            android:summary="Vibrate when a new notification arrives"
+            android:title="@string/notif_setting_vibrate_title"
+            android:summary="@string/notif_setting_vibrate_summary"
             android:defaultValue="false" />
 
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title="Filtering"
+        android:title="@string/notif_setting_filtering_category"
         android:dependency="notif_enabled">
 
         <SwitchPreferenceCompat
             android:key="notif_group"
-            android:title="Group notifications"
-            android:summary="Chat at top, normal in middle, persistent at bottom"
+            android:title="@string/notif_setting_group_title"
+            android:summary="@string/notif_setting_group_summary"
             android:defaultValue="false" />
 
         <SwitchPreferenceCompat
             android:key="notif_block_persistent"
-            android:title="Hide persistent notifications"
-            android:summary="Block ongoing/persistent notifications from appearing"
+            android:title="@string/notif_setting_hide_persistent_title"
+            android:summary="@string/notif_setting_hide_persistent_summary"
             android:defaultValue="false" />
 
     </PreferenceCategory>
 
     <Preference
         android:key="notif_permission_status"
-        android:title="Notification access"
+        android:title="@string/notif_setting_access_title"
         android:icon="@drawable/ic_notifications"
         android:dependency="notif_enabled" />
 

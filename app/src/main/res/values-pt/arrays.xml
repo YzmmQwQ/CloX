@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="rtos_mode_entries">
+        <item>Apenas mostrador</item>
+        <item>Simulação RTOS completa</item>
+    </string-array>
+
+    <string-array name="rtos_password_entries">
+        <item>Teclado (grelha invisível 3×3)</item>
+        <item>Código Morse (pressão longa/curta)</item>
+    </string-array>
+
+    <string-array name="qs_tile_style_entries">
+        <item>Contorno (delineado)</item>
+        <item>Sólido (preenchido Material)</item>
+    </string-array>
+
+    <string-array name="notif_card_style_entries">
+        <item>Vidro (semitransparente + contorno)</item>
+        <item>Sólido (cinzento opaco, sem contorno)</item>
+    </string-array>
+
+    <string-array name="notif_style_entries">
+        <item>Vista de lista</item>
+        <item>Vista de página</item>
+    </string-array>
+
+    <string-array name="curve_entries">
+        <item>Linear</item>
+        <item>Smoothstep</item>
+        <item>Exponencial</item>
+    </string-array>
+
+    <string-array name="blur_mode_entries">
+        <item>Tempo real (shader GPU)</item>
+        <item>Captura + desfoque real</item>
+        <item>Captura + desfoque por software</item>
+        <item>Desativado (apenas sobreposição escura)</item>
+    </string-array>
+
+    <string-array name="app_list_style_entries">
+        <item>Lista</item>
+        <item>Grelha</item>
+        <item>Cascata</item>
+        <item>Favo de mel</item>
+        <item>Grelha 2D</item>
+        <item>Páginas</item>
+        <item>Gravidade</item>
+    </string-array>
+
+    <string-array name="app_list_sort_entries">
+        <item>Alfabética</item>
+        <item>Ordem personalizada</item>
+    </string-array>
+
+    <string-array name="launch_anim_entries">
+        <item>Predefinição do sistema</item>
+        <item>Expansão de ícone do Android 12</item>
+    </string-array>
+
+    <string-array name="weather_provider_entries">
+        <item>MET.no (gratuito, sem chave)</item>
+        <item>Open-Meteo (gratuito, sem chave)</item>
+        <item>WeatherAPI.com (chave opcional)</item>
+        <item>OpenWeatherMap (chave obrigatória)</item>
+        <item>wttr.in (gratuito, apenas 3 dias)</item>
+    </string-array>
+
+    <string-array name="weather_interval_entries">
+        <item>15 minutos</item>
+        <item>30 minutos</item>
+        <item>1 hora</item>
+        <item>2 horas</item>
+    </string-array>
+
+    <string-array name="health_interval_entries">
+        <item>5 minutos</item>
+        <item>10 minutos</item>
+        <item>15 minutos</item>
+        <item>30 minutos</item>
+    </string-array>
+
+    <string-array name="tile_columns_entries">
+        <item>2 colunas (mosaicos maiores)</item>
+        <item>3 colunas (compacto)</item>
+    </string-array>
+
+    <string-array name="tile_rows_entries">
+        <item>2 linhas</item>
+        <item>3 linhas</item>
+    </string-array>
+
+    <string-array name="wf_selector_mode_entries">
+        <item>Deslizamento (cartões horizontais)</item>
+        <item>Grelha (com pastas)</item>
+    </string-array>
+
+    <string-array name="wf_sort_entries">
+        <item>Por nome do ficheiro</item>
+        <item>Por última modificação</item>
+    </string-array>
+
+    <string-array name="gesture_action_entries">
+        <item>Nada</item>
+        <item>Desligar ecrã</item>
+        <item>Abrir seletor de mostradores</item>
+        <item>Mostrador aleatório</item>
+        <item>Abrir definições</item>
+        <item>Definições do mostrador</item>
+        <item>Alternar bloqueio de gestos</item>
+        <item>Entrar em Modo RTOS</item>
+        <item>Expandir Definições rápidas</item>
+        <item>Expandir notificações</item>
+        <item>Abrir aplicação</item>
+        <item>Definições rápidas do sistema</item>
+        <item>Notificações do sistema</item>
+        <item>Abrir recentes</item>
+        <item>Menu de energia</item>
+        <item>Lanterna</item>
+        <item>Painel de volume</item>
+    </string-array>
+
+    <string-array name="nav_bar_mode_entries">
+        <item>Oculta</item>
+        <item>Sempre visível</item>
+        <item>Apenas na lista de aplicações</item>
+    </string-array>
+
+    <string-array name="wf_auto_interval_entries">
+        <item>Desativado</item>
+        <item>A cada hora</item>
+        <item>Todos os dias</item>
+    </string-array>
+
+    <string-array name="privilege_entries">
+        <item>Nenhum (painéis do sistema como alternativa)</item>
+        <item>Shizuku</item>
+        <item>Root (su)</item>
+    </string-array>
+
+    <string-array name="open_anim_type_entries">
+        <item>Zoom de ícone</item>
+        <item>Expansão de janela</item>
+    </string-array>
+
+    <string-array name="close_anim_type_entries">
+        <item>Zoom de ícone invertido</item>
+        <item>Expansão de janela invertida</item>
+    </string-array>
+
+    <string-array name="gesture_return_anim_entries">
+        <item>Entrada com fundido</item>
+        <item>Abertura circular</item>
+    </string-array>
+</resources>
