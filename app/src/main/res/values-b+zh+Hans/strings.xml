@@ -1,0 +1,1014 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">设置</string>
+    <string name="add_widget">添加小组件</string>
+
+    <!-- ── Widget drawer ─────────────────────────────────────────────────────── -->
+    <string name="widget_edit">编辑</string>
+    <string name="widget_done">完成</string>
+    <string name="widget_height_auto">自动</string>
+    <string name="widget_add_card">添加卡片</string>
+    <string name="widget_add_full_width">全宽小组件</string>
+    <string name="widget_add_three_cell">三格行</string>
+    <string name="widget_pick_app">选择应用</string>
+    <string name="widget_pick_slot_type">添加到插槽</string>
+    <string name="widget_slot_appwidget">应用小组件</string>
+    <string name="widget_slot_activity">应用活动</string>
+    <string name="widget_slot_shortcut">应用快捷方式</string>
+    <string name="widget_shortcut_pinned">快捷方式“%s”已添加到 CloX</string>
+    <string name="widget_shortcut_empty">暂无快捷方式。长按一个应用并选择“添加到主屏幕”。</string>
+    <string name="widget_add_clock">时钟</string>
+    <string name="widget_add_weather">天气</string>
+    <string name="widget_weather_no_data">暂无天气数据</string>
+    <string name="widget_weather_disabled">天气功能已在设置中禁用</string>
+    <string name="widget_weather_location_not_set">未设置位置名称</string>
+    <string name="widget_weather_today">今天</string>
+    <string name="widget_weather_now">现在</string>
+    <string name="weather_updated_just_now">刚刚</string>
+    <string name="weather_updated_minutes_ago">%d 分钟前</string>
+    <string name="weather_updated_hours_ago">%d 小时前</string>
+
+    <!-- ── Settings ─────────────────────────────────────────────────────────── -->
+    <string name="pref_double_tap_title">双击操作</string>
+    <string name="pref_location_elevation_title">海拔（米）</string>
+    <string name="pref_location_elevation_summary">未设置——启用自动定位后会自动更新</string>
+    <string name="pref_location_elevation_invalid">海拔无效</string>
+    <string name="location_elevation_hint">例如 38.0</string>
+    <string name="pref_double_tap_hold_title">屏蔽双击的第一次点击</string>
+    <string name="pref_double_tap_hold_summary">短暂保留表盘点击，避免双击时同时触发表盘的点击操作。这会给每次点击增加一点延迟——秒表类表盘请关闭此项。</string>
+    <string name="pref_icon_pack_title">全局图标包</string>
+    <string name="pref_icon_pack_none">无（系统图标）</string>
+    <string name="pref_blur_mode_title">模糊模式</string>
+    <string name="pref_blur_radius_title">模糊半径</string>
+
+    <!-- App list top-level -->
+    <string name="pref_app_list_style_title">显示样式</string>
+    <string name="pref_app_list_sort_title">排序方式</string>
+    <string name="pref_app_list_sort_custom_hint">新应用会添加到底部。\n长按应用并拖动即可重新排序。</string>
+    <string name="pref_hidden_apps_title">隐藏的应用</string>
+
+    <!-- 3D effect (used by all styles with 3D effect) -->
+    <string name="pref_3d_min_scale_title">最小缩放比例（%）</string>
+    <string name="pref_3d_min_scale_summary">边缘处的最小尺寸——数值越低景深越强</string>
+    <string name="pref_3d_curve_title">尺寸曲线</string>
+
+    <!-- List sub-settings -->
+    <string name="pref_list_search_title">显示搜索栏</string>
+    <string name="pref_list_3d_title">3D 景深效果</string>
+    <string name="pref_list_3d_summary">屏幕顶部和底部附近的应用会缩小</string>
+
+    <!-- Grid sub-settings -->
+    <string name="pref_grid_cols_title">列数</string>
+    <string name="pref_grid_names_title">显示应用名称</string>
+
+    <!-- Waterfall sub-settings -->
+    <string name="pref_waterfall_3d_title">3D 景深效果</string>
+    <string name="pref_waterfall_3d_summary">离屏幕中心越远的图标越小</string>
+
+    <!-- Honeycomb sub-settings -->
+    <string name="pref_honeycomb_3d_title">3D 景深效果</string>
+    <string name="pref_honeycomb_3d_summary">离屏幕中心越远的图标越小（2D）</string>
+    <string name="pref_honeycomb_icon_size_title">图标大小（dp，0 表示自动）</string>
+
+    <!-- Grid 2D sub-settings -->
+    <string name="pref_grid2d_cols_title">列数</string>
+    <string name="pref_grid2d_names_title">显示应用名称</string>
+    <string name="pref_grid2d_3d_title">3D 景深效果</string>
+    <string name="pref_grid2d_icon_size_title">图标大小（dp，0 表示自动）</string>
+
+    <!-- AOD overlay permission prompt -->
+    <string name="aod_overlay_perm_title">允许在其他应用上层显示</string>
+    <string name="aod_overlay_perm_message">若要在其他应用内关闭屏幕时唤醒进入息屏显示(AOD)，CloX 需要“在其他应用上层显示”权限。否则，Android 会阻止启动器回到前台。</string>
+    <string name="aod_overlay_perm_grant">打开设置</string>
+
+    <!-- Round overscroll + icon size (shared by all app-list styles) -->
+    <string name="pref_icon_size_title">图标大小（dp，0 表示自动）</string>
+    <string name="pref_round_overscroll_title">圆形越界回弹</string>
+    <string name="pref_round_overscroll_summary">可平移至超出边缘半屏并停留在该处——方便在圆形屏幕上触及角落图标</string>
+
+    <!-- Pages sub-settings -->
+    <string name="pref_pages_cols_title">每行图标数</string>
+    <string name="pref_pages_rows_title">每页行数</string>
+
+    <!-- Gravity sub-settings -->
+    <string name="pref_gravity_accel_title">跟随加速度传感器</string>
+    <string name="pref_gravity_accel_summary">倾斜手表即可移动图标</string>
+    <string name="pref_gravity_strength_title">重力强度</string>
+    <string name="pref_gravity_bounce_title">弹性</string>
+    <string name="pref_gravity_friction_title">摩擦力</string>
+
+    <!-- Context menu -->
+    <string name="pref_notif_badge_category">通知角标</string>
+    <string name="pref_notif_badge_title">显示通知角标</string>
+    <string name="pref_notif_badge_summary">在有未读通知的应用上显示小红点</string>
+    <string name="pref_notif_badge_count_title">显示数量</string>
+    <string name="pref_notif_badge_count_summary">在角标上显示通知数量</string>
+
+    <string name="menu_hide_app">隐藏此应用</string>
+    <string name="hide_confirm_title">隐藏应用？</string>
+    <string name="hide_confirm_message">“%1$s”将从应用列表中隐藏。您可以在应用列表设置中取消隐藏。</string>
+    <string name="menu_uninstall">卸载</string>
+    <string name="menu_app_info">应用信息</string>
+    <string name="menu_change_icon">更改图标</string>
+    <string name="menu_reset_icon">恢复默认图标</string>
+    <string name="icon_picker_title">选择图标</string>
+    <string name="icon_picker_search_hint">搜索图标…</string>
+    <string name="icon_picker_from_gallery">从相册选择</string>
+
+    <!-- ── Tap Actions ───────────────────────────────────────────────────── -->
+    <string name="pref_tap_title">点击操作</string>
+    <string name="pref_tap_summary">将表盘快捷方式映射到您常用的应用</string>
+    <string name="pref_tap_category_builtin">内置操作</string>
+    <string name="pref_tap_category_shortcuts">应用快捷方式</string>
+    <string name="pref_tap_builtin_desc">以下操作始终直接处理——无需配置：\nvol_up · vol_down · media_play_pause · media_next · media_prev\nmedia_play · media_pause · set_alarm_HH:MM</string>
+    <string name="pref_tap_not_configured">尚未配置——点击设置</string>
+    <string name="pref_tap_clear">清除</string>
+    <!-- Tap-action runtime error dialogs -->
+    <string name="tap_action_not_configured_title">操作尚未设置</string>
+    <string name="tap_action_not_configured_msg">尚未为“%1$s”指定应用。请先配置以使用此快捷方式。</string>
+    <string name="tap_action_configure_now">立即配置</string>
+    <string name="tap_action_launch_failed_title">无法打开应用</string>
+    <string name="tap_action_launch_failed_msg">无法打开“%1$s”。该应用可能已被卸载或禁用。</string>
+    <string name="tap_action_launch_failed_msg_generic">无法打开此快捷方式。该应用可能已被卸载或禁用。</string>
+
+    <!-- ── Weather ──────────────────────────────────────────────────────── -->
+    <string name="pref_weather_title">天气</string>
+    <string name="pref_weather_summary">当前状况、预报、提供商设置</string>
+    <string name="pref_weather_enabled_title">启用天气</string>
+    <string name="pref_weather_enabled_summary">获取天气数据并推送给表盘</string>
+    <string name="pref_weather_category_source">数据源</string>
+    <string name="pref_weather_category_display">显示</string>
+    <string name="pref_weather_category_update">更新</string>
+    <string name="pref_weather_provider_title">提供商</string>
+    <string name="pref_weather_language_title">跟随系统语言</string>
+    <string name="pref_weather_language_summary">使用设备语言显示天气状况描述（并非所有提供商都支持）</string>
+    <string name="pref_weather_weatherapi_key_title">WeatherAPI.com 密钥</string>
+    <string name="pref_weather_weatherapi_key_summary">在 weatherapi.com 获取免费密钥——留空则使用内置密钥</string>
+    <string name="pref_weather_owm_key_title">OpenWeatherMap 密钥</string>
+    <string name="pref_weather_owm_key_summary">需要 One Call API 3.0 订阅——留空则使用内置密钥</string>
+    <string name="pref_weather_round_title">温度取整</string>
+    <string name="pref_weather_round_summary">显示整数温度（例如显示 22 而非 21.7）</string>
+    <string name="pref_weather_interval_title">更新间隔</string>
+    <string name="pref_weather_refresh_title">立即刷新</string>
+    <string name="pref_weather_refresh_summary">强制立即获取天气</string>
+    <string name="pref_weather_refreshing">正在刷新…</string>
+    <string name="pref_weather_disabled_toast">请先启用天气功能</string>
+    <string name="pref_weather_last_fetch">上次：%1$d° %2$s（%3$s）</string>
+    <string name="pref_weather_refresh_error_title">天气获取失败</string>
+
+    <!-- ── Location ──────────────────────────────────────────────────────── -->
+    <string name="pref_location_title">位置和时区</string>
+    <string name="pref_location_summary">天气使用的主要位置，以及额外的时区时钟</string>
+    <string name="pref_location_category_primary">主要位置</string>
+    <string name="pref_location_category_extra">额外的时区时钟</string>
+    <string name="pref_location_city_title">城市名称</string>
+    <string name="pref_location_city_summary">表盘上显示的名称</string>
+    <string name="pref_location_lat_title">纬度</string>
+    <string name="pref_location_lat_summary">十进制度数，例如 22.3193</string>
+    <string name="pref_location_lon_title">经度</string>
+    <string name="pref_location_lon_summary">十进制度数，例如 114.1694</string>
+    <string name="pref_location_gps_title">通过 GPS 设置一次</string>
+    <string name="pref_location_gps_summary">读取当前 GPS 坐标并保存为主要位置</string>
+    <string name="pref_location_gps_waiting">正在等待 GPS 定位…</string>
+    <string name="pref_location_gps_denied">位置权限被拒绝</string>
+    <string name="pref_location_gps_disabled">GPS 已禁用——请在系统设置中启用</string>
+    <string name="pref_location_auto_title">通过网络自动更新</string>
+    <string name="pref_location_auto_summary">每次更新天气时通过 IP 地理定位刷新坐标（无需 GPS）</string>
+    <string name="pref_location_lat_invalid">纬度必须介于 −90 到 90 之间</string>
+    <string name="pref_location_lon_invalid">经度必须介于 −180 到 180 之间</string>
+    <string name="pref_location_slot2_city">位置2——城市名称</string>
+    <string name="pref_location_slot2_tz">位置2——时区偏移</string>
+    <string name="pref_location_slot3_city">位置3——城市名称</string>
+    <string name="pref_location_slot3_tz">位置3——时区偏移</string>
+    <string name="pref_location_slot4_city">位置4——城市名称</string>
+    <string name="pref_location_slot4_tz">位置4——时区偏移</string>
+    <string name="pref_location_slot5_city">位置5——城市名称</string>
+    <string name="pref_location_slot5_tz">位置5——时区偏移</string>
+
+    <!-- ── Health ────────────────────────────────────────────────────────── -->
+    <string name="pref_health_title">健康</string>
+    <string name="pref_health_summary">通过 TraX 获取步数、心率和血氧</string>
+    <string name="pref_health_category_metrics">指标</string>
+    <string name="pref_health_category_update">更新</string>
+    <string name="pref_health_bht_installed">已安装——数据访问已就绪</string>
+    <string name="pref_health_bht_not_installed">未安装——点击下载</string>
+    <string name="pref_health_steps_title">步数</string>
+    <string name="pref_health_steps_summary">每日步数、距离和卡路里</string>
+    <string name="pref_health_instant_steps_title">即时步数</string>
+    <string name="pref_health_instant_steps_summary">直接读取传感器而非后台日志（准确度可能较低）</string>
+    <string name="pref_health_hr_title">心率</string>
+    <string name="pref_health_hr_summary">BPM 读数，含 10 次历史记录</string>
+    <string name="pref_health_spo2_title">血氧</string>
+    <string name="pref_health_spo2_summary">SpO2 百分比</string>
+    <string name="pref_health_sleep_title">睡眠</string>
+    <string name="pref_health_sleep_summary">昨晚的睡眠阶段（需要整晚心率记录）</string>
+    <string name="pref_health_stress_title">压力</string>
+    <string name="pref_health_stress_summary">每日压力评分 0–100</string>
+    <string name="pref_health_no_sleep_data">未检测到睡眠</string>
+    <string name="pref_health_permission_toast">需要健康数据权限——请授予权限以从 TraX 读取数据</string>
+    <string name="pref_health_instant_title">即时测量</string>
+    <string name="pref_health_instant_summary">触发心率和 SpO2 的实时传感器读取；耗时更长，但反映当前数值</string>
+    <string name="pref_health_interval_title">更新间隔</string>
+    <string name="pref_health_not_installed_toast">未安装 TraX</string>
+    <string name="pref_health_refresh_title">立即刷新</string>
+    <string name="pref_health_refresh_summary">立即获取所有已启用的指标</string>
+    <string name="pref_health_refreshing">正在刷新…</string>
+
+    <!-- ── Sensors &amp; Privacy ─────────────────────────────────────────────── -->
+    <string name="pref_sensors_title">传感器和隐私</string>
+    <string name="pref_sensors_summary">日历访问、加速度传感器、指南针、气压计</string>
+
+    <string name="pref_sensors_category_data">数据访问</string>
+    <string name="pref_sensors_category_motion">运动传感器</string>
+
+    <string name="pref_calendar_title">日历访问</string>
+    <string name="pref_calendar_summary">允许表盘读取即将到来的日历事件</string>
+    <string name="pref_calendar_permission_denied">日历权限被拒绝——访问权限保持关闭</string>
+
+    <string name="pref_accelerometer_title">加速度传感器</string>
+    <string name="pref_accelerometer_summary">允许表盘读取运动和倾斜数据</string>
+    <string name="pref_compass_title">指南针</string>
+    <string name="pref_compass_summary">允许表盘读取磁力方向（需要磁力计）</string>
+    <string name="pref_barometer_title">气压计</string>
+    <string name="pref_barometer_summary">允许表盘读取气压</string>
+    <string name="pref_gyroscope_title">陀螺仪</string>
+    <string name="pref_gyroscope_summary">允许表盘读取旋转速率</string>
+    <string name="pref_sensor_unavailable">此设备不支持</string>
+
+    <!-- ── Quick Settings ─────────────────────────────────────────────────── -->
+    <string name="accessibility_service_label">CloX 快捷操作</string>
+    <string name="accessibility_service_description">允许 CloX 从快捷设置中显示电源菜单和最近使用的应用。</string>
+    <string name="qs_title">快捷设置</string>
+    <string name="qs_enabled_title">启用快捷设置</string>
+    <string name="qs_enabled_summary">从表盘下滑即可打开；关闭后将禁用手势和所有后台监听</string>
+    <string name="qs_sensitivity_title">手势灵敏度</string>
+    <string name="qs_tile_columns_title">磁贴列数</string>
+    <string name="qs_tile_rows_title">每页行数</string>
+    <string name="qs_system_color_title">使用系统颜色</string>
+    <string name="qs_system_color_summary">跟随 Material You 壁纸取色（Android 12+）；将禁用下方的自定义颜色选择器</string>
+    <string name="qs_flashlight_hw_title">使用硬件 LED</string>
+    <string name="qs_flashlight_hw_summary">关闭：以最大亮度将屏幕变为纯白（适用于大多数手表）。开启：使用相机闪光灯 LED。</string>
+    <string name="qs_color_tiles_title">磁贴状态颜色标识</string>
+    <string name="qs_color_connected_title">已连接颜色</string>
+    <string name="qs_color_idle_title">空闲/连接中颜色</string>
+    <string name="qs_color_disconnected_title">未连接颜色</string>
+    <string name="qs_color_off_title">关闭颜色</string>
+    <string name="qs_privilege_title">权限模式</string>
+    <string name="qs_privilege_status_title">权限状态</string>
+    <string name="qs_accessibility_status_title">CloX 快捷操作</string>
+    <string name="qs_accessibility_status_summary">电源菜单和最近任务需要此权限</string>
+    <string name="qs_tile_editor_title">排列磁贴</string>
+    <string name="qs_tile_editor_summary">选择并重新排序面板中显示的磁贴</string>
+
+    <!-- ── Watch Faces ─────────────────────────────────────────────────────── -->
+    <string name="pref_watchface_title">表盘</string>
+    <string name="pref_watchface_summary">选择器样式、排序方式、商店和远程管理</string>
+    <string name="pref_wf_open_selector_title">打开表盘选择器</string>
+    <string name="pref_wf_open_selector_summary">浏览、管理并选择当前使用的表盘</string>
+    <string name="pref_wf_open_config_title">调整对齐方式和行为</string>
+    <string name="pref_wf_open_config_summary">当前表盘的对齐方式、行为和帧率</string>
+    <string name="pref_wf_defaults_title">默认表盘设置</string>
+    <string name="pref_wf_defaults_summary">所有表盘通用的对齐方式、行为和帧率默认值</string>
+
+    <!-- Watch face config dialog (WatchfaceConfigActivity) -->
+    <string name="wfcfg_title_default">默认表盘</string>
+    <string name="wfcfg_defaults_title">默认表盘设置</string>
+    <string name="wfcfg_done">完成</string>
+    <string name="wfcfg_change">更改</string>
+    <string name="wfcfg_reload">重新加载</string>
+    <string name="wfcfg_tab_alignment">对齐</string>
+    <string name="wfcfg_tab_behavior">行为</string>
+    <string name="wfcfg_tab_framerate">帧率</string>
+    <string name="wfcfg_tab_info">信息</string>
+    <string name="wfcfg_use_default">使用应用默认值</string>
+    <string name="wfcfg_use_default_summary">跟随设置中的应用级默认值</string>
+    <string name="wfcfg_align_vertical">填满高度</string>
+    <string name="wfcfg_align_horizontal">适应</string>
+    <string name="wfcfg_align_stretch">拉伸</string>
+    <string name="wfcfg_align_custom">自定义</string>
+    <string name="wfcfg_width">宽度</string>
+    <string name="wfcfg_height">高度</string>
+    <string name="wfcfg_h_offset">水平偏移</string>
+    <string name="wfcfg_v_offset">垂直偏移</string>
+    <string name="wfcfg_reset_alignment">重置对齐方式</string>
+    <string name="wfcfg_precise_set">设置</string>
+    <string name="wfcfg_allow_sound">允许声音</string>
+    <string name="wfcfg_allow_sound_summary">音效和视频音频</string>
+    <string name="wfcfg_allow_vibrate">允许振动</string>
+    <string name="wfcfg_allow_vibrate_summary">来自表盘的触觉反馈</string>
+    <string name="wfcfg_allow_sensors">允许传感器</string>
+    <string name="wfcfg_allow_sensors_summary">运动、指南针和气压（需要开启全局传感器设置）</string>
+    <string name="wfcfg_allow_weather">允许天气</string>
+    <string name="wfcfg_allow_weather_summary">允许此表盘使用天气数据</string>
+    <string name="wfcfg_allow_health">允许健康数据</string>
+    <string name="wfcfg_allow_health_summary">允许此表盘使用步数、心率和 SpO₂</string>
+    <string name="wfcfg_allow_tap">允许点击操作</string>
+    <string name="wfcfg_allow_tap_summary">允许点击启动应用和系统操作</string>
+    <string name="wfcfg_fps_unlimited">无限制</string>
+    <string name="wfcfg_aod_hint">息屏显示(AOD)始终限制为 1 FPS 以节省电量。</string>
+    <string name="wfcfg_tab_color">颜色</string>
+    <string name="wfcfg_color_default">表盘默认</string>
+    <string name="wfcfg_color_theme">跟随启动器主题</string>
+    <string name="wfcfg_color_fixed">自定义颜色</string>
+    <string name="wfcfg_color_pick">选取…</string>
+    <string name="wfcfg_color_theme_hint">使用系统 Material You 强调色，与启动器界面一致。</string>
+    <string name="wfcfg_dynamic_fps">动态帧率</string>
+    <string name="wfcfg_dynamic_fps_summary">空闲时表盘降至 1 FPS，交互时恢复全速；在应用列表打开时暂停</string>
+    <string name="wfcfg_optimize">优化渲染</string>
+    <string name="wfcfg_optimize_summary">将静态图层合并为缓存纹理（更快，更省电）</string>
+    <string name="wfcfg_optimize_stat">%2$d 个图层中的 %1$d 个已合并为 %3$d 个缓存纹理</string>
+    <string name="wfcfg_optimize_stat_none">此表盘没有合并任何图层</string>
+    <string name="wfcfg_optimize_stat_off">优化已禁用——所有图层均实时渲染</string>
+    <string name="wfcfg_info_name">名称</string>
+    <string name="wfcfg_info_author">作者</string>
+    <string name="wfcfg_info_desc">描述</string>
+    <string name="wfcfg_info_tags">标签</string>
+    <string name="wfcfg_info_features">使用的功能</string>
+    <string name="wfcfg_info_format">格式</string>
+    <string name="wfcfg_info_protected">受保护</string>
+    <string name="wfcfg_info_layers">图层</string>
+    <string name="wfcfg_info_size">表盘大小</string>
+    <string name="wfcfg_info_storage">已存储数据</string>
+    <string name="wfcfg_info_clear">清除数据</string>
+    <string name="wfcfg_info_reserved">保留</string>
+    <string name="wfcfg_clear_confirm_title">清除已存储的数据？</string>
+    <string name="wfcfg_clear_confirm_msg">这将删除此表盘保存的变量并重新加载。此操作无法撤销。</string>
+    <string name="pref_wf_category_selector">选择器</string>
+    <string name="pref_wf_category_management">管理</string>
+    <string name="pref_wf_selector_mode_title">选择器样式</string>
+    <string name="pref_wf_sort_title">排序方式</string>
+    <string name="pref_wf_store_title">表盘商店</string>
+    <string name="pref_wf_store_summary">浏览并下载社区表盘</string>
+    <string name="pref_wf_remote_title">远程管理</string>
+    <string name="pref_wf_remote_summary">通过同一网络下任意设备的浏览器管理表盘</string>
+    <string name="pref_wf_import_title">导入表盘</string>
+    <string name="pref_wf_import_summary">从设备存储中复制 .watch 文件</string>
+    <string name="pref_wf_gallery_title">图片库</string>
+    <string name="pref_wf_gallery_summary">管理 Lua 表盘使用的图片</string>
+
+    <!-- Gallery -->
+    <string name="gallery_title">图片库</string>
+    <string name="gallery_empty">暂无图片。\n点击 + 从设备导入。</string>
+    <string name="gallery_fab_desc">导入图片</string>
+    <string name="gallery_item_desc">图库图片</string>
+    <string name="gallery_delete_title">删除图片</string>
+    <string name="gallery_delete_message">从图库中删除“%s”？</string>
+    <string name="gallery_delete_confirm">删除</string>
+
+    <!-- Gesture settings -->
+    <string name="pref_gestures_watchface_category">表盘手势</string>
+    <string name="pref_long_press_title">长按操作</string>
+    <string name="pref_home_press_screen_off_title">Home 键关闭屏幕</string>
+    <string name="pref_home_press_screen_off_summary">已在表盘界面时，按 Home 键会关闭屏幕（需要辅助功能权限）</string>
+    <string name="pref_reset_watchface_on_screen_title">亮屏时重置为表盘</string>
+    <string name="pref_reset_watchface_on_screen_summary">屏幕关闭时收起应用列表和面板，以便下次亮屏时显示表盘</string>
+
+    <!-- Button mapping -->
+    <string name="pref_btn_map_category">硬件按键映射</string>
+    <string name="pref_btn_map_record_title">已映射的按键</string>
+    <string name="pref_btn_map_record_summary">点击以录制按键</string>
+    <string name="pref_btn_single_title">单击</string>
+    <string name="pref_btn_double_title">双击</string>
+    <string name="pref_btn_long_title">长按</string>
+    <string name="pref_btn_map_clear_title">清除按键映射</string>
+
+    <!-- Watchface selector UI -->
+    <string name="wf_selector_title">表盘</string>
+    <string name="wf_action_delete">删除</string>
+    <string name="wf_action_rename">重命名</string>
+    <string name="wf_action_pin">置顶</string>
+    <string name="wf_action_unpin">取消置顶</string>
+    <string name="wf_action_move">移动到文件夹</string>
+    <string name="wf_open_store">商店</string>
+    <string name="wf_remote_management">远程</string>
+    <string name="wf_import">导入</string>
+    <string name="wf_random">随机</string>
+    <string name="wf_default_watchface">默认表盘</string>
+    <string name="wf_default_watchface_desc">内置——无需文件</string>
+    <string name="wf_store_download_btn">下载并安装</string>
+    <string name="wf_store_downloading">正在下载…</string>
+    <string name="wf_store_download_done">已安装！</string>
+    <string name="wf_search_hint">搜索表盘…</string>
+    <string name="wf_loading">正在加载…</string>
+    <string name="wf_pinned_section">已置顶</string>
+    <string name="wf_other_section">其他</string>
+    <string name="wf_add_folder">添加文件夹</string>
+    <string name="wf_delete_folder">删除文件夹</string>
+    <string name="wf_rename_folder">重命名文件夹</string>
+    <string name="wf_move_all">移动全部内容</string>
+    <string name="wf_move_to_root">根目录（无文件夹）</string>
+    <string name="wf_confirm_delete">删除 %s？</string>
+    <string name="wf_confirm_delete_folder">删除文件夹“%s”及其中所有表盘？</string>
+    <string name="wf_rename_hint">新名称</string>
+    <string name="wf_rename_failed">已存在同名表盘</string>
+    <string name="wf_folder_name_hint">文件夹名称</string>
+    <string name="wf_import_progress">正在导入…</string>
+    <string name="wf_import_done">完成——已导入 %d 个表盘</string>
+    <string name="wf_import_pick_desc">从设备存储导入 .watch 文件</string>
+    <string name="wf_import_pick_folder">选择文件夹（导入所有 .watch 文件）</string>
+    <string name="wf_import_pick_file">选择单个文件</string>
+    <string name="wf_invalid_file">不是有效的 .watch 文件</string>
+    <string name="wf_imported">表盘已导入并设为当前使用</string>
+    <string name="wf_import_failed">导入表盘失败</string>
+    <string name="wf_import_pick_zip">选择 zip 文件（多个表盘）</string>
+    <string name="wf_import_zip_failed">该 zip 文件中未找到表盘</string>
+    <string name="wf_backup_desc">将所有已安装的表盘（包括子文件夹）保存到一个 zip 文件</string>
+    <string name="wf_backup_all_btn">全部备份为 zip</string>
+    <string name="wf_backup_progress">正在备份…</string>
+    <string name="wf_backup_done">已备份 %d 个表盘</string>
+    <string name="wf_backup_failed">备份失败</string>
+    <string name="action_back">返回</string>
+
+    <!-- Remote management -->
+    <string name="wf_remote_status">服务器状态</string>
+    <string name="wf_remote_running">运行中——在浏览器中打开</string>
+    <string name="wf_remote_stopped">已停止</string>
+    <string name="wf_remote_copy">复制链接</string>
+    <string name="wf_remote_share">分享链接</string>
+    <string name="wf_remote_copied">链接已复制到剪贴板</string>
+    <string name="wf_remote_qr_hint">用手机扫描即可在其他设备上打开</string>
+    <string name="wf_remote_open_browser">在浏览器中打开</string>
+
+    <!-- Open-app gesture action -->
+    <string name="gesture_open_app_summary">打开应用：%1$s</string>
+    <string name="gesture_open_app_none">未选择应用</string>
+
+    <!-- Swipe actions (used when the corresponding panel is disabled) -->
+    <string name="pref_swipe_category">滑动操作</string>
+    <string name="pref_swipe_category_summary">当对应面板关闭时会执行这些操作。</string>
+    <string name="pref_swipe_down_title">下滑（快捷设置关闭时）</string>
+    <string name="pref_swipe_right_title">右滑（通知关闭时）</string>
+
+    <!-- Multiple hardware buttons -->
+    <string name="pref_btn_add_title">添加按键</string>
+    <string name="pref_btn_add_summary">点击以录制其他按键</string>
+    <string name="pref_btn_remove">移除</string>
+
+    <!-- Navigation bar visibility -->
+    <string name="pref_nav_bar_title">导航栏</string>
+
+    <!-- Watch face auto-change -->
+    <string name="pref_wf_category_auto">自动更换</string>
+    <string name="pref_wf_auto_screen_on_title">亮屏时更换</string>
+    <string name="pref_wf_auto_screen_on_summary">每次亮屏时随机选择一个表盘</string>
+    <string name="pref_wf_auto_interval_title">定时更换</string>
+    <string name="pref_wf_auto_interval_summary">间隔时间过后随机选择一个表盘（在亮屏时检查）</string>
+
+    <!-- AOD settings -->
+    <string name="pref_aod_title">息屏显示(AOD)</string>
+    <string name="pref_aod_summary">保持屏幕常亮，显示表盘</string>
+    <string name="pref_aod_enabled_title">启用息屏显示(AOD)</string>
+    <string name="pref_aod_enabled_summary">保持屏幕常亮并显示表盘</string>
+    <string name="pref_aod_when_charging_title">充电时始终开启</string>
+    <string name="pref_aod_when_charging_summary">只要在充电就保持息屏显示(AOD)开启，即使已关闭该功能</string>
+    <string name="pref_aod_category_display">显示</string>
+    <string name="pref_aod_category_behavior">行为</string>
+    <string name="pref_aod_timeout_title">空闲超时</string>
+    <string name="pref_aod_timeout_summary">屏幕变暗并锁定手势前的秒数</string>
+    <string name="pref_aod_brightness_title">变暗后的亮度</string>
+    <string name="pref_aod_brightness_summary">变暗后的屏幕亮度（1–255）</string>
+    <string name="pref_aod_reawaken_title">屏幕关闭时重新唤醒</string>
+    <string name="pref_aod_reawaken_summary">若其他应用关闭屏幕，则重新点亮屏幕</string>
+    <string name="pref_aod_lock_gesture_title">空闲时锁定手势</string>
+    <string name="pref_aod_lock_gesture_summary">超时后屏蔽滑动手势</string>
+    <string name="pref_aod_lock_gesture_delay_title">手势锁定延迟</string>
+    <string name="pref_aod_lock_gesture_delay_summary">超时后锁定手势前的秒数</string>
+    <string name="pref_aod_shallow_sleep_title">浅度休眠</string>
+    <string name="pref_aod_shallow_sleep_summary">单次触摸会唤醒屏幕，但不会解锁手势</string>
+    <string name="pref_aod_power_button_exit_title">电源键退出息屏显示(AOD)</string>
+    <string name="pref_aod_power_button_exit_summary">按下电源键会点亮屏幕并退出息屏显示(AOD)</string>
+
+    <!-- Debug settings -->
+    <string name="pref_debug_title">调试</string>
+    <string name="pref_debug_summary">错误处理、备份、维护</string>
+    <string name="debug_ignore_lua_errors_title">忽略 Lua 错误</string>
+    <string name="debug_ignore_lua_errors_summary">当表盘脚本出错或点击操作未配置时静默失败，不弹出对话框</string>
+    <string name="debug_category_backup">备份和恢复</string>
+    <string name="debug_export_settings_title">导出设置</string>
+    <string name="debug_export_settings_summary">将所有设置和表盘配置保存到 JSON 文件</string>
+    <string name="debug_export_btn">导出</string>
+    <string name="debug_import_settings_title">导入设置</string>
+    <string name="debug_import_settings_summary">从之前导出的 JSON 文件恢复设置</string>
+    <string name="debug_import_btn">导入</string>
+    <string name="debug_export_success">设置已导出</string>
+    <string name="debug_export_failed">导出失败</string>
+    <string name="debug_import_success">设置已导入——正在重启启动器…</string>
+    <string name="debug_import_failed">导入失败——文件可能不是有效的 CloX 设置导出文件</string>
+    <string name="debug_category_danger">危险区域</string>
+    <string name="debug_force_stop_title">强制停止启动器</string>
+    <string name="debug_force_stop_summary">Android 不允许应用像系统设置那样强制停止自身——此操作会改为终止并重启启动器进程</string>
+    <string name="debug_force_stop_btn">强制停止</string>
+    <string name="debug_force_stop_confirm_title">强制停止启动器？</string>
+    <string name="debug_force_stop_confirm_message">这将立即终止启动器进程。由于 CloX 是默认主屏幕应用，它会自动重启。</string>
+    <string name="debug_uninstall_title">卸载启动器</string>
+    <string name="debug_uninstall_summary">停用设备管理器，然后打开系统卸载对话框</string>
+    <string name="debug_uninstall_btn">卸载</string>
+    <string name="debug_uninstall_confirm_title">卸载 CloX？</string>
+    <string name="debug_uninstall_confirm_message">这将停用设备管理器并打开系统卸载对话框，您需要在其中确认卸载。</string>
+
+    <!-- ── Crash activity ───────────────────────────────────────────────── -->
+    <string name="crash_title">应用崩溃</string>
+    <string name="crash_message">错误报告如下所示，您可以复制或分享它。</string>
+    <string name="crash_btn_close">关闭</string>
+    <string name="crash_btn_copy">复制</string>
+    <string name="crash_btn_share">分享</string>
+    <string name="crash_copied">已复制到剪贴板</string>
+
+    <!-- ── Notification overlay ─────────────────────────────────────────── -->
+    <string name="notif_panel_title">通知</string>
+    <string name="notif_grant_permission">授予权限</string>
+    <string name="notif_try_anyway">仍然尝试</string>
+    <string name="notif_empty">暂无通知</string>
+    <string name="notif_dismiss_all_desc">全部清除</string>
+
+    <!-- ── Volume dialog ────────────────────────────────────────────────── -->
+    <string name="dialog_volume_title">音量</string>
+
+    <!-- ── RTOS toast messages ──────────────────────────────────────────── -->
+    <string name="toast_rtos_activated">RTOS 模式已激活</string>
+    <string name="toast_rtos_deactivated">RTOS 模式已停用</string>
+    <string name="toast_rtos_set_password_first">请先设置密码</string>
+    <string name="toast_rtos_password_cleared">密码已清除——请为所选类型设置新密码</string>
+    <string name="toast_rtos_accessibility_first">请先启用辅助功能服务</string>
+    <string name="toast_rtos_password_saved">密码已保存</string>
+    <string name="toast_rtos_passwords_dont_match">两次密码不一致——请重试</string>
+    <string name="toast_rtos_password_too_short">至少需要 4 个符号，且不能全部相同</string>
+    <string name="rtos_accessibility_enabled">✓ 已启用</string>
+    <string name="rtos_accessibility_disabled">点击以启用——应用拦截功能需要此权限</string>
+
+    <!-- ── Quick Settings tile labels ──────────────────────────────────── -->
+    <string name="tile_wifi">Wi-Fi</string>
+    <string name="tile_data">数据</string>
+    <string name="tile_bluetooth">蓝牙</string>
+    <string name="tile_volume">音量</string>
+    <string name="tile_dnd">DND</string>
+    <string name="tile_rotate">旋转</string>
+    <string name="tile_flashlight">手电筒</string>
+    <string name="tile_location">位置</string>
+    <string name="tile_aod">始终显示</string>
+    <string name="tile_airplane">飞行模式</string>
+    <string name="tile_hotspot">热点</string>
+    <string name="tile_rtos_mode">RTOS 模式</string>
+
+    <!-- ── Button mapping ───────────────────────────────────────────────── -->
+    <string name="btn_volume_up">音量+</string>
+    <string name="btn_volume_down">音量-</string>
+    <string name="btn_camera">相机</string>
+    <string name="btn_menu">菜单</string>
+    <string name="btn_search">搜索</string>
+    <string name="btn_play_pause">播放/暂停</string>
+    <string name="btn_next_track">下一曲</string>
+    <string name="btn_prev_track">上一曲</string>
+    <string name="btn_none">无</string>
+    <string name="btn_format">按键 (%d)</string>
+
+    <!-- ── Tap action labels ────────────────────────────────────────────── -->
+    <string name="tap_launcher_home">启动器/主屏幕</string>
+    <string name="tap_weather">天气</string>
+    <string name="tap_health">健康</string>
+    <string name="tap_calendar_widget">日历小组件</string>
+    <string name="tap_agenda">日程</string>
+    <string name="tap_fitness">健身</string>
+    <string name="tap_heart_rate">心率</string>
+    <string name="tap_compass">指南针</string>
+    <string name="tap_notes">备忘录</string>
+    <string name="tap_email">邮件</string>
+    <string name="tap_calendar_app">日历应用</string>
+    <string name="tap_voice_search">语音搜索</string>
+    <string name="tap_contacts">联系人</string>
+    <string name="tap_sports">运动</string>
+    <string name="tap_gallery_photos">图库/照片</string>
+    <string name="tap_messages">短信</string>
+    <string name="tap_camera">相机</string>
+    <string name="tap_phone_dialer">电话/拨号</string>
+    <string name="tap_music_player">音乐播放器</string>
+    <string name="tap_clock_alarm">时钟/闹钟</string>
+    <string name="tap_calculator">计算器</string>
+    <string name="tap_wallet_payment">钱包/支付</string>
+    <string name="tap_maps_navigation">地图/导航</string>
+    <string name="tap_browser">浏览器</string>
+    <string name="tap_flashlight">手电筒</string>
+    <string name="tap_social_media">社交媒体</string>
+
+    <!-- ── Weather condition labels ─────────────────────────────────────── -->
+    <string name="weather_clear_sky">晴朗</string>
+    <string name="weather_mainly_clear">大致晴朗</string>
+    <string name="weather_partly_cloudy">局部多云</string>
+    <string name="weather_overcast">阴天</string>
+    <string name="weather_fog">雾</string>
+    <string name="weather_drizzle">毛毛雨</string>
+    <string name="weather_rain">雨</string>
+    <string name="weather_snow">雪</string>
+    <string name="weather_rain_showers">阵雨</string>
+    <string name="weather_snow_showers">阵雪</string>
+    <string name="weather_thunderstorm">雷暴</string>
+    <string name="weather_unknown">未知</string>
+
+    <!-- ── Custom tile dialog ──────────────────────────────────────────── -->
+    <string name="custom_tile_label_hint">磁贴标签</string>
+    <string name="custom_tile_launch_app">启动应用</string>
+    <string name="custom_tile_write_setting">写入设置</string>
+    <string name="custom_tile_add_btn">添加磁贴</string>
+    <string name="custom_tile_default_label">自定义</string>
+
+    <!-- ── Appearance ──────────────────────────────────────────────────── -->
+    <string name="appearance_density_default">0 = 系统默认</string>
+
+    <!-- ── Weather API ─────────────────────────────────────────────────── -->
+    <string name="api_key_hint">API 密钥</string>
+
+    <!-- ── Watchface store ─────────────────────────────────────────────── -->
+    <string name="store_downloads_label">%d 次下载</string>
+    <string name="store_uploaded_label">上传于 %s</string>
+    <string name="store_author_label">作者：%s</string>
+    <string name="store_download_failed">下载失败：%s</string>
+    <string name="wf_store_sort_popular">下载最多</string>
+    <string name="wf_store_screen_round">圆形</string>
+    <string name="wf_store_screen_square">方形</string>
+    <string name="wf_store_screen_rect">矩形</string>
+
+    <!-- ── Gestures ────────────────────────────────────────────────────── -->
+    <string name="gesture_mapped_format">已映射：%s——点击以更改</string>
+
+    <!-- ── Notification style pickers ───────────────────────────────────- -->
+    <string name="notif_pick_card_style">卡片样式</string>
+    <string name="notif_pick_view_style">视图样式</string>
+
+    <!-- ── Quick Settings toast messages ────────────────────────────────── -->
+    <string name="toast_qs_rtos_not_configured">RTOS 模式未配置</string>
+    <string name="toast_qs_app_not_found">未找到应用：%s</string>
+    <string name="toast_qs_elevated_required">%s 设置需要提升权限</string>
+
+    <!-- ── OTA toast messages ───────────────────────────────────────────── -->
+    <string name="toast_ota_no_internet">无网络连接</string>
+    <string name="toast_ota_check_failed_code">更新检查失败 (%d)</string>
+    <string name="toast_ota_check_failed">更新检查失败：%s</string>
+    <string name="toast_ota_no_apk">发行版中未找到 APK</string>
+    <string name="toast_ota_parse_failed">解析发行信息失败</string>
+    <string name="toast_ota_up_to_date">已是最新版本 (%s)</string>
+    <string name="toast_ota_auto_disabled">自动更新检查已禁用</string>
+    <string name="toast_ota_downloading">正在下载更新…</string>
+    <string name="toast_ota_install_failed">安装失败：%s</string>
+
+    <!-- ── OTA dialog ────────────────────────────────────────────────────── -->
+    <string name="dialog_ota_update_title">有可用更新——v%s</string>
+    <string name="dialog_ota_update_positive">更新</string>
+    <string name="dialog_ota_update_neutral">稍后</string>
+    <string name="dialog_ota_update_negative">不再询问</string>
+    <string name="dialog_ota_skip">跳过此版本</string>
+    <string name="toast_ota_checking">正在检查更新…</string>
+    <string name="toast_ota_skipped">已跳过版本 %s</string>
+    <string name="dialog_ota_progress_title">正在下载更新…</string>
+    <string name="dialog_ota_progress_hide">隐藏</string>
+    <string name="ota_download_notif_title">CloX 更新</string>
+
+    <!-- ── Default launcher dialog ──────────────────────────────────────── -->
+    <string name="dialog_default_launcher_title">设为默认启动器</string>
+    <string name="dialog_default_launcher_message">CloX 需要设为默认启动器才能正常工作。\n\n注意：部分设备首次选择时不允许设置为“始终”——如果发生这种情况，请再次选择即可。</string>
+    <string name="dialog_default_launcher_positive">立即设置</string>
+    <string name="dialog_default_launcher_neutral">稍后询问</string>
+    <string name="dialog_default_launcher_negative">永不</string>
+
+    <!-- ── RTOS settings fragment ────────────────────────────────────────── -->
+    <string name="rtos_setting_enabled_title">启用 RTOS 模式</string>
+    <string name="rtos_setting_enabled_summary">将启动器伪装成 RTOS 蓝牙手表</string>
+    <string name="rtos_setting_options_category">选项</string>
+    <string name="rtos_setting_mode_title">模式</string>
+    <string name="rtos_setting_auto_enter_title">关屏时自动进入</string>
+    <string name="rtos_setting_auto_enter_summary">屏幕关闭时激活 RTOS 模式</string>
+    <string name="rtos_setting_launcher_icon_title">显示启动器图标</string>
+    <string name="rtos_setting_launcher_icon_summary">在应用列表中添加一个用于激活 RTOS 模式的图标</string>
+    <string name="rtos_setting_password_category">密码</string>
+    <string name="rtos_setting_password_type_title">密码类型</string>
+    <string name="rtos_setting_set_password_title">设置密码</string>
+    <string name="rtos_setting_set_password_summary">配置解锁密码</string>
+    <string name="rtos_setting_app_restrictions_category">应用限制</string>
+    <string name="rtos_setting_allowed_apps_title">允许的应用（模式2）</string>
+    <string name="rtos_setting_allowed_apps_summary">选择应用列表中显示哪些应用</string>
+    <string name="rtos_setting_block_apps_title">屏蔽未加入白名单的应用</string>
+    <string name="rtos_setting_block_apps_summary">请先启用辅助功能服务，再开启此项</string>
+    <string name="rtos_setting_accessibility_category">辅助功能</string>
+    <string name="rtos_setting_accessibility_title">辅助功能服务</string>
+
+    <!-- ── Hide apps fragment ────────────────────────────────────────────── -->
+    <string name="hide_apps_tab_blacklist">黑名单</string>
+    <string name="hide_apps_tab_whitelist">白名单</string>
+    <string name="hide_apps_secret_code_btn">使用密码隐藏</string>
+
+    <!-- ── Tile editor ───────────────────────────────────────────────────── -->
+    <string name="tile_editor_active_tiles">已启用磁贴</string>
+    <string name="tile_editor_available_tiles">可用磁贴</string>
+    <string name="tile_editor_add_custom">添加自定义</string>
+
+    <!-- ── Notification item actions ────────────────────────────────────── -->
+    <string name="notif_action_open">打开</string>
+    <string name="notif_action_show_more">显示更多</string>
+
+    <!-- ── Quick Settings settings fragment ─────────────────────────────── -->
+    <string name="qs_setting_general_category">通用</string>
+    <string name="qs_setting_tiles_category">磁贴</string>
+    <string name="qs_setting_flashlight_category">手电筒</string>
+    <string name="qs_setting_appearance_category">外观</string>
+    <string name="qs_setting_tile_style_title">磁贴样式</string>
+    <string name="qs_setting_elevated_privileges_category">提升权限</string>
+    <string name="qs_setting_accessibility_category">辅助功能</string>
+
+    <!-- ── Notifications settings fragment ──────────────────────────────── -->
+    <string name="notif_setting_enabled_title">启用通知</string>
+    <string name="notif_setting_enabled_summary">右滑时显示通知面板</string>
+    <string name="notif_setting_display_category">显示</string>
+    <string name="notif_setting_card_style_title">卡片样式</string>
+    <string name="notif_setting_view_style_title">视图样式</string>
+    <string name="notif_setting_text_size_title">文字大小</string>
+    <string name="notif_setting_media_controls_title">媒体控制</string>
+    <string name="notif_setting_media_controls_summary">播放时显示音乐播放器卡片</string>
+    <string name="notif_setting_alerts_category">新通知提醒</string>
+    <string name="notif_setting_wake_title">唤醒屏幕</string>
+    <string name="notif_setting_open_panel_title">打开通知面板</string>
+    <string name="notif_setting_vibrate_title">振动</string>
+    <string name="notif_setting_filtering_category">过滤</string>
+    <string name="notif_setting_group_title">通知分组</string>
+    <string name="notif_setting_group_summary">聊天置顶，普通居中，常驻置底</string>
+    <string name="notif_setting_hide_persistent_title">隐藏常驻通知</string>
+    <string name="notif_setting_hide_persistent_summary">阻止常驻通知显示</string>
+    <string name="notif_setting_access_title">通知访问权限</string>
+
+    <!-- ── App list settings fragment ───────────────────────────────────── -->
+    <string name="applist_setting_general_category">通用</string>
+    <string name="applist_setting_hidden_apps_summary">管理启动器中显示哪些应用</string>
+    <string name="applist_setting_launch_anim_title">启动动画</string>
+    <string name="applist_setting_animations_title">动画</string>
+    <string name="applist_setting_animations_summary">打开和返回动画设置</string>
+    <string name="applist_setting_background_category">背景</string>
+    <string name="applist_setting_bg_image_title">背景图片</string>
+    <string name="applist_setting_bg_image_summary">点击以选择图片</string>
+    <string name="applist_setting_darken_bg_title">背景变暗</string>
+    <string name="applist_setting_clear_bg_btn">清除背景图片</string>
+    <string name="applist_setting_set_wallpaper_btn">将设备壁纸设为一致</string>
+    <string name="applist_setting_set_wallpaper_done">设备壁纸已更新</string>
+    <string name="applist_setting_set_wallpaper_failed">无法设置设备壁纸</string>
+    <string name="applist_setting_bg_using_wallpaper">使用系统壁纸</string>
+    <string name="applist_setting_list_options_category">列表选项</string>
+    <string name="applist_setting_grid_options_category">网格选项</string>
+    <string name="applist_setting_waterfall_options_category">瀑布流选项</string>
+    <string name="applist_setting_honeycomb_options_category">蜂巢选项</string>
+    <string name="applist_setting_grid2d_options_category">2D 网格选项</string>
+    <string name="applist_setting_pages_options_category">分页选项</string>
+    <string name="applist_setting_gravity_options_category">重力选项</string>
+    <string name="pref_overscroll_title">越界回弹强度</string>
+
+    <!-- ── Animation settings fragment ──────────────────────────────────── -->
+    <string name="anim_setting_open_category">打开动画</string>
+    <string name="anim_setting_open_title">应用打开动画</string>
+    <string name="anim_setting_open_summary">启动应用时播放动画</string>
+    <string name="anim_setting_open_type_title">动画样式</string>
+    <string name="anim_setting_return_category">返回动画</string>
+    <string name="anim_setting_return_title">返回主屏幕动画</string>
+    <string name="anim_setting_return_summary_pre11">返回时缩小为图标的动画（Android 10 及以下）</string>
+    <string name="anim_setting_return_summary_11plus">抑制后续图标回弹动画；系统手势动画仍会播放</string>
+    <string name="anim_setting_speed_category">打开速度</string>
+    <string name="anim_setting_speed_title">打开动画速度</string>
+    <string name="anim_setting_speed_hint">0.5×（慢）— 2.0×（快）</string>
+    <string name="anim_setting_close_category">关闭动画</string>
+    <string name="anim_setting_launch_blur_title">模糊应用列表</string>
+    <string name="anim_setting_launch_blur_summary">在应用窗口打开时模糊其后方的应用列表，随窗口展开逐渐加强（返回键关闭时会逐渐消除模糊）。</string>
+    <string name="anim_setting_close_type_title">动画样式</string>
+    <string name="anim_setting_resume_close_title">无应用列表时的关闭动画</string>
+    <string name="anim_setting_resume_close_summary">返回表盘时始终播放关闭动画，即使应用列表未打开——动画会朝屏幕中心方向播放。关闭此项则直接显示表盘，不播放动画。</string>
+    <string name="anim_setting_close_speed_category">关闭速度</string>
+    <string name="anim_setting_close_speed_title">关闭动画速度</string>
+    <string name="anim_setting_close_delay_title">起始延迟</string>
+    <string name="anim_setting_close_delay_hint">0 毫秒（立即）— 500 毫秒</string>
+    <string name="anim_setting_gesture_return_category">手势返回</string>
+    <string name="anim_setting_gesture_return_title">返回时应用列表动画</string>
+    <string name="anim_setting_gesture_return_summary">从应用滑动返回到已打开的应用列表时，通过动画将其显示在当前背景之上</string>
+    <string name="anim_setting_gesture_return_type_title">显示样式</string>
+    <string name="anim_setting_gesture_return_speed_title">显示速度</string>
+    <string name="anim_setting_gesture_return_delay_title">起始延迟</string>
+    <string name="anim_setting_detect_closing_title">检测关闭的应用</string>
+    <string name="anim_setting_detect_closing_summary">为您实际返回的应用图标播放动画——包括返回键/Home 键以及链式启动的应用。需要使用情况访问权限。</string>
+    <string name="anim_setting_detect_closing_perm_title">需要使用情况访问权限</string>
+    <string name="anim_setting_detect_closing_perm_msg">为了检测您是从哪个应用返回的，CloX 需要“使用情况访问”权限。请在下一屏幕中授予该权限，然后返回此处。</string>
+    <string name="anim_setting_detect_closing_grant">打开设置</string>
+    <string name="anim_setting_gesture_return_only_title">仅在滑动返回主屏幕手势时</string>
+    <string name="anim_setting_gesture_return_only_summary">关闭：返回键和硬件 Home 键返回时也会播放</string>
+    <string name="anim_setting_real_window_entry">真实窗口（系统）</string>
+    <string name="anim_setting_snapshot_entry">真实窗口（快照）</string>
+    <string name="anim_setting_gesture_handoff_title">系统窗口渐变（真实）</string>
+    <string name="anim_setting_gesture_handoff_summary">滑动返回主屏幕时，将应用图标交给系统，由系统将正在关闭的真实应用窗口渐变为该图标。CloX 不会播放后续动画——整个过渡完全由系统控制。仅适用于滑动返回主屏幕手势。</string>
+
+    <!-- ── Common dialog buttons ────────────────────────────────────────── -->
+    <string name="btn_open_settings">打开设置</string>
+    <string name="btn_not_now">暂不</string>
+    <string name="btn_confirm">确认</string>
+    <string name="btn_send">发送</string>
+    <string name="btn_cancel">取消</string>
+
+    <!-- ── Button record dialog ──────────────────────────────────────────── -->
+    <string name="dialog_btn_record_title">录制按键</string>
+    <string name="dialog_btn_record_message">按下任意硬件按键（音量+/-、相机等）即可映射。\n\n按返回键取消。</string>
+
+    <!-- ── Calendar permission dialog ───────────────────────────────────── -->
+    <string name="dialog_calendar_perm_message">日历权限已被拒绝。请在应用设置中启用。</string>
+
+    <!-- ── QS permissions dialog ────────────────────────────────────────── -->
+    <string name="dialog_qs_permissions_title">需要权限</string>
+    <string name="dialog_qs_permissions_message">部分权限已被永久拒绝。请打开应用设置，在权限中授予这些权限。</string>
+
+    <!-- ── Device admin (pre-Android-P screen-off fallback) ────────────────── -->
+    <string name="dialog_device_admin_explanation">此 Android 版本需要此权限才能关闭屏幕。</string>
+
+    <!-- ── Notification reply dialog ────────────────────────────────────── -->
+    <string name="dialog_reply_title">回复</string>
+
+    <!-- ── Secret code unlock dialog ────────────────────────────────────── -->
+    <string name="dialog_secret_code_title">密码解锁</string>
+    <string name="dialog_secret_code_message">设置后，此屏幕将从设置中隐藏。\n\n要再次访问，请打开手机拨号盘并输入：\n\n*#*#YOUR_PASSWORD#*#*\n\n您将看到确认访问的通知。</string>
+    <string name="dialog_secret_code_positive">设置密码</string>
+    <string name="dialog_enter_password_title">输入密码</string>
+    <string name="dialog_enter_password_message">最少 4 位数字</string>
+
+    <!-- ── Watchface directory API (WatchfaceProvider) permission ──────────── -->
+    <string name="permission_access_watchfaces_label">访问表盘</string>
+    <string name="permission_access_watchfaces_desc">读取、添加和删除此应用表盘文件夹中的表盘文件。</string>
+
+    <!-- ── Watch face toasts ────────────────────────────────────────────── -->
+    <string name="toast_wf_selected">已选择 %s</string>
+    <string name="toast_remote_server_failed">启动服务器失败</string>
+
+    <!-- ── Crash activity ──────────────────────────────────────────────── -->
+    <string name="crash_clip_label">CloX 崩溃报告</string>
+    <string name="crash_subject">CloX 崩溃报告</string>
+    <string name="crash_share_title">分享崩溃报告</string>
+    <string name="crash_no_data">暂无崩溃数据。</string>
+    <string name="crash_read_failed">读取崩溃报告失败。</string>
+
+    <!-- ── Secret code ─────────────────────────────────────────────────── -->
+    <string name="secret_code_unlocked">隐藏应用设置已解锁——打开设置继续操作</string>
+    <string name="secret_code_dial_hint">拨打 *#*#%s#*#* 以解锁</string>
+
+    <!-- ── Notifications ───────────────────────────────────────────────── -->
+    <string name="notif_block_app">屏蔽应用</string>
+    <string name="notif_unblock_app">取消屏蔽应用</string>
+    <string name="notif_app_notif_settings">应用通知设置</string>
+    <string name="notif_reply_hint">回复</string>
+    <string name="notif_perm_not_supported">不支持</string>
+    <string name="notif_perm_not_supported_desc">此设备可能不支持通知访问权限。</string>
+    <string name="notif_perm_view_btn">查看通知</string>
+    <string name="notif_perm_title">需要权限</string>
+    <string name="notif_perm_desc">授予通知访问权限，以便 CloX 显示您的通知。</string>
+    <string name="notif_perm_grant_btn">授予权限</string>
+
+    <!-- ── QS tile states ───────────────────────────────────────────────- -->
+    <string name="qs_tile_connected">已连接</string>
+    <string name="qs_tile_not_in_use">未使用</string>
+    <string name="qs_tile_on">开</string>
+    <string name="qs_tile_off">关</string>
+    <string name="qs_tile_on_detail">开启</string>
+    <string name="qs_tile_silent">静音</string>
+    <string name="qs_tile_vibrate">振动</string>
+    <string name="qs_tile_auto">自动</string>
+    <string name="qs_tile_locked">已锁定</string>
+    <string name="qs_privilege_shizuku">Shizuku 已激活</string>
+    <string name="qs_privilege_root">Root 可用</string>
+    <string name="qs_privilege_none">无提升权限</string>
+    <string name="qs_accessibility_enabled">已启用——电源菜单和最近任务可用</string>
+    <string name="qs_accessibility_disabled">点击以在辅助功能设置中启用</string>
+
+    <!-- ── Location hints ─────────────────────────────────────────────── -->
+    <string name="location_lat_hint">例如 22.3193</string>
+    <string name="location_lon_hint">例如 114.1694</string>
+    <string name="location_city_hint">城市名称</string>
+
+    <!-- ── App list ───────────────────────────────────────────────────── -->
+    <string name="app_list_search_hint">搜索应用…</string>
+    <string name="app_list_bg_set">已设置图片——点击以替换</string>
+    <string name="app_list_bg_not_set">点击以选择图片</string>
+    <string name="hidden_apps_title">隐藏的应用</string>
+
+    <!-- ── Widget ─────────────────────────────────────────────────────── -->
+    <string name="widget_unavailable">小组件不可用</string>
+
+    <!-- ── About ──────────────────────────────────────────────────────── -->
+    <string name="about_version">版本 %s</string>
+    <string name="about_version_unknown">版本未知</string>
+
+    <!-- ── Appearance section labels ──────────────────────────────────── -->
+    <string name="appearance_section_display">显示</string>
+    <string name="appearance_dpi_label">应用显示密度（DPI）</string>
+    <string name="appearance_dpi_default">0（系统默认）</string>
+    <string name="appearance_section_blur">模糊</string>
+
+    <!-- ── Sensors section labels ─────────────────────────────────────── -->
+    <string name="sensors_section_data">数据</string>
+
+    <!-- ── About fragment ───────────────────────────────────────────────── -->
+    <string name="about_onyx_project">Onyx 项目的一部分</string>
+    <string name="about_onyx_description">CloX 是面向 Android 可穿戴设备的 Onyx 开源系统的一部分。</string>
+    <string name="about_developers_category">开发者</string>
+    <string name="about_updates_category">更新</string>
+    <string name="about_auto_update_title">自动更新检查</string>
+    <string name="about_auto_update_summary">启动时检查新版本</string>
+    <string name="about_check_updates_btn">检查更新</string>
+
+    <!-- Crash-safe activity launching (SafeActivityLauncher) -->
+    <string name="launch_error_title">无法打开</string>
+    <string name="launch_error_no_app">此设备上没有应用能够处理该操作。您可能需要安装文件管理器或目标应用。</string>
+    <string name="launch_error_not_permitted">系统阻止了此操作。请检查应用权限后重试。</string>
+    <string name="launch_error_generic">无法打开。请重试。</string>
+
+    <!-- ── RTOS fake-settings decoy screen ──────────────────────────────── -->
+    <string name="fake_settings_title">设置</string>
+    <string name="fake_settings_general">通用</string>
+    <string name="fake_settings_language">语言</string>
+    <string name="fake_settings_language_value">英语</string>
+    <string name="fake_settings_date_time">日期和时间</string>
+    <string name="fake_settings_time_format">时间格式</string>
+    <string name="fake_settings_time_zone">时区</string>
+    <string name="fake_settings_qr_code">二维码</string>
+    <string name="fake_settings_watch_face">表盘</string>
+    <string name="fake_settings_bluetooth">蓝牙</string>
+    <string name="fake_settings_status">状态</string>
+    <string name="fake_settings_connected">已连接</string>
+    <string name="fake_settings_device">设备</string>
+    <string name="fake_settings_device_value">手机</string>
+    <string name="fake_settings_auto_conn">自动连接</string>
+    <string name="fake_settings_on">开</string>
+    <string name="fake_settings_off">关</string>
+    <string name="fake_settings_sound">声音</string>
+    <string name="fake_settings_ringtone">铃声</string>
+    <string name="fake_settings_vibration">振动</string>
+    <string name="fake_settings_volume">音量</string>
+    <string name="fake_settings_display">显示</string>
+    <string name="fake_settings_brightness">亮度</string>
+    <string name="fake_settings_brightness_value">自动</string>
+    <string name="fake_settings_timeout">超时</string>
+    <string name="fake_settings_always_on">始终显示</string>
+    <string name="fake_settings_about">关于</string>
+    <string name="fake_settings_model">型号</string>
+    <string name="fake_settings_firmware">固件</string>
+    <string name="fake_settings_battery">电量</string>
+
+    <!-- ── RTOS password setup ──────────────────────────────────────────── -->
+    <string name="rtos_pw_how_it_works">使用说明</string>
+    <string name="rtos_pw_keypad_explain">手表屏幕被划分为一个不可见的 3×3 网格：\n\n  [ 1 ][ 2 ][ 3 ]\n  [ 4 ][ 5 ][ 6 ]\n  [ 7 ][ 8 ][ 9 ]\n\n点击网格区域以输入密码。没有任何视觉反馈。\n\n系统会在每次点击后使用滑动窗口进行检查——只要您的密码出现在最近的点击序列中的任意位置，即可解锁。\n\n密码必须至少为 4 位数字，且不能全部相同。</string>
+    <string name="rtos_pw_morse_explain">在表盘上任意位置点击即可输入摩尔斯电码：\n\n  短按 = 点  (·)\n  长按 = 划 (—)\n\n没有任何视觉反馈。系统会在每次按下后进行检查。\n\n密码必须至少为 4 个符号，且不能全部相同。</string>
+    <string name="rtos_pw_understood_countdown">已了解 (%1$d…)</string>
+    <string name="rtos_pw_understood_done">已了解——设置密码</string>
+    <string name="rtos_pw_set_title">设置密码</string>
+    <string name="rtos_pw_confirm_title">确认密码</string>
+    <string name="rtos_pw_keypad_hint">点击网格区域以输入密码</string>
+    <string name="rtos_pw_morse_hint">短按/长按以输入摩尔斯电码的点和划</string>
+    <string name="rtos_pw_clear">清除</string>
+    <string name="rtos_pw_done">完成</string>
+
+    <!-- ── Watchface renderer recovery dialog ───────────────────────────── -->
+    <string name="wf_renderer_dead_title">表盘渲染器无响应</string>
+    <string name="wf_renderer_dead_message">触发原因：%1$s\n\n%2$s\n\n重启启动器即可恢复。</string>
+    <string name="wf_renderer_dead_detail_load">表盘未能在 %1$d 秒内完成加载。屏幕可能会保持黑屏或卡住。</string>
+    <string name="wf_renderer_dead_detail_hang">渲染线程已 %1$d 秒无响应。表盘已卡死或引擎已崩溃。</string>
+    <string name="wf_renderer_dead_restart">重启启动器</string>
+    <string name="wf_lua_error_default_context">Lua 错误</string>
+    <string name="wf_lua_error_no_detail">（无详情）</string>
+
+    <!-- ── Accessibility content descriptions ───────────────────────────── -->
+    <string name="action_delete">删除</string>
+    <string name="action_dismiss">清除</string>
+    <string name="cd_launcher_settings">启动器设置</string>
+    <string name="cd_recents">最近任务</string>
+    <string name="cd_flashlight">手电筒</string>
+    <string name="cd_power">电源</string>
+    <string name="cd_settings">设置</string>
+    <string name="cd_qr_code">二维码</string>
+    <string name="cd_delete_row">删除行</string>
+    <string name="cd_delete_slot">删除插槽</string>
+    <string name="cd_decrease_height">减小高度</string>
+    <string name="cd_increase_height">增大高度</string>
+    <string name="cd_select_all">全选</string>
+    <string name="cd_deselect_all">取消全选</string>
+    <string name="cd_watchface_preview">表盘预览</string>
+    <string name="cd_preview">预览</string>
+    <string name="cd_downloaded">已下载</string>
+    <string name="dialog_password_hint">密码（仅限数字）</string>
+
+    <!-- ── New settings entries (2026-07-21) ────────────────────────────── -->
+    <string name="appearance_dpi_summary">覆盖显示密度。0 或留空 = 系统默认；需重启。</string>
+    <string name="notif_setting_wake_summary">有新通知时点亮屏幕</string>
+    <string name="notif_setting_open_panel_summary">有新通知时自动滑出通知面板</string>
+    <string name="notif_setting_vibrate_summary">有新通知时振动</string>
+    <string name="rtos_setting_show_icon_title">显示进入 RTOS 模式的启动器图标</string>
+    <string name="pref_notifications_title">通知</string>
+    <string name="pref_notifications_summary">面板样式、提醒、过滤、已屏蔽的应用</string>
+    <string name="pref_quick_settings_summary">磁贴、列数、手势、手电筒、颜色、权限</string>
+    <string name="pref_app_list_title">应用列表</string>
+    <string name="pref_app_list_summary">样式、排序方式、图标包</string>
+    <string name="pref_gestures_title">手势</string>
+    <string name="pref_gestures_summary">双击、长按、硬件按键映射</string>
+    <string name="pref_appearance_title">外观</string>
+    <string name="pref_appearance_summary">模糊模式和半径</string>
+    <string name="pref_hidden_apps_summary">在启动器中设置应用黑名单或白名单</string>
+    <string name="pref_rtos_title">RTOS 模式</string>
+    <string name="pref_rtos_summary">将启动器伪装成 RTOS 蓝牙手表</string>
+    <string name="pref_about_title">关于 &amp; 更新</string>
+    <string name="pref_about_summary">版本、开发者、Onyx 项目、更新检查</string>
+</resources>

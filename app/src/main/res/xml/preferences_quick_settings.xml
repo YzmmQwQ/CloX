@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory android:title="General">
+    <PreferenceCategory android:title="@string/qs_setting_general_category">
         <SwitchPreferenceCompat
             android:key="qs_enabled"
             android:title="@string/qs_enabled_title"
@@ -24,7 +24,7 @@
             android:defaultValue="2" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Tiles">
+    <PreferenceCategory android:title="@string/qs_setting_tiles_category">
         <Preference
             android:key="qs_tile_editor"
             android:title="@string/qs_tile_editor_title"
@@ -32,7 +32,7 @@
             android:fragment="com.ailife.clox.settings.fragments.TileEditorFragment" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Flashlight">
+    <PreferenceCategory android:title="@string/qs_setting_flashlight_category">
         <SwitchPreferenceCompat
             android:key="qs_flashlight_hardware"
             android:title="@string/qs_flashlight_hw_title"
@@ -40,11 +40,11 @@
             android:defaultValue="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Appearance">
+    <PreferenceCategory android:title="@string/qs_setting_appearance_category">
 
         <ListPreference
             android:key="qs_tile_style"
-            android:title="Tile style"
+            android:title="@string/qs_setting_tile_style_title"
             android:summary="%s"
             android:entries="@array/qs_tile_style_entries"
             android:entryValues="@array/qs_tile_style_values"
@@ -65,7 +65,7 @@
         <Preference android:key="qs_color_off" android:title="@string/qs_color_off_title" android:summary="#AAAAAA" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Elevated Privileges">
+    <PreferenceCategory android:title="@string/qs_setting_elevated_privileges_category">
         <ListPreference
             android:key="qs_privilege"
             android:title="@string/qs_privilege_title"
@@ -79,7 +79,7 @@
             android:enabled="false" />
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Accessibility">
+    <PreferenceCategory android:title="@string/qs_setting_accessibility_category">
         <Preference
             android:key="qs_accessibility_status"
             android:title="@string/qs_accessibility_status_title"
