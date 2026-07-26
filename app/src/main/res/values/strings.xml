@@ -113,6 +113,26 @@
     <string name="menu_app_info">App info</string>
     <string name="menu_change_icon">Change icon</string>
     <string name="menu_reset_icon">Reset to default icon</string>
+
+    <!-- ── Folders ─────────────────────────────────────────────────────────── -->
+    <string name="menu_new_folder">New folder</string>
+    <string name="menu_add_to_folder">Add to folder</string>
+    <string name="menu_remove_from_folder">Remove from folder</string>
+    <string name="menu_rename_folder">Rename</string>
+    <string name="menu_edit_members">Edit apps</string>
+    <string name="menu_delete_folder">Delete</string>
+    <string name="folder_name_title">Folder name</string>
+    <string name="folder_default_name">Folder</string>
+    <string name="folder_rename_title">Rename folder</string>
+    <string name="folder_full">Folder is full (9 apps max)</string>
+    <string name="folder_delete_title">Delete folder?</string>
+    <string name="folder_delete_message">\"%1$s\" will be removed. Its apps return to the app list.</string>
+    <string name="folders_title">Folders</string>
+    <string name="folders_summary">Group apps into folders</string>
+    <string name="folders_empty">No folders yet. Long-press an app and choose \"New folder\".</string>
+    <string name="folder_member_count">%1$d apps</string>
+    <string name="folder_members_title">Choose apps</string>
+
     <string name="icon_picker_title">Choose icon</string>
     <string name="icon_picker_search_hint">Search icons…</string>
     <string name="icon_picker_from_gallery">Pick from gallery</string>

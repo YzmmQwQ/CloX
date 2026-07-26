@@ -413,4 +413,107 @@ object AppListPrefs {
         if (path == null) obj.remove(key) else obj.put(key, path)
         get(ctx).edit().putString(KEY_CUSTOM_ICONS, obj.toString()).apply()
     }
+
+    // ── Folders ──────────────────────────────────────────────────────────────
+    // A folder groups up to MAX_FOLDER_MEMBERS launcher entries. Stored as a JSON array of
+    // { "id": "f1", "name": "Games", "members": [ "pkg/activity", ... ] }. Member apps are
+    // removed from the top-level list and only shown inside the folder. The folder itself is
+    // rendered as a synthetic AppItem whose stable key is "clox.folder/<id>".
+
+    const val KEY_FOLDERS = "folders"   // JSON array of folder objects
+    const val MAX_FOLDER_MEMBERS = 9
+
+    data class Folder(val id: String, var name: String, val members: MutableList<String>)
+
+    fun folders(ctx: Context): MutableList<Folder> {
+        val json = get(ctx).getString(KEY_FOLDERS, "[]") ?: "[]"
+        return try {
+            val arr = JSONArray(json)
+            MutableList(arr.length()) { i ->
+                val o = arr.getJSONObject(i)
+                val memArr = o.optJSONArray("members") ?: JSONArray()
+                val members = MutableList(memArr.length()) { j -> memArr.getString(j) }
+                Folder(o.getString("id"), o.optString("name"), members)
+            }
+        } catch (_: Exception) { mutableListOf() }
+    }
+
+    fun saveFolders(ctx: Context, list: List<Folder>) {
+        val arr = JSONArray()
+        for (f in list) {
+            val o = JSONObject()
+            o.put("id", f.id)
+            o.put("name", f.name)
+            o.put("members", JSONArray(f.members))
+            arr.put(o)
+        }
+        get(ctx).edit().putString(KEY_FOLDERS, arr.toString()).apply()
+    }
+
+    /** Returns the folder that contains [componentKey] ("pkg/activity"), or null. */
+    fun folderContaining(ctx: Context, componentKey: String): Folder? =
+        folders(ctx).firstOrNull { componentKey in it.members }
+
+    /** Stable synthetic AppItem key for a folder id. */
+    fun folderKey(folderId: String): String = "${AppItem.FOLDER_PKG}/$folderId"
+
+    /** Generates the next folder id ("f1", "f2", ...) without relying on time/random. */
+    private fun nextFolderId(existing: List<Folder>): String {
+        val maxNum = existing.mapNotNull { it.id.removePrefix("f").toIntOrNull() }.maxOrNull() ?: 0
+        return "f${maxNum + 1}"
+    }
+
+    /** Creates a new folder containing [firstMemberKey]; returns the new folder id. */
+    fun createFolder(ctx: Context, name: String, firstMemberKey: String): String {
+        val list = folders(ctx)
+        // Remove the member from any existing folder first (an app lives in at most one folder).
+        list.forEach { it.members.remove(firstMemberKey) }
+        val id = nextFolderId(list)
+        list.add(Folder(id, name, mutableListOf(firstMemberKey)))
+        saveFolders(ctx, list)
+        return id
+    }
+
+    fun renameFolder(ctx: Context, folderId: String, name: String) {
+        val list = folders(ctx)
+        list.firstOrNull { it.id == folderId }?.let { it.name = name; saveFolders(ctx, list) }
+    }
+
+    fun deleteFolder(ctx: Context, folderId: String) {
+        val list = folders(ctx)
+        if (list.removeAll { it.id == folderId }) saveFolders(ctx, list)
+    }
+
+    /** Adds [componentKey] to [folderId] (removing it from any other folder). Respects the cap. */
+    fun addToFolder(ctx: Context, folderId: String, componentKey: String): Boolean {
+        val list = folders(ctx)
+        val target = list.firstOrNull { it.id == folderId } ?: return false
+        if (componentKey !in target.members && target.members.size >= MAX_FOLDER_MEMBERS) return false
+        list.forEach { it.members.remove(componentKey) }
+        if (componentKey !in target.members) target.members.add(componentKey)
+        saveFolders(ctx, list)
+        return true
+    }
+
+    fun removeFromFolder(ctx: Context, componentKey: String) {
+        val list = folders(ctx)
+        var changed = false
+        list.forEach { if (it.members.remove(componentKey)) changed = true }
+        // Drop any folder left empty.
+        if (list.removeAll { it.members.isEmpty() }) changed = true
+        if (changed) saveFolders(ctx, list)
+    }
+
+    /** Replaces a folder's members wholesale (capped). Deletes the folder if left empty. */
+    fun setFolderMembers(ctx: Context, folderId: String, memberKeys: List<String>) {
+        val list = folders(ctx)
+        val target = list.firstOrNull { it.id == folderId } ?: return
+        val capped = memberKeys.distinct().take(MAX_FOLDER_MEMBERS)
+        // Ensure these members are not left in other folders.
+        list.filter { it.id != folderId }.forEach { it.members.removeAll(capped.toSet()) }
+        target.members.clear()
+        target.members.addAll(capped)
+        list.removeAll { it.members.isEmpty() }
+        saveFolders(ctx, list)
+    }
 }

@@ -11,11 +11,31 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- AppListFragment slides in/out over this container -->
-    <FrameLayout
-        android:id="@+id/fragmentContainer"
+    <!-- Blur nesting for the app-list scene (BlurView 3.x BlurTarget model):
+         · blurTargetLaunch  — captured by the app-OPEN launch blur (app list + folder card).
+         · blurTargetFolder  — captured by the folder backdrop blur (app list only).
+         The folder card and folder backdrop BlurView are added at runtime as children of
+         blurTargetLaunch (outside blurTargetFolder), so the launch blur blurs the card while the
+         folder backdrop blur does not. Each BlurView sits OUTSIDE the target it captures. -->
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/blurTargetLaunch"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/blurTargetFolder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- AppListFragment slides in/out over this container -->
+            <FrameLayout
+                android:id="@+id/fragmentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </eightbitlab.com.blurview.BlurTarget>
+
+    </eightbitlab.com.blurview.BlurTarget>
 
     <!-- Static blur layer — sits above watchface, never animates.
          Populated by BlurEngine when an overlay opens; cleared when it closes. -->

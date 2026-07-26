@@ -21,26 +21,31 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Album art: fills the full card, at lowest Z (drawn first) -->
-        <ImageView
-            android:id="@+id/albumArt"
+        <!-- BlurTarget (BlurView 3.x): holds the album art + scrim at lowest Z; the controls pill
+             (mediaControls) is a BlurView OUTSIDE this target that captures it. -->
+        <eightbitlab.com.blurview.BlurTarget
+            android:id="@+id/mediaBlurTarget"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:scaleType="centerCrop"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Dark scrim over the art for readability -->
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:background="@color/overlay_scrim"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            <!-- Album art: fills the full card, at lowest Z (drawn first) -->
+            <ImageView
+                android:id="@+id/albumArt"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop" />
+
+            <!-- Dark scrim over the art for readability -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/overlay_scrim" />
+
+        </eightbitlab.com.blurview.BlurTarget>
 
         <!-- Content at highest Z, wrap_content drives the card height -->
         <LinearLayout

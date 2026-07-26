@@ -153,6 +153,13 @@ class AppListSettingsFragment : BaseSettingsFragment() {
                 .commit()
         }
 
+        view.findViewById<View>(R.id.rowFolders).setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.settingsContainer, com.ailife.clox.applist.FoldersFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+
         // Background image
         view.findViewById<View>(R.id.rowBgImagePick).setOnClickListener { pickImage.safeLaunch("image/*", requireContext()) }
         btnBgImageClear.setOnClickListener {

@@ -85,6 +85,7 @@ class AppListFragment : Fragment() {
             AppListPrefs.KEY_BG_IMAGE_PATH, AppListPrefs.KEY_WALLPAPER_DIM -> applyBackground()
             AppListPrefs.KEY_ICON_PACK -> viewModel.loadApps(force = true)
             AppListPrefs.KEY_HIDDEN_COMPONENTS, AppListPrefs.KEY_HIDE_MODE -> viewModel.loadApps()
+            AppListPrefs.KEY_FOLDERS -> viewModel.loadApps()
         }
     }
 
@@ -315,71 +316,25 @@ class AppListFragment : Fragment() {
 
         val newBackend = createBackend(ctx, style)
         newBackend.onAppClick = { item, sourceView ->
-            if (RtosAppGuard.allowLaunch(ctx, item)) {
-            // Prefer the icon ImageView for tighter bounds; fall back to the whole item view. Use the
-            // ACTUALLY-DRAWN icon rect (not the full view) so grid cells — where the icon view fills
-            // the cell with padding — don't launch/close/settle at the oversized cell size.
-            val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
-            val bounds = drawnIconRect(boundsView)
-            val intent = android.content.Intent().apply {
-                setClassName(item.packageName, item.activityName)
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (item.isFolder) {
+                openFolder(item, sourceView)
+            } else if (RtosAppGuard.allowLaunch(ctx, item)) {
+                launchApp(item, sourceView)
             }
-            val realWindow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                AppListPrefs.openRealWindow(ctx)
-            val useCustomAnim = AppListPrefs.useCustomLaunchAnim(ctx)
-            val doLaunch: () -> Unit = if (realWindow) {
-                {
-                    // Path A: system runs the real app-window open morph from the icon rect.
-                    // Blur the app list behind the expanding window (tracks morph progress). The tick
-                    // freezes once CloX stops — harmless (the app covers it by then), and any stale
-                    // session is cleared on the next onResume so it can't get stuck.
-                    (activity as? com.ailife.clox.MainActivity)?.startPathAMorphBlur()
-                    val opts = com.ailife.clox.anim.RemoteAppAnimator.openAnimationBundle(bounds) {
-                        AppListPrefs.animSpeed(ctx)
-                    }
-                    runCatching {
-                        if (opts != null) ctx.startActivity(intent, opts)
-                        else ctx.startActivity(intent)
-                    }.onFailure {
-                        ctx.packageManager.getLaunchIntentForPackage(item.packageName)
-                            ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let { ctx.safeStartActivity(it) }
-                    }
-                }
-            } else if (useCustomAnim) {
-                {
-                    runCatching {
-                        ctx.startActivity(intent)
-                    }.onFailure {
-                        ctx.packageManager.getLaunchIntentForPackage(item.packageName)
-                            ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let { ctx.safeStartActivity(it) }
-                    }
-                }
-            } else {
-                {
-                    val opts = ActivityOptions.makeScaleUpAnimation(
-                        boundsView, 0, 0, boundsView.width, boundsView.height
-                    ).toBundle()
-                    runCatching {
-                        ctx.startActivity(intent, opts)
-                    }.onFailure {
-                        ctx.packageManager.getLaunchIntentForPackage(item.packageName)
-                            ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            ?.let { ctx.safeStartActivity(it, opts) }
-                    }
-                }
-            }
-            onAppLaunched?.invoke(item, bounds, boundsView, doLaunch) ?: doLaunch()
-            } // end if (!rtosBlocked)
         }
         newBackend.onAppLongPress = if (!RtosAppGuard.isLongPressAllowed) null else
             { item, anchor ->
-                AppContextMenu.show(ctx, anchor, item,
-                    onIconChanged = { viewModel.loadApps(force = true) },
-                    onHideApp = { viewModel.loadApps() }
-                )
+                if (item.isFolder) {
+                    AppContextMenu.showFolderMenu(ctx, anchor, item.folderId!!, item.label) {
+                        viewModel.loadApps(force = true)
+                    }
+                } else {
+                    AppContextMenu.show(ctx, anchor, item,
+                        onIconChanged = { viewModel.loadApps(force = true) },
+                        onHideApp = { viewModel.loadApps() },
+                        onFolderChanged = { viewModel.loadApps(force = true) }
+                    )
+                }
             }
         newBackend.onRequestClose = { onRequestClose?.invoke() }
         newBackend.onOrderChanged = { items -> viewModel.saveCustomOrder(items) }
@@ -410,6 +365,99 @@ class AppListFragment : Fragment() {
             // list (same reference) on its next emission.
             lastBoundItems = current
         }
+    }
+
+    /**
+     * Launches [item] with the configured open animation, from [sourceView]'s drawn-icon rect.
+     * Extracted so both the flat app list and the folder overlay share one launch path.
+     */
+    private fun launchApp(item: AppItem, sourceView: android.view.View) {
+        val ctx = requireContext()
+        // Prefer the icon ImageView for tighter bounds; fall back to the whole item view. Use the
+        // ACTUALLY-DRAWN icon rect (not the full view) so grid cells — where the icon view fills
+        // the cell with padding — don't launch/close/settle at the oversized cell size.
+        val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
+        val bounds = drawnIconRect(boundsView)
+        val intent = android.content.Intent().apply {
+            setClassName(item.packageName, item.activityName)
+            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val realWindow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            AppListPrefs.openRealWindow(ctx)
+        val useCustomAnim = AppListPrefs.useCustomLaunchAnim(ctx)
+        val doLaunch: () -> Unit = if (realWindow) {
+            {
+                // Path A: system runs the real app-window open morph from the icon rect.
+                // Blur the app list behind the expanding window (tracks morph progress). The tick
+                // freezes once CloX stops — harmless (the app covers it by then), and any stale
+                // session is cleared on the next onResume so it can't get stuck.
+                (activity as? com.ailife.clox.MainActivity)?.startPathAMorphBlur()
+                val opts = com.ailife.clox.anim.RemoteAppAnimator.openAnimationBundle(bounds) {
+                    AppListPrefs.animSpeed(ctx)
+                }
+                runCatching {
+                    if (opts != null) ctx.startActivity(intent, opts)
+                    else ctx.startActivity(intent)
+                }.onFailure {
+                    ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                        ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        ?.let { ctx.safeStartActivity(it) }
+                }
+            }
+        } else if (useCustomAnim) {
+            {
+                runCatching {
+                    ctx.startActivity(intent)
+                }.onFailure {
+                    ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                        ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        ?.let { ctx.safeStartActivity(it) }
+                }
+            }
+        } else {
+            {
+                val opts = ActivityOptions.makeScaleUpAnimation(
+                    boundsView, 0, 0, boundsView.width, boundsView.height
+                ).toBundle()
+                runCatching {
+                    ctx.startActivity(intent, opts)
+                }.onFailure {
+                    ctx.packageManager.getLaunchIntentForPackage(item.packageName)
+                        ?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        ?.let { ctx.safeStartActivity(it, opts) }
+                }
+            }
+        }
+        onAppLaunched?.invoke(item, bounds, boundsView, doLaunch) ?: doLaunch()
+    }
+
+    /** Opens the folder overlay for a folder pseudo-item; members launch via [launchApp]. */
+    private fun openFolder(item: AppItem, sourceView: android.view.View) {
+        val folderId = item.folderId ?: return
+        val boundsView = sourceView.findViewById<android.view.View>(R.id.appIcon) ?: sourceView
+        val bounds = drawnIconRect(boundsView)
+        val members = viewModel.folderMemberItems(folderId)
+        val act = activity as? com.ailife.clox.MainActivity ?: return
+        // Refresh both the app list and the open folder's grid after an in-folder edit.
+        val refresh = {
+            viewModel.loadApps(force = true)
+            act.refreshOpenFolder(viewModel.folderMemberItems(folderId))
+        }
+        act.openFolder(
+            item.label, members, bounds,
+            onMember = { member, memberView ->
+                if (RtosAppGuard.allowLaunch(requireContext(), member)) launchApp(member, memberView)
+            },
+            onMemberLongPress = { member, memberView ->
+                if (RtosAppGuard.isLongPressAllowed) {
+                    AppContextMenu.show(requireContext(), memberView, member,
+                        onIconChanged = { refresh() },
+                        onHideApp = { refresh() },
+                        onFolderChanged = { refresh() }
+                    )
+                }
+            }
+        )
     }
 
     private fun createBackend(ctx: Context, style: String): AppListBackend = when (style) {

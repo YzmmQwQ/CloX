@@ -105,7 +105,7 @@ dependencies {
     // getTaskSnapshot works for the real-window close morph (see xposed/PermGrantHook).
     compileOnly 'de.robv.android.xposed:api:82'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'com.github.Dimezis:BlurView:version-2.0.6'
+    implementation 'com.github.Dimezis:BlurView:version-3.2.0'
     implementation 'androidx.activity:activity-ktx:1.13.0'
     implementation 'androidx.core:core-ktx:1.18.0'
     implementation 'androidx.core:core-splashscreen:1.0.1'

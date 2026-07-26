@@ -29,6 +29,9 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
     private var cachedAllItems: List<AppItem>? = null
     private var needsPackageRefresh = true
 
+    /** Memoised folder composite icons, keyed by folderId|style|members so re-emits don't recomposite. */
+    private val folderIconCache = HashMap<String, Drawable>()
+
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             val pkg = intent.data?.schemeSpecificPart ?: return
@@ -63,7 +66,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
-            if (force) { ScaledIconCache.evictAll(); CircularIconCache.evictAll() }
+            if (force) { ScaledIconCache.evictAll(); CircularIconCache.evictAll(); folderIconCache.clear() }
             val ctx = getApplication<Application>()
             val pm = ctx.packageManager
             val sortMode = AppListPrefs.sort(ctx)
@@ -153,14 +156,64 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
             else -> items.filterNot { it.isHidden }
         }
 
+        // ── Folders ──────────────────────────────────────────────────────────
+        // Pull folder members out of the top level and inject a synthetic folder item for each
+        // folder. Members that are no longer installed are dropped (and the cleanup persisted);
+        // empty folders are removed.
+        val installedKeys = all.map { "${it.packageName}/${it.activityName}" }.toSet()
+        val folders = AppListPrefs.folders(ctx)
+        var foldersDirty = false
+        folders.forEach { f ->
+            val before = f.members.size
+            f.members.retainAll { it in installedKeys }
+            if (f.members.size != before) foldersDirty = true
+        }
+        if (folders.removeAll { it.members.isEmpty() }) foldersDirty = true
+        if (foldersDirty) AppListPrefs.saveFolders(ctx, folders)
+
+        val memberKeys = folders.flatMap { it.members }.toSet()
+        val loose = resolved.filterNot { "${it.packageName}/${it.activityName}" in memberKeys }
+
+        val style = AppListPrefs.style(ctx)
+        val shape = FolderIconFactory.shapeForStyle(style)
+        val folderIconPx = (96 * ctx.resources.displayMetrics.density).toInt()
+        val folderItems = folders.map { f ->
+            val fKey = AppListPrefs.folderKey(f.id)
+            val cacheKey = "${f.id}|$style|${f.members.joinToString(",")}"
+            val icon = folderIconCache.getOrPut(cacheKey) {
+                FolderIconFactory.build(ctx, f.members, folderIconPx, shape)
+            }
+            AppItem(
+                packageName  = AppItem.FOLDER_PKG,
+                activityName = f.id,
+                label        = f.name,
+                icon         = icon,
+                isFolder     = true,
+                folderId     = f.id,
+                customOrder  = customOrder.indexOf(fKey).let { if (it < 0) Int.MAX_VALUE else it }
+            )
+        }
+
         val sorted = when (sortMode) {
-            AppListPrefs.SORT_CUSTOM -> resolved.sortedWith(
+            // Custom: folders sit at their saved drag position, interleaved with apps.
+            AppListPrefs.SORT_CUSTOM -> (loose + folderItems).sortedWith(
                 compareBy<AppItem> { it.customOrder }.thenBy { it.label.lowercase() }
             )
-            else -> resolved.sortedBy { it.label.lowercase() }
+            // Alphabetical: folders pinned to the top, then apps alphabetically.
+            else -> folderItems.sortedBy { it.label.lowercase() } +
+                    loose.sortedBy { it.label.lowercase() }
         }
 
         _apps.value = RtosAppGuard.filterDisplay(sorted, ctx)
+    }
+
+    /** Returns the AppItems for a folder's members (installed apps only), in folder order. */
+    fun folderMemberItems(folderId: String): List<AppItem> {
+        val ctx = getApplication<Application>()
+        val folder = AppListPrefs.folders(ctx).firstOrNull { it.id == folderId } ?: return emptyList()
+        val byKey = (cachedAllItems ?: return emptyList())
+            .associateBy { "${it.packageName}/${it.activityName}" }
+        return folder.members.mapNotNull { byKey[it] }
     }
 
     /** Called after drag-reorder completes: save new visible order and force full reload. */

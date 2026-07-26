@@ -9,13 +9,10 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
-import android.os.Build
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ImageButton
 import eightbitlab.com.blurview.BlurView
-import eightbitlab.com.blurview.RenderEffectBlur
-import eightbitlab.com.blurview.RenderScriptBlur
+import eightbitlab.com.blurview.BlurTarget
 import android.widget.ImageView
 import android.widget.TextView
 import com.ailife.clox.R
@@ -61,13 +58,11 @@ class MediaPlayerCard(root: View, private val onVolumeClick: () -> Unit) {
     }
 
     init {
-        // Set up BlurView to blur the album art behind the controls pill
-        val decorView = root.rootView as? ViewGroup ?: (root as? ViewGroup)
-        if (decorView != null) {
-            val algorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                RenderEffectBlur() else RenderScriptBlur(root.context)
-            @Suppress("DEPRECATION")
-            mediaControls.setupWith(decorView, algorithm)
+        // Set up BlurView (3.x) to blur the album art behind the controls pill. The pill captures
+        // the mediaBlurTarget (album art + scrim), which it sits outside of. Algorithm is auto-selected.
+        val blurTarget = root.findViewById<BlurTarget>(R.id.mediaBlurTarget)
+        if (blurTarget != null) {
+            mediaControls.setupWith(blurTarget)
                 .setBlurRadius(10f)
                 .setBlurAutoUpdate(true)
         }

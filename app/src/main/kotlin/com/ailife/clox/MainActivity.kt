@@ -101,6 +101,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     }
 
     private lateinit var gestureRoot: GestureInterceptorLayout
+    // BlurView 3.x targets. Launch blur captures blurTargetLaunch (app list + folder card);
+    // folder backdrop blur captures blurTargetFolder (app list only). See activity_main.xml.
+    private lateinit var blurTargetLaunch: eightbitlab.com.blurview.BlurTarget
+    private lateinit var blurTargetFolder: eightbitlab.com.blurview.BlurTarget
     private lateinit var overlayController: OverlayController
     private lateinit var quickSettings: QuickSettingsOverlay
     private lateinit var widgets: WidgetsOverlay
@@ -154,6 +158,41 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
     }
 
+    // ── Folder overlay ───────────────────────────────────────────────────────
+    private var folderOverlay: com.ailife.clox.applist.FolderOverlayController? = null
+
+    /** Opens the folder overlay (zoom-out card of the folder's apps) from [iconBounds]. */
+    fun openFolder(
+        name: String,
+        members: List<AppItem>,
+        iconBounds: Rect,
+        onMember: (AppItem, android.view.View) -> Unit,
+        onMemberLongPress: (AppItem, android.view.View) -> Unit
+    ) {
+        val controller = folderOverlay ?: com.ailife.clox.applist.FolderOverlayController(
+            blurTargetLaunch,
+            { realScreenSize().let { it.x to it.y } },
+            object : com.ailife.clox.applist.FolderOverlayController.Blur {
+                override fun add(): android.view.View? = addFolderBackdropBlur()
+                override fun set(view: android.view.View?, fraction: Float) =
+                    setAppWindowBlur(view as? eightbitlab.com.blurview.BlurView, fraction)
+                override fun remove(view: android.view.View?) { view?.let { blurTargetLaunch.removeView(it) } }
+            }
+        ).also { folderOverlay = it }
+        controller.open(name, members, iconBounds, onMember, onMemberLongPress)
+        updateBackEnabled()
+    }
+
+    fun isFolderOpen(): Boolean = folderOverlay?.isOpen == true
+    fun closeFolder() { folderOverlay?.close() }
+    // Predictive-back preview bridges: drag the open folder toward its icon as the finger moves,
+    // spring back on cancel. Commit (handleOnBackPressed) calls closeFolder().
+    fun folderBackStarted() { folderOverlay?.backStarted() }
+    fun folderBackProgress(p: Float) { folderOverlay?.backProgress(p) }
+    fun folderBackCancelled() { folderOverlay?.backCancelled() }
+    /** Rebinds the open folder's members after an in-folder edit (remove-from-folder etc.). */
+    fun refreshOpenFolder(members: List<AppItem>) { folderOverlay?.refresh(members) }
+
     // ── Launch animation interruptible state ─────────────────────────────────
     private var activeLaunchAnim: android.animation.ValueAnimator? = null
     private var activeLaunchT: Float = 0f
@@ -176,14 +215,32 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun addAppWindowBlur(): eightbitlab.com.blurview.BlurView? {
         if (!com.ailife.clox.applist.AppListPrefs.launchBlur(this)) return null
         val bv = eightbitlab.com.blurview.BlurView(this)
+        // The launch blur lives OUTSIDE its target (on gestureRoot) and captures blurTargetLaunch —
+        // the app list + folder card. BlurView 3.x auto-selects the algorithm (RenderNode on API31+,
+        // RenderScript below), so no algorithm arg is passed.
         gestureRoot.addView(bv, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-        val algorithm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-            eightbitlab.com.blurview.RenderEffectBlur()
-        else
-            @Suppress("DEPRECATION") eightbitlab.com.blurview.RenderScriptBlur(this)
-        bv.setupWith(gestureRoot, algorithm).setBlurAutoUpdate(true)
+        bv.setupWith(blurTargetLaunch).setBlurAutoUpdate(true)
         bv.setBlurEnabled(false)
+        Log.d("CloX/Blur", "addAppWindowBlur (launch) bv=${System.identityHashCode(bv)} target=blurTargetLaunch")
+        return bv
+    }
+
+    // Folder backdrop blur: rooted on the APP-LIST container (not gestureRoot) so it is fully
+    // independent from the app-open/close blur (which roots on gestureRoot). Two BlurViews sharing
+    // one root interfere — the launch blur ramping from 0 would drag the folder's blur to 0 too.
+    // Rooting them on different views keeps the folder blur steady while the launch blur animates.
+    private fun addFolderBackdropBlur(): eightbitlab.com.blurview.BlurView? {
+        if (!com.ailife.clox.applist.AppListPrefs.launchBlur(this)) return null
+        val bv = eightbitlab.com.blurview.BlurView(this)
+        // The folder backdrop blur is a child of blurTargetLaunch (so the launch blur blurs it too)
+        // but captures blurTargetFolder (the app list only) — it must sit OUTSIDE the target it
+        // captures. With 3.x BlurTargets this can stay live UNDER the launch blur without interfering.
+        blurTargetLaunch.addView(bv, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        bv.setupWith(blurTargetFolder).setBlurAutoUpdate(true)
+        bv.setBlurEnabled(false)
+        Log.d("CloX/Blur", "addFolderBackdropBlur bv=${System.identityHashCode(bv)} target=blurTargetFolder")
         return bv
     }
 
@@ -191,6 +248,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun setAppWindowBlur(bv: eightbitlab.com.blurview.BlurView?, fraction: Float) {
         bv ?: return
         val r = (com.ailife.clox.overlay.BlurEngine.getRadius(this) * fraction.coerceIn(0f, 1f))
+        Log.d("CloX/Blur", "setAppWindowBlur bv=${System.identityHashCode(bv)} fraction=$fraction r=$r")
         if (r < 1f) {
             bv.setBlurEnabled(false)
         } else {
@@ -420,6 +478,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         setContentView(R.layout.activity_main)
 
         gestureRoot = findViewById(R.id.gestureRoot)
+        blurTargetLaunch = findViewById(R.id.blurTargetLaunch)
+        blurTargetFolder = findViewById(R.id.blurTargetFolder)
         setupSplash(savedInstanceState)
 
         if (savedInstanceState == null) {
@@ -667,6 +727,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         // User pressed Home while already inside the launcher — dismiss outermost layer
         when {
+            isFolderOpen() -> closeFolder()
             AppContextMenu.isShowing -> AppContextMenu.dismissCurrent()
             overlayController.hasActiveOverlay() -> overlayController.dismissActive()
             appListOpen -> closeAppList()
@@ -2098,12 +2159,15 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Re-enabled whenever the app list or an overlay becomes active.
         backCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackStarted(backEvent: BackEventCompat) {
+                Log.d("CloX/Back", "onBackStarted folder=${isFolderOpen()} appListOpen=$appListOpen overlay=${overlayController.hasActiveOverlay()} launchAnim=${activeLaunchAnim != null} reversing=${isLaunchAnimReversing()}")
                 if (activeLaunchAnim != null || isLaunchAnimReversing()) return
+                if (isFolderOpen()) { folderBackStarted(); return }  // preview the folder collapse, not the app-list slide
                 appListSpring?.cancel()
             }
 
             override fun handleOnBackProgressed(backEvent: BackEventCompat) {
                 if (activeLaunchAnim != null || isLaunchAnimReversing()) return
+                if (isFolderOpen()) { folderBackProgress(backEvent.progress); return }  // drag the folder toward its icon
                 val p = backEvent.progress
                 when {
                     overlayController.hasActiveOverlay() ->
@@ -2116,7 +2180,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
 
             override fun handleOnBackCancelled() {
+                Log.d("CloX/Back", "onBackCancelled folder=${isFolderOpen()} appListOpen=$appListOpen")
                 if (activeLaunchAnim != null || isLaunchAnimReversing()) return
+                if (isFolderOpen()) { folderBackCancelled(); return }
                 when {
                     overlayController.hasActiveOverlay() -> overlayController.cancelPredictiveBack()
                     appListOpen -> springAppList(0f)
@@ -2124,6 +2190,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             }
 
             override fun handleOnBackPressed() {
+                Log.d("CloX/Back", "onBackPressed folder=${isFolderOpen()} appListOpen=$appListOpen overlay=${overlayController.hasActiveOverlay()} menu=${AppContextMenu.isShowing} launchAnim=${activeLaunchAnim != null} reversing=${isLaunchAnimReversing()}")
                 when {
                     activeLaunchAnim != null             -> reverseLaunchAnimation()
                     // The window-expand interceptor may have already reversed the launch anim on
@@ -2131,6 +2198,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                     // propagate to context menu / overlay / app-list dismissal. Mirrors the HOME
                     // guard in onNewIntent.
                     isLaunchAnimReversing()              -> {}
+                    isFolderOpen()                       -> { closeFolder(); updateBackEnabled() }
                     AppContextMenu.isShowing             -> { AppContextMenu.dismissCurrent(); updateBackEnabled() }
                     overlayController.hasActiveOverlay() -> overlayController.dismissActive()
                     appListOpen                          -> closeAppList()
@@ -2297,6 +2365,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             when {
                 activeLaunchAnim != null             -> reverseLaunchAnimation()
                 isLaunchAnimReversing()              -> {}
+                isFolderOpen()                       -> closeFolder()
                 AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
                 overlayController.hasActiveOverlay() -> overlayController.dismissActive()
                 appListOpen                          -> closeAppList()

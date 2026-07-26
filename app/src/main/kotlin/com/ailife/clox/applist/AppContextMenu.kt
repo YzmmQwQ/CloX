@@ -14,6 +14,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
@@ -35,9 +36,14 @@ object AppContextMenu {
         anchor: View,
         item: AppItem,
         onIconChanged: () -> Unit,
-        onHideApp: () -> Unit = {}
+        onHideApp: () -> Unit = {},
+        onFolderChanged: () -> Unit = {}
     ) {
         dismissCurrent()
+
+        val componentKey = "${item.packageName}/${item.activityName}"
+        val currentFolder = AppListPrefs.folderContaining(context, componentKey)
+        val allFolders = AppListPrefs.folders(context)
 
         val entries = buildList {
             add(Entry(R.string.menu_hide_app, R.drawable.ic_block) {
@@ -59,6 +65,29 @@ object AppContextMenu {
                 add(Entry(R.string.menu_reset_icon, R.drawable.ic_reset) {
                     AppListPrefs.saveCustomIconPath(context, item.packageName, item.activityName, null)
                     onIconChanged()
+                })
+            }
+            // ── Folder actions ─────────────────────────────────────────────
+            add(Entry(R.string.menu_new_folder, R.drawable.ic_create_new_folder) {
+                promptText(context, context.getString(R.string.folder_name_title), "") { name ->
+                    AppListPrefs.createFolder(context, name.ifBlank { context.getString(R.string.folder_default_name) }, componentKey)
+                    onFolderChanged()
+                }
+            })
+            if (allFolders.isNotEmpty()) {
+                add(Entry(R.string.menu_add_to_folder, R.drawable.ic_folder) {
+                    pickFolder(context, allFolders) { folder ->
+                        if (!AppListPrefs.addToFolder(context, folder.id, componentKey)) {
+                            android.widget.Toast.makeText(
+                                context, R.string.folder_full, android.widget.Toast.LENGTH_SHORT).show()
+                        } else onFolderChanged()
+                    }
+                })
+            }
+            if (currentFolder != null) {
+                add(Entry(R.string.menu_remove_from_folder, R.drawable.ic_folder_remove) {
+                    AppListPrefs.removeFromFolder(context, componentKey)
+                    onFolderChanged()
                 })
             }
         }
@@ -137,6 +166,101 @@ object AppContextMenu {
             }
         }
 
+        placeAndShow(context, anchor, scrollView, density) { popupRef = it }
+    }
+
+    /**
+     * Folder long-press menu: Rename / Edit members / Delete. Edit members opens the settings
+     * folder-member picker; the others act inline. [onChanged] refreshes the app list.
+     */
+    fun showFolderMenu(
+        context: Context,
+        anchor: View,
+        folderId: String,
+        folderName: String,
+        onChanged: () -> Unit
+    ) {
+        dismissCurrent()
+        val entries = listOf(
+            Entry(R.string.menu_rename_folder, R.drawable.ic_edit) {
+                promptText(context, context.getString(R.string.folder_rename_title), folderName) { name ->
+                    if (name.isNotBlank()) { AppListPrefs.renameFolder(context, folderId, name); onChanged() }
+                }
+            },
+            Entry(R.string.menu_edit_members, R.drawable.ic_folder) {
+                context.safeStartActivity(
+                    Intent(context, com.ailife.clox.settings.SettingsActivity::class.java).apply {
+                        putExtra(com.ailife.clox.settings.SettingsActivity.EXTRA_OPEN_FOLDER, folderId)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
+            },
+            Entry(R.string.menu_delete_folder, R.drawable.ic_delete) {
+                MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.folder_delete_title)
+                    .setMessage(context.getString(R.string.folder_delete_message, folderName))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.menu_delete_folder) { _, _ ->
+                        AppListPrefs.deleteFolder(context, folderId)
+                        onChanged()
+                    }
+                    .show()
+            }
+        )
+        val (scrollView, density) = buildMenuScroll(context, entries)
+        placeAndShow(context, anchor, scrollView, density) {}
+    }
+
+    /** Builds the rounded scrollable container for a simple list of [entries]. */
+    private fun buildMenuScroll(context: Context, entries: List<Entry>): Pair<ScrollView, Float> {
+        val density = context.resources.displayMetrics.density
+        val ta = context.obtainStyledAttributes(intArrayOf(
+            android.R.attr.colorBackground,
+            com.google.android.material.R.attr.colorSurface
+        ))
+        val surfaceColor = ta.getColor(1, ta.getColor(0, context.getColor(R.color.fallback_surface)))
+        ta.recycle()
+        val bg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = density * 16f
+            setColor(surfaceColor)
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = (8 * density).toInt()
+            setPadding(0, p, 0, p)
+        }
+        val scrollView = ScrollView(context).apply {
+            background = bg
+            elevation = density * 8f
+            clipToOutline = true
+        }
+        scrollView.addView(container, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val inflater = LayoutInflater.from(context)
+        for (entry in entries) {
+            val v = inflater.inflate(R.layout.item_context_menu, container, false)
+            v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(
+                ContextCompat.getDrawable(context, entry.iconRes))
+            v.findViewById<TextView>(R.id.menuLabel).setText(entry.labelRes)
+            v.setOnClickListener {
+                current?.dismiss()
+                current = null
+                entry.action()
+            }
+            container.addView(v)
+        }
+        return scrollView to density
+    }
+
+    /** Measures, positions relative to [anchor], and shows [scrollView] as the current popup. */
+    private fun placeAndShow(
+        context: Context,
+        anchor: View,
+        scrollView: ScrollView,
+        density: Float,
+        setRef: (PopupWindow) -> Unit
+    ) {
         val popupWidth = (200 * density).toInt()
         val margin = (8 * density).toInt()
         val screenH = context.resources.displayMetrics.heightPixels
@@ -149,7 +273,6 @@ object AppContextMenu {
         val spaceBelow   = screenH - anchorBottom - margin
         val spaceAbove   = anchorTop - margin
 
-        // Use whichever side has more space; cap height to that available space
         val availableH = maxOf(spaceBelow, spaceAbove)
         val maxHeight  = (screenH * 0.70f).toInt().coerceAtMost(availableH)
 
@@ -159,11 +282,8 @@ object AppContextMenu {
         )
         val popupHeight = scrollView.measuredHeight
 
-        // Horizontally: centre over anchor, clamped within screen
         val anchorCx = loc[0] + anchor.width / 2
         val x = (anchorCx - popupWidth / 2).coerceIn(margin, screenW - popupWidth - margin)
-
-        // Vertically: below anchor if more space there, above otherwise
         val y = if (spaceBelow >= spaceAbove) anchorBottom + margin
                 else anchorTop - popupHeight - margin
 
@@ -173,10 +293,38 @@ object AppContextMenu {
             elevation = density * 8f
             setOnDismissListener { current = null }
         }
-        popupRef = popup
+        setRef(popup)
         current = popup
-
         popup.showAtLocation(anchor.rootView, Gravity.TOP or Gravity.START, x, y)
+    }
+
+    /** Simple single-line text input dialog (folder name / rename). */
+    private fun promptText(context: Context, title: String, initial: String, onOk: (String) -> Unit) {
+        val density = context.resources.displayMetrics.density
+        val input = android.widget.EditText(context).apply {
+            setText(initial)
+            setSelection(text.length)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+        val pad = (20 * density).toInt()
+        val holder = FrameLayout(context).apply { setPadding(pad, pad / 2, pad, 0); addView(input) }
+        MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setView(holder)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ -> onOk(input.text.toString().trim()) }
+            .show()
+    }
+
+    /** Lists existing folders for "Add to folder". */
+    private fun pickFolder(context: Context, folders: List<AppListPrefs.Folder>, onPick: (AppListPrefs.Folder) -> Unit) {
+        val names = folders.map { it.name }.toTypedArray()
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.menu_add_to_folder)
+            .setItems(names) { _, which -> onPick(folders[which]) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     fun dismissCurrent() {

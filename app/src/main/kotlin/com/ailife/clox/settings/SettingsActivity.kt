@@ -49,6 +49,9 @@ class SettingsActivity : AppCompatActivity(),
             if (intent?.getStringExtra(EXTRA_OPEN_FRAGMENT) == FRAGMENT_TAP_ACTIONS) {
                 openTapActions()
             }
+
+            // Deep link from the folder long-press "Edit apps" action.
+            intent?.getStringExtra(EXTRA_OPEN_FOLDER)?.let { openFolderMembers(it) }
         }
 
         supportFragmentManager.addOnBackStackChangedListener {
@@ -91,6 +94,22 @@ class SettingsActivity : AppCompatActivity(),
         return true
     }
 
+    private fun openFolderMembers(folderId: String) {
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            setCustomAnimations(
+                R.animator.settings_frag_enter,
+                R.animator.settings_frag_exit,
+                R.animator.settings_frag_pop_enter,
+                R.animator.settings_frag_pop_exit
+            )
+            replace(R.id.settingsContainer,
+                com.ailife.clox.applist.FolderMembersFragment.newInstance(folderId))
+            addToBackStack("folder_members")
+        }
+        title = getString(R.string.folder_members_title)
+    }
+
     private fun openTapActions() {
         supportFragmentManager.commit {
             setReorderingAllowed(true)
@@ -109,6 +128,9 @@ class SettingsActivity : AppCompatActivity(),
     companion object {
         private const val EXTRA_OPEN_FRAGMENT = "clox.settings.open_fragment"
         const val FRAGMENT_TAP_ACTIONS = "tap_actions"
+
+        /** Intent extra: folder id to open directly in the member picker. */
+        const val EXTRA_OPEN_FOLDER = "clox.settings.open_folder"
 
         /** Intent that opens Settings directly on the Tap Actions editor. */
         fun tapActionsIntent(ctx: Context): Intent =
