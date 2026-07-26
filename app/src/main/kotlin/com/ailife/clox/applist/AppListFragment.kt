@@ -198,10 +198,14 @@ class AppListFragment : Fragment() {
         val vw = resources.displayMetrics.widthPixels
         val vh = resources.displayMetrics.heightPixels
         val scale = maxOf(vw.toFloat() / src.width, vh.toFloat() / src.height)
-        val sw = (src.width * scale).toInt()
-        val sh = (src.height * scale).toInt()
+        // Float rounding can make the scaled size 1px short of the view, which would make the crop
+        // rect (below) exceed the bitmap bounds → IllegalArgumentException. Floor to the view size.
+        val sw = (src.width * scale).toInt().coerceAtLeast(vw)
+        val sh = (src.height * scale).toInt().coerceAtLeast(vh)
         val scaled = android.graphics.Bitmap.createScaledBitmap(src, sw, sh, true)
-        return android.graphics.Bitmap.createBitmap(scaled, (sw - vw) / 2, (sh - vh) / 2, vw, vh)
+        val x = ((sw - vw) / 2).coerceIn(0, sw - vw)
+        val y = ((sh - vh) / 2).coerceIn(0, sh - vh)
+        return android.graphics.Bitmap.createBitmap(scaled, x, y, vw, vh)
     }
 
     /** Sets [bitmap] as the root background, overlaying the configured darken scrim. Main thread. */

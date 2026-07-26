@@ -37,6 +37,7 @@ class TileEditorFragment : Fragment() {
 
         // Active list with drag-to-reorder
         activeAdapter = TileListAdapter(activeTiles, isActive = true,
+            onEdit = ::editCustomTile,
             onRemove = { id ->
                 val idx = activeTiles.indexOf(id)
                 if (idx >= 0) {
@@ -68,6 +69,7 @@ class TileEditorFragment : Fragment() {
 
         // Available list
         availableAdapter = TileListAdapter(availableTiles, isActive = false,
+            onEdit = ::editCustomTile,
             onAdd = { id ->
                 val idx = availableTiles.indexOf(id)
                 if (idx >= 0) {
@@ -94,13 +96,27 @@ class TileEditorFragment : Fragment() {
             }.show(parentFragmentManager, "custom_tile")
         }
     }
+
+    /** Open the editor for the custom tile [id] and refresh its row(s) after a save. */
+    private fun editCustomTile(id: String) {
+        val ctx = requireContext()
+        val uuid = id.removePrefix("custom:")
+        val existing = TileLayoutManager.loadCustomTiles(ctx).firstOrNull { it.uuid == uuid } ?: return
+        CustomTileDialogFragment(existing = existing) { updated ->
+            TileLayoutManager.updateCustomTile(ctx, updated)
+            // Label/icon may have changed — rebind wherever the tile currently sits.
+            activeTiles.indexOf(id).takeIf { it >= 0 }?.let { activeAdapter.notifyItemChanged(it) }
+            availableTiles.indexOf(id).takeIf { it >= 0 }?.let { availableAdapter.notifyItemChanged(it) }
+        }.show(parentFragmentManager, "custom_tile")
+    }
 }
 
 class TileListAdapter(
     private val items: MutableList<String>,
     private val isActive: Boolean,
     private val onRemove: ((String) -> Unit)? = null,
-    private val onAdd: ((String) -> Unit)? = null
+    private val onAdd: ((String) -> Unit)? = null,
+    private val onEdit: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<TileListAdapter.VH>() {
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
@@ -121,6 +137,14 @@ class TileListAdapter(
         val descriptor = TileLayoutManager.descriptorFor(id, ctx)
         holder.label.text = descriptor?.defaultLabel ?: id
         descriptor?.iconRes?.let { holder.icon.setImageResource(it) }
+        // Custom tiles are editable — tap the row to open the editor dialog.
+        if (id.startsWith("custom:") && onEdit != null) {
+            holder.itemView.setOnClickListener { onEdit.invoke(id) }
+            holder.itemView.isClickable = true
+        } else {
+            holder.itemView.setOnClickListener(null)
+            holder.itemView.isClickable = false
+        }
         if (isActive) {
             holder.dragHandle.visibility = View.VISIBLE
             holder.action.setImageResource(R.drawable.baseline_close_24)

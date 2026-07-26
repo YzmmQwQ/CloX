@@ -831,6 +831,23 @@
     <string name="custom_tile_settings_key_hint" translatable="false">settings_key</string>
     <string name="custom_tile_add_btn">Add Tile</string>
     <string name="custom_tile_default_label">Custom</string>
+    <string name="custom_tile_dialog_title">Add custom tile</string>
+    <string name="custom_tile_edit_title">Edit custom tile</string>
+    <string name="custom_tile_save_btn">Save</string>
+    <string name="custom_tile_mode_label">Tile action</string>
+    <string name="custom_tile_choose_app">Choose app</string>
+    <string name="custom_tile_component_label">Component</string>
+    <string name="custom_tile_component_helper">Edit to launch a specific activity (package/activity)</string>
+    <string name="custom_tile_choose_app_title">Choose app</string>
+    <string name="custom_tile_namespace_label">Setting scope</string>
+    <string name="custom_tile_ns_system">System</string>
+    <string name="custom_tile_ns_secure">Secure</string>
+    <string name="custom_tile_ns_global">Global</string>
+    <string name="custom_tile_pick_setting">Pick existing setting</string>
+    <string name="custom_tile_pick_setting_title">Pick a setting</string>
+    <string name="custom_tile_settings_key_label">Setting key</string>
+    <string name="custom_tile_settings_key_helper">Toggles this key between 0 and 1</string>
+    <string name="custom_tile_no_settings">No settings found in this scope</string>
 
     <!-- ── Appearance ──────────────────────────────────────────────────── -->
     <string name="appearance_density_default">0 = system default</string>

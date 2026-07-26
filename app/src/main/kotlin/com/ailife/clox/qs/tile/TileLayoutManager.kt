@@ -56,6 +56,11 @@ object TileLayoutManager {
         saveCustomTiles(ctx, loadCustomTiles(ctx).filter { it.uuid != uuid })
     }
 
+    /** Replace the stored config sharing [config]'s uuid (used when editing an existing tile). */
+    fun updateCustomTile(ctx: Context, config: CustomTileConfig) {
+        saveCustomTiles(ctx, loadCustomTiles(ctx).map { if (it.uuid == config.uuid) config else it })
+    }
+
     fun descriptorFor(id: String, ctx: Context): TileDescriptor? {
         TileRegistry.forId(id, ctx)?.let { return it }
         if (id.startsWith("custom:")) {

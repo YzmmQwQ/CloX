@@ -74,22 +74,24 @@ class QsTilePageAdapter(
                     }
                     row.addView(tile)
 
-                    // For custom WRITE_SETTINGS tiles: read current state and apply it immediately
+                    // Custom tiles have no StateFlow; apply their state directly. This must NOT fall
+                    // through to the stateless "off" branch below, or it would clobber the state
+                    // applyCustomTileState just read (the first-open-shows-off bug).
                     if (tileId.startsWith("custom:")) {
                         applyCustomTileState(tile, tileId, ctx)
-                    }
-
-                    val stateFlow = stateManager.stateFor(tileId)
-                    if (stateFlow != null) {
-                        bindState(tile, tileId, stateFlow.value, ctx)
-                        stateFlow.onEach { state ->
-                            bindState(tile, tileId, state, ctx)
-                        }.launchIn(scope)
                     } else {
-                        // Stateless tile (e.g. RTOS mode): apply neutral "off" style immediately
-                        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
-                        val solid = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
-                        if (solid) tile.applyStateSolid(false) else tile.applyState(false)
+                        val stateFlow = stateManager.stateFor(tileId)
+                        if (stateFlow != null) {
+                            bindState(tile, tileId, stateFlow.value, ctx)
+                            stateFlow.onEach { state ->
+                                bindState(tile, tileId, state, ctx)
+                            }.launchIn(scope)
+                        } else {
+                            // Stateless tile (e.g. RTOS mode): apply neutral "off" style immediately
+                            val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+                            val solid = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+                            if (solid) tile.applyStateSolid(false) else tile.applyState(false)
+                        }
                     }
                 } else {
                     // Invisible placeholder keeps column spacing consistent
@@ -244,14 +246,22 @@ class QsTilePageAdapter(
         } catch (_: Exception) { null }
     }
 
-    /** Read current value for a WRITE_SETTINGS custom tile and apply state to the tile view. */
+    /**
+     * Apply a custom tile's state to the view. WRITE_SETTINGS tiles reflect their live Settings
+     * value as on/off; LAUNCH_ACTIVITY (and any tile without a resolvable setting) render as a
+     * neutral "off" tile. Always applies a style so the caller never needs a fallback.
+     */
     fun applyCustomTileState(tile: QsTileView, tileId: String, ctx: Context) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+        val solidOff = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+        fun applyNeutralOff() { if (solidOff) tile.applyStateSolid(false) else tile.applyState(false) }
+
         val uuid = tileId.removePrefix("custom:")
         val config = TileLayoutManager.loadCustomTiles(ctx).firstOrNull { it.uuid == uuid }
-            ?: return
-        if (config.mode != CustomTileMode.WRITE_SETTINGS) return
-        val ns = config.settingsNamespace ?: return
-        val key = config.settingsKey ?: return
+            ?: return applyNeutralOff()
+        if (config.mode != CustomTileMode.WRITE_SETTINGS) return applyNeutralOff()
+        val ns = config.settingsNamespace ?: return applyNeutralOff()
+        val key = config.settingsKey ?: return applyNeutralOff()
         val active = try {
             val value = when (ns) {
                 "system" -> Settings.System.getInt(ctx.contentResolver, key, 0)
@@ -262,7 +272,6 @@ class QsTilePageAdapter(
             value != 0
         } catch (_: Exception) { false }
 
-        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         val colored = prefs.getBoolean(QsPrefs.COLORED_TILES, true)
         val useSystem = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
         val color = if (colored && active) {
@@ -271,10 +280,9 @@ class QsTilePageAdapter(
                  catch (_: Exception) { null }
         } else null
 
-        val solidStyle = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
         val onLabel = ctx.getString(R.string.qs_tile_on)
         val offLabel = ctx.getString(R.string.qs_tile_off)
-        if (solidStyle) tile.applyStateSolid(active, if (active) onLabel else offLabel, null, color)
+        if (solidOff) tile.applyStateSolid(active, if (active) onLabel else offLabel, null, color)
         else tile.applyState(active, if (active) onLabel else offLabel, null, color)
     }
 
