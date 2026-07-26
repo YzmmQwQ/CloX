@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-choice row for the animation-type pickers: radio (checkMark) at the end, an optional
+     warning icon at the start (set in code for options that need the Magisk-module install). -->
+<CheckedTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="?android:attr/listPreferredItemHeightSmall"
+    android:gravity="center_vertical"
+    android:checkMark="?android:attr/listChoiceIndicatorSingle"
+    android:paddingStart="?android:attr/dialogPreferredPadding"
+    android:paddingEnd="?android:attr/dialogPreferredPadding"
+    android:drawablePadding="16dp"
+    android:textAppearance="?attr/textAppearanceBodyLarge"
+    android:maxLines="1"
+    android:ellipsize="end" />

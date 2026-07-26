@@ -42,27 +42,26 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
         val tvCloseAnimDelay     = view.findViewById<TextView>(R.id.tvCloseAnimDelay)
         val sliderCloseAnimDelay = view.findViewById<Slider>(R.id.sliderCloseAnimDelay)
 
-        // The real-system-window (Path A) option is only offered when the privileged permission is
-        // held (CloX shipped as a priv-app). It is the default type in that case (see AppListPrefs).
+        // The real-system-window (Path A) options need the privileged permission (CloX shipped as a
+        // priv-app via its Magisk module). They are ALWAYS listed now; when the permission isn't held
+        // they show a warning marker and, if picked, explain that the module must be installed.
         val hasRemoteAnim = AppListPrefs.hasRemoteAnimPermission(requireContext())
         val realEntry = getString(R.string.anim_setting_real_window_entry)
-        fun withReal(entries: Array<String>, values: Array<String>, realValue: String) =
-            if (hasRemoteAnim) Pair(entries + realEntry, values + realValue) else Pair(entries, values)
-        val (openTypeEntries, openTypeValues) = withReal(
-            resources.getStringArray(R.array.open_anim_type_entries),
-            resources.getStringArray(R.array.open_anim_type_values),
-            AppListPrefs.OPEN_ANIM_REAL_WINDOW)
-        val (closeTypeEntries0, closeTypeValues0) = withReal(
-            resources.getStringArray(R.array.close_anim_type_entries),
-            resources.getStringArray(R.array.close_anim_type_values),
-            AppListPrefs.CLOSE_ANIM_REAL_WINDOW)
+
+        val openTypeEntries = resources.getStringArray(R.array.open_anim_type_entries) + realEntry
+        val openTypeValues  = resources.getStringArray(R.array.open_anim_type_values) + AppListPrefs.OPEN_ANIM_REAL_WINDOW
+
         // Snapshot close (CloX-drawn app-screenshot morph) — API 31+ where the real close transition
         // can't be owned; it's the default there. Needs the remote-anim permission (same as real window).
-        val (closeTypeEntries, closeTypeValues) =
-            if (hasRemoteAnim && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                Pair(closeTypeEntries0 + getString(R.string.anim_setting_snapshot_entry),
-                     closeTypeValues0 + AppListPrefs.CLOSE_ANIM_SNAPSHOT)
-            else Pair(closeTypeEntries0, closeTypeValues0)
+        val snapshotOnApi = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val closeTypeEntries = resources.getStringArray(R.array.close_anim_type_entries) + realEntry +
+            (if (snapshotOnApi) arrayOf(getString(R.string.anim_setting_snapshot_entry)) else emptyArray())
+        val closeTypeValues = resources.getStringArray(R.array.close_anim_type_values) + AppListPrefs.CLOSE_ANIM_REAL_WINDOW +
+            (if (snapshotOnApi) arrayOf(AppListPrefs.CLOSE_ANIM_SNAPSHOT) else emptyArray())
+
+        // Values that are shown but unavailable until CloX holds the remote-anim permission.
+        val unavailableAnimValues: Set<String> = if (hasRemoteAnim) emptySet() else setOf(
+            AppListPrefs.OPEN_ANIM_REAL_WINDOW, AppListPrefs.CLOSE_ANIM_REAL_WINDOW, AppListPrefs.CLOSE_ANIM_SNAPSHOT)
 
         fun labelFor(entries: Array<String>, values: Array<String>, v: String) =
             entries.getOrElse(values.indexOf(v)) { v }
@@ -90,7 +89,8 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
         rowOpenAnimType.setOnClickListener {
             val current = AppListPrefs.openAnimType(requireContext())
-            showListPicker(getString(R.string.anim_setting_open_type_title), openTypeEntries, openTypeValues, current) { v, _ ->
+            showAnimTypePicker(getString(R.string.anim_setting_open_type_title),
+                openTypeEntries, openTypeValues, unavailableAnimValues, current) { v ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_OPEN_ANIM_TYPE, v).apply()
                 refreshOpenType()
             }
@@ -126,7 +126,8 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
 
         rowCloseAnimType.setOnClickListener {
             val current = AppListPrefs.closeAnimType(requireContext())
-            showListPicker(getString(R.string.anim_setting_close_type_title), closeTypeEntries, closeTypeValues, current) { v, _ ->
+            showAnimTypePicker(getString(R.string.anim_setting_close_type_title),
+                closeTypeEntries, closeTypeValues, unavailableAnimValues, current) { v ->
                 appListPrefs.edit().putString(AppListPrefs.KEY_CLOSE_ANIM_TYPE, v).apply()
                 refreshCloseType()
             }
@@ -299,6 +300,52 @@ class AnimationSettingsFragment : BaseSettingsFragment() {
                 com.ailife.clox.util.ClosingAppDetector.openUsageAccessSettings(requireContext())
             }
             .setNegativeButton(android.R.string.cancel) { _, _ -> pendingEnableDetect = false }
+            .show()
+    }
+
+    /**
+     * Single-choice animation-type picker. Values in [unavailable] are shown with a warning marker;
+     * selecting one explains that the Magisk module must be installed instead of applying it.
+     */
+    private fun showAnimTypePicker(
+        title: String,
+        entries: Array<String>,
+        values: Array<String>,
+        unavailable: Set<String>,
+        current: String,
+        onSelect: (String) -> Unit
+    ) {
+        val ctx = requireContext()
+        val adapter = object : android.widget.ArrayAdapter<String>(ctx, R.layout.item_anim_type_choice, entries) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val tv = super.getView(position, convertView, parent) as android.widget.CheckedTextView
+                val warn = if (values.getOrNull(position) in unavailable)
+                    androidx.appcompat.content.res.AppCompatResources.getDrawable(ctx, R.drawable.ic_anim_unavailable)
+                else null
+                tv.setCompoundDrawablesRelativeWithIntrinsicBounds(warn, null, null, null)
+                return tv
+            }
+        }
+        val selected = values.indexOf(current).coerceAtLeast(0)
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+            .setTitle(title)
+            .setSingleChoiceItems(adapter, selected) { dialog, which ->
+                val value = values[which]
+                dialog.dismiss()
+                if (value in unavailable) showRemoteAnimUnavailableDialog()
+                else onSelect(value)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** Explains that a real-window animation needs CloX installed as a system app via its Magisk module. */
+    private fun showRemoteAnimUnavailableDialog() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setIcon(R.drawable.ic_anim_unavailable)
+            .setTitle(R.string.anim_setting_remote_unavailable_title)
+            .setMessage(R.string.anim_setting_remote_unavailable_msg)
+            .setPositiveButton(android.R.string.ok, null)
             .show()
     }
 }
