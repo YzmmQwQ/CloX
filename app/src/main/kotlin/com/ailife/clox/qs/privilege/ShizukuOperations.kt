@@ -116,4 +116,13 @@ object ShizukuOperations {
 
     fun writeSettings(namespace: String, key: String, value: String) =
         exec("settings put $namespace $key $value")
+
+    /**
+     * Clears Android 13+'s "restricted settings" lock for [pkg] by allowing the
+     * ACCESS_RESTRICTED_SETTINGS app-op, so its Accessibility / Notification-listener toggles become
+     * grantable on a sideloaded build. Falls back to the numeric op code if the name isn't recognised.
+     */
+    fun clearRestrictedSettings(pkg: String): Boolean =
+        exec("appops set $pkg ACCESS_RESTRICTED_SETTINGS allow") ||
+        exec("appops set $pkg 119 allow")
 }

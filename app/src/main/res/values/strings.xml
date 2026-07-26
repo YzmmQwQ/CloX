@@ -1365,4 +1365,6 @@
     <string name="pref_about_title">About &amp; Update</string>
     <string name="pref_about_summary">Version, developers, Onyx project, update checker</string>
 
+    <string name="restricted_settings_unlocked">Restricted settings unlocked — you can now enable the toggle</string>
+
 </resources>

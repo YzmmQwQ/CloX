@@ -275,8 +275,9 @@ class NotificationOverlay @JvmOverloads constructor(
     }
 
     private fun openNotificationListenerSettings() {
-        context.safeStartActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        // 13+ sideloaded builds: clear the restricted-settings lock (Shizuku/root) before opening.
+        com.ailife.clox.qs.privilege.RestrictedSettingsHelper.openGrantScreen(
+            context, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
     private fun showVolumeDialog() {

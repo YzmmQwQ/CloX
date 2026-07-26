@@ -121,9 +121,9 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
             if (!running && granted) {
                 CloXNotificationListenerService.requestRebind(requireContext())
             } else {
-                requireContext().safeStartActivity(
-                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                // 13+ sideloaded builds: clear the restricted-settings lock (Shizuku/root) first.
+                com.ailife.clox.qs.privilege.RestrictedSettingsHelper.openGrantScreen(
+                    requireContext(), Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             }
         }
         updatePermissionStatus(tvPermission)

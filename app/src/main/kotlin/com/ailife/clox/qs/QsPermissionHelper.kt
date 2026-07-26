@@ -112,8 +112,9 @@ object QsPermissionHelper {
 
     fun ensureAccessibilityEnabled(ctx: Context): Boolean {
         if (CloXAccessibilityService.isRunning()) return true
-        ctx.safeStartActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        // 13+ sideloaded builds need the restricted-settings lock cleared first, or the toggle is greyed out.
+        com.ailife.clox.qs.privilege.RestrictedSettingsHelper.openGrantScreen(
+            ctx, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         return false
     }
 }

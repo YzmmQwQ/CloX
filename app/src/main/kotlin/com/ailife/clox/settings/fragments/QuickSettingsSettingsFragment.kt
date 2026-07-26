@@ -175,10 +175,10 @@ class QuickSettingsSettingsFragment : BaseSettingsFragment() {
             }
         }
 
-        // Accessibility
+        // Accessibility — clear the 13+ restricted-settings lock (via Shizuku/root) before opening.
         view.findViewById<View>(R.id.rowQsAccessibility).setOnClickListener {
-            requireContext().safeStartActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            com.ailife.clox.qs.privilege.RestrictedSettingsHelper.openGrantScreen(
+                requireContext(), Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
     }
 
