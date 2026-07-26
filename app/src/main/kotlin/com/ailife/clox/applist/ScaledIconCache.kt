@@ -31,6 +31,11 @@ object ScaledIconCache {
         return result
     }
 
+    /** Drop cached entries for a single tag across all sizes (keys are "tag_size"). */
+    fun invalidate(tag: String) {
+        cache.snapshot().keys.filter { it.startsWith("${tag}_") }.forEach { cache.remove(it) }
+    }
+
     /** Drop cached entries for every activity of [packageName] (keys are "pkg/activity_size"). */
     fun invalidatePackage(packageName: String) {
         val prefix = "$packageName/"

@@ -456,6 +456,14 @@ class AppListFragment : Fragment() {
                         onFolderChanged = { refresh() }
                     )
                 }
+            },
+            onReorder = { newMembers ->
+                // Persist the dragged order. Don't rebind the open folder's grid (the adapter is
+                // already in the new order); just refresh the main list so the composite folder
+                // icon reflects the new member order.
+                val keys = newMembers.map { "${it.packageName}/${it.activityName}" }
+                AppListPrefs.setFolderMembers(requireContext(), folderId, keys)
+                viewModel.loadApps(force = true)
             }
         )
     }

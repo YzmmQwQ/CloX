@@ -180,9 +180,17 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
         val folderItems = folders.map { f ->
             val fKey = AppListPrefs.folderKey(f.id)
             val cacheKey = "${f.id}|$style|${f.members.joinToString(",")}"
-            val icon = folderIconCache.getOrPut(cacheKey) {
-                FolderIconFactory.build(ctx, f.members, folderIconPx, shape)
-            }
+            val icon = folderIconCache[cacheKey] ?: FolderIconFactory
+                .build(ctx, f.members, folderIconPx, shape)
+                .also { built ->
+                    folderIconCache[cacheKey] = built
+                    // The composite was rebuilt (members/style changed). The downstream scaled/
+                    // circular caches key folder icons by folder tag ("clox.folder/<id>") only and
+                    // would keep serving the stale bitmap (an uninstalled/removed/added member),
+                    // so drop this folder's entries and force the backend to re-scale.
+                    ScaledIconCache.invalidate(fKey)
+                    CircularIconCache.invalidate(fKey)
+                }
             AppItem(
                 packageName  = AppItem.FOLDER_PKG,
                 activityName = f.id,

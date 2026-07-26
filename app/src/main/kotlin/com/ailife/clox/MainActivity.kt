@@ -167,7 +167,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         members: List<AppItem>,
         iconBounds: Rect,
         onMember: (AppItem, android.view.View) -> Unit,
-        onMemberLongPress: (AppItem, android.view.View) -> Unit
+        onMemberLongPress: (AppItem, android.view.View) -> Unit,
+        onReorder: (List<AppItem>) -> Unit
     ) {
         val controller = folderOverlay ?: com.ailife.clox.applist.FolderOverlayController(
             blurTargetLaunch,
@@ -179,7 +180,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 override fun remove(view: android.view.View?) { view?.let { blurTargetLaunch.removeView(it) } }
             }
         ).also { folderOverlay = it }
-        controller.open(name, members, iconBounds, onMember, onMemberLongPress)
+        controller.open(name, members, iconBounds, onMember, onMemberLongPress, onReorder)
         updateBackEnabled()
     }
 
@@ -1983,6 +1984,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Swipe-update routing ─────────────────────────────────────────────────
 
     private fun handleSwipeUpdate(direction: SwipeDirection, dx: Float, dy: Float) {
+        // Folder-first: while a folder is open it floats over the app list (parented to
+        // blurTargetLaunch, not the sliding fragment). Suppress the app-list follow-slide so the
+        // folder can't be left floating over a collapsed list. The swipe is a no-op; the folder is
+        // dismissed only by a tap outside it, after which a swipe can slide the app list normally.
+        if (isFolderOpen()) return
         if (overlayController.isCollapsing) {
             overlayController.updateCollapse(dx, dy)
             return
@@ -2010,6 +2016,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Swipe-end routing ────────────────────────────────────────────────────
 
     private fun handleSwipeEnd(direction: SwipeDirection, dx: Float, dy: Float, vx: Float, vy: Float) {
+        // Folder-first: while a folder is open, swallow the swipe entirely — do NOT collapse the
+        // app list (it slides out from under the floating folder card) and do NOT close the folder.
+        // The folder is dismissed only by a genuine tap outside it (FolderOverlayController's
+        // container onClick, which still fires because a tap never triggers gesture interception).
+        // The user must tap to dismiss the folder first; only then can a swipe slide the app list.
+        if (isFolderOpen()) return
+
         // Priority 1: commit or cancel an in-progress collapse drag
         if (overlayController.isCollapsing) {
             val commit = when (direction) {

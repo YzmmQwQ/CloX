@@ -15,6 +15,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
 import com.ailife.clox.applist.model.AppItem
@@ -65,7 +66,8 @@ class FolderOverlayController(
         members: List<AppItem>,
         bounds: Rect,
         onMember: (AppItem, View) -> Unit,
-        onMemberLongPress: (AppItem, View) -> Unit
+        onMemberLongPress: (AppItem, View) -> Unit,
+        onReorder: (List<AppItem>) -> Unit
     ) {
         if (isOpen) return
         val (sw, sh) = screenSize()
@@ -91,7 +93,7 @@ class FolderOverlayController(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         }
 
-        val cardView = buildCard(name, members, onMember, onMemberLongPress)
+        val cardView = buildCard(name, members, onMember, onMemberLongPress, onReorder)
         card = cardView
         cont.addView(cardView, FrameLayout.LayoutParams(finalSize, finalSize, Gravity.CENTER))
 
@@ -189,7 +191,8 @@ class FolderOverlayController(
         name: String,
         members: List<AppItem>,
         onMember: (AppItem, View) -> Unit,
-        onMemberLongPress: (AppItem, View) -> Unit
+        onMemberLongPress: (AppItem, View) -> Unit,
+        onReorder: (List<AppItem>) -> Unit
     ): View {
         val pad = (12 * density).toInt()
         val root = LinearLayout(ctx).apply {
@@ -230,9 +233,17 @@ class FolderOverlayController(
             // member's mini icon, and on return it morphs back into that same still-present icon.
             a.onAppClick = { item, v -> onMember(item, v) }
             a.onAppLongPress = { item, v -> onMemberLongPress(item, v) }
+            // Long-press then drag reorders members (same infra as the main app list): a stationary
+            // long-press shows the context menu, but moving past the drag threshold dismisses it and
+            // starts an ItemTouchHelper drag. New order is persisted on drop via onReorder.
+            a.dragEnabled = true
+            a.onOrderChanged = { onReorder(it) }
         }
         rv.adapter = adp
         adapter = adp
+        val touchHelper = ItemTouchHelper(AppListTouchCallback(adp))
+        touchHelper.attachToRecyclerView(rv)
+        adp.touchHelper = touchHelper
         adp.submitList(members)
         root.addView(rv, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
