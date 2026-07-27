@@ -123,6 +123,17 @@ class ListBackend(private val ctx: Context) : AppListBackend {
 
     override fun setDragEnabled(enabled: Boolean) { adapter?.dragEnabled = enabled }
 
+    override fun setActive(active: Boolean) {
+        // Leaving the list page (page change / screen-off / drawer close) drops focus;
+        // the focus-change listener then hides the keyboard.
+        if (!active && ::searchField.isInitialized) searchField.clearFocus()
+    }
+
+    private fun hideKeyboard(view: View) {
+        val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+
     override fun refreshBadges(counts: Map<String, Int>) {
         notifCounts = counts
         updateVisibleBadges(recyclerView, counts)
@@ -149,6 +160,9 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             val pv = 8.dp(ctx); val ph = margin
             setPadding(ph, pv, 4.dp(ctx), pv)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnFocusChangeListener { v, hasFocus ->
+                if (!hasFocus) hideKeyboard(v)
+            }
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
                 override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
@@ -176,8 +190,6 @@ class ListBackend(private val ctx: Context) : AppListBackend {
             setOnClickListener {
                 editText.text.clear()
                 editText.clearFocus()
-                val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.hideSoftInputFromWindow(editText.windowToken, 0)
             }
         }
 

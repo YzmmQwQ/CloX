@@ -83,7 +83,7 @@ class NotificationOverlay @JvmOverloads constructor(
 
         notifList.layoutManager = LinearLayoutManager(ctx)
         notifList.adapter = concatAdapter
-        listAdapter.attachSwipeToDismiss(notifList)
+        listAdapter.attachSwipeToDismiss(notifList) { mediaAdapter.dismiss() }
 
         notifPager.adapter = pageAdapter
 

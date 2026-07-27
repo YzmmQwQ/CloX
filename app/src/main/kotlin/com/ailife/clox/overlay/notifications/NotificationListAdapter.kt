@@ -323,13 +323,19 @@ class NotificationListAdapter(
     }
 
     /** Attach swipe-to-dismiss (right swipe) to the RecyclerView. Persistent notifications are blocked. */
-    fun attachSwipeToDismiss(rv: RecyclerView) {
+    fun attachSwipeToDismiss(rv: RecyclerView, onMediaSwiped: () -> Unit = {}) {
         ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
             override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, t: RecyclerView.ViewHolder) = false
 
             override fun getSwipeDirs(rv: RecyclerView, vh: RecyclerView.ViewHolder): Int {
+                android.util.Log.d("CloXNotif", "getSwipeDirs vh=${vh.javaClass.simpleName} bindPos=${vh.bindingAdapterPosition}")
+                // The media card (MediaSingleAdapter.VH) shares this RecyclerView via ConcatAdapter.
+                // Swiping it dismisses the card itself (handled in onSwiped) — it is NOT a notification
+                // row, so don't index into our list for it.
+                if (vh is MediaSingleAdapter.VH) return super.getSwipeDirs(rv, vh)
+                if (vh !is VH) return 0
                 val pos = vh.bindingAdapterPosition
-                if (pos == RecyclerView.NO_ID.toInt()) return 0
+                if (pos == RecyclerView.NO_POSITION) return 0
                 val sbn = try { getItem(pos) } catch (e: Exception) { return 0 }
                 val flags = sbn.notification.flags
                 val isPersistent = (flags and (android.app.Notification.FLAG_ONGOING_EVENT or
@@ -338,9 +344,16 @@ class NotificationListAdapter(
             }
 
             override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {
+                if (vh is MediaSingleAdapter.VH) {
+                    android.util.Log.d("CloXNotif", "swipe-dismiss media card")
+                    onMediaSwiped()
+                    return
+                }
+                if (vh !is VH) return
                 val pos = vh.bindingAdapterPosition
-                if (pos == RecyclerView.NO_ID.toInt()) return
+                if (pos == RecyclerView.NO_POSITION) return
                 val sbn = getItem(pos)
+                android.util.Log.d("CloXNotif", "swipe-dismiss pos=$pos key=${sbn.key} pkg=${sbn.packageName}")
                 pendingDismissKeys.add(sbn.key)
                 expanded.remove(sbn.key)
                 // Re-submit current list minus the dismissed key for immediate visual removal

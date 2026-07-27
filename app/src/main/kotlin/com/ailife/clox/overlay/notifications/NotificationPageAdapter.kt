@@ -33,6 +33,10 @@ class NotificationPageAdapter(
     private val expanded = mutableSetOf<String>()
     private var listenerComponent: ComponentName? = null
     private var hasMediaSession = false
+    private var mediaDismissed = false
+
+    /** Whether the media page should currently occupy slot 0. */
+    private fun showMedia() = hasMediaSession && !mediaDismissed
 
     fun bindMediaSession(context: Context, component: ComponentName) {
         listenerComponent = component
@@ -40,6 +44,7 @@ class NotificationPageAdapter(
             val msm = context.getSystemService(Context.MEDIA_SESSION_SERVICE)
                 as android.media.session.MediaSessionManager
             val newHas = msm.getActiveSessions(component).isNotEmpty()
+            if (!newHas) mediaDismissed = false   // session gone — allow a future session to show
             if (newHas != hasMediaSession) { hasMediaSession = newHas; notifyDataSetChanged() }
         } catch (e: Exception) {}
     }
@@ -70,7 +75,7 @@ class NotificationPageAdapter(
     }
 
     override fun getItemViewType(position: Int) =
-        if (hasMediaSession && position == 0) TYPE_MEDIA else TYPE_NOTIF
+        if (showMedia() && position == 0) TYPE_MEDIA else TYPE_NOTIF
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         if (viewType == TYPE_MEDIA) {
@@ -84,7 +89,11 @@ class NotificationPageAdapter(
             val cardView = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_media_player, wrapper, false)
             wrapper.addView(cardView)
-            return MediaPageVH(wrapper, MediaPlayerCard(cardView) {})
+            return MediaPageVH(wrapper, MediaPlayerCard(cardView, onVolumeClick = {}, onClose = {
+                // User closed the card: drop the page so it no longer takes a full-screen slot.
+                mediaDismissed = true
+                notifyDataSetChanged()
+            }))
         }
         return PageVH(
             LayoutInflater.from(parent.context)
@@ -92,7 +101,7 @@ class NotificationPageAdapter(
         )
     }
 
-    override fun getItemCount() = items.size + if (hasMediaSession) 1 else 0
+    override fun getItemCount() = items.size + if (showMedia()) 1 else 0
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is MediaPageVH) {
@@ -101,7 +110,7 @@ class NotificationPageAdapter(
             return
         }
         val h = holder as PageVH
-        val notifPos = if (hasMediaSession) position - 1 else position
+        val notifPos = if (showMedia()) position - 1 else position
         val sbn = items[notifPos]
         val notif = sbn.notification
         val extras = notif.extras

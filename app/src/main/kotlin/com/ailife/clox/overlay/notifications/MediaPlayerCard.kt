@@ -23,7 +23,11 @@ import java.util.concurrent.TimeUnit
 /**
  * Plain Kotlin class (not a View) that binds media session data to views in [item_media_player.xml].
  */
-class MediaPlayerCard(root: View, private val onVolumeClick: () -> Unit) {
+class MediaPlayerCard(
+    root: View,
+    private val onVolumeClick: () -> Unit,
+    private val onClose: () -> Unit = {}
+) {
 
     private val albumArt: ImageView          = root.findViewById(R.id.albumArt)
     private val mediaAppIcon: ImageView      = root.findViewById(R.id.mediaAppIcon)
@@ -79,7 +83,9 @@ class MediaPlayerCard(root: View, private val onVolumeClick: () -> Unit) {
         btnPlayPause.setOnClickListener { togglePlayback() }
         btnPrev.setOnClickListener { controller?.transportControls?.skipToPrevious() }
         btnNext.setOnClickListener { controller?.transportControls?.skipToNext() }
-        btnClose.setOnClickListener { root.visibility = View.GONE; progress.playing = false }
+        // Let the owning adapter drop the row so it stops occupying space — just hiding the
+        // view keeps its (full-page) slot in the RecyclerView.
+        btnClose.setOnClickListener { progress.playing = false; onClose() }
         btnLoop.setOnClickListener { cycleLoopMode() }
         btnVolume.setOnClickListener { onVolumeClick() }
 
