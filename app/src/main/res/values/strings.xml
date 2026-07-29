@@ -665,6 +665,19 @@
         <item>applist</item>
     </string-array>
 
+    <!-- Status bar visibility -->
+    <string name="pref_status_bar_title">Status bar</string>
+    <string-array name="status_bar_mode_entries">
+        <item>Hidden</item>
+        <item>Always shown</item>
+        <item>Only in app list</item>
+    </string-array>
+    <string-array name="status_bar_mode_values" translatable="false">
+        <item>hidden</item>
+        <item>show</item>
+        <item>applist</item>
+    </string-array>
+
     <!-- Watch face auto-change -->
     <string name="pref_wf_category_auto">Auto Change</string>
     <string name="pref_wf_auto_screen_on_title">Change on screen on</string>

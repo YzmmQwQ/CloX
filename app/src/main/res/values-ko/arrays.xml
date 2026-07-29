@@ -93,6 +93,11 @@
         <item>항상 표시</item>
         <item>앱 목록에서만</item>
     </string-array>
+    <string-array name="status_bar_mode_entries">
+        <item>숨김</item>
+        <item>항상 표시</item>
+        <item>앱 목록에서만</item>
+    </string-array>
 
     <string-array name="wf_auto_interval_entries">
         <item>끄기</item>

@@ -760,22 +760,27 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }
     }
 
-    // Status bar is always hidden. The navigation bar follows the "nav_bar_mode" gesture
-    // setting: hidden / always shown / shown only while the app list is open. RTOS mode
-    // always hides it (full-screen lock). Call this whenever the app-list state changes.
+    // Both bars follow their "*_bar_mode" gesture settings: hidden / always shown / shown
+    // only while the app list is open. RTOS mode always hides them (full-screen lock).
+    // Call this whenever the app-list state changes.
     internal fun hideSystemBars() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.statusBars())
 
-        val mode = PreferenceManager.getDefaultSharedPreferences(this)
-            .getString("nav_bar_mode", "applist") ?: "applist"
-        val showNav = !RtosManager.isActive && when (mode) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+
+        fun shouldShow(mode: String) = !RtosManager.isActive && when (mode) {
             "show"    -> true
             "applist" -> appListOpen
             else      -> false   // "hidden"
         }
-        if (showNav) controller.show(WindowInsetsCompat.Type.navigationBars())
+
+        val statusMode = prefs.getString("status_bar_mode", "hidden") ?: "hidden"
+        if (shouldShow(statusMode)) controller.show(WindowInsetsCompat.Type.statusBars())
+        else controller.hide(WindowInsetsCompat.Type.statusBars())
+
+        val navMode = prefs.getString("nav_bar_mode", "applist") ?: "applist"
+        if (shouldShow(navMode)) controller.show(WindowInsetsCompat.Type.navigationBars())
         else controller.hide(WindowInsetsCompat.Type.navigationBars())
     }
 

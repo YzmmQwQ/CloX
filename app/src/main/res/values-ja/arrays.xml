@@ -94,6 +94,11 @@
         <item>常に表示</item>
         <item>アプリ一覧内のみ</item>
     </string-array>
+    <string-array name="status_bar_mode_entries">
+        <item>非表示</item>
+        <item>常に表示</item>
+        <item>アプリ一覧内のみ</item>
+    </string-array>
 
     <!-- Watch face auto-change -->
     <string-array name="wf_auto_interval_entries">

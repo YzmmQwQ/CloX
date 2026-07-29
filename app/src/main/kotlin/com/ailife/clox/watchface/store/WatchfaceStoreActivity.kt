@@ -23,6 +23,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.graphics.GraphicsCompat
 import com.ailife.clox.util.safeStartActivity
 import com.ailife.clox.watchface.WatchfacePrefs
 import com.ailife.clox.watchface.WatchfaceRepository
@@ -339,8 +340,10 @@ object StorePreviewCache {
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         var sample = 1
         while (bounds.outWidth / sample > reqWidth * 2) sample *= 2
-        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size,
-            BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+        val bmp = GraphicsCompat.serializedDecode {
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size,
+                BitmapFactory.Options().apply { inSampleSize = sample })
+        } ?: return null
         cache.put(url, bmp)
         return bmp
     }

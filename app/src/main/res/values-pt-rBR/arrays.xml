@@ -94,6 +94,11 @@
         <item>Sempre exibida</item>
         <item>Somente na lista de aplicativos</item>
     </string-array>
+    <string-array name="status_bar_mode_entries">
+        <item>Oculta</item>
+        <item>Sempre exibida</item>
+        <item>Somente na lista de aplicativos</item>
+    </string-array>
 
     <string-array name="wf_auto_interval_entries">
         <item>Desligado</item>

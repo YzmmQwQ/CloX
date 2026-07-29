@@ -448,6 +448,7 @@
 
     <!-- Navigation bar visibility -->
     <string name="pref_nav_bar_title">導覽列</string>
+    <string name="pref_status_bar_title">狀態列</string>
 
     <!-- Watch face auto-change -->
     <string name="pref_wf_category_auto">自動更換</string>

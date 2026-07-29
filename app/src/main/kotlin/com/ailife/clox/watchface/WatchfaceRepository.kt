@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.util.LruCache
+import com.ailife.clox.graphics.GraphicsCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -82,7 +83,9 @@ object WatchfaceRepository {
                         inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
                     }
                     zip.getInputStream(entry).use { stream ->
-                        BitmapFactory.decodeStream(stream, null, opts)?.also {
+                        GraphicsCompat.serializedDecode {
+                            BitmapFactory.decodeStream(stream, null, opts)
+                        }?.also {
                             previewCache.put(file.absolutePath, it)
                         }
                     }

@@ -446,6 +446,7 @@
 
     <!-- Navigation bar visibility -->
     <string name="pref_nav_bar_title">Barra de navegação</string>
+    <string name="pref_status_bar_title">Barra de status</string>
 
     <!-- Watch face auto-change -->
     <string name="pref_wf_category_auto">Troca automática</string>

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.ailife.clox.R
+import com.ailife.clox.graphics.GraphicsCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -88,7 +89,7 @@ class GalleryAdapter(
                 BitmapFactory.decodeFile(file.absolutePath, opts)
                 opts.inSampleSize = calculateInSampleSize(opts.outWidth, opts.outHeight, maxPx)
                 opts.inJustDecodeBounds = false
-                BitmapFactory.decodeFile(file.absolutePath, opts)
+                GraphicsCompat.serializedDecode { BitmapFactory.decodeFile(file.absolutePath, opts) }
             } catch (_: Exception) {
                 null
             }

@@ -93,6 +93,11 @@
         <item>始终显示</item>
         <item>仅在应用列表中显示</item>
     </string-array>
+    <string-array name="status_bar_mode_entries">
+        <item>隐藏</item>
+        <item>始终显示</item>
+        <item>仅在应用列表中显示</item>
+    </string-array>
 
     <string-array name="wf_auto_interval_entries">
         <item>关闭</item>

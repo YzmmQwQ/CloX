@@ -100,6 +100,11 @@
         <item>Siempre visible</item>
         <item>Solo en la lista de aplicaciones</item>
     </string-array>
+    <string-array name="status_bar_mode_entries">
+        <item>Oculta</item>
+        <item>Siempre visible</item>
+        <item>Solo en la lista de aplicaciones</item>
+    </string-array>
 
     <!-- Watch face auto-change -->
     <string-array name="wf_auto_interval_entries">

@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import com.ailife.clox.applist.AppListPrefs
+import com.ailife.clox.graphics.GraphicsCompat
 
 object IconResolver {
 
@@ -53,7 +54,16 @@ object IconResolver {
 fun Drawable.renderToBitmap(size: Int): Bitmap {
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
-    setBounds(0, 0, size, size)
-    draw(canvas)
+    // On Android 8.x (API < 28) VectorDrawable is not thread-safe: rasterizing it off
+    // the main thread mutates a bitmap cache whose SkPixelRef gen-id listener list is
+    // shared, via ConstantState, with the on-screen instance — a concurrent RenderThread
+    // draw then crashes natively in SkPixelRef::callGenIDChangeListeners. Draw a
+    // decoupled mutate()d copy so the background instance owns its own native tree.
+    // No-op on API >= 28 (Skia is thread-safe there); behaviour is byte-for-byte the same.
+    val target = if (GraphicsCompat.isLegacySkia)
+        (constantState?.newDrawable()?.mutate() ?: this)
+    else this
+    target.setBounds(0, 0, size, size)
+    target.draw(canvas)
     return bmp
 }

@@ -414,6 +414,7 @@
     <string name="pref_btn_remove">Usuń</string>
 
     <string name="pref_nav_bar_title">Pasek nawigacji</string>
+    <string name="pref_status_bar_title">Pasek stanu</string>
 
     <string name="pref_wf_category_auto">Automatyczna zmiana</string>
     <string name="pref_wf_auto_screen_on_title">Zmień przy włączeniu ekranu</string>

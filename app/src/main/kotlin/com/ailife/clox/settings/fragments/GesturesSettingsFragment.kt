@@ -100,6 +100,23 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             }
         }
 
+        // Status bar visibility
+        val statusBarEntries = resources.getStringArray(R.array.status_bar_mode_entries)
+        val statusBarValues  = resources.getStringArray(R.array.status_bar_mode_values)
+        fun statusBarLabel(v: String) = statusBarEntries.getOrElse(statusBarValues.indexOf(v)) { v }
+        val tvStatusBar = view.findViewById<TextView>(R.id.tvStatusBar)
+        fun refreshStatusBar() {
+            tvStatusBar.text = statusBarLabel(prefs.getString("status_bar_mode", "hidden") ?: "hidden")
+        }
+        refreshStatusBar()
+        view.findViewById<View>(R.id.rowStatusBar).setOnClickListener {
+            showListPicker(getString(R.string.pref_status_bar_title), statusBarEntries, statusBarValues,
+                prefs.getString("status_bar_mode", "hidden") ?: "hidden") { v, _ ->
+                prefs.edit().putString("status_bar_mode", v).apply()
+                refreshStatusBar()
+            }
+        }
+
         // Swipe actions (apply only when the matching panel is disabled)
         val tvSwipeDown = view.findViewById<TextView>(R.id.tvSwipeDown)
         fun refreshSwipeDown() { tvSwipeDown.text = summaryFor("swipe_down_action", "nothing") }

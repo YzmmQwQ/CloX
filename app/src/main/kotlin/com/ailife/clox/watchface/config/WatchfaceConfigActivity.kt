@@ -134,12 +134,16 @@ class WatchfaceConfigActivity : AppCompatActivity() {
     private fun hideSystemBars() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.statusBars())
 
-        val mode = PreferenceManager.getDefaultSharedPreferences(this)
-            .getString("nav_bar_mode", "applist") ?: "applist"
-        val showNav = !RtosManager.isActive && mode == "show"
-        if (showNav) controller.show(WindowInsetsCompat.Type.navigationBars())
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+
+        // This activity has no app list, so "applist" mode behaves like hidden here.
+        val statusMode = prefs.getString("status_bar_mode", "hidden") ?: "hidden"
+        if (!RtosManager.isActive && statusMode == "show") controller.show(WindowInsetsCompat.Type.statusBars())
+        else controller.hide(WindowInsetsCompat.Type.statusBars())
+
+        val navMode = prefs.getString("nav_bar_mode", "applist") ?: "applist"
+        if (!RtosManager.isActive && navMode == "show") controller.show(WindowInsetsCompat.Type.navigationBars())
         else controller.hide(WindowInsetsCompat.Type.navigationBars())
     }
 
