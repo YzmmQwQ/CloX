@@ -705,6 +705,43 @@
         <item>applist</item>
     </string-array>
 
+    <!-- Global Quick Settings overlay -->
+    <string name="global_qs_title">Global Quick Settings</string>
+    <string name="global_qs_notification">Quick Settings overlay active</string>
+    <string name="global_qs_category">Global Quick Settings</string>
+    <string name="global_qs_enabled_title">Show QS globally</string>
+    <string name="global_qs_enabled_summary">Open CloX Quick Settings over any app (needs \"Display over other apps\")</string>
+    <string name="global_qs_edge_title">Edge-swipe to open</string>
+    <string name="global_qs_edge_summary">Swipe down from the top edge over any app</string>
+    <string name="global_qs_edge_area_title">Detection area</string>
+    <string name="global_qs_replace_title">Replace system Quick Settings</string>
+    <string name="global_qs_replace_summary">When the system shade opens, collapse it and show CloX QS (needs accessibility)</string>
+    <string name="global_qs_permission_needed">Grant \"Display over other apps\" to use global QS</string>
+
+    <!-- Custom status-bar overlay strip -->
+    <string name="status_bar_overlay_title">Status bar overlay</string>
+    <string-array name="status_bar_overlay_mode_entries">
+        <item>Always show</item>
+        <item>Swipe to reveal (then swipe again for QS)</item>
+        <item>Always hide</item>
+    </string-array>
+    <string-array name="status_bar_overlay_mode_values" translatable="false">
+        <item>show</item>
+        <item>swipe</item>
+        <item>hidden</item>
+    </string-array>
+
+    <!-- Status-bar strip items -->
+    <string name="sb_items_category">Status bar items</string>
+    <string name="sb_item_clock">Clock</string>
+    <string name="sb_item_battery">Battery</string>
+    <string name="sb_item_wifi">Wi-Fi</string>
+    <string name="sb_item_bluetooth">Bluetooth</string>
+    <string name="sb_item_data">Mobile data</string>
+    <string name="sb_item_speed">Internet speed</string>
+    <string name="sb_item_notifs">Notification icons</string>
+    <string name="sb_inset_title">Corner inset</string>
+
     <!-- Watch face auto-change -->
     <string name="pref_wf_category_auto">Auto Change</string>
     <string name="pref_wf_auto_screen_on_title">Change on screen on</string>

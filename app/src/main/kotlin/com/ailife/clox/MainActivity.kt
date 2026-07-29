@@ -653,6 +653,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         registerReceiver(screenOffReceiver, android.content.IntentFilter(Intent.ACTION_SCREEN_OFF))
 
+        // Start the global QS overlay service if enabled (draw-over-apps QS + status bar strip).
+        com.ailife.clox.overlay.global.GlobalOverlayService.start(this)
+
         handleCloseOverlaysIntent(intent)
     }
 

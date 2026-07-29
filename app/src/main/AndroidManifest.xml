@@ -62,6 +62,10 @@
          without "Display over other apps" granted the re-wake leaves the third-party app on top. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- Global QS overlay foreground service (draw-over-apps QS + custom status bar strip) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <!-- Custom permission gating WatchfaceProvider (the watchface-directory API). protectionLevel
          "dangerous" → the requesting app calls requestPermissions() once; Android's own permission
          controller shows the consent prompt and manages/revokes the grant in system Settings
@@ -278,6 +282,16 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- Global QS overlay host: draw-over-apps QS panel, edge-swipe strip, custom status bar -->
+        <service
+            android:name=".overlay.global.GlobalOverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="global_quick_settings_overlay" />
         </service>
 
         <!-- Pre-API-28 screen-off fallback: GLOBAL_ACTION_LOCK_SCREEN doesn't exist before Android P -->

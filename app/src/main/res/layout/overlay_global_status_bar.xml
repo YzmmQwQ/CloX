@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Root LinearLayout carries the full-width background; horizontal padding (set in code)
+     insets the contents so they clear the watch's rounded corners. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/globalSbRow"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="#CC000000">
+
+    <TextView
+        android:id="@+id/globalSbClock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFFFF"
+        android:textSize="12sp"
+        android:maxLines="1" />
+
+    <LinearLayout
+        android:id="@+id/globalSbNotifs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/globalSbSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:textColor="#FFFFFFFF"
+        android:textSize="10sp"
+        android:maxLines="1"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/globalSbWifi"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginEnd="4dp"
+        android:src="@drawable/baseline_network_wifi_24"
+        android:tint="#FFFFFFFF"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/globalSbData"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginEnd="4dp"
+        android:src="@drawable/baseline_network_cell_24"
+        android:tint="#FFFFFFFF"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/globalSbBluetooth"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginEnd="4dp"
+        android:src="@drawable/baseline_bluetooth_24"
+        android:tint="#FFFFFFFF"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/globalSbBatteryPct"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="3dp"
+        android:textColor="#FFFFFFFF"
+        android:textSize="12sp"
+        android:maxLines="1" />
+
+    <ImageView
+        android:id="@+id/globalSbBatteryIcon"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:tint="#FFFFFFFF" />
+
+</LinearLayout>

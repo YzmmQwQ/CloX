@@ -1,13 +1,17 @@
 package com.ailife.clox.settings.fragments
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import com.ailife.clox.R
+import com.ailife.clox.overlay.global.GlobalOverlayPrefs
+import com.ailife.clox.overlay.global.GlobalOverlayService
 import com.ailife.clox.qs.CloXAccessibilityService
 import com.ailife.clox.qs.QsPrefs
 import com.ailife.clox.qs.privilege.PrivilegeLevel
@@ -179,6 +183,112 @@ class QuickSettingsSettingsFragment : BaseSettingsFragment() {
         view.findViewById<View>(R.id.rowQsAccessibility).setOnClickListener {
             com.ailife.clox.qs.privilege.RestrictedSettingsHelper.openGrantScreen(
                 requireContext(), Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+
+        setupGlobalQs(view)
+    }
+
+    // ── Global Quick Settings (draw over other apps) ───────────────────────────
+    private fun setupGlobalQs(view: View) {
+        val switchGlobal  = view.findViewById<MaterialSwitch>(R.id.switchGlobalQs)
+        val switchEdge    = view.findViewById<MaterialSwitch>(R.id.switchGlobalQsEdge)
+        val switchReplace = view.findViewById<MaterialSwitch>(R.id.switchGlobalQsReplace)
+        val sliderArea    = view.findViewById<Slider>(R.id.sliderGlobalQsArea)
+        val tvArea        = view.findViewById<TextView>(R.id.tvGlobalQsArea)
+        val tvSbMode      = view.findViewById<TextView>(R.id.tvGlobalQsStatusBar)
+
+        val sbEntries = resources.getStringArray(R.array.status_bar_overlay_mode_entries)
+        val sbValues  = resources.getStringArray(R.array.status_bar_overlay_mode_values)
+
+        switchGlobal.isChecked = prefs.getBoolean(GlobalOverlayPrefs.GLOBAL_QS_ENABLED, false)
+        switchGlobal.setOnCheckedChangeListener { _, checked ->
+            if (checked && !Settings.canDrawOverlays(requireContext())) {
+                switchGlobal.isChecked = false
+                Toast.makeText(requireContext(), R.string.global_qs_permission_needed, Toast.LENGTH_LONG).show()
+                runCatching {
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:${requireContext().packageName}")))
+                }
+                return@setOnCheckedChangeListener
+            }
+            prefs.edit().putBoolean(GlobalOverlayPrefs.GLOBAL_QS_ENABLED, checked).apply()
+            GlobalOverlayService.refresh(requireContext())
+        }
+
+        switchEdge.isChecked = prefs.getBoolean(GlobalOverlayPrefs.GLOBAL_QS_EDGE_SWIPE, true)
+        switchEdge.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(GlobalOverlayPrefs.GLOBAL_QS_EDGE_SWIPE, checked).apply()
+            GlobalOverlayService.refresh(requireContext())
+        }
+
+        switchReplace.isChecked = prefs.getBoolean(GlobalOverlayPrefs.GLOBAL_QS_AUTO_REPLACE, true)
+        switchReplace.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean(GlobalOverlayPrefs.GLOBAL_QS_AUTO_REPLACE, checked).apply()
+            GlobalOverlayService.refresh(requireContext())
+        }
+
+        val areaVal = prefs.getInt(GlobalOverlayPrefs.GLOBAL_QS_EDGE_AREA, GlobalOverlayPrefs.DEFAULT_EDGE_AREA)
+            .coerceIn(8, 120)
+        sliderArea.value = areaVal.toFloat()
+        tvArea.text = "${areaVal}dp"
+        sliderArea.addOnChangeListener { _, value, fromUser ->
+            tvArea.text = "${value.toInt()}dp"
+            if (fromUser) {
+                prefs.edit().putInt(GlobalOverlayPrefs.GLOBAL_QS_EDGE_AREA, value.toInt()).apply()
+                GlobalOverlayService.refresh(requireContext())
+            }
+        }
+
+        fun refreshSbMode() {
+            val v = prefs.getString(GlobalOverlayPrefs.STATUS_BAR_OVERLAY_MODE, GlobalOverlayPrefs.SB_HIDDEN)
+                ?: GlobalOverlayPrefs.SB_HIDDEN
+            tvSbMode.text = sbEntries.getOrElse(sbValues.indexOf(v)) { v }
+        }
+        refreshSbMode()
+        view.findViewById<View>(R.id.rowGlobalQsStatusBar).setOnClickListener {
+            showListPicker(getString(R.string.status_bar_overlay_title), sbEntries, sbValues,
+                prefs.getString(GlobalOverlayPrefs.STATUS_BAR_OVERLAY_MODE, GlobalOverlayPrefs.SB_HIDDEN)
+                    ?: GlobalOverlayPrefs.SB_HIDDEN) { v, _ ->
+                prefs.edit().putString(GlobalOverlayPrefs.STATUS_BAR_OVERLAY_MODE, v).apply()
+                refreshSbMode()
+                GlobalOverlayService.refresh(requireContext())
+            }
+        }
+
+        setupStatusBarItems(view)
+    }
+
+    private fun setupStatusBarItems(view: View) {
+        data class Item(val id: Int, val key: String, val def: Boolean)
+        val items = listOf(
+            Item(R.id.switchSbClock,     GlobalOverlayPrefs.SB_ITEM_CLOCK,     true),
+            Item(R.id.switchSbBattery,   GlobalOverlayPrefs.SB_ITEM_BATTERY,   true),
+            Item(R.id.switchSbWifi,      GlobalOverlayPrefs.SB_ITEM_WIFI,      true),
+            Item(R.id.switchSbData,      GlobalOverlayPrefs.SB_ITEM_DATA,      true),
+            Item(R.id.switchSbBluetooth, GlobalOverlayPrefs.SB_ITEM_BLUETOOTH, true),
+            Item(R.id.switchSbSpeed,     GlobalOverlayPrefs.SB_ITEM_SPEED,     false),
+            Item(R.id.switchSbNotifs,    GlobalOverlayPrefs.SB_ITEM_NOTIFS,    false),
+        )
+        items.forEach { item ->
+            val sw = view.findViewById<MaterialSwitch>(item.id)
+            sw.isChecked = prefs.getBoolean(item.key, item.def)
+            sw.setOnCheckedChangeListener { _, checked ->
+                prefs.edit().putBoolean(item.key, checked).apply()
+                GlobalOverlayService.refresh(requireContext())
+            }
+        }
+
+        val sliderInset = view.findViewById<Slider>(R.id.sliderSbInset)
+        val tvInset = view.findViewById<TextView>(R.id.tvSbInset)
+        val insetVal = prefs.getInt(GlobalOverlayPrefs.SB_INSET_PCT, GlobalOverlayPrefs.DEFAULT_INSET_PCT).coerceIn(0, 40)
+        sliderInset.value = insetVal.toFloat()
+        tvInset.text = "$insetVal%"
+        sliderInset.addOnChangeListener { _, value, fromUser ->
+            tvInset.text = "${value.toInt()}%"
+            if (fromUser) {
+                prefs.edit().putInt(GlobalOverlayPrefs.SB_INSET_PCT, value.toInt()).apply()
+                GlobalOverlayService.refresh(requireContext())
+            }
         }
     }
 

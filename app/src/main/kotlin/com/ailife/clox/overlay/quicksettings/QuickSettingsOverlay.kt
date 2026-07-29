@@ -82,6 +82,10 @@ class QuickSettingsOverlay @JvmOverloads constructor(
     private var flashlightOverlay: FlashlightOverlay? = null
     private var onDismissRequest: (() -> Unit)? = null
 
+    /** Global-QS overlay has no in-view FlashlightOverlay; it supplies this to show a
+     *  screen flashlight via a dedicated overlay window instead. */
+    var softwareFlashlightHandler: (() -> Unit)? = null
+
     private var scope: CoroutineScope? = null
     private var cameraId: String? = null
     private var flashlightOn = false
@@ -161,7 +165,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         }
     }
 
-    fun init(sm: QsStateManager, fm: FragmentManager, flashOverlay: FlashlightOverlay, onDismiss: () -> Unit) {
+    fun init(sm: QsStateManager, fm: FragmentManager?, flashOverlay: FlashlightOverlay?, onDismiss: () -> Unit) {
         stateManager = sm
         fragmentManager = fm
         flashlightOverlay = flashOverlay
@@ -238,10 +242,9 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         sm.time.onEach { qsTime.text = it }.launchIn(sc)
         sm.battery.onEach { state ->
             qsBatteryPct.text = "${state.level}%"
-            qsBatteryIcon.setImageResource(
-                if (state.charging) R.drawable.baseline_battery_charging_full_24
-                else R.drawable.baseline_battery_full_24
-            )
+            // Level-filled battery glyph (empty portion dimmed) like the system QS.
+            qsBatteryIcon.setImageDrawable(
+                com.ailife.clox.qs.BatteryStyle.levelDrawable(context, state.level, state.charging))
         }.launchIn(sc)
         qsDate.text = SimpleDateFormat("MM/dd", Locale.getDefault()).format(Date())
     }
@@ -471,8 +474,15 @@ class QuickSettingsOverlay @JvmOverloads constructor(
     } catch (_: Exception) {}
 
     private fun openVolumeDialog() {
-        val fm = fragmentManager ?: return
-        VolumeDialogFragment().show(fm, "volume")
+        val fm = fragmentManager
+        if (fm != null) {
+            VolumeDialogFragment().show(fm, "volume")
+            return
+        }
+        // Overlay mode (global QS) has no FragmentManager — show the system volume UI instead.
+        onDismissRequest?.invoke()
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_SAME, AudioManager.FLAG_SHOW_UI)
     }
 
     private fun handleDnd() {
@@ -504,7 +514,8 @@ class QuickSettingsOverlay @JvmOverloads constructor(
         } else {
             // Screen flashlight
             onDismissRequest?.invoke()
-            flashlightOverlay?.show()
+            if (flashlightOverlay != null) flashlightOverlay?.show()
+            else softwareFlashlightHandler?.invoke()
         }
     }
 

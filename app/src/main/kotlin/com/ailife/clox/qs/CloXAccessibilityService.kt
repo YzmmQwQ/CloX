@@ -3,6 +3,7 @@ package com.ailife.clox.qs
 import android.accessibilityservice.AccessibilityService
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
+import com.ailife.clox.overlay.global.GlobalQsAccessibilityHelper
 import com.ailife.clox.rtos.RtosAccessibilityHelper
 
 class CloXAccessibilityService : AccessibilityService() {
@@ -48,8 +49,14 @@ class CloXAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) =
-        RtosAccessibilityHelper.handleEvent(event, this)
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // A crash here gets the whole accessibility service killed/disabled by the system,
+        // which would break Power/Recents (they'd wrongly prompt to grant accessibility).
+        try { RtosAccessibilityHelper.handleEvent(event, this) }
+        catch (e: Throwable) { android.util.Log.e("CloXA11y", "RTOS handler failed", e) }
+        try { GlobalQsAccessibilityHelper.handleEvent(event, this) }
+        catch (e: Throwable) { android.util.Log.e("CloXA11y", "GlobalQS handler failed", e) }
+    }
 
     override fun onInterrupt() {}
 }

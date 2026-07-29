@@ -97,6 +97,10 @@ object RtosAccessibilityHelper {
     // 2. if fails → API 31+: performGlobalAction(15) directly
     //              pre-31:  100ms delay → sendBroadcast(CLOSE_SYSTEM_DIALOGS, noRespond=true)
     //                                   → catch → performGlobalAction(BACK)
+    /** Public entry point so other subsystems (e.g. global-QS auto-replace) can reuse the
+     *  same IStatusBarService + fallback collapse logic. */
+    fun collapseSystemShade(service: AccessibilityService) = collapseSystemPanel(service)
+
     private fun collapseSystemPanel(service: AccessibilityService) {
         tryResolveStatusBarService()
         val svc = statusBarService
