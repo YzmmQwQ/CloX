@@ -276,7 +276,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
 
     // ── Data loading ──────────────────────────────────────────────────────────
 
-    private fun loadWatchfaces() {
+    private fun loadWatchfaces(animateOpen: Boolean = true) {
         lifecycleScope.launch {
             val items = withContext(Dispatchers.IO) { WatchfaceRepository.scan(this@WatchfaceSelectorActivity) }
             val folderNames = withContext(Dispatchers.IO) {
@@ -293,14 +293,26 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
             } else {
                 val activePos = gridAdapter!!.getActivePosition()
                 if (activePos >= 0) recyclerView!!.scrollToPosition(activePos)
-                recyclerView!!.post {
+                if (animateOpen) {
                     recyclerView!!.post {
-                        val activeView = findActiveGridCellPreview()
-                        animateOpenToCard(activeView)
+                        recyclerView!!.post {
+                            val activeView = findActiveGridCellPreview()
+                            animateOpenToCard(activeView)
+                        }
                     }
                 }
             }
         }
+    }
+
+    // Re-scan the list whenever we return to the selector (e.g. after downloading in the store,
+    // importing, or managing on remote) so newly added / removed faces show. Skip the very first
+    // resume — onCreate already loaded with the entry animation.
+    private var firstResume = true
+    override fun onResume() {
+        super.onResume()
+        if (firstResume) { firstResume = false; return }
+        loadWatchfaces(animateOpen = false)
     }
 
     private fun findActiveGridCellPreview(): ImageView? {
@@ -635,6 +647,7 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         safeStartActivity(Intent(this,
             com.ailife.clox.watchface.store.WatchfaceStoreActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        // onResume re-scans, so returning from the store shows newly downloaded faces.
     }
 
     private fun openRemote() {
