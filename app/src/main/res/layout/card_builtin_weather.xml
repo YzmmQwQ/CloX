@@ -46,13 +46,17 @@
 
         </LinearLayout>
 
-        <!-- Current weather row -->
+        <!-- Current weather row (tap toggles today-detail / forecast) -->
         <LinearLayout
+            android:id="@+id/currentWeatherRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
 
             <ImageView
                 android:id="@+id/ivWeatherIcon"
@@ -118,12 +122,20 @@
             android:background="?attr/colorOutlineVariant"
             android:alpha="0.4" />
 
-        <!-- 5-day forecast row -->
+        <!-- 5-day / hourly forecast row (tap toggles daily/hourly) -->
         <LinearLayout
             android:id="@+id/forecastRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
+
+        <!-- Today detail (shown when the current-weather row is tapped) -->
+        <LinearLayout
+            android:id="@+id/todayDetailContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone" />
 
     </LinearLayout>
 

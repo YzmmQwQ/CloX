@@ -28,6 +28,33 @@
     <string name="weather_updated_just_now">just now</string>
     <string name="weather_updated_minutes_ago">%dm ago</string>
     <string name="weather_updated_hours_ago">%dh ago</string>
+    <string name="weather_updating">updating…</string>
+
+    <!-- Today-detail view -->
+    <string name="weather_detail_high_low">High / Low</string>
+    <string name="weather_detail_humidity">Humidity</string>
+    <string name="weather_detail_wind">Wind</string>
+    <string name="weather_detail_pressure">Pressure</string>
+    <string name="weather_detail_cloud">Cloud</string>
+    <string name="weather_detail_rain">Rain</string>
+    <string name="weather_detail_sunrise">Sunrise</string>
+    <string name="weather_detail_sunset">Sunset</string>
+    <string name="weather_detail_moon">Moon</string>
+    <string name="weather_detail_humidity_value" translatable="false">%d%%</string>
+    <string name="weather_detail_cloud_value" translatable="false">%d%%</string>
+    <string name="weather_detail_wind_value" translatable="false">%1$s %2$.0f km/h</string>
+    <string name="weather_detail_pressure_value" translatable="false">%.0f hPa</string>
+    <string name="weather_detail_rain_value" translatable="false">%.1f mm</string>
+    <string-array name="moon_phase_names">
+        <item>New</item>
+        <item>Waxing crescent</item>
+        <item>First quarter</item>
+        <item>Waxing gibbous</item>
+        <item>Full</item>
+        <item>Waning gibbous</item>
+        <item>Last quarter</item>
+        <item>Waning crescent</item>
+    </string-array>
 
     <!-- ── Settings ─────────────────────────────────────────────────────────── -->
     <string name="pref_double_tap_title">Double-tap action</string>
