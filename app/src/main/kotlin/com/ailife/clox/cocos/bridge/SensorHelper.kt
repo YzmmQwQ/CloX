@@ -25,6 +25,19 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
     private val gravity = FloatArray(3)
     private val geomagnetic = FloatArray(3)
 
+    // Many watches (the W527 included) ship no gyroscope. When a face asks for
+    // the gyroscope stream on such a device we simulate it from the
+    // accelerometer: tilt rate-of-change stands in for angular velocity. This
+    // mirrors the UL renderer's WatchSkin.lua fallback so the parallax feel is
+    // identical. Decided once at construction.
+    private val hasGyro = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
+
+    // Simulated-gyro state (only used when hasGyro == false). Angles in degrees.
+    private var simPrevRoll = 0f
+    private var simPrevPitch = 0f
+    private var simSmoothPitch = 0f
+    private var simSmoothRoll = 0f
+
     private val activeSensors = mutableSetOf<String>()
 
     // AOD power-save: re-register everything at a slow hardware rate and gate
@@ -100,7 +113,8 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
     private fun typesFor(name: String): List<Int> = when (name) {
         "accelerometer" -> listOf(Sensor.TYPE_ACCELEROMETER)
         "barometer"     -> listOf(Sensor.TYPE_PRESSURE)
-        "gyroscope"     -> listOf(Sensor.TYPE_GYROSCOPE)
+        // No real gyro → drive the simulated stream off the accelerometer.
+        "gyroscope"     -> if (hasGyro) listOf(Sensor.TYPE_GYROSCOPE) else listOf(Sensor.TYPE_ACCELEROMETER)
         "compass"       -> listOf(Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_MAGNETIC_FIELD)
         else            -> emptyList()
     }
@@ -145,6 +159,11 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
                     gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
                     emitCompass(cb)
                 }
+                // Gyro simulation: this device has no gyroscope, but a face
+                // enabled the gyroscope stream, so synthesize it here.
+                if (!hasGyro && "gyroscope" in activeSensors && emitAllowed("gyroscope")) {
+                    emitSimulatedGyro(cb, event.values[0], event.values[1], event.values[2])
+                }
             }
             Sensor.TYPE_MAGNETIC_FIELD -> {
                 if ("compass" in activeSensors) {
@@ -185,6 +204,38 @@ class SensorHelper(private val ctx: Context) : SensorEventListener {
                 put("roll",    Math.toDegrees(orientation[2].toDouble()))
             })
         }
+    }
+
+    /**
+     * Derive an angular-velocity-like {x,y,z} from raw accelerometer values and
+     * emit it as the "gyroscope" stream, for devices with no gyroscope hardware.
+     *
+     * Roll/pitch are the accelerometer tilt angles; their frame-to-frame delta
+     * (rate of change) is smoothed with an EMA and stands in for angular
+     * velocity. Mapping matches the UL renderer's WatchSkin.lua so the parallax
+     * direction/feel is identical: gyro.x = -pitchRate, gyro.y = rollRate.
+     * The absolute scale is arbitrary (faces multiply by their own `gyro`
+     * factor), so no rad/s conversion is needed.
+     */
+    private fun emitSimulatedGyro(cb: (String, JSONObject) -> Unit, x: Float, y: Float, z: Float) {
+        val roll = Math.toDegrees(Math.atan2(x.toDouble(), Math.sqrt((y * y + z * z).toDouble()))).toFloat()
+        val pitch = Math.toDegrees(Math.atan2(y.toDouble(), Math.sqrt((x * x + z * z).toDouble()))).toFloat()
+
+        val deltaRoll = roll - simPrevRoll
+        val deltaPitch = pitch - simPrevPitch
+
+        // Exponential moving average of the rate of change (same 0.1/0.9 as UL).
+        simSmoothPitch = deltaPitch * 0.1f + simSmoothPitch * 0.9f
+        simSmoothRoll = deltaRoll * 0.1f + simSmoothRoll * 0.9f
+
+        simPrevRoll = roll
+        simPrevPitch = pitch
+
+        cb("gyroscope", JSONObject().apply {
+            put("x", (-simSmoothPitch).toDouble())
+            put("y", simSmoothRoll.toDouble())
+            put("z", 0.0)
+        })
     }
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit

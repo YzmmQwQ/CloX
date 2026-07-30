@@ -65,7 +65,11 @@ class SensorsSettingsFragment : BaseSettingsFragment() {
         setupSensor(view, R.id.switchBarometer, R.id.tvBarometerSummary,
             SensorsPrefs.KEY_BAROMETER, Sensor.TYPE_PRESSURE)
         setupSensor(view, R.id.switchGyroscope, R.id.tvGyroscopeSummary,
-            SensorsPrefs.KEY_GYROSCOPE, Sensor.TYPE_GYROSCOPE)
+            SensorsPrefs.KEY_GYROSCOPE, Sensor.TYPE_GYROSCOPE,
+            // No gyro hardware but an accelerometer exists → the stream is
+            // simulated (see SensorHelper), so keep the toggle usable.
+            fallbackType = Sensor.TYPE_ACCELEROMETER,
+            fallbackSummary = R.string.pref_gyroscope_simulated)
     }
 
     private fun setupCalendar(view: View) {
@@ -87,17 +91,27 @@ class SensorsSettingsFragment : BaseSettingsFragment() {
         }
     }
 
-    private fun setupSensor(view: View, switchId: Int, summaryId: Int, key: String, sensorType: Int) {
+    private fun setupSensor(
+        view: View, switchId: Int, summaryId: Int, key: String, sensorType: Int,
+        // Optional software fallback: if the primary sensor is missing but this
+        // type exists, the stream can still be provided (simulated), so keep the
+        // toggle enabled and show fallbackSummary instead of "not available".
+        fallbackType: Int? = null,
+        fallbackSummary: Int = 0,
+    ) {
         val sw = view.findViewById<MaterialSwitch>(switchId)
         val tv = view.findViewById<TextView>(summaryId)
         val available = sensorManager.getDefaultSensor(sensorType) != null
-        if (!available) {
+        val simulated = !available && fallbackType != null &&
+            sensorManager.getDefaultSensor(fallbackType) != null
+        if (!available && !simulated) {
             sw.isChecked = false
             sw.isEnabled = false
             tv.text = getString(R.string.pref_sensor_unavailable)
             if (prefs.getBoolean(key, false)) prefs.edit().putBoolean(key, false).apply()
             return
         }
+        if (simulated && fallbackSummary != 0) tv.text = getString(fallbackSummary)
         sw.isChecked = prefs.getBoolean(key, false)
         sw.setOnCheckedChangeListener { _, checked ->
             prefs.edit().putBoolean(key, checked).apply()
