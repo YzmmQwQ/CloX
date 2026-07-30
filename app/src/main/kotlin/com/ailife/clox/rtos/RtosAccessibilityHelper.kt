@@ -54,6 +54,12 @@ object RtosAccessibilityHelper {
         if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         if (pkg == service.packageName) return
 
+        // Always allow the default input method (keyboard) so typing works in RTOS mode.
+        if (pkg == defaultImePackage(service)) {
+            Log.d(TAG, "default IME pkg=$pkg — allowed")
+            return
+        }
+
         val shouldBlock = when {
             RtosManager.isWatchfaceOnly() -> true
             RtosManager.isFullMode() -> {
@@ -74,6 +80,13 @@ object RtosAccessibilityHelper {
             Log.d(TAG, "non-systemui blocked pkg=$pkg — bringing launcher to front")
             bringLauncherToFront(service)
         }
+    }
+
+    /** The package of the current default input method (keyboard), or null. */
+    private fun defaultImePackage(service: AccessibilityService): String? {
+        val v = android.provider.Settings.Secure.getString(
+            service.contentResolver, android.provider.Settings.Secure.DEFAULT_INPUT_METHOD)
+        return v?.substringBefore('/')?.takeIf { it.isNotEmpty() }
     }
 
     private fun isBlockedInFullMode(pkg: String, service: AccessibilityService): Boolean {
