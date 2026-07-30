@@ -114,6 +114,10 @@ class NotificationSettingsFragment : BaseSettingsFragment() {
         switchBlockPersist.isChecked = prefs.getBoolean("notif_block_persistent", false)
         switchBlockPersist.setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("notif_block_persistent", c).apply() }
 
+        view.findViewById<View>(R.id.rowNotifBlockedApps).setOnClickListener {
+            com.ailife.clox.overlay.notifications.NotificationBlockedAppsActivity.launch(requireContext())
+        }
+
         // Permission card
         cardPermission.setOnClickListener {
             val granted = isListenerEnabled()

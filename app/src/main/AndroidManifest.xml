@@ -137,6 +137,12 @@
             android:taskAffinity="com.ailife.clox.settings"
             android:theme="@style/Theme.CloX.Settings" />
 
+        <!-- Notification blocked-apps picker -->
+        <activity
+            android:name=".overlay.notifications.NotificationBlockedAppsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CloX.Settings" />
+
         <!-- Watch face selector -->
         <activity
             android:name=".watchface.selector.WatchfaceSelectorActivity"

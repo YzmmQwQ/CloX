@@ -1123,6 +1123,9 @@
     <string name="notif_setting_group_summary">Chat at top, normal middle, persistent bottom</string>
     <string name="notif_setting_hide_persistent_title">Hide persistent notifications</string>
     <string name="notif_setting_hide_persistent_summary">Block ongoing notifications from appearing</string>
+    <string name="notif_setting_blocked_apps_title">Blocked apps</string>
+    <string name="notif_setting_blocked_apps_summary">Choose apps to hide from the notification panel</string>
+    <string name="notif_blocked_apps_title">Blocked apps</string>
     <string name="notif_setting_access_title">Notification access</string>
 
     <!-- ── App list settings fragment ───────────────────────────────────── -->
