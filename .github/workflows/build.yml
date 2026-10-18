@@ -1,0 +1,167 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: Build type
+        type: choice
+        options:
+          - release
+          - debug
+        default: release
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    env:
+      NDK_VERSION: "25.2.9519653"
+      CMAKE_VERSION: "3.31.4"
+      GRADLE_VERSION: "9.4.1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Checkout Axmol submodule over HTTPS
+        run: |
+          set -euo pipefail
+          # .gitmodules uses git@gitlab.com:... — runners have no SSH key for GitLab.
+          git config --local submodule.axmol.url https://gitlab.com/ailife8881/clox-axmol.git
+          git submodule sync --recursive
+          # The pinned commit is usually the branch tip, so shallow works. Fall back
+          # to a full fetch when it is not reachable in a depth-1 clone.
+          if ! git submodule update --init --recursive --depth 1 --jobs 4; then
+            echo "::warning::Shallow submodule checkout failed, retrying with full history"
+            git submodule deinit -f --all || true
+            rm -rf axmol .git/modules/axmol
+            git submodule update --init --recursive --jobs 4
+          fi
+          test -f axmol/CMakeLists.txt
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK and CMake
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-36" \
+                     "build-tools;36.0.0" \
+                     "ndk;${NDK_VERSION}" \
+                     "cmake;${CMAKE_VERSION}"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+
+      - name: Prepare build environment
+        run: |
+          set -euo pipefail
+          sdk_dir="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "sdk.dir=${sdk_dir}" > local.properties
+          # Release builds are signed with the debug key (see app/build.gradle),
+          # so make sure that keystore exists before Gradle asks for it.
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Resolve build parameters
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            build_type=release
+          else
+            build_type="${{ inputs.build_type }}"
+          fi
+          case "$build_type" in
+            debug) task=assembleDebug;   apk_dir=app/build/outputs/apk/debug ;;
+            *)     build_type=release;   task=assembleRelease; apk_dir=app/build/outputs/apk/release ;;
+          esac
+          version=$(grep -oE 'versionName[[:space:]]+"[^"]+"' app/build.gradle \
+                    | head -1 | sed -E 's/.*"([^"]+)"/\1/')
+          short_sha=$(git rev-parse --short=8 HEAD)
+          {
+            echo "build_type=$build_type"
+            echo "task=$task"
+            echo "apk_dir=$apk_dir"
+            echo "version=$version"
+            echo "short_sha=$short_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: gradle ":app:${{ steps.vars.outputs.task }}" --stacktrace
+
+      - name: Collect APK
+        run: |
+          set -euo pipefail
+          apk_dir="${{ steps.vars.outputs.apk_dir }}"
+          mkdir -p dist
+          shopt -s nullglob
+          apks=("$apk_dir"/*.apk)
+          if [ ${#apks[@]} -eq 0 ]; then
+            echo "::error::No APK produced in $apk_dir"
+            exit 1
+          fi
+          base="CloX-${{ steps.vars.outputs.version }}-${{ steps.vars.outputs.build_type }}-${{ steps.vars.outputs.short_sha }}"
+          if [ ${#apks[@]} -eq 1 ]; then
+            cp "${apks[0]}" "dist/${base}.apk"
+          else
+            for apk in "${apks[@]}"; do
+              cp "$apk" "dist/${base}-$(basename "$apk")"
+            done
+          fi
+          ls -lh dist
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CloX-${{ steps.vars.outputs.version }}-${{ steps.vars.outputs.build_type }}-${{ steps.vars.outputs.short_sha }}
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
+
+      - name: Write job summary
+        run: |
+          {
+            echo "### CloX ${{ steps.vars.outputs.version }} (${{ steps.vars.outputs.build_type }})"
+            echo ""
+            echo '```'
+            file dist/*.apk
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
