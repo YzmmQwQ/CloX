@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.yzmm.clox.R
+import com.yzmm.clox.ui.theme.ScreenShapeConfig
 import com.yzmm.clox.util.safeStartActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -28,6 +29,10 @@ import kotlinx.coroutines.withContext
 import java.net.NetworkInterface
 
 class RemoteManagementActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(ScreenShapeConfig.wrap(newBase))
+    }
 
     private lateinit var switchServer: MaterialSwitch
     private lateinit var tvServerStatus: TextView

@@ -34,6 +34,7 @@ import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.ShapeAppearanceModel
 import com.yzmm.clox.R
 import com.yzmm.clox.rtos.RtosManager
+import com.yzmm.clox.ui.theme.ScreenShapeConfig
 import com.yzmm.clox.util.safeStartActivity
 import com.yzmm.clox.watchface.WatchfaceConfigPrefs
 import com.yzmm.clox.watchface.WatchfaceMetadata
@@ -56,6 +57,10 @@ import kotlin.math.roundToInt
  * updates live. The whole panel scrolls as one unit on a small screen.
  */
 class WatchfaceConfigActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(ScreenShapeConfig.wrap(newBase))
+    }
 
     private lateinit var cfgPath: String
     private val editingDefaults: Boolean get() = intent.getBooleanExtra(EXTRA_DEFAULTS, false)

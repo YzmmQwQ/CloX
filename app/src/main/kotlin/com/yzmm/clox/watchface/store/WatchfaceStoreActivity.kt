@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yzmm.clox.R
 import com.yzmm.clox.graphics.GraphicsCompat
+import com.yzmm.clox.ui.theme.ScreenShapeConfig
 import com.yzmm.clox.util.safeStartActivity
 import com.yzmm.clox.watchface.WatchfacePrefs
 import com.yzmm.clox.watchface.WatchfaceRepository
@@ -47,6 +48,10 @@ import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
 class WatchfaceStoreActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(ScreenShapeConfig.wrap(newBase))
+    }
 
     companion object {
         // Domain only — preview_url and download_url in API responses already include /api/...

@@ -1,5 +1,6 @@
 package com.yzmm.clox.watchface.gallery
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -16,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yzmm.clox.R
+import com.yzmm.clox.ui.theme.ScreenShapeConfig
 import com.yzmm.clox.util.safeLaunch
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -26,6 +28,10 @@ import java.io.File
 import java.io.FileOutputStream
 
 class GalleryActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(ScreenShapeConfig.wrap(newBase))
+    }
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView

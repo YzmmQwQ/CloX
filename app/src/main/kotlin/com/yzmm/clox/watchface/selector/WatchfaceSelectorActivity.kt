@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yzmm.clox.R
+import com.yzmm.clox.ui.theme.ScreenShapeConfig
 import com.yzmm.clox.util.safeStartActivity
 import com.yzmm.clox.watchface.WatchfaceConfigPrefs
 import com.yzmm.clox.watchface.WatchfaceItem
@@ -41,6 +42,10 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 class WatchfaceSelectorActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(ScreenShapeConfig.wrap(newBase))
+    }
 
     private lateinit var snapshotOverlay: ImageView
     private var overlaySquareSize = 0   // min(screenW, screenH) — the watchface's square render dimension
@@ -126,7 +131,9 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         pagerRecycler = rv
 
         val screenW = resources.displayMetrics.widthPixels
-        val sidePadding = (screenW * 0.22f).toInt()
+        // Square screens don't need the large round-screen gutter; give the centre card more room.
+        val square = !resources.configuration.isScreenRound
+        val sidePadding = (screenW * (if (square) 0.08f else 0.22f)).toInt()
         val cardWidth   = screenW - 2 * sidePadding
         rv.setPadding(sidePadding, 0, sidePadding, 0)
         rv.clipToPadding = false
@@ -194,8 +201,16 @@ class WatchfaceSelectorActivity : AppCompatActivity() {
         val lm = pagerLm      ?: return
         val centerX = rv.paddingStart + (rv.width - rv.paddingStart - rv.paddingEnd) / 2
         val cardW   = (rv.width - rv.paddingStart - rv.paddingEnd).toFloat()
+        // Square screens keep every card at full size and opacity.
+        val round = resources.configuration.isScreenRound
         for (i in 0 until lm.childCount) {
             val child = lm.getChildAt(i) ?: continue
+            if (!round) {
+                child.scaleX = 1f
+                child.scaleY = 1f
+                child.alpha = 1f
+                continue
+            }
             val childCenter = (child.left + child.right) / 2
             val ratio = (abs(childCenter - centerX) / cardW).coerceIn(0f, 1f)
             val scale = 1f - 0.30f * ratio   // 100% → 70%
