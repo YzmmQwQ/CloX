@@ -38,6 +38,9 @@ object RootOperations {
     fun grantWriteSecureSettings(pkg: String): Boolean =
         Shell.cmd("pm grant $pkg android.permission.WRITE_SECURE_SETTINGS").exec().isSuccess
 
+    fun grantPermission(pkg: String, permission: String): Boolean =
+        Shell.cmd("pm grant $pkg $permission").exec().isSuccess
+
     fun forceStop(pkg: String): Boolean =
         Shell.cmd("am force-stop $pkg").exec().isSuccess
 

@@ -125,6 +125,9 @@ object ShizukuOperations {
     fun grantWriteSecureSettings(pkg: String): Boolean =
         exec("pm grant $pkg android.permission.WRITE_SECURE_SETTINGS")
 
+    fun grantPermission(pkg: String, permission: String): Boolean =
+        exec("pm grant $pkg $permission")
+
     fun forceStop(pkg: String): Boolean = exec("am force-stop $pkg")
 
     /**

@@ -17,6 +17,10 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <!-- Read running tasks via `dumpsys activity recents` for the background-apps page.
+         Granted once via Shizuku/root (development permission) or by the priv-app build. -->
+    <uses-permission android:name="android.permission.DUMP"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Required to query installed apps on API 30+ -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"

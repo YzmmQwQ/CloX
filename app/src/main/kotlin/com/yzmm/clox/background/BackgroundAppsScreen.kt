@@ -1,8 +1,12 @@
 package com.yzmm.clox.background
 
+import android.Manifest
 import android.app.ActivityManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -82,6 +86,7 @@ fun BackgroundAppsScreen() {
                             painter = BitmapPainter(bitmap),
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
+                            tint = androidx.compose.ui.graphics.Color.Unspecified,
                         )
                     }
                 },
@@ -91,9 +96,81 @@ fun BackgroundAppsScreen() {
     }
 }
 
-/** Recently used launchable apps, newest first. Usage access is a priv-app grant here. */
+/** Running tasks from dumpsys when privileged, else recently used apps via UsageStats. */
 private fun loadRecentApps(ctx: Context): List<BgApp> {
-    val pm = ctx.packageManager
+    ensurePrivilegedAccess(ctx)
+    return loadRunningTasks(ctx) ?: loadUsageStatsApps(ctx)
+}
+
+/**
+ * Shizuku/root can grant DUMP + usage-stats as development permissions. Once granted the
+ * app itself can run `dumpsys activity recents` and read the real task list.
+ */
+private fun ensurePrivilegedAccess(ctx: Context) {
+    val granted = { permission: String ->
+        ctx.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    }
+    if (granted(Manifest.permission.DUMP) &&
+        granted(Manifest.permission.PACKAGE_USAGE_STATS)) return
+    val pkg = ctx.packageName
+    fun grant(grant: (String, String) -> Boolean) {
+        grant(pkg, Manifest.permission.PACKAGE_USAGE_STATS)
+        grant(pkg, Manifest.permission.DUMP)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            grant(pkg, "android.permission.INTERACT_ACROSS_USERS_FULL")
+        }
+    }
+    when (PrivilegeManager.level(ctx)) {
+        PrivilegeLevel.SHIZUKU -> grant(ShizukuOperations::grantPermission)
+        PrivilegeLevel.ROOT -> grant(RootOperations::grantPermission)
+        PrivilegeLevel.NONE -> Unit
+    }
+}
+
+private fun loadRunningTasks(ctx: Context): List<BgApp>? {
+    if (ctx.checkSelfPermission(Manifest.permission.DUMP) != PackageManager.PERMISSION_GRANTED) {
+        return null
+    }
+    val dump = try {
+        val proc = Runtime.getRuntime().exec(arrayOf("sh", "-c", "dumpsys activity recents"))
+        proc.inputStream.bufferedReader().use { it.readText() }
+    } catch (_: Exception) {
+        return null
+    }
+    if (!dump.contains("Recent tasks")) return null
+
+    val headerPkg = Regex("""A=\d+:([A-Za-z0-9_.]+)""")
+    val componentPkg = Regex("""mActivityComponent=([^/\s]+)/""")
+    val lastActive = Regex("""lastActiveTime=(\d+)""")
+    val homePkg = try {
+        ctx.packageManager.resolveActivity(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
+            PackageManager.MATCH_DEFAULT_ONLY,
+        )?.activityInfo?.packageName
+    } catch (_: Exception) {
+        null
+    }
+
+    val newest = HashMap<String, Long>()
+    val ended = ctx.getSharedPreferences(ENDED_PREFS, Context.MODE_PRIVATE).all
+    val bootEpoch = System.currentTimeMillis() - android.os.SystemClock.elapsedRealtime()
+    for (block in dump.split(Regex("""(?m)^\s*\* Recent #""")).drop(1)) {
+        val name = headerPkg.find(block)?.groupValues?.get(1)
+            ?: componentPkg.find(block)?.groupValues?.get(1)
+            ?: continue
+        if (name == ctx.packageName || name == homePkg || name == "android") continue
+        val time = lastActive.find(block)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+        val endedAt = (ended[name] as? Long) ?: 0L
+        if (bootEpoch + time <= endedAt) continue
+        newest[name] = maxOf(newest[name] ?: 0L, time)
+    }
+    return newest.entries
+        .sortedByDescending { it.value }
+        .take(24)
+        .mapNotNull { makeBgApp(ctx, it.key) }
+}
+
+private fun loadUsageStatsApps(ctx: Context): List<BgApp> {
     val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
         ?: return emptyList()
     val now = System.currentTimeMillis()
@@ -106,32 +183,36 @@ private fun loadRecentApps(ctx: Context): List<BgApp> {
     val cutoff = now - 6 * 60 * 60 * 1000L
     val ended = ctx.getSharedPreferences(ENDED_PREFS, Context.MODE_PRIVATE).all
     val seen = HashSet<String>()
-    val out = ArrayList<BgApp>()
-    for (stat in stats.sortedByDescending { it.lastTimeUsed }) {
-        val pkg = stat.packageName ?: continue
-        if (pkg == ctx.packageName || stat.lastTimeUsed < cutoff || !seen.add(pkg)) continue
-        val endedAt = (ended[pkg] as? Long) ?: 0L
-        if (stat.lastTimeUsed <= endedAt) continue
-        val info = try {
-            pm.getApplicationInfo(pkg, 0)
-        } catch (_: Exception) {
-            continue
+    return stats.sortedByDescending { it.lastTimeUsed }
+        .mapNotNull { stat ->
+            val pkg = stat.packageName ?: return@mapNotNull null
+            if (pkg == ctx.packageName || stat.lastTimeUsed < cutoff || !seen.add(pkg)) return@mapNotNull null
+            val endedAt = (ended[pkg] as? Long) ?: 0L
+            if (stat.lastTimeUsed <= endedAt) return@mapNotNull null
+            makeBgApp(ctx, pkg)
         }
-        if (pm.getLaunchIntentForPackage(pkg) == null) continue
-        val label = try {
-            pm.getApplicationLabel(info).toString()
-        } catch (_: Exception) {
-            pkg
-        }
-        val icon = try {
-            info.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
-        } catch (_: Exception) {
-            null
-        }
-        out.add(BgApp(pkg, label, icon))
-        if (out.size >= 24) break
+        .take(24)
+}
+
+private fun makeBgApp(ctx: Context, packageName: String): BgApp? {
+    val pm = ctx.packageManager
+    val info = try {
+        pm.getApplicationInfo(packageName, 0)
+    } catch (_: Exception) {
+        return null
     }
-    return out
+    if (pm.getLaunchIntentForPackage(packageName) == null) return null
+    val label = try {
+        pm.getApplicationLabel(info).toString()
+    } catch (_: Exception) {
+        packageName
+    }
+    val icon = try {
+        info.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
+    } catch (_: Exception) {
+        null
+    }
+    return BgApp(packageName, label, icon)
 }
 
 private fun endApps(ctx: Context, packages: Collection<String>): Int {

@@ -16,5 +16,7 @@
         <permission name="android.permission.READ_WALLPAPER_INTERNAL" />
         <!-- One-tap notification-access grant writes Settings.Secure directly. -->
         <permission name="android.permission.WRITE_SECURE_SETTINGS" />
+        <!-- Background-apps page reads running tasks via dumpsys. -->
+        <permission name="android.permission.DUMP" />
     </privapp-permissions>
 </permissions>
