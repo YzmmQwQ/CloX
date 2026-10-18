@@ -530,6 +530,8 @@
     <string name="bg_apps_note">最近使用的应用，点击应用即可结束。</string>
     <string name="bg_apps_ended">已结束 %1$d 个应用</string>
     <string name="bg_apps_empty">没有最近使用的应用</string>
+    <string name="bg_apps_recent">最近使用</string>
+    <string name="bg_apps_end_app">结束应用</string>
     <string name="bg_apps_open_desc">后台应用</string>
 
     <!-- ── Volume dialog ────────────────────────────────────────────────── -->

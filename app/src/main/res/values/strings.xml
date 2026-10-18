@@ -848,6 +848,8 @@
     <string name="bg_apps_note">Recently used apps. Tap an app to end it.</string>
     <string name="bg_apps_ended">Ended %1$d apps</string>
     <string name="bg_apps_empty">No recent apps</string>
+    <string name="bg_apps_recent">Recently used</string>
+    <string name="bg_apps_end_app">End app</string>
     <string name="bg_apps_open_desc">Background apps</string>
 
     <!-- ── Volume dialog ────────────────────────────────────────────────── -->
