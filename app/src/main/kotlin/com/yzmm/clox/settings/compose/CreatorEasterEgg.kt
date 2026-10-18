@@ -114,6 +114,7 @@ fun CreatorButtonItem(
         onDismissRequest = { showDisclaimer = false },
         title = { Text(stringResource(R.string.creator_disclaimer_title)) },
         text = { Text(stringResource(R.string.creator_disclaimer_text)) },
+        transformationSpec = rememberDialogTransformationSpec(),
         confirmButton = {
             AlertDialogDefaults.ConfirmButton(onClick = {
                 state.enabled = true

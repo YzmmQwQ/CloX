@@ -52,6 +52,7 @@ fun AppChoiceDialog(
         visible = true,
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
+        transformationSpec = rememberDialogTransformationSpec(),
     ) {
         if (onClear != null) {
             item {

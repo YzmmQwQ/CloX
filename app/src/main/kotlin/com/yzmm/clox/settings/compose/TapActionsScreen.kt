@@ -95,6 +95,7 @@ fun TapActionsScreen() {
             visible = true,
             onDismissRequest = { pickerFor = null },
             title = { Text(text = stringResource(def.displayNameRes)) },
+            transformationSpec = rememberDialogTransformationSpec(),
         ) {
             item {
                 Button(

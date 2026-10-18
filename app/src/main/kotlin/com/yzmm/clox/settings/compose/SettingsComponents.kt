@@ -1,5 +1,6 @@
 package com.yzmm.clox.settings.compose
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalScrollCaptureInProgress
 import androidx.compose.ui.res.stringResource
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnDefaults
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnScope
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
@@ -45,6 +50,7 @@ import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.TransformationSpec
+import androidx.wear.compose.material3.lazy.TransformedContainerPainterScope
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import com.yzmm.clox.ui.theme.isRoundScreen
@@ -326,6 +332,35 @@ class SettingsListScope internal constructor(
     }
 }
 
+/** Leaves items at their measured size on square screens. */
+private object NoTransformationSpec : TransformationSpec {
+    override fun getTransformedHeight(
+        measuredHeight: Int,
+        scrollProgress: TransformingLazyColumnItemScrollProgress,
+    ): Int = measuredHeight
+
+    override fun GraphicsLayerScope.applyContentTransformation(
+        scrollProgress: TransformingLazyColumnItemScrollProgress,
+    ) = Unit
+
+    override fun GraphicsLayerScope.applyContainerTransformation(
+        scrollProgress: TransformingLazyColumnItemScrollProgress,
+    ) = Unit
+
+    override fun TransformedContainerPainterScope.createTransformedContainerPainter(
+        painter: Painter,
+        shape: Shape,
+        border: BorderStroke?,
+    ): Painter = painter
+}
+
+/** Dialogs keep Wear M3's edge scaling on round screens and stay flat on square ones. */
+@Composable
+fun rememberDialogTransformationSpec(): TransformationSpec {
+    val spec = rememberTransformationSpec()
+    return if (isRoundScreen()) spec else NoTransformationSpec
+}
+
 /** Single-choice Wear M3 dialog used by every picker row. */
 @Composable
 fun SettingsPickerDialog(
@@ -339,6 +374,7 @@ fun SettingsPickerDialog(
         visible = true,
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
+        transformationSpec = rememberDialogTransformationSpec(),
     ) {
         labels.forEachIndexed { index, label ->
             item {
@@ -370,6 +406,7 @@ fun SettingsTextDialog(
         visible = true,
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
+        transformationSpec = rememberDialogTransformationSpec(),
     ) {
         item {
             BasicTextField(
@@ -415,6 +452,7 @@ fun SettingsConfirmDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = { Text(text = message) },
+        transformationSpec = rememberDialogTransformationSpec(),
         confirmButton = {
             Button(
                 onClick = {
@@ -434,6 +472,7 @@ fun SettingsInfoDialog(title: String, message: String, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(text = title) },
         text = { Text(text = message) },
+        transformationSpec = rememberDialogTransformationSpec(),
         confirmButton = {
             Button(
                 onClick = onDismiss,
