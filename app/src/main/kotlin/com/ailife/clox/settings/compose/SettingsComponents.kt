@@ -95,7 +95,8 @@ class SettingsListScope internal constructor(
     private val round: Boolean,
 ) {
     /** Resolve a string outside composition (the list DSL is not composable). */
-    fun res(id: Int, vararg args: Any): String = context.getString(id, *args)
+    fun res(id: Int, vararg args: Any): String =
+        if (args.isEmpty()) context.getString(id) else context.getString(id, *args)
 
     fun resArray(id: Int): Array<String> = context.resources.getStringArray(id)
 
