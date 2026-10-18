@@ -41,15 +41,26 @@ Direction is locked only when `primaryAxis ≥ 1.5 × secondaryAxis` — prevent
 
 Callbacks on `MainActivity`:
 - `onSwipeStart` — direction locked
-- `onSwipeUpdate(direction, dx, dy)` — only moves app list when direction matches (LEFT to open, RIGHT to close)
+- `onSwipeUpdate(direction, dx, dy)` — moves the app list on LEFT only when `app_list_swipe_enabled` is on (default off); RIGHT closes it
 - `onSwipeEnd` — overlay dismiss has priority 1; then app-list threshold; then overlay open
+- Hardware keys: HOME / `KEYCODE_STEM_PRIMARY` toggle the app list (400 ms debounce across the key-event and HOME-intent paths); `KEYCODE_STEM_1/2/3` toggle Quick Settings. Mapped buttons win because `ButtonMappingHandler` runs first.
 
 ### App list (`AppListFragment`)
 
+- Opens from the crown/home key; the left-swipe entry is opt-in (`app_list_swipe_enabled`, default `false`)
 - Always attached to `fragmentContainer`, positioned off-screen via `translationX = screenW`
 - Opens by springing `translationX` to `0f`, closes by springing back to `screenW`
 - `gestureRoot.appListOpen = true` suppresses vertical interception (lets RecyclerView scroll)
 - Spring reference kept in `appListSpring` — always `cancel()` before starting a new one
+
+### Overlay routing
+
+| Direction | Panel |
+|---|---|
+| swipe down | `NotificationOverlay` (top-opened; UP at the list bottom closes) |
+| swipe right | `NotificationOverlay` (alternate entry; LEFT closes) |
+| swipe up | `WidgetsOverlay` |
+| side button / `expand_qs` | `QuickSettingsOverlay` (opened directly, not via a swipe direction) |
 
 ### Overlay lifecycle
 

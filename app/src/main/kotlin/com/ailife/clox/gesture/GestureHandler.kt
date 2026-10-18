@@ -34,6 +34,9 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
      */
     var onScreenOffWhileAod: (() -> Boolean)? = null
 
+    /** Set by MainActivity: open the app list (used by the "Open app list" action). */
+    var onOpenAppList: (() -> Unit)? = null
+
     /** Set by MainActivity: open (expand) the Quick Settings panel, even if swipe-down is disabled. */
     var onExpandQuickSettings: (() -> Unit)? = null
 
@@ -77,6 +80,7 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
             "start_rtos"         -> enterRtosMode()
             "expand_qs"          -> onExpandQuickSettings?.invoke()
             "expand_notif"       -> onExpandNotifications?.invoke()
+            "open_app_list"      -> onOpenAppList?.invoke()
             "open_app"           -> launchApp(appComponent)
             "system_qs"          -> globalAction { CloXAccessibilityService.triggerQuickSettings() }
             "system_notif"       -> globalAction { CloXAccessibilityService.triggerNotifications() }

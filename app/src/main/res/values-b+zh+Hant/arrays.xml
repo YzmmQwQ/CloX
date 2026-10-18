@@ -87,6 +87,7 @@
         <item>電源選單</item>
         <item>手電筒</item>
         <item>音量面板</item>
+        <item>開啟應用程式清單</item>
     </string-array>
 
     <string-array name="nav_bar_mode_entries">

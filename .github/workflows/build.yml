@@ -42,7 +42,8 @@ jobs:
         run: |
           set -euo pipefail
           # .gitmodules uses git@gitlab.com:... — runners have no SSH key for GitLab.
-          git config --local submodule.axmol.url https://gitlab.com/ailife8881/clox-axmol.git
+          # Rewrite the working-tree .gitmodules (not committed) so `sync` keeps the HTTPS URL.
+          git config --file .gitmodules submodule.axmol.url https://gitlab.com/ailife8881/clox-axmol.git
           git submodule sync --recursive
           # The pinned commit is usually the branch tip, so shallow works. Fall back
           # to a full fetch when it is not reachable in a depth-1 clone.

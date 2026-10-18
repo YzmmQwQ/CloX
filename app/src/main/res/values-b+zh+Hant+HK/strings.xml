@@ -240,7 +240,7 @@
     <string name="accessibility_service_description">允許CloX從快速設定顯示電源選單及最近使用的應用程式。</string>
     <string name="qs_title">快速設定</string>
     <string name="qs_enabled_title">啟用快速設定</string>
-    <string name="qs_enabled_summary">從錶面向下滑動以開啟；關閉時會停用手勢及所有背景監聽</string>
+    <string name="qs_enabled_summary">透過側鍵動作開啟；關閉後控制中心不可用</string>
     <string name="qs_sensitivity_title">手勢靈敏度</string>
     <string name="qs_tile_columns_title">圖塊欄數</string>
     <string name="qs_tile_rows_title">每頁行數</string>
@@ -436,7 +436,9 @@
     <!-- Swipe actions (used when the corresponding panel is disabled) -->
     <string name="pref_swipe_category">滑動動作</string>
     <string name="pref_swipe_category_summary">當對應面板關閉時會執行這些動作。</string>
-    <string name="pref_swipe_down_title">向下滑動（快速設定關閉時）</string>
+    <string name="pref_swipe_down_title">向下滑動（通知關閉時）</string>
+    <string name="pref_app_list_swipe_title">左滑開啟應用程式清單</string>
+    <string name="pref_app_list_swipe_summary">關閉後只能按錶冠開啟應用程式清單</string>
     <string name="pref_swipe_right_title">向右滑動（通知關閉時）</string>
 
     <!-- Multiple hardware buttons -->
@@ -560,6 +562,10 @@
     <string name="btn_play_pause">播放/暫停</string>
     <string name="btn_next_track">下一首</string>
     <string name="btn_prev_track">上一首</string>
+    <string name="btn_stem_primary">錶冠 / 主按鍵</string>
+    <string name="btn_stem_1">側鍵 1</string>
+    <string name="btn_stem_2">側鍵 2</string>
+    <string name="btn_stem_3">側鍵 3</string>
     <string name="btn_none">無</string>
     <string name="btn_format">按鈕（%d）</string>
 
@@ -718,7 +724,7 @@
 
     <!-- ── Notifications settings fragment ──────────────────────────────── -->
     <string name="notif_setting_enabled_title">啟用通知</string>
-    <string name="notif_setting_enabled_summary">向右滑動時顯示通知面板</string>
+    <string name="notif_setting_enabled_summary">向下滑動時顯示通知面板</string>
     <string name="notif_setting_display_category">顯示</string>
     <string name="notif_setting_card_style_title">卡片樣式</string>
     <string name="notif_setting_view_style_title">檢視樣式</string>

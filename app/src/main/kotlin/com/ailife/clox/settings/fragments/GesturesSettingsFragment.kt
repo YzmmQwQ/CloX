@@ -76,6 +76,13 @@ class GesturesSettingsFragment : BaseSettingsFragment() {
             prefs.edit().putBoolean("home_press_screen_off", checked).apply()
         }
 
+        // Left swipe opens app list
+        val switchAppListSwipe = view.findViewById<MaterialSwitch>(R.id.switchAppListSwipe)
+        switchAppListSwipe.isChecked = prefs.getBoolean("app_list_swipe_enabled", false)
+        switchAppListSwipe.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean("app_list_swipe_enabled", checked).apply()
+        }
+
         // Reset to watchface when the screen turns on
         val switchResetWatchface = view.findViewById<MaterialSwitch>(R.id.switchResetWatchface)
         switchResetWatchface.isChecked = prefs.getBoolean("reset_watchface_on_screen_on", false)

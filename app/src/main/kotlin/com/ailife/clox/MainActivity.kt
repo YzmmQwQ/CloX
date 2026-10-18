@@ -48,7 +48,6 @@ import com.ailife.clox.overlay.notifications.NotificationOverlay
 import com.ailife.clox.overlay.notifications.NotificationPrefs
 import com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
 import com.ailife.clox.overlay.quicksettings.VolumeDialogFragment
-import com.ailife.clox.qs.QsPrefs
 import android.appwidget.AppWidgetManager
 import com.ailife.clox.overlay.widgets.WidgetsOverlay
 import com.ailife.clox.overlay.widgets.WidgetHostManager
@@ -89,6 +88,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // reset — used after importing a .watch file via ACTION_VIEW so the user lands on the
         // watch face page instead of whatever overlay/app-list was open before.
         const val EXTRA_OPEN_WATCHFACE_SELECTOR = "com.ailife.clox.EXTRA_OPEN_WATCHFACE_SELECTOR"
+        // Set by AodManager on the synthetic HOME intent that re-wakes the screen. Without it,
+        // waking into AOD would be treated as a crown press and open the app list.
+        const val EXTRA_SKIP_CROWN_TOGGLE = "com.ailife.clox.EXTRA_SKIP_CROWN_TOGGLE"
     }
 
     override fun showDialog(pTitle: String, pMessage: String) {}
@@ -580,15 +582,22 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         gestureHandler = GestureHandler(this, window)
         gestureHandler.onCollapseToWatchface = { resetToWatchface() }
-        // "Expand Quick Settings" / "Expand notifications" gesture actions — force-open the panel
-        // even if its own swipe has been disabled.
+        // "Expand Quick Settings" / "Expand notifications" actions. QS is key-triggered now, so
+        // it opens the panel directly instead of going through the swipe-direction mapping.
         gestureHandler.onExpandQuickSettings = {
-            if (!appListOpen && !overlayController.hasActiveOverlay() && !RtosManager.isActive)
-                overlayController.expand(SwipeDirection.DOWN, screenW, screenH)
+            when {
+                overlayController.isQsActive() -> overlayController.dismissActive()
+                !appListOpen && !overlayController.hasActiveOverlay() && !RtosManager.isActive ->
+                    overlayController.expandQuickSettings(screenW, screenH)
+            }
         }
         gestureHandler.onExpandNotifications = {
             if (!appListOpen && !overlayController.hasActiveOverlay() && !RtosManager.isActive)
-                overlayController.expand(SwipeDirection.RIGHT, screenW, screenH)
+                overlayController.expandNotifications(screenW, screenH)
+        }
+        gestureHandler.onOpenAppList = {
+            if (!RtosManager.isActive && !aodManager.aodActive && !appListOpen &&
+                !overlayController.hasActiveOverlay() && !isFolderOpen()) openAppList()
         }
         gestureHandler.onToggleFlashlight = {
             if (!RtosManager.isActive) flashlightOverlay.show()
@@ -644,8 +653,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                         GestureLockManager.unlockAod()
                         aodManager.onAodGestureUnlocked()
                     }
-                    overlayController.startDrag(SwipeDirection.RIGHT, screenW, screenH)
-                    overlayController.commitDrag()
+                    overlayController.expandNotifications(screenW, screenH)
                     // onShown fires from commitDrag → updateBackEnabled() already called
                 }
             }
@@ -707,6 +715,9 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return
         }
 
+        // AOD screen re-wake uses a synthetic HOME intent; it must not toggle the app list.
+        if (intent.getBooleanExtra(EXTRA_SKIP_CROWN_TOGGLE, false)) return
+
         // If launch animation is still playing, reverse it instead of proceeding
         if (activeLaunchAnim != null) {
             appLaunchedFromList = false
@@ -729,21 +740,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return
         }
 
-        // User pressed Home while already inside the launcher — dismiss outermost layer
-        when {
-            isFolderOpen() -> closeFolder()
-            AppContextMenu.isShowing -> AppContextMenu.dismissCurrent()
-            overlayController.hasActiveOverlay() -> overlayController.dismissActive()
-            appListOpen -> closeAppList()
-            else -> {
-                if (PreferenceManager.getDefaultSharedPreferences(this)
-                        .getBoolean("home_press_screen_off", false)) {
-                    if (!ScreenOffHelper.lock(this)) {
-                        ScreenOffHelper.requestPermission(this)
-                    }
-                }
-            }
-        }
+        // User pressed Home while already inside the launcher — dismiss the outermost layer,
+        // or open the app list from the bare watchface.
+        if (!claimHomeEvent()) return
+        handleCrownPress(fromHomeKey = true)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -1910,8 +1910,11 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // Only pass LEFT/RIGHT through when QS (VP2) is active, not other overlays
         gestureRoot.qsOverlayActive = { overlayController.isQsActive() }
         gestureRoot.rtosQsOverlayVisible = { rtosDelegate.isQsVisible }
-        // Pass vertical + right swipes through to the notification RecyclerView/ItemTouchHelper
+        // Pass vertical + right swipes through to the notification RecyclerView/ItemTouchHelper.
+        // A top-opened panel lets UP collapse only when the list is already at the bottom.
         gestureRoot.notificationOverlayActive = { overlayController.isNotificationActive() }
+        gestureRoot.notificationOpenedFromDown = { overlayController.isNotificationOpenedFromDown() }
+        gestureRoot.notificationListCanScrollDown = { notifications.canScrollDown() }
         // Widget drawer: pass all swipes to inner RecyclerView; collapse only on overscroll-down at top
         gestureRoot.widgetOverlayActive = { overlayController.isWidgetActive() }
         gestureRoot.widgetListCanScrollUp = { widgets.canScrollUp() }
@@ -2014,6 +2017,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 refreshAppListTransparentRegion()
             }
             !appListOpen && direction == SwipeDirection.LEFT -> {
+                if (!appListSwipeEnabled()) return
                 val v = appListFragment?.view ?: return
                 v.translationX = (screenW + dx).coerceIn(0f, screenW)
                 refreshAppListTransparentRegion()
@@ -2077,7 +2081,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (!appListOpen && !RtosManager.isActive) {
             val p = PreferenceManager.getDefaultSharedPreferences(this)
             val remapKey = when (direction) {
-                SwipeDirection.DOWN  -> if (!p.getBoolean(QsPrefs.QS_ENABLED, true)) "swipe_down_action" else null
+                SwipeDirection.DOWN  -> if (!p.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) "swipe_down_action" else null
                 SwipeDirection.RIGHT -> if (!p.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) "swipe_right_action" else null
                 else -> null
             }
@@ -2102,9 +2106,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 if (dx > screenW * 0.35f || vx > 700f) closeAppList(vx)
                 else springAppList(0f)
 
-            !appListOpen && direction == SwipeDirection.LEFT ->
-                if (-dx > screenW * 0.35f || -vx > 700f) openAppList(vx)
-                else springAppList(screenW)
+            !appListOpen && direction == SwipeDirection.LEFT -> {
+                if (appListSwipeEnabled()) {
+                    if (-dx > screenW * 0.35f || -vx > 700f) openAppList(vx)
+                    else springAppList(screenW)
+                }
+            }
 
             currentX > 0f && currentX < screenW ->
                 if (currentX < screenW * 0.5f) openAppList() else closeAppList()
@@ -2113,10 +2120,17 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // ── App list ─────────────────────────────────────────────────────────────
 
+    /** Left-swipe entry is opt-in; RTOS keeps its existing gesture path. */
+    private fun appListSwipeEnabled(): Boolean =
+        RtosManager.isActive ||
+            PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean("app_list_swipe_enabled", false)
+
     // velocity (px/s) is the finger's release velocity so the spring continues the fling.
     // Don't reset translationX here — the spring starts from wherever the drag left the
     // view, so the open continues smoothly from the finger instead of snapping off-screen.
     private fun openAppList(velocity: Float = 0f) {
+        if (appListFragment?.view == null) return
         appListOpen = true; gestureRoot.appListOpen = true
         appListFragment?.setActive(true)
         springAppList(0f, velocity)
@@ -2377,28 +2391,75 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     // ── Keys ─────────────────────────────────────────────────────────────────
 
+    private var lastHomeEventAt = 0L
+
+    /** HOME can arrive both as a key event and as a HOME intent for one crown press. */
+    private fun claimHomeEvent(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastHomeEventAt < 350L) return false
+        lastHomeEventAt = now
+        return true
+    }
+
+    /**
+     * Crown press while already inside the launcher: dismiss the outermost layer, or open
+     * the app list from the bare watchface.
+     */
+    private fun handleCrownPress(fromHomeKey: Boolean) {
+        if (RtosManager.isActive || aodManager.aodActive) return
+        when {
+            activeLaunchAnim != null             -> reverseLaunchAnimation()
+            isLaunchAnimReversing()              -> {}
+            isFolderOpen()                       -> closeFolder()
+            AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
+            overlayController.hasActiveOverlay() -> overlayController.dismissActive()
+            appListOpen                          -> closeAppList()
+            fromHomeKey && PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean("home_press_screen_off", false) -> {
+                if (!ScreenOffHelper.lock(this)) ScreenOffHelper.requestPermission(this)
+            }
+            else                                 -> openAppList()
+        }
+    }
+
+    private fun toggleQuickSettings() {
+        when {
+            overlayController.isQsActive() -> overlayController.dismissActive()
+            !appListOpen && !overlayController.hasActiveOverlay() &&
+                !RtosManager.isActive && !aodManager.aodActive ->
+                overlayController.expandQuickSettings(screenW, screenH)
+        }
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (RtosManager.isActive) return true   // block all hardware keys in RTOS mode
         if (event != null && buttonMappingHandler.handleKeyDown(keyCode, event)) return true
-        // BACK is handled by onBackPressedDispatcher (setupBackPressHandler).
-        // HOME physical key: dismiss outermost layer, same logic.
-        if (keyCode == KeyEvent.KEYCODE_HOME) {
-            when {
-                activeLaunchAnim != null             -> reverseLaunchAnimation()
-                isLaunchAnimReversing()              -> {}
-                isFolderOpen()                       -> closeFolder()
-                AppContextMenu.isShowing             -> AppContextMenu.dismissCurrent()
-                overlayController.hasActiveOverlay() -> overlayController.dismissActive()
-                appListOpen                          -> closeAppList()
+
+        val isCrown = keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_STEM_PRIMARY
+        if (isCrown) {
+            if ((event?.repeatCount ?: 0) == 0 && claimHomeEvent()) {
+                handleCrownPress(fromHomeKey = keyCode == KeyEvent.KEYCODE_HOME)
             }
             return true
         }
+
+        val isSideButton = keyCode == KeyEvent.KEYCODE_STEM_1 ||
+            keyCode == KeyEvent.KEYCODE_STEM_2 ||
+            keyCode == KeyEvent.KEYCODE_STEM_3
+        if (isSideButton) {
+            if ((event?.repeatCount ?: 0) == 0) toggleQuickSettings()
+            return true
+        }
+
         return super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (RtosManager.isActive) return true
         if (event != null && buttonMappingHandler.handleKeyUp(keyCode, event)) return true
+        if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_STEM_PRIMARY ||
+            keyCode == KeyEvent.KEYCODE_STEM_1 || keyCode == KeyEvent.KEYCODE_STEM_2 ||
+            keyCode == KeyEvent.KEYCODE_STEM_3) return true
         return super.onKeyUp(keyCode, event)
     }
 }

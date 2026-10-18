@@ -400,7 +400,7 @@
     <string name="accessibility_service_description">Allows CloX to show the power menu and recent apps from Quick Settings.</string>
     <string name="qs_title">Quick Settings</string>
     <string name="qs_enabled_title">Enable Quick Settings</string>
-    <string name="qs_enabled_summary">Swipe down from watchface to open; disables gesture and all background listeners when off</string>
+    <string name="qs_enabled_summary">Opens with the side-button action; turns the panel off when disabled</string>
     <string name="qs_sensitivity_title">Gesture sensitivity</string>
     <string name="qs_tile_columns_title">Tile columns</string>
     <string name="qs_tile_rows_title">Rows per page</string>
@@ -644,6 +644,7 @@
         <item>Power menu</item>
         <item>Flashlight</item>
         <item>Volume panel</item>
+        <item>Open app list</item>
     </string-array>
     <string-array name="gesture_action_values" translatable="false">
         <item>nothing</item>
@@ -663,6 +664,7 @@
         <item>power_menu</item>
         <item>flashlight</item>
         <item>volume_panel</item>
+        <item>open_app_list</item>
     </string-array>
 
     <!-- Open-app gesture action -->
@@ -672,8 +674,10 @@
     <!-- Swipe actions (used when the corresponding panel is disabled) -->
     <string name="pref_swipe_category">Swipe actions</string>
     <string name="pref_swipe_category_summary">These run when the matching panel is turned off.</string>
-    <string name="pref_swipe_down_title">Swipe down (Quick Settings off)</string>
+    <string name="pref_swipe_down_title">Swipe down (Notifications off)</string>
     <string name="pref_swipe_right_title">Swipe right (Notifications off)</string>
+    <string name="pref_app_list_swipe_title">Swipe left opens app list</string>
+    <string name="pref_app_list_swipe_summary">When off, open the app list with the crown button only</string>
 
     <!-- Multiple hardware buttons -->
     <string name="pref_btn_add_title">Add button</string>
@@ -876,6 +880,10 @@
     <string name="btn_play_pause">Play/Pause</string>
     <string name="btn_next_track">Next Track</string>
     <string name="btn_prev_track">Previous Track</string>
+    <string name="btn_stem_primary">Crown / primary button</string>
+    <string name="btn_stem_1">Side button 1</string>
+    <string name="btn_stem_2">Side button 2</string>
+    <string name="btn_stem_3">Side button 3</string>
     <string name="btn_none">None</string>
     <string name="btn_format">Button (%d)</string>
 
@@ -1108,7 +1116,7 @@
 
     <!-- ── Notifications settings fragment ──────────────────────────────── -->
     <string name="notif_setting_enabled_title">Enable notifications</string>
-    <string name="notif_setting_enabled_summary">Show notification panel on swipe right</string>
+    <string name="notif_setting_enabled_summary">Show notification panel on swipe down</string>
     <string name="notif_setting_display_category">Display</string>
     <string name="notif_setting_card_style_title">Card style</string>
     <string name="notif_setting_view_style_title">View style</string>

@@ -125,6 +125,10 @@ class NotificationOverlay @JvmOverloads constructor(
             if (!value) subscribed = false   // force re-subscription so current state re-emits
         }
 
+    /** True when the list still has content below the visible area (top-opened sheet). */
+    fun canScrollDown(): Boolean =
+        notifList.visibility == View.VISIBLE && notifList.canScrollVertically(1)
+
     fun onPanelOpened() {
         if (rtosOverride) { showRtosNoNotifications(); return }
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)

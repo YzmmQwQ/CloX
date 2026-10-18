@@ -25,8 +25,9 @@ app animations. If you're using Universal Launcher today, CloX is the upgrade.
   toolkit — so animations stay smooth and battery stays cool.
 - **🎨 Modern Material Design 3 UI.** Every screen — app list, quick settings, widgets,
   notifications — uses a clean, modern MD3 design built natively for a round watch display.
-- **👆 Full-screen gesture navigation.** Swipe from any edge: left for the app list, down for
-  quick settings, up for widgets, right for notifications and media. No wasted bezel, no buttons.
+- **👆 Full-screen gesture navigation.** Press the crown for the app list, swipe down for
+  notifications and media, swipe up for widgets, and open Quick Settings from a side button.
+  No wasted bezel, no on-screen buttons.
 - **✨ App animations with blur.** Apps open, close, and get interrupted with fluid transitions
   and a real-time blur effect behind them — the polished feel you'd expect from a flagship phone,
   on your wrist.

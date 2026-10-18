@@ -240,7 +240,7 @@
     <string name="accessibility_service_description">允许 CloX 从快捷设置中显示电源菜单和最近使用的应用。</string>
     <string name="qs_title">快捷设置</string>
     <string name="qs_enabled_title">启用快捷设置</string>
-    <string name="qs_enabled_summary">从表盘下滑即可打开；关闭后将禁用手势和所有后台监听</string>
+    <string name="qs_enabled_summary">通过侧键动作打开；关闭后控制中心不可用</string>
     <string name="qs_sensitivity_title">手势灵敏度</string>
     <string name="qs_tile_columns_title">磁贴列数</string>
     <string name="qs_tile_rows_title">每页行数</string>
@@ -436,7 +436,9 @@
     <!-- Swipe actions (used when the corresponding panel is disabled) -->
     <string name="pref_swipe_category">滑动操作</string>
     <string name="pref_swipe_category_summary">当对应面板关闭时会执行这些操作。</string>
-    <string name="pref_swipe_down_title">下滑（快捷设置关闭时）</string>
+    <string name="pref_swipe_down_title">下滑（通知关闭时）</string>
+    <string name="pref_app_list_swipe_title">左滑打开应用列表</string>
+    <string name="pref_app_list_swipe_summary">关闭后只能按表冠打开应用列表</string>
     <string name="pref_swipe_right_title">右滑（通知关闭时）</string>
 
     <!-- Multiple hardware buttons -->
@@ -560,6 +562,10 @@
     <string name="btn_play_pause">播放/暂停</string>
     <string name="btn_next_track">下一曲</string>
     <string name="btn_prev_track">上一曲</string>
+    <string name="btn_stem_primary">表冠 / 主按键</string>
+    <string name="btn_stem_1">侧键 1</string>
+    <string name="btn_stem_2">侧键 2</string>
+    <string name="btn_stem_3">侧键 3</string>
     <string name="btn_none">无</string>
     <string name="btn_format">按键 (%d)</string>
 
@@ -716,7 +722,7 @@
 
     <!-- ── Notifications settings fragment ──────────────────────────────── -->
     <string name="notif_setting_enabled_title">启用通知</string>
-    <string name="notif_setting_enabled_summary">右滑时显示通知面板</string>
+    <string name="notif_setting_enabled_summary">下滑时显示通知面板</string>
     <string name="notif_setting_display_category">显示</string>
     <string name="notif_setting_card_style_title">卡片样式</string>
     <string name="notif_setting_view_style_title">视图样式</string>

@@ -340,6 +340,7 @@ class AodManager(
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 setPackage(context.packageName)
+                putExtra(com.ailife.clox.MainActivity.EXTRA_SKIP_CROWN_TOGGLE, true)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             }
             onWillForeground()

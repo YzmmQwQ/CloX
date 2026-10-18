@@ -48,6 +48,12 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     /** Returns true when the notification panel is open — vertical + right swipes pass to child. */
     var notificationOverlayActive: (() -> Boolean)? = null
 
+    /** Returns true when the notification panel was opened by a downward swipe from the top. */
+    var notificationOpenedFromDown: (() -> Boolean)? = null
+
+    /** Returns true when the notification list can still scroll downward (more content below). */
+    var notificationListCanScrollDown: (() -> Boolean)? = null
+
     /**
      * Returns true when the widget drawer is open. Vertical + horizontal swipes pass to the
      * inner RecyclerView. The only exception: swipe DOWN while the list cannot scroll up
@@ -260,9 +266,19 @@ class GestureInterceptorLayout @JvmOverloads constructor(
         // When QS (or any overlay) is open, let VP2 handle horizontal page swipes
         if (qsOverlayActive?.invoke() == true &&
             (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT)) return true
-        // When notification panel is open: only LEFT collapses it; vertical + right pass to child
-        if (notificationOverlayActive?.invoke() == true &&
-            (dir == SwipeDirection.UP || dir == SwipeDirection.DOWN || dir == SwipeDirection.RIGHT)) return true
+        // Notification panel: top-opened panels scroll down and collapse on UP at the bottom;
+        // right-opened panels keep their original LEFT-to-close behavior.
+        if (notificationOverlayActive?.invoke() == true) {
+            if (notificationOpenedFromDown?.invoke() == true) {
+                if (dir == SwipeDirection.UP &&
+                    notificationListCanScrollDown?.invoke() == true) return true
+                if (dir == SwipeDirection.DOWN ||
+                    dir == SwipeDirection.LEFT ||
+                    dir == SwipeDirection.RIGHT) return true
+            } else if (dir == SwipeDirection.UP ||
+                dir == SwipeDirection.DOWN ||
+                dir == SwipeDirection.RIGHT) return true
+        }
         // Widget drawer: pass all horizontal and upward swipes to the inner RecyclerView.
         // Downward swipe at the very top (overscroll) collapses the overlay — don't block it.
         if (widgetOverlayActive?.invoke() == true) {

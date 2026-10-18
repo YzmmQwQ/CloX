@@ -30,3 +30,6 @@ CloX-privapp-magisk.zip
 
 # apksigner v4 side-file (breaks Magisk-mounted overlays; never ship)
 *.apk.idsig
+
+# 供设计用的参考文件夹
+horologist-main/

@@ -96,6 +96,10 @@ object ButtonMappingPrefs {
         KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> ctx.getString(R.string.btn_play_pause)
         KeyEvent.KEYCODE_MEDIA_NEXT  -> ctx.getString(R.string.btn_next_track)
         KeyEvent.KEYCODE_MEDIA_PREVIOUS  -> ctx.getString(R.string.btn_prev_track)
+        KeyEvent.KEYCODE_STEM_PRIMARY -> ctx.getString(R.string.btn_stem_primary)
+        KeyEvent.KEYCODE_STEM_1       -> ctx.getString(R.string.btn_stem_1)
+        KeyEvent.KEYCODE_STEM_2       -> ctx.getString(R.string.btn_stem_2)
+        KeyEvent.KEYCODE_STEM_3       -> ctx.getString(R.string.btn_stem_3)
         0 -> ctx.getString(R.string.btn_none)
         else -> ctx.getString(R.string.btn_format, keyCode)
     }

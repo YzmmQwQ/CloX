@@ -9,18 +9,21 @@ integrating other apps with CloX see the [Integration Guide](INTEGRATION.md).
 ```
 MainActivity (singleTask)
 ├── HomeFragment          ← Axmol SurfaceView — Lua watchface (native GL renderer)
-├── AppListFragment       ← Slides in from right edge on swipe-left
+├── AppListFragment       ← Opens from the crown/home key (left swipe is opt-in)
 └── OverlayController     ← Manages full-screen overlay layers
 
 Overlays (above HomeFragment, GONE by default):
-├── QuickSettingsOverlay  ← Swipe-down  (tiles + brightness/volume sliders)
+├── QuickSettingsOverlay  ← Side-button action (tiles + brightness/volume sliders)
 ├── WidgetsOverlay        ← Swipe-up    (AppWidgetHost cards)
-└── NotificationOverlay   ← Swipe-right (MediaSession card + notification list)
+└── NotificationOverlay   ← Swipe-down or swipe-right (MediaSession card + notification list)
 ```
 
 **Gesture system** — `GestureInterceptorLayout` (root `FrameLayout` subclass):
 - Requires 1.5× directional ratio before committing direction (prevents diagonal misfires)
 - App list follows finger in real time via `translationX`, snaps with `SpringAnimation` on release
+  (left-swipe entry disabled by default; the crown/home key toggles the list)
+- Quick Settings opens from `KEYCODE_STEM_1/2/3` or any button mapped to `expand_qs`
+- Top-opened notification panel scrolls with DOWN and collapses on UP once the list is at the bottom
 - Vertical scroll passes through to RecyclerView when app list is open
 - Any swipe dismisses an active overlay before other routing runs
 

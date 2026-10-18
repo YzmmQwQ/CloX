@@ -41,19 +41,32 @@ class OverlayController(
     // ── Open drag (finger pulls panel in) ───────────────────────────────────
 
     /**
-     * Programmatically open a panel fully, bypassing the QS/notif enabled gate. Used by the
-     * "Expand Quick Settings" / "Expand notifications" gesture actions so a remapped gesture can
-     * still open a panel whose own swipe has been turned off.
+     * Programmatically open the Quick Settings panel from the top. Used by the side-button
+     * action. Respects [QsPrefs.QS_ENABLED].
      */
-    fun expand(direction: SwipeDirection, sw: Float, sh: Float) {
+    fun expandQuickSettings(sw: Float, sh: Float) {
         if (activeOverlay != null) return
-        startDrag(direction, sw, sh, force = true)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(quickSettings.context)
+        if (!prefs.getBoolean(QsPrefs.QS_ENABLED, true)) return
+        startDragOverlay(quickSettings, SwipeDirection.DOWN, sw, sh)
         commitDrag()
     }
 
-    fun startDrag(direction: SwipeDirection, sw: Float, sh: Float, force: Boolean = false) {
+    /** Programmatically open the notification panel from the top (side action / auto-open). */
+    fun expandNotifications(sw: Float, sh: Float) {
         if (activeOverlay != null) return
-        val overlay = overlayFor(direction, force) ?: return
+        startDragOverlay(notifications, SwipeDirection.DOWN, sw, sh)
+        commitDrag()
+    }
+
+    fun startDrag(direction: SwipeDirection, sw: Float, sh: Float) {
+        if (activeOverlay != null) return
+        val overlay = overlayFor(direction) ?: return
+        startDragOverlay(overlay, direction, sw, sh)
+    }
+
+    private fun startDragOverlay(overlay: View, direction: SwipeDirection, sw: Float, sh: Float) {
+        if (activeOverlay != null) return
 
         screenW = sw; screenH = sh
 
@@ -117,17 +130,16 @@ class OverlayController(
 
     fun commitDrag() {
         val overlay = activeOverlay ?: return
-        val direction = activeDirection
         android.util.Log.d("CloX/Blur", "commitDrag (overlay open)")
         isDragging = false
         // Start animations immediately — no heavy work before this
         overlay.animate().translationX(0f).translationY(0f).setDuration(200)
             .setInterpolator(DecelerateInterpolator())
             .withEndAction {
-                when (direction) {
-                    SwipeDirection.DOWN  -> (quickSettings as? QuickSettingsOverlay)?.onPanelOpened()
-                    SwipeDirection.RIGHT -> (notifications as? com.ailife.clox.overlay.notifications.NotificationOverlay)?.onPanelOpened()
-                    else -> Unit
+                when {
+                    overlay === quickSettings  -> quickSettings.onPanelOpened()
+                    overlay === notifications  -> notifications.onPanelOpened()
+                    overlay === widgets        -> widgets.onPanelOpened()
                 }
             }.start()
         BlurEngine.updateProgress(scrimView.context, blurLayer, 1f)
@@ -206,10 +218,7 @@ class OverlayController(
                 // Skip if this overlay was re-opened during the exit animation.
                 if (activeOverlay !== overlay) {
                     overlay.visibility = View.GONE
-                    if (direction == SwipeDirection.DOWN) {
-                        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-                    }
-                    if (overlay === widgets) widgets.onPanelClosed()
+                    closeHooks(overlay)
                     onDismissed?.invoke()
                 }
             }.start()
@@ -267,8 +276,7 @@ class OverlayController(
                 .withEndAction {
                     if (activeOverlay !== overlay) {
                         overlay.visibility = View.GONE
-                        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-                        if (overlay === widgets) widgets.onPanelClosed()
+                        closeHooks(overlay)
                         onDismissed?.invoke()
                     }
                 }.start()
@@ -277,8 +285,7 @@ class OverlayController(
                 .withEndAction {
                     if (activeOverlay !== overlay) {
                         overlay.visibility = View.GONE; overlay.alpha = 1f
-                        (quickSettings as? QuickSettingsOverlay)?.onPanelClosed()
-                        if (overlay === widgets) widgets.onPanelClosed()
+                        closeHooks(overlay)
                         onDismissed?.invoke()
                     }
                 }.start()
@@ -301,14 +308,11 @@ class OverlayController(
         scrimView.animate().cancel()
         isDragging = false
         isCollapsing = false
-        val wasQs = overlay === quickSettings
-        val wasWidgets = overlay === widgets
         activeOverlay = null
         activeDirection = null
         hideNow(overlay)
         overlay.alpha = 1f
-        if (wasQs) quickSettings.onPanelClosed()
-        if (wasWidgets) widgets.onPanelClosed()
+        closeHooks(overlay)
         onDismissed?.invoke()
     }
 
@@ -319,6 +323,10 @@ class OverlayController(
 
     /** True only when the notification panel is the current active overlay. */
     fun isNotificationActive(): Boolean = activeOverlay === notifications
+
+    /** True when the notification panel was opened by a downward swipe from the top edge. */
+    fun isNotificationOpenedFromDown(): Boolean =
+        activeOverlay === notifications && activeDirection == SwipeDirection.DOWN
 
     /** True only when the widget drawer is the current active overlay. */
     fun isWidgetActive(): Boolean = activeOverlay === widgets
@@ -333,14 +341,19 @@ class OverlayController(
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun overlayFor(direction: SwipeDirection, force: Boolean = false): View? {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(quickSettings.context)
-        if (!force) {
-            if (direction == SwipeDirection.DOWN && !prefs.getBoolean(QsPrefs.QS_ENABLED, true)) return null
-            if (direction == SwipeDirection.RIGHT && !prefs.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) return null
+    private fun closeHooks(overlay: View) {
+        when {
+            overlay === quickSettings -> quickSettings.onPanelClosed()
+            overlay === widgets       -> widgets.onPanelClosed()
         }
+    }
+
+    private fun overlayFor(direction: SwipeDirection): View? {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(quickSettings.context)
+        if ((direction == SwipeDirection.DOWN || direction == SwipeDirection.RIGHT) &&
+            !prefs.getBoolean(NotificationPrefs.NOTIF_ENABLED, true)) return null
         return when (direction) {
-            SwipeDirection.DOWN  -> quickSettings
+            SwipeDirection.DOWN  -> notifications
             SwipeDirection.UP    -> widgets
             SwipeDirection.RIGHT -> notifications
             else -> null
