@@ -43,7 +43,7 @@ Callbacks on `MainActivity`:
 - `onSwipeStart` — direction locked
 - `onSwipeUpdate(direction, dx, dy)` — moves the app list on LEFT only when `app_list_swipe_enabled` is on (default off); RIGHT closes it
 - `onSwipeEnd` — overlay dismiss has priority 1; then app-list threshold; then overlay open
-- Hardware keys: HOME / `KEYCODE_STEM_PRIMARY` toggle the app list (400 ms debounce across the key-event and HOME-intent paths); `KEYCODE_STEM_1/2/3` toggle Quick Settings. Mapped buttons win because `ButtonMappingHandler` runs first.
+- Hardware keys: HOME / `KEYCODE_STEM_PRIMARY` toggle the app list (400 ms debounce across the key-event and HOME-intent paths); `KEYCODE_STEM_1/2/3` toggle Quick Settings. The OW19W1 hardware never emits STEM_* — its key layout maps the crown to `KEYCODE_F1` and the lower/power key to `KEYCODE_F2`, which is handled as the Quick Settings side key. Mapped buttons win because `ButtonMappingHandler` runs first.
 
 ### App list (`AppListFragment`)
 

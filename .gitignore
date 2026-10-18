@@ -33,3 +33,6 @@ CloX-privapp-magisk.zip
 
 # 供设计用的参考文件夹
 horologist-main/
+
+# APK 文件
+*.apk

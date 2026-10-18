@@ -17,8 +17,13 @@ set(_AX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/axmol")
 if(EXISTS "${_AX_ROOT}/CMakeLists.txt")
     message(STATUS "Axmol found at ${_AX_ROOT}")
 
-    # Use repo-tracked axslcc binary; fall back to Axmol's bundled copy
+    # Use repo-tracked axslcc binary; fall back to Axmol's bundled copy.
+    # The tracked binary is a Linux ELF (CI); local Windows builds drop an
+    # axslcc.exe beside it and this prefers it.
     set(_AXSLCC_REPO_BIN "${CMAKE_CURRENT_SOURCE_DIR}/tools/axslcc/bin/axslcc")
+    if(WIN32 AND EXISTS "${_AXSLCC_REPO_BIN}.exe")
+        set(_AXSLCC_REPO_BIN "${_AXSLCC_REPO_BIN}.exe")
+    endif()
     if(EXISTS "${_AXSLCC_REPO_BIN}")
         set(AXSLCC_EXE "${_AXSLCC_REPO_BIN}" CACHE FILEPATH "axslcc" FORCE)
     endif()

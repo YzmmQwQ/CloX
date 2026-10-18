@@ -100,6 +100,8 @@ object ButtonMappingPrefs {
         KeyEvent.KEYCODE_STEM_1       -> ctx.getString(R.string.btn_stem_1)
         KeyEvent.KEYCODE_STEM_2       -> ctx.getString(R.string.btn_stem_2)
         KeyEvent.KEYCODE_STEM_3       -> ctx.getString(R.string.btn_stem_3)
+        KeyEvent.KEYCODE_F1           -> ctx.getString(R.string.btn_f1)
+        KeyEvent.KEYCODE_F2           -> ctx.getString(R.string.btn_f2)
         0 -> ctx.getString(R.string.btn_none)
         else -> ctx.getString(R.string.btn_format, keyCode)
     }

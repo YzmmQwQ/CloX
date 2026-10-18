@@ -881,6 +881,8 @@
     <string name="btn_next_track">Next Track</string>
     <string name="btn_prev_track">Previous Track</string>
     <string name="btn_stem_primary">Crown / primary button</string>
+    <string name="btn_f1">Function key F1</string>
+    <string name="btn_f2">Function key F2 (lower key)</string>
     <string name="btn_stem_1">Side button 1</string>
     <string name="btn_stem_2">Side button 2</string>
     <string name="btn_stem_3">Side button 3</string>
@@ -1334,6 +1336,10 @@
 
     <!-- ── Appearance section labels ──────────────────────────────────── -->
     <string name="appearance_section_display">Display</string>
+    <string name="appearance_dark_mode_title">Dark mode</string>
+    <string name="appearance_dark_mode_system">Follow system</string>
+    <string name="appearance_dark_mode_on">On</string>
+    <string name="appearance_dark_mode_off">Off</string>
     <string name="appearance_dpi_label">App display density (DPI)</string>
     <string name="appearance_dpi_default">0 (system default)</string>
     <string name="appearance_section_blur">Blur</string>

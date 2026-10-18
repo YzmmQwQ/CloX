@@ -12,6 +12,8 @@
          purple-tinted default neutral palette doesn't tint backgrounds. -->
     <color name="m3_background">#131315</color>
     <color name="m3_surface">#131315</color>
+    <!-- Pure black (not m3_surface) so OLED pixels are actually off. -->
+    <color name="applist_surface">#000000</color>
     <color name="m3_surface_variant">#43474C</color>
     <color name="m3_on_surface">#E3E2E5</color>
     <color name="m3_on_surface_variant">#C3C6CC</color>

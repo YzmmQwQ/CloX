@@ -13,21 +13,28 @@ if (axmolPresent) {
         into axmolScriptDst
     }
 
-    // Copy compiled axslc shaders → assets/axslc/ (built by CMake/axslcc during native build)
-    def axslcSrc = new File("${projectDir}/build/runtime/axslc")
-    def axslcDst = new File("${projectDir}/src/main/assets/axslc")
-    task copyAxslcShaders(type: Copy) {
-        from axslcSrc
-        into axslcDst
-    }
+    // The old post-build Copy task that moved axslcc's output into
+    // src/main/assets/axslc ran at preBuild — BEFORE the native build generated
+    // the files — so clean builds (CI) packaged no shaders at all:
+    // ProgramManager failed every builtin shader load, LayerColor's create()
+    // asserted, and watchface.lua onEnter aborted mid-way leaving a black
+    // screen. build/runtime is now an asset root instead (see sourceSets).
     preBuild.dependsOn copyAxmolLua
-    preBuild.dependsOn copyAxslcShaders
 }
 
 android {
     namespace 'com.ailife.clox'
     compileSdk 36
     ndkVersion "25.2.9519653"
+
+    // axslcc writes compiled shaders to build/runtime/axslc during the native
+    // build; exposing build/runtime as an asset root packages that tree as
+    // assets/axslc/, where ProgramManager looks them up at runtime.
+    sourceSets {
+        main {
+            assets.srcDir "${buildDir}/runtime"
+        }
+    }
 
     defaultConfig {
         applicationId "com.ailife.clox"
@@ -94,6 +101,21 @@ android {
 
     aaptOptions {
         noCompress 'mp3', 'ogg', 'wav', 'mp4', 'ttf', 'ttc', 'lua'
+    }
+}
+
+// The shader tree only exists once the native build has run. Wire
+// native build -> merge assets so a clean (CI) build never packages an APK
+// without assets/axslc (see the sourceSets comment above).
+if (axmolPresent) {
+    project.afterEvaluate {
+        ['Debug', 'Release'].each { variantName ->
+            def mergeTask  = tasks.findByName("merge${variantName}Assets")
+            def nativeTask = tasks.findByName("externalNativeBuild${variantName}")
+            if (mergeTask != null && nativeTask != null) {
+                mergeTask.dependsOn(nativeTask)
+            }
+        }
     }
 }
 

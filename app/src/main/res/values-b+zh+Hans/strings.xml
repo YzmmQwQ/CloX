@@ -563,6 +563,8 @@
     <string name="btn_next_track">下一曲</string>
     <string name="btn_prev_track">上一曲</string>
     <string name="btn_stem_primary">表冠 / 主按键</string>
+    <string name="btn_f1">功能键 F1</string>
+    <string name="btn_f2">功能键 F2（下键）</string>
     <string name="btn_stem_1">侧键 1</string>
     <string name="btn_stem_2">侧键 2</string>
     <string name="btn_stem_3">侧键 3</string>
@@ -902,6 +904,10 @@
 
     <!-- ── Appearance section labels ──────────────────────────────────── -->
     <string name="appearance_section_display">显示</string>
+    <string name="appearance_dark_mode_title">深色模式</string>
+    <string name="appearance_dark_mode_system">跟随系统</string>
+    <string name="appearance_dark_mode_on">开启</string>
+    <string name="appearance_dark_mode_off">关闭</string>
     <string name="appearance_dpi_label">应用显示密度（DPI）</string>
     <string name="appearance_dpi_default">0（系统默认）</string>
     <string name="appearance_section_blur">模糊</string>

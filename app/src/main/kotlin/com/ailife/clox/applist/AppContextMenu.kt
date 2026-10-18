@@ -1,23 +1,22 @@
 package com.ailife.clox.applist
 
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.content.pm.LauncherApps.ShortcutQuery
 import android.content.pm.ShortcutInfo
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Process
 import android.provider.Settings
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -28,7 +27,7 @@ import com.ailife.clox.util.safeStartActivity
 
 object AppContextMenu {
 
-    private var current: PopupWindow? = null
+    private var current: Dialog? = null
     val isShowing get() = current?.isShowing == true
 
     fun show(
@@ -94,79 +93,31 @@ object AppContextMenu {
 
         val shortcuts = queryShortcuts(context, item)
 
-        val density = context.resources.displayMetrics.density
-        val ta = context.obtainStyledAttributes(intArrayOf(
-            android.R.attr.colorBackground,
-            com.google.android.material.R.attr.colorSurface
-        ))
-        val surfaceColor = ta.getColor(1, ta.getColor(0, context.getColor(R.color.fallback_surface)))
-        ta.recycle()
-
-        val bg = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = density * 16f
-            setColor(surfaceColor)
-        }
-
-        val container = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            val p = (8 * density).toInt()
-            setPadding(0, p, 0, p)
-        }
-
-        val scrollView = ScrollView(context).apply {
-            background = bg
-            elevation = density * 8f
-            // Clip scrolling content to the rounded-corner background so items
-            // don't render outside the visual background when the list scrolls.
-            clipToOutline = true
-        }
-        scrollView.addView(container, ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
-
-        val inflater = LayoutInflater.from(context)
-        var popupRef: PopupWindow? = null
-
+        val rows = ArrayList<Row>(entries.size + shortcuts.size + 1)
         for (entry in entries) {
-            val v = inflater.inflate(R.layout.item_context_menu, container, false)
-            v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(
-                ContextCompat.getDrawable(context, entry.iconRes)
-            )
-            v.findViewById<TextView>(R.id.menuLabel).setText(entry.labelRes)
-            v.setOnClickListener {
-                popupRef?.dismiss()
-                current = null
-                entry.action()
-            }
-            container.addView(v)
+            rows.add(Row(
+                label = context.getString(entry.labelRes),
+                icon = ContextCompat.getDrawable(context, entry.iconRes),
+                action = entry.action
+            ))
         }
-
         if (shortcuts.isNotEmpty()) {
-            container.addView(makeDivider(context, density))
-
+            rows.add(Row(divider = true))
             val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
             for (shortcut in shortcuts) {
-                val v = inflater.inflate(R.layout.item_context_menu, container, false)
                 val icon = try {
                     launcherApps.getShortcutIconDrawable(shortcut, context.resources.displayMetrics.densityDpi)
                 } catch (_: Exception) { null }
-                v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(
-                    icon ?: ContextCompat.getDrawable(context, R.drawable.ic_open_in_new)
-                )
-                v.findViewById<TextView>(R.id.menuLabel).text =
-                    shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id
-                v.setOnClickListener {
-                    popupRef?.dismiss()
-                    current = null
+                rows.add(Row(
+                    label = shortcut.shortLabel ?: shortcut.longLabel ?: shortcut.id,
+                    icon = icon ?: ContextCompat.getDrawable(context, R.drawable.ic_open_in_new)
+                ) {
                     try { launcherApps.startShortcut(shortcut, null, null) } catch (_: Exception) { }
-                }
-                container.addView(v)
+                })
             }
         }
 
-        placeAndShow(context, anchor, scrollView, density) { popupRef = it }
+        showMenuDialog(context, rows)
     }
 
     /**
@@ -207,95 +158,76 @@ object AppContextMenu {
                     .show()
             }
         )
-        val (scrollView, density) = buildMenuScroll(context, entries)
-        placeAndShow(context, anchor, scrollView, density) {}
+        val rows = entries.map { entry ->
+            Row(
+                label = context.getString(entry.labelRes),
+                icon = ContextCompat.getDrawable(context, entry.iconRes),
+                action = entry.action
+            )
+        }
+        showMenuDialog(context, rows)
     }
 
-    /** Builds the rounded scrollable container for a simple list of [entries]. */
-    private fun buildMenuScroll(context: Context, entries: List<Entry>): Pair<ScrollView, Float> {
+    private data class Row(
+        val label: CharSequence? = null,
+        val icon: Drawable? = null,
+        val divider: Boolean = false,
+        val action: (() -> Unit)? = null
+    )
+
+    /**
+     * Shows [rows] in a standalone Material dialog. A dialog (rather than an
+     * anchored PopupWindow) sidesteps the small-watch-screen blowup: the old
+     * anchor maths built a 200dp popup and clamped its x-range with coerceIn,
+     * which throws when the screen is narrower than the popup. The dialog is
+     * sized to the screen, scrolls when the rows exceed it, and follows the
+     * DayNight theme.
+     */
+    private fun showMenuDialog(context: Context, rows: List<Row>) {
+        dismissCurrent()
         val density = context.resources.displayMetrics.density
-        val ta = context.obtainStyledAttributes(intArrayOf(
-            android.R.attr.colorBackground,
-            com.google.android.material.R.attr.colorSurface
-        ))
-        val surfaceColor = ta.getColor(1, ta.getColor(0, context.getColor(R.color.fallback_surface)))
-        ta.recycle()
-        val bg = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = density * 16f
-            setColor(surfaceColor)
-        }
+        val inflater = LayoutInflater.from(context)
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             val p = (8 * density).toInt()
             setPadding(0, p, 0, p)
         }
-        val scrollView = ScrollView(context).apply {
-            background = bg
-            elevation = density * 8f
-            clipToOutline = true
-        }
-        scrollView.addView(container, ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        val inflater = LayoutInflater.from(context)
-        for (entry in entries) {
+        for (row in rows) {
+            if (row.divider) {
+                container.addView(makeDivider(context, density))
+                continue
+            }
             val v = inflater.inflate(R.layout.item_context_menu, container, false)
-            v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(
-                ContextCompat.getDrawable(context, entry.iconRes))
-            v.findViewById<TextView>(R.id.menuLabel).setText(entry.labelRes)
+            v.findViewById<ImageView>(R.id.menuIcon).setImageDrawable(row.icon)
+            v.findViewById<TextView>(R.id.menuLabel).text = row.label
             v.setOnClickListener {
-                current?.dismiss()
-                current = null
-                entry.action()
+                val action = row.action
+                dismissCurrent()
+                action?.invoke()
             }
             container.addView(v)
         }
-        return scrollView to density
-    }
 
-    /** Measures, positions relative to [anchor], and shows [scrollView] as the current popup. */
-    private fun placeAndShow(
-        context: Context,
-        anchor: View,
-        scrollView: ScrollView,
-        density: Float,
-        setRef: (PopupWindow) -> Unit
-    ) {
-        val popupWidth = (200 * density).toInt()
-        val margin = (8 * density).toInt()
-        val screenH = context.resources.displayMetrics.heightPixels
         val screenW = context.resources.displayMetrics.widthPixels
-
-        val loc = IntArray(2)
-        anchor.getLocationOnScreen(loc)
-        val anchorTop    = loc[1]
-        val anchorBottom = loc[1] + anchor.height
-        val spaceBelow   = screenH - anchorBottom - margin
-        val spaceAbove   = anchorTop - margin
-
-        val availableH = maxOf(spaceBelow, spaceAbove)
-        val maxHeight  = (screenH * 0.70f).toInt().coerceAtMost(availableH)
-
-        scrollView.measure(
-            View.MeasureSpec.makeMeasureSpec(popupWidth, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(maxHeight, View.MeasureSpec.AT_MOST)
-        )
-        val popupHeight = scrollView.measuredHeight
-
-        val anchorCx = loc[0] + anchor.width / 2
-        val x = (anchorCx - popupWidth / 2).coerceIn(margin, screenW - popupWidth - margin)
-        val y = if (spaceBelow >= spaceAbove) anchorBottom + margin
-                else anchorTop - popupHeight - margin
-
-        val popup = PopupWindow(scrollView, popupWidth, popupHeight).apply {
-            isFocusable = true
-            isOutsideTouchable = true
-            elevation = density * 8f
-            setOnDismissListener { current = null }
+        val scroll = ScrollView(context).apply {
+            addView(container, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
         }
-        setRef(popup)
-        current = popup
-        popup.showAtLocation(anchor.rootView, Gravity.TOP or Gravity.START, x, y)
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setView(scroll, 0, 0, 0, 0)
+            .create()
+        dialog.setOnDismissListener { current = null }
+        dialog.setOnShowListener {
+            // Nearly full width on tiny (watch) screens; the platform caps height.
+            dialog.window?.setLayout(
+                (screenW * 0.92f).toInt(),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        current = dialog
+        dialog.show()
     }
 
     /** Simple single-line text input dialog (folder name / rename). */

@@ -41,6 +41,10 @@ class ButtonMappingHandler(private val ctx: Context, private val gestureHandler:
             handler.removeCallbacks(pending)
             pendingSingleRunnables.remove(keyCode)
             fire(keyCode, ButtonMappingPrefs.PRESS_DOUBLE)
+        } else if (ButtonMappingPrefs.getAction(ctx, keyCode, ButtonMappingPrefs.PRESS_DOUBLE) == "nothing") {
+            // Nothing bound to double press — fire immediately instead of
+            // making every single press wait out the double-tap window.
+            fire(keyCode, ButtonMappingPrefs.PRESS_SINGLE)
         } else {
             val r = Runnable {
                 pendingSingleRunnables.remove(keyCode)

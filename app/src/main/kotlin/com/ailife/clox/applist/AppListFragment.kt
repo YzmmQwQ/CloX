@@ -299,11 +299,7 @@ class AppListFragment : Fragment() {
     }
 
     private fun applySurfaceBackground() {
-        val ta = requireContext().obtainStyledAttributes(
-            intArrayOf(com.google.android.material.R.attr.colorSurface)
-        )
-        root.setBackgroundColor(ta.getColor(0, requireContext().getColor(R.color.fallback_surface)))
-        ta.recycle()
+        root.setBackgroundColor(requireContext().getColor(R.color.applist_surface))
     }
 
     // ── Backend management ────────────────────────────────────────────────────

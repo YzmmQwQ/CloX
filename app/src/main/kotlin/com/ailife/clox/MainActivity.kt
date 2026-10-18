@@ -2425,9 +2425,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private fun toggleQuickSettings() {
         when {
             overlayController.isQsActive() -> overlayController.dismissActive()
-            !appListOpen && !overlayController.hasActiveOverlay() &&
-                !RtosManager.isActive && !aodManager.aodActive ->
+            RtosManager.isActive || aodManager.aodActive -> {}
+            else -> {
+                // A physical key should always surface QS, even when the app
+                // list or another panel is showing.
+                if (appListOpen) closeAppList()
+                if (overlayController.hasActiveOverlay()) overlayController.dismissActive()
                 overlayController.expandQuickSettings(screenW, screenH)
+            }
         }
     }
 
@@ -2443,11 +2448,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
             return true
         }
 
-        val isSideButton = keyCode == KeyEvent.KEYCODE_STEM_1 ||
+        // This watch's key layout reports the crown as KEYCODE_F1 and the
+        // lower/power button as KEYCODE_F2 — STEM_* never arrives. The lower
+        // key opens Quick Settings; the crown keeps its HOME-intent behavior.
+        val isSideButton = keyCode == KeyEvent.KEYCODE_F2 ||
+            keyCode == KeyEvent.KEYCODE_STEM_1 ||
             keyCode == KeyEvent.KEYCODE_STEM_2 ||
             keyCode == KeyEvent.KEYCODE_STEM_3
         if (isSideButton) {
-            if ((event?.repeatCount ?: 0) == 0) toggleQuickSettings()
+            if ((event?.repeatCount ?: 0) == 0) {
+                Log.d("CloX/Keys", "onKeyDown side key=$keyCode")
+                toggleQuickSettings()
+            }
             return true
         }
 
@@ -2458,6 +2470,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (RtosManager.isActive) return true
         if (event != null && buttonMappingHandler.handleKeyUp(keyCode, event)) return true
         if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_STEM_PRIMARY ||
+            keyCode == KeyEvent.KEYCODE_F2 ||
             keyCode == KeyEvent.KEYCODE_STEM_1 || keyCode == KeyEvent.KEYCODE_STEM_2 ||
             keyCode == KeyEvent.KEYCODE_STEM_3) return true
         return super.onKeyUp(keyCode, event)

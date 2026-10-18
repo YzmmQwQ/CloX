@@ -6,4 +6,4 @@
     android:layout_height="match_parent"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:background="?attr/colorSurface" />
+    android:background="@color/applist_surface" />

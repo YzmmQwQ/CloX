@@ -61,6 +61,8 @@
          default neutral palette doesn't tint backgrounds. -->
     <color name="m3_background">#FCFCFD</color>
     <color name="m3_surface">#FCFCFD</color>
+    <!-- App list canvas; night variant is pure black so OLED pixels switch off. -->
+    <color name="applist_surface">#FCFCFD</color>
     <color name="m3_surface_variant">#E1E2E6</color>
     <color name="m3_on_surface">#1A1C1E</color>
     <color name="m3_on_surface_variant">#43474C</color>

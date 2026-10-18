@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatDelegate
 import com.ailife.clox.R
 import com.ailife.clox.util.safeStartActivity
 import com.google.android.material.slider.Slider
@@ -26,6 +27,34 @@ class AppearanceSettingsFragment : BaseSettingsFragment() {
 
         val blurModeEntries = resources.getStringArray(R.array.blur_mode_entries)
         val blurModeValues  = resources.getStringArray(R.array.blur_mode_values)
+
+        // Dark mode: follow system / always on / always off. Applies app-wide via
+        // AppCompatDelegate; the launcher home stays watchface-defined either way.
+        val darkEntries = arrayOf(
+            getString(R.string.appearance_dark_mode_system),
+            getString(R.string.appearance_dark_mode_on),
+            getString(R.string.appearance_dark_mode_off)
+        )
+        val darkValues  = arrayOf("system", "on", "off")
+        val tvDarkMode  = view.findViewById<TextView>(R.id.tvDarkModeValue)
+        fun refreshDarkMode() {
+            val v = prefs.getString("dark_mode", "system") ?: "system"
+            tvDarkMode.text = darkEntries.getOrElse(darkValues.indexOf(v)) { v }
+        }
+        refreshDarkMode()
+        view.findViewById<View>(R.id.rowDarkMode).setOnClickListener {
+            showListPicker(getString(R.string.appearance_dark_mode_title),
+                darkEntries, darkValues,
+                prefs.getString("dark_mode", "system") ?: "system") { v, _ ->
+                prefs.edit().putString("dark_mode", v).apply()
+                refreshDarkMode()
+                AppCompatDelegate.setDefaultNightMode(when (v) {
+                    "on"  -> AppCompatDelegate.MODE_NIGHT_YES
+                    "off" -> AppCompatDelegate.MODE_NIGHT_NO
+                    else  -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                })
+            }
+        }
 
         // DPI override row
         fun refreshDpi() {

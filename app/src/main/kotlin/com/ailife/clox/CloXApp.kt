@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.preference.PreferenceManager
 import com.ailife.clox.crash.CrashHandler
 import com.ailife.clox.overlay.global.GlobalOverlayService
 import com.ailife.clox.qs.privilege.ShizukuOperations
@@ -17,11 +19,26 @@ class CloXApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        applyDarkModePreference()
         DynamicColors.applyToActivitiesIfAvailable(this)
         MonetBackport.applyToActivitiesIfAvailable(this)
         CrashHandler.install(this)
         registerForegroundTracker()
         initShizuku()
+    }
+
+    /**
+     * Applies the Appearance setting "dark mode" (system / on / off) before any
+     * activity is created. Default is follow-system, matching the DayNight theme.
+     */
+    private fun applyDarkModePreference() {
+        val mode = PreferenceManager.getDefaultSharedPreferences(this)
+            .getString("dark_mode", "system")
+        AppCompatDelegate.setDefaultNightMode(when (mode) {
+            "on"  -> AppCompatDelegate.MODE_NIGHT_YES
+            "off" -> AppCompatDelegate.MODE_NIGHT_NO
+            else  -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        })
     }
 
     // ── Foreground tracking (used by the global QS overlay) ────────────────────
