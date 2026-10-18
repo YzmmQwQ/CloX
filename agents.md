@@ -47,10 +47,10 @@ Callbacks on `MainActivity`:
 
 ### App list (`AppListFragment`)
 
-- Honeycomb follows watchOS: rows alternate 3 and 4 icons, tightly packed and centred (ported
-  from the `hello-watch-apple-launcher` HoneycombView). 3D adds a faint sine push, a radial
-  scale (centre larger, edges smaller) and a per-edge fade; drag reorder is disabled while 3D
-  is on.
+- Honeycomb follows watchOS: rows alternate 3 and 4 icons, centred with a small gap between
+  bubbles (ported from the `hello-watch-apple-launcher` HoneycombView). 3D adds a faint sine
+  push, a radial scale (centre larger, edges smaller) and a per-edge fade; drag reorder is
+  disabled while 3D is on.
 - Opens from the crown/home key; the left-swipe entry is opt-in (`app_list_swipe_enabled`, default `false`)
 - Always attached to `fragmentContainer`, positioned off-screen via `translationX = screenW`
 - Opens by springing `translationX` to `0f`, closes by springing back to `screenW`
