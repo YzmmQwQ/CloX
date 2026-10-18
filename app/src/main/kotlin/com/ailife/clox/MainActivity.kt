@@ -1967,12 +1967,18 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 when {
                     !appListOpen && !overlayController.hasActiveOverlay() ->
                         when (direction) {
-                            SwipeDirection.DOWN, SwipeDirection.UP, SwipeDirection.RIGHT ->
+                            SwipeDirection.DOWN, SwipeDirection.UP ->
                                 overlayController.startDrag(direction, screenW, screenH)
+                            // Notifications open from a downward swipe only; RIGHT is
+                            // reserved for its remapped action (when notifications are off).
+                            SwipeDirection.RIGHT -> { }
                             SwipeDirection.LEFT -> { /* app list follows finger in onSwipeUpdate */ }
                         }
                     overlayController.hasActiveOverlay() && !overlayController.isDragging ->
-                        overlayController.startCollapse(direction)
+                        // QS is toggled by the side key; vertical swipes must not
+                        // pull it closed by accident.
+                        if (!overlayController.isQsActive())
+                            overlayController.startCollapse(direction)
                 }
             }
         }
@@ -2068,6 +2074,8 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
         // Priority 3: dismiss a fully-open overlay on any swipe (fallback)
         if (overlayController.hasActiveOverlay()) {
+            // QS closes via its key (or BACK), not a stray vertical swipe.
+            if (overlayController.isQsActive()) return
             overlayController.dismissActive()
             val x = appListFragment?.view?.translationX ?: screenW
             if (x != (if (appListOpen) 0f else screenW)) {

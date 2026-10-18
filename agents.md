@@ -58,9 +58,11 @@ Callbacks on `MainActivity`:
 | Direction | Panel |
 |---|---|
 | swipe down | `NotificationOverlay` (top-opened; UP at the list bottom closes) |
-| swipe right | `NotificationOverlay` (alternate entry; LEFT closes) |
 | swipe up | `WidgetsOverlay` |
-| side button / `expand_qs` | `QuickSettingsOverlay` (opened directly, not via a swipe direction) |
+| side button (F2/STEM) / `expand_qs` | `QuickSettingsOverlay` (opened directly, not via a swipe direction; vertical swipes do not close it) |
+
+Right swipe no longer opens notifications — it runs the configured
+`swipe_right_action` only when notifications are disabled.
 
 ### Overlay lifecycle
 

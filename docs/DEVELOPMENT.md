@@ -15,7 +15,7 @@ MainActivity (singleTask)
 Overlays (above HomeFragment, GONE by default):
 ├── QuickSettingsOverlay  ← Side-button action (tiles + brightness/volume sliders)
 ├── WidgetsOverlay        ← Swipe-up    (AppWidgetHost cards)
-└── NotificationOverlay   ← Swipe-down or swipe-right (MediaSession card + notification list)
+└── NotificationOverlay   ← Swipe-down (media card + notification list)
 ```
 
 **Gesture system** — `GestureInterceptorLayout` (root `FrameLayout` subclass):
