@@ -902,6 +902,12 @@
     <string name="about_version">版本 %s</string>
     <string name="about_version_unknown">版本未知</string>
 
+    <string name="screen_shape_title">螢幕形狀</string>
+    <string name="screen_shape_auto">自動</string>
+    <string name="screen_shape_round">圓形</string>
+    <string name="screen_shape_square">方形</string>
+    <string name="screen_shape_summary">圓形螢幕時列表項在邊緣縮放漸隱；方形保持平直。</string>
+
     <!-- ── Appearance section labels ──────────────────────────────────── -->
     <string name="appearance_section_display">顯示</string>
     <string name="appearance_dark_mode_title">深色模式</string>

@@ -45,7 +45,7 @@ Overlays (above HomeFragment, GONE by default):
 | Engine | [Axmol Engine](https://github.com/axmolengine/axmol) (Cocos2d-x fork) — vendored as a submodule fork |
 | UI | Jetpack Compose + Wear Material 3 (migration in progress); legacy XML layouts + Fragments coexist |
 | Design | Wear Material 3 / Material 3 |
-| Min SDK | 26 (Android 8.0) / Compile & Target 36 |
+| Min SDK | 26 (Android 8.0) / Compile 37 / Target 36 |
 | ABI | `armeabi-v7a`, `arm64-v8a` (+ `x86`/`x86_64` for emulator builds) |
 | Build | Gradle 8.4 + CMake 3.22.1 + NDK r25c |
 
@@ -134,16 +134,27 @@ Editing `Source/shaders/*.frag` and re-running Gradle is enough — no manual
 
 ## Settings
 
-Accessible via **CloX Settings** in the app list (second launcher entry). Live settings are the
-custom cards under `settings/fragments/*`; `res/xml/preferences_*.xml` is dead code.
+Accessible via **CloX Settings** in the app list (second launcher entry). The whole section is
+Jetpack Compose + Wear Material 3 and follows the standard Wear screen structure: one
+`AppScaffold` (TimeText) around a `SwipeDismissableNavHost` in `SettingsActivity`; each screen is a
+`WearSettingsScreen` = `ScreenScaffold` + `TransformingLazyColumn` (snap fling/rotary, scroll
+indicator, `ListHeader` section headers, per-item transformations and M3 content padding). Screens
+live in `settings/compose/`, shared rows/dialogs in `SettingsComponents.kt`, routes in
+`SettingsRoutes.kt`. The old `settings/fragments/*` hosts and XML resources are dead code.
 
 ```
 Settings
-├── General      — gestures, actions, double-tap
-├── App list     — style (list/grid/pages/honeycomb), hidden apps
-├── Icons        — global icon pack, per-app overrides
-├── Watchface    — active face, watchface directory
-└── Appearance   — blur mode (auto / snapshot / disabled), blur radius
+├── Notifications   — panel styles, alerts, filtering, listener access
+├── Quick settings  — tiles, appearance, privileges, global overlay
+├── App list        — style + per-style options, icon pack, background
+├── Animations      — open/close/gesture-return animations
+├── Watchface       — selector, sort, auto-change, store/remote/import
+├── Gestures        — double-tap/long-press, swipe actions, button mapping
+├── AOD             — timeout, brightness, reawaken, lock gesture
+├── Appearance      — dark mode, DPI, blur mode/radius
+├── Tap actions     — watchface shortcut → app mapping
+├── Weather / Location / Health / Sensors — data sources
+├── Hide apps / RTOS / Debug / About
 ```
 
 ## Third-party integration

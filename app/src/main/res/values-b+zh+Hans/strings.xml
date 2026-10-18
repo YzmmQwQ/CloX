@@ -902,6 +902,12 @@
     <string name="about_version">版本 %s</string>
     <string name="about_version_unknown">版本未知</string>
 
+    <string name="screen_shape_title">屏幕形状</string>
+    <string name="screen_shape_auto">自动</string>
+    <string name="screen_shape_round">圆屏</string>
+    <string name="screen_shape_square">方屏</string>
+    <string name="screen_shape_summary">圆屏时列表项在边缘缩放渐隐；方屏保持平直。</string>
+
     <!-- ── Appearance section labels ──────────────────────────────────── -->
     <string name="appearance_section_display">显示</string>
     <string name="appearance_dark_mode_title">深色模式</string>
@@ -1024,4 +1030,7 @@
     <string name="pref_rtos_summary">将启动器伪装成 RTOS 蓝牙手表</string>
     <string name="pref_about_title">关于 &amp; 更新</string>
     <string name="pref_about_summary">版本、开发者、Onyx 项目、更新检查</string>
+    <string name="notif_perm_one_tap_hint">检测到 Shizuku/root，点击上方可直接授权。</string>
+    <string name="notif_perm_one_tap_ok">已授予通知使用权</string>
+    <string name="notif_perm_one_tap_failed">授权失败，正在打开设置</string>
 </resources>

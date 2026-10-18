@@ -92,13 +92,28 @@ Any swipe dismisses active overlay before any other routing runs (`handleSwipeEn
 ### Compose / Wear M3 migration
 
 - Stack: Compose BOM `2025.09.00`, `androidx.wear.compose:compose-material3:1.6.2` (matches the
-  Horologist checkout and keeps `compileSdk 36`), Compose compiler plugin version = Kotlin `2.3.21`.
-- Theme: `ui/theme/CloXWearTheme.kt` — Wear M3 `ColorScheme` with a pure-black background.
+  Horologist checkout), Compose compiler plugin version = Kotlin `2.3.21`, `compileSdk 37`
+  (material-color-utilities requires it; CI installs `platforms;android-37.0`).
+- Theme: `ui/theme/CloXWearTheme.kt` — system dynamic colour when available, else a Wear M3
+  scheme generated from the CloX blue seed with material-color-utilities (same mapping as
+  MaterialNCM). List rows use `FilledTonalButton` (neutral containers); the accent is reserved
+  for selected/primary elements.
+- Screen shape: `ui/theme/ScreenShape.kt` (Automatic / Round / Square, Appearance setting)
+  overrides LocalConfiguration and skips the round-edge item scaling on square screens.
 - Hosting: existing Fragments return a `ComposeView` with
   `ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed` (see `AppearanceSettingsFragment`).
 - `horologist-main/` (git-ignored) is the reference source for Wear M3 screens/components to copy
   (`compose-material`, `sample/.../materialcomponents`, `m3/`); keep its Apache-2.0 headers.
-- Migrate screens incrementally; XML/Fragment UI and Compose coexist until a screen is ported.
+- **The whole settings section is Compose now** and follows the Wear M3 screen pattern:
+  `SettingsActivity` hosts ONE `AppScaffold` (TimeText) with a `SwipeDismissableNavHost`; every
+  screen is a `WearSettingsScreen` using `ScreenScaffold` + `TransformingLazyColumn` with snap
+  fling/rotary behavior, `ListHeader` section headers, per-item `transformedHeight` +
+  `SurfaceTransformation` and the M3 minimum content padding. Shared row/dialog helpers live in
+  `settings/compose/SettingsComponents.kt`; routes in `SettingsRoutes.kt`.
+  The old `settings/fragments/*` hosts, `fragment_settings_*.xml`, `preferences_*.xml` and
+  `BasePreferenceFragment` have been removed.
+- Migrate the remaining non-settings screens incrementally; XML/Fragment UI and Compose coexist
+  until a screen is ported.
 
 ---
 

@@ -1,5 +1,6 @@
 package com.ailife.clox
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.util.Log
@@ -28,6 +29,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import com.ailife.clox.ui.theme.ScreenShape
+import com.ailife.clox.ui.theme.ScreenShapeConfig
 import com.ailife.clox.aod.AodManager
 import com.ailife.clox.applist.AppContextMenu
 import com.ailife.clox.applist.model.AppItem
@@ -468,6 +471,13 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         }, 1100L)
     }
 
+    private var appliedScreenShape = ScreenShape.AUTO
+
+    override fun attachBaseContext(newBase: Context) {
+        appliedScreenShape = ScreenShape.read(newBase)
+        super.attachBaseContext(ScreenShapeConfig.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Branded cold-start splash (X on black) via the system window, so the
         // launch is never blank-black while the Activity + Axmol GL warm up.
@@ -799,6 +809,12 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
 
     override fun onResume() {
         super.onResume()
+        // Round/square override changed in Settings: rebuild so View resources
+        // and the composables pick up the new configuration.
+        if (ScreenShape.read(this) != appliedScreenShape) {
+            recreate()
+            return
+        }
         // Capture BEFORE resetting: did an app actually cover us since the last resume? Used to
         // drive usage-stats closing-app detection on Back/Home returns even when we have no
         // remembered launched item.

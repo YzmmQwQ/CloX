@@ -4,43 +4,22 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.preference.PreferenceManager
-import androidx.wear.compose.material3.AlertDialog
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.MaterialTheme
-import androidx.wear.compose.material3.Slider
-import androidx.wear.compose.material3.Text
 import com.ailife.clox.R
+import com.ailife.clox.ui.theme.ScreenShape
 import com.ailife.clox.util.safeStartActivity
 
 /**
- * Wear Material 3 version of the Appearance settings page.
- *
- * First Compose screen of the migration: pure-black screen, M3 buttons as
- * setting rows, M3 dialogs for pickers, and the Wear M3 slider for the blur
- * radius. Shares the same SharedPreferences keys as the old View screen.
+ * Appearance settings — first Wear M3 Compose screen; also the template for the
+ * rest of the settings migration.
  */
 @Composable
 fun AppearanceScreen() {
@@ -51,6 +30,7 @@ fun AppearanceScreen() {
     var dpi by remember { mutableStateOf(prefs.getString("app_dpi_override", "0") ?: "0") }
     var blurMode by remember { mutableStateOf(prefs.getString("blur_mode", "BLURVIEW") ?: "BLURVIEW") }
     var blurRadius by remember { mutableStateOf(prefs.getInt("blur_radius", 15).coerceIn(2, 25)) }
+    var screenShape by remember { mutableStateOf(ScreenShape.read(context)) }
 
     var showDarkPicker by remember { mutableStateOf(false) }
     var showDpiDialog by remember { mutableStateOf(false) }
@@ -66,53 +46,54 @@ fun AppearanceScreen() {
     val blurLabels = stringArrayResource(R.array.blur_mode_entries)
     val blurValues = stringArrayResource(R.array.blur_mode_values)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        SectionHeader(stringResource(R.string.appearance_section_display))
+    WearSettingsScreen(title = stringResource(R.string.pref_appearance_title)) {
+        SectionHeader(res(R.string.screen_shape_title))
+        ScreenShape.entries.forEach { shape ->
+            SettingsRadio(
+                title = res(shape.labelRes),
+                selected = screenShape == shape,
+            ) {
+                screenShape = shape
+                ScreenShape.write(context, shape)
+            }
+        }
+        SettingsNote(res(R.string.screen_shape_summary))
 
-        SettingRow(
-            title = stringResource(R.string.appearance_dark_mode_title),
-            value = darkLabels.getOrElse(darkValues.indexOf(darkMode)) { darkMode },
+        SectionHeader(res(R.string.appearance_section_display))
+
+        SettingsButton(
+            title = res(R.string.appearance_dark_mode_title),
+            summary = darkLabels.getOrElse(darkValues.indexOf(darkMode)) { darkMode },
         ) { showDarkPicker = true }
 
-        SettingRow(
-            title = stringResource(R.string.appearance_dpi_label),
-            value = if (dpi.isEmpty() || dpi == "0") {
-                stringResource(R.string.appearance_dpi_default)
+        SettingsButton(
+            title = res(R.string.appearance_dpi_label),
+            summary = if (dpi.isEmpty() || dpi == "0") {
+                res(R.string.appearance_dpi_default)
             } else dpi,
         ) { showDpiDialog = true }
 
-        SectionHeader(stringResource(R.string.appearance_section_blur))
+        SectionHeader(res(R.string.appearance_section_blur))
 
-        SettingRow(
-            title = stringResource(R.string.pref_blur_mode_title),
-            value = blurLabels.getOrElse(blurValues.indexOf(blurMode)) { blurMode },
+        SettingsButton(
+            title = res(R.string.pref_blur_mode_title),
+            summary = blurLabels.getOrElse(blurValues.indexOf(blurMode)) { blurMode },
         ) { showBlurPicker = true }
 
-        Text(
-            text = "${stringResource(R.string.pref_blur_radius_title)} — $blurRadius",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp, top = 4.dp),
-        )
-        Slider(
+        SettingsSlider(
+            title = res(R.string.pref_blur_radius_title),
             value = blurRadius,
-            onValueChange = {
+            range = 2..25,
+            valueText = "$blurRadius",
+            onChange = {
                 blurRadius = it
                 prefs.edit().putInt("blur_radius", it).apply()
             },
-            valueProgression = 2..25,
         )
     }
 
     if (showDarkPicker) {
-        PickerDialog(
+        SettingsPickerDialog(
             title = stringResource(R.string.appearance_dark_mode_title),
             labels = darkLabels,
             selectedIndex = darkValues.indexOf(darkMode).coerceAtLeast(0),
@@ -131,7 +112,7 @@ fun AppearanceScreen() {
     }
 
     if (showBlurPicker) {
-        PickerDialog(
+        SettingsPickerDialog(
             title = stringResource(R.string.pref_blur_mode_title),
             labels = blurLabels,
             selectedIndex = blurValues.indexOf(blurMode).coerceAtLeast(0),
@@ -145,110 +126,18 @@ fun AppearanceScreen() {
     }
 
     if (showDpiDialog) {
-        DpiDialog(
+        SettingsTextDialog(
+            title = stringResource(R.string.appearance_dpi_label),
             initial = dpi,
-            onDismiss = { showDpiDialog = false },
+            numeric = true,
             onConfirm = { raw ->
                 showDpiDialog = false
-                dpi = raw
-                prefs.edit().putString("app_dpi_override", raw).apply()
+                dpi = if (raw.isBlank()) "0" else raw
+                prefs.edit().putString("app_dpi_override", dpi).apply()
                 restartForDpi(context)
             },
+            onDismiss = { showDpiDialog = false },
         )
-    }
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 2.dp),
-    )
-}
-
-@Composable
-private fun SettingRow(title: String, value: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        secondaryLabel = {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        label = { Text(text = title) },
-    )
-}
-
-/** Single-choice picker using the button-less Wear M3 dialog + full-width buttons. */
-@Composable
-private fun PickerDialog(
-    title: String,
-    labels: Array<String>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        visible = true,
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-    ) {
-        labels.forEachIndexed { index, label ->
-            item {
-                Button(
-                    onClick = { onSelect(index) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = if (index == selectedIndex) {
-                        androidx.wear.compose.material3.ButtonDefaults.filledTonalButtonColors()
-                    } else {
-                        androidx.wear.compose.material3.ButtonDefaults.buttonColors()
-                    },
-                    label = { Text(text = label) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DpiDialog(initial: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf(initial) }
-    AlertDialog(
-        visible = true,
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(R.string.appearance_dpi_label)) },
-    ) {
-        item {
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it.filter(Char::isDigit).take(3) },
-                textStyle = MaterialTheme.typography.titleLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainer,
-                        MaterialTheme.shapes.small,
-                    )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            )
-        }
-        item {
-            Button(
-                onClick = { onConfirm(if (text.isBlank()) "0" else text) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = stringResource(android.R.string.ok)) },
-            )
-        }
     }
 }
 

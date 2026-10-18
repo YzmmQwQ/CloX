@@ -38,7 +38,7 @@ if (axmolPresent) {
 
 android {
     namespace 'com.ailife.clox'
-    compileSdk 36
+    compileSdk 37
     ndkVersion "25.2.9519653"
 
     // axslcc writes compiled shaders to build/runtime/axslc during the native
@@ -157,6 +157,9 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-tooling'
     implementation 'androidx.wear.compose:compose-foundation:1.6.2'
     implementation 'androidx.wear.compose:compose-material3:1.6.2'
+    implementation 'androidx.wear.compose:compose-navigation:1.6.2'
+    implementation 'com.materialkolor:material-color-utilities:5.0.1'
+    implementation 'androidx.navigation:navigation-compose:2.6.0'
     implementation 'androidx.activity:activity-compose:1.13.0'
 
     // Hidden-framework stubs for Path A remote animations — compile-time only, never packaged.

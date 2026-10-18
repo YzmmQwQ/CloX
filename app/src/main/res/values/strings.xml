@@ -1334,6 +1334,12 @@
     <string name="about_version">Version %s</string>
     <string name="about_version_unknown">Version unknown</string>
 
+    <string name="screen_shape_title">Screen shape</string>
+    <string name="screen_shape_auto">Automatic</string>
+    <string name="screen_shape_round">Round</string>
+    <string name="screen_shape_square">Square</string>
+    <string name="screen_shape_summary">Round screens scale and fade rows at the edges; square screens keep them flat.</string>
+
     <!-- ── Appearance section labels ──────────────────────────────────── -->
     <string name="appearance_section_display">Display</string>
     <string name="appearance_dark_mode_title">Dark mode</string>
@@ -1482,4 +1488,7 @@
 
     <string name="restricted_settings_unlocked">Restricted settings unlocked — you can now enable the toggle</string>
 
+    <string name="notif_perm_one_tap_hint">Shizuku/root detected — tap the row above to grant access directly.</string>
+    <string name="notif_perm_one_tap_ok">Notification access granted</string>
+    <string name="notif_perm_one_tap_failed">Grant failed — opening settings</string>
 </resources>
