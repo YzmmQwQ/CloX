@@ -1,107 +1,27 @@
 package com.ailife.clox.settings.fragments
 
-import android.content.Intent
 import android.os.Bundle
-import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatDelegate
-import com.ailife.clox.R
-import com.ailife.clox.util.safeStartActivity
-import com.google.android.material.slider.Slider
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.ailife.clox.settings.compose.AppearanceScreen
+import com.ailife.clox.ui.theme.CloXWearTheme
 
+/** Hosts the Wear Material 3 Appearance screen (first migrated Compose page). */
 class AppearanceSettingsFragment : BaseSettingsFragment() {
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.fragment_settings_appearance, container, false)
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        val tvDpi       = view.findViewById<TextView>(R.id.tvDpiValue)
-        val sliderBlur  = view.findViewById<Slider>(R.id.sliderBlurRadius)
-        val tvBlurMode  = view.findViewById<TextView>(R.id.tvBlurMode)
-        val tvBlurRadius = view.findViewById<TextView>(R.id.tvBlurRadius)
-
-        val blurModeEntries = resources.getStringArray(R.array.blur_mode_entries)
-        val blurModeValues  = resources.getStringArray(R.array.blur_mode_values)
-
-        // Dark mode: follow system / always on / always off. Applies app-wide via
-        // AppCompatDelegate; the launcher home stays watchface-defined either way.
-        val darkEntries = arrayOf(
-            getString(R.string.appearance_dark_mode_system),
-            getString(R.string.appearance_dark_mode_on),
-            getString(R.string.appearance_dark_mode_off)
-        )
-        val darkValues  = arrayOf("system", "on", "off")
-        val tvDarkMode  = view.findViewById<TextView>(R.id.tvDarkModeValue)
-        fun refreshDarkMode() {
-            val v = prefs.getString("dark_mode", "system") ?: "system"
-            tvDarkMode.text = darkEntries.getOrElse(darkValues.indexOf(v)) { v }
-        }
-        refreshDarkMode()
-        view.findViewById<View>(R.id.rowDarkMode).setOnClickListener {
-            showListPicker(getString(R.string.appearance_dark_mode_title),
-                darkEntries, darkValues,
-                prefs.getString("dark_mode", "system") ?: "system") { v, _ ->
-                prefs.edit().putString("dark_mode", v).apply()
-                refreshDarkMode()
-                AppCompatDelegate.setDefaultNightMode(when (v) {
-                    "on"  -> AppCompatDelegate.MODE_NIGHT_YES
-                    "off" -> AppCompatDelegate.MODE_NIGHT_NO
-                    else  -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                })
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            CloXWearTheme {
+                AppearanceScreen()
             }
-        }
-
-        // DPI override row
-        fun refreshDpi() {
-            val v = prefs.getString("app_dpi_override", "0") ?: "0"
-            tvDpi.text = if (v.isEmpty() || v == "0") getString(R.string.appearance_dpi_default) else v
-        }
-        refreshDpi()
-        view.findViewById<View>(R.id.rowDpiOverride).setOnClickListener {
-            showTextInputDialog(getString(R.string.appearance_dpi_label),
-                prefs.getString("app_dpi_override", "0") ?: "0",
-                hint = getString(R.string.appearance_density_default),
-                inputType = InputType.TYPE_CLASS_NUMBER
-            ) { raw ->
-                prefs.edit().putString("app_dpi_override", raw).apply()
-                refreshDpi()
-                // Restart MainActivity so applyOverrideConfiguration picks up the new value
-                activity?.let { act ->
-                    val restart = act.packageManager
-                        .getLaunchIntentForPackage(act.packageName)
-                        ?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    act.finish()
-                    if (restart != null) act.safeStartActivity(restart)
-                }
-            }
-        }
-
-        // Blur mode picker
-        fun refreshBlurMode() {
-            val v = prefs.getString("blur_mode", "BLURVIEW") ?: "BLURVIEW"
-            tvBlurMode.text = blurModeEntries.getOrElse(blurModeValues.indexOf(v)) { v }
-        }
-        refreshBlurMode()
-        view.findViewById<View>(R.id.rowBlurMode).setOnClickListener {
-            showListPicker(getString(R.string.appearance_section_blur), blurModeEntries, blurModeValues,
-                prefs.getString("blur_mode", "BLURVIEW") ?: "BLURVIEW") { v, _ ->
-                prefs.edit().putString("blur_mode", v).apply()
-                refreshBlurMode()
-            }
-        }
-
-        // Blur radius slider
-        val radius = prefs.getInt("blur_radius", 15).toFloat()
-        sliderBlur.value = radius.coerceIn(2f, 25f)
-        tvBlurRadius.text = "${radius.toInt()}"
-        sliderBlur.addOnChangeListener { _, value, _ ->
-            tvBlurRadius.text = "${value.toInt()}"
-            prefs.edit().putInt("blur_radius", value.toInt()).apply()
         }
     }
 }

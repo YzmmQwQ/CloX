@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 def axmolPresent = new File("${projectDir}/../axmol/CMakeLists.txt").exists()
@@ -96,6 +97,7 @@ android {
         viewBinding true
         buildConfig true
         aidl true
+        compose true
     }
 
     signingConfigs {
@@ -144,6 +146,19 @@ if (axmolPresent) {
 }
 
 dependencies {
+    // Jetpack Compose + Wear Material 3. Wear Compose 1.6.2 (the version
+    // Horologist is built against) targets Compose 1.9 and minCompileSdk 35,
+    // so the 2025.09.00 BOM keeps us on compileSdk 36.
+    def composeBom = platform('androidx.compose:compose-bom:2025.09.00')
+    implementation composeBom
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    implementation 'androidx.wear.compose:compose-foundation:1.6.2'
+    implementation 'androidx.wear.compose:compose-material3:1.6.2'
+    implementation 'androidx.activity:activity-compose:1.13.0'
+
     // Hidden-framework stubs for Path A remote animations — compile-time only, never packaged.
     compileOnly project(':frameworkstubs')
     // Xposed/LSPosed API — compileOnly; the real classes are injected by LSPosed into the

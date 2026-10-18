@@ -43,8 +43,8 @@ Overlays (above HomeFragment, GONE by default):
 |---|---|
 | Language | Kotlin (Android), Lua (watchface engine), C++ (native/JNI) |
 | Engine | [Axmol Engine](https://github.com/axmolengine/axmol) (Cocos2d-x fork) — vendored as a submodule fork |
-| UI | XML layouts + Fragments — Jetpack Compose **not used** |
-| Design | Material Design 3 |
+| UI | Jetpack Compose + Wear Material 3 (migration in progress); legacy XML layouts + Fragments coexist |
+| Design | Wear Material 3 / Material 3 |
 | Min SDK | 26 (Android 8.0) / Compile & Target 36 |
 | ABI | `armeabi-v7a`, `arm64-v8a` (+ `x86`/`x86_64` for emulator builds) |
 | Build | Gradle 8.4 + CMake 3.22.1 + NDK r25c |

@@ -20,12 +20,12 @@ Context for AI coding agents (Claude Code, Copilot, etc.) working on this repo.
 
 | Rule | Reason |
 |---|---|
-| **No Jetpack Compose** | Explicit design decision — all UI is XML layouts + Fragments |
+| **Compose + Wear M3 is the UI target** | Full migration in progress: new UI is Jetpack Compose + Wear Material 3; legacy XML/Fragment screens are migrated incrementally |
 | **No ViewPager2** | Swipe navigation is entirely custom via `GestureInterceptorLayout` |
 | **No `ndk.dir` in `local.properties`** | Deprecated — use `ndkVersion` in `app/build.gradle` instead |
 | **Axmol SurfaceView owns the home screen** | `HomeFragment` must only wrap the Axmol GL surface — no Android UI widgets on the home screen |
 | **All home-screen content in Lua** | Clock, animation, buttons → `assets/lua/watchface.lua`, not Android XML |
-| **Material Design 3 throughout** | Use `Theme.Material3.*` and MD3 components everywhere |
+| **Wear Material 3 / Material 3 throughout** | Compose screens use `CloXWearTheme`; remaining View screens use `Theme.Material3.*` |
 
 ---
 
@@ -89,6 +89,17 @@ Any swipe dismisses active overlay before any other routing runs (`handleSwipeEn
 - `LuaBridge.onLuaEvent(event, payload)` — Lua → Android event bus (called from native)
 - `Bridge.sendToAndroid(event, payload)` — Lua → Android via `luaoc.callStaticMethod`
 
+### Compose / Wear M3 migration
+
+- Stack: Compose BOM `2025.09.00`, `androidx.wear.compose:compose-material3:1.6.2` (matches the
+  Horologist checkout and keeps `compileSdk 36`), Compose compiler plugin version = Kotlin `2.3.21`.
+- Theme: `ui/theme/CloXWearTheme.kt` — Wear M3 `ColorScheme` with a pure-black background.
+- Hosting: existing Fragments return a `ComposeView` with
+  `ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed` (see `AppearanceSettingsFragment`).
+- `horologist-main/` (git-ignored) is the reference source for Wear M3 screens/components to copy
+  (`compose-material`, `sample/.../materialcomponents`, `m3/`); keep its Apache-2.0 headers.
+- Migrate screens incrementally; XML/Fragment UI and Compose coexist until a screen is ported.
+
 ---
 
 ## File map — key files
@@ -96,6 +107,8 @@ Any swipe dismisses active overlay before any other routing runs (`handleSwipeEn
 | File | Purpose |
 |---|---|
 | `gesture/GestureInterceptorLayout.kt` | All touch interception and swipe routing |
+| `ui/theme/CloXWearTheme.kt` | Wear Material 3 theme (black background, brand accents) |
+| `settings/compose/AppearanceScreen.kt` | First Compose screen (Appearance settings) |
 | `gesture/SwipeDirection.kt` | `LEFT / RIGHT / UP / DOWN` enum |
 | `MainActivity.kt` | Wires gestures → app list / overlays; spring animations |
 | `home/HomeFragment.kt` | Adds Axmol SurfaceView; no Android UI |
