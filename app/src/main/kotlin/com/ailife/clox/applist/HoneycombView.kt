@@ -163,7 +163,7 @@ class HoneycombView @JvmOverloads constructor(
         removeAllViews()
 
         val iconPx = if (iconSizeDp > 0) dp(iconSizeDp)
-        else (minOf(width, height) / 4.5f).toInt().coerceAtLeast(1)
+        else (minOf(width, height) / 5.2f).toInt().coerceAtLeast(1)
         android.util.Log.d("CloX/HoneycombView", "buildGrid n=${items.size} iconPx=$iconPx w=$width h=$height")
         if (iconPx <= 0) return
         cellIconPx = iconPx
@@ -516,10 +516,10 @@ class HoneycombView @JvmOverloads constructor(
     private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
 
     companion object {
-        /** Horizontal centre spacing, as a fraction of the icon diameter (slight gap). */
-        private const val H_STEP = 1.12f
-        /** Vertical row spacing; below 1.0 neighbouring rows tuck into each other. */
-        private const val V_STEP = 0.90f
+        /** Horizontal centre spacing, as a fraction of the icon diameter (visible gap). */
+        private const val H_STEP = 1.20f
+        /** Vertical row spacing; above 1.0 leaves a small gap between rows. */
+        private const val V_STEP = 1.06f
         private const val PUSH_STRENGTH = 0.055f
         private const val SCALE_CENTER_BOOST = 0.14f
         private const val DRAG_THRESHOLD_SQ = 400f
