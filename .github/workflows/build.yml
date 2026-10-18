@@ -89,8 +89,8 @@ jobs:
           set -euo pipefail
           sdk_dir="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "sdk.dir=${sdk_dir}" > local.properties
-          # Release builds are signed with the debug key (see app/build.gradle),
-          # so make sure that keystore exists before Gradle asks for it.
+          # Debug builds use the standard debug key; release builds use the
+          # fixed key restored below (from repository secrets).
           mkdir -p "$HOME/.android"
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
             keytool -genkeypair -v \
@@ -124,6 +124,37 @@ jobs:
             echo "version=$version"
             echo "short_sha=$short_sha"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Restore release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.CLOX_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.CLOX_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CLOX_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.CLOX_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64}" ]; then
+            if [ "${{ steps.vars.outputs.build_type }}" = "release" ]; then
+              echo "::error::CLOX_KEYSTORE_BASE64 is not set; release builds need the fixed signing key. See the build documentation."
+              exit 1
+            fi
+            echo "No release keystore secret; debug build falls back to the debug key."
+            exit 0
+          fi
+          for v in STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v secret is not set alongside CLOX_KEYSTORE_BASE64."
+              exit 1
+            fi
+          done
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > keystore/clox-release.jks
+          {
+            echo "storeFile=keystore/clox-release.jks"
+            echo "storePassword=${STORE_PASSWORD}"
+            echo "keyAlias=${KEY_ALIAS}"
+            echo "keyPassword=${KEY_PASSWORD}"
+          } > keystore/keystore.properties
 
       - name: Build
         run: gradle ":app:${{ steps.vars.outputs.task }}" --stacktrace

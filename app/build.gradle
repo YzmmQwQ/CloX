@@ -4,6 +4,19 @@ plugins {
 
 def axmolPresent = new File("${projectDir}/../axmol/CMakeLists.txt").exists()
 
+// Fixed release signing key. CI writes keystore/keystore.properties from
+// repository secrets (Settings → Secrets and variables → Actions); local
+// builds can use the same file. Without it, release falls back to the debug
+// key so plain local builds still work.
+def keystorePropsFile = rootProject.file("keystore/keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def hasReleaseKey = keystorePropsFile.exists() &&
+    keystoreProps['storeFile'] &&
+    rootProject.file(keystoreProps['storeFile']).exists()
+
 if (axmolPresent) {
     // Copy Axmol Lua framework scripts → assets/axmol/
     def axmolScriptSrc = new File("${projectDir}/../axmol/extensions/scripting/lua-bindings/script")
@@ -85,13 +98,24 @@ android {
         aidl true
     }
 
+    signingConfigs {
+        release {
+            if (hasReleaseKey) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Sign release with the debug key so it installs over the existing debug build
-            // (same signature) — for local performance testing only.
-            signingConfig signingConfigs.debug
+            // Stable key so builds from different machines/CI runs update in
+            // place; fall back to debug only when no release key is configured.
+            signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
         }
         debug {
             debuggable true

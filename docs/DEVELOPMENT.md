@@ -110,10 +110,27 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb logcat -s CloX_Native LuaBridge OverlayController
 ```
 
+### Release signing
+
+Release APKs use a fixed key so successive builds install over each other. The
+keystore stays out of the repo (`keystore/` is git-ignored):
+
+- **Local builds** — create `keystore/keystore.properties` with `storeFile`,
+  `storePassword`, `keyAlias`, `keyPassword`. Release builds pick it up
+  automatically; debug builds keep the standard debug key.
+- **CI** — add repository secrets `CLOX_KEYSTORE_BASE64` (base64 of the `.jks`),
+  `CLOX_STORE_PASSWORD`, `CLOX_KEY_ALIAS`, `CLOX_KEY_PASSWORD`. The workflow
+  restores `keystore/keystore.properties` before building and fails a release
+  build when the key is missing.
+- Without a key, release falls back to the debug key — fine for local testing,
+  but its signature differs per machine/run.
+
 ### Rebuilding shaders
 
-After editing `Source/shaders/*.frag`, run `axslcc` manually to regenerate
-`assets/axslc/custom/` **before** `./gradlew` — the preBuild copy is otherwise stale.
+Shaders compile during the native build into `build/runtime/axslc` and are
+packaged as `assets/axslc/` (the asset merge waits for the native build).
+Editing `Source/shaders/*.frag` and re-running Gradle is enough — no manual
+`axslcc` step.
 
 ## Settings
 
