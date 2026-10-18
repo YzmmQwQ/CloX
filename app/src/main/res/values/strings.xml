@@ -1369,6 +1369,7 @@
     <string name="about_onyx_description">CloX is part of the Onyx open-source system for Android wearables.</string>
     <string name="about_onyxui_name" translatable="false">OnyxUI</string>
     <string name="about_onyxui_url" translatable="false">codeberg.org/OnyxUI/OnyxUI</string>
+    <string name="about_repo_title">Project repository</string>
     <string name="about_developers_category">Developers</string>
     <string name="about_dev1_name" translatable="false">AILIFE</string>
     <string name="about_dev1_url" translatable="false">gitlab.com/ailife8881</string>
@@ -1378,7 +1379,14 @@
     <string name="about_auto_update_title">Auto-update checks</string>
     <string name="about_auto_update_summary">Check for new releases on launch</string>
     <string name="about_check_updates_btn">Check for updates</string>
-    <string name="about_repo_url" translatable="false">gitlab.com/ailife8881/clox</string>
+    <string name="about_repo_url" translatable="false">github.com/YzmmQwQ/CloX</string>
+
+    <!-- Creator card / easter egg -->
+    <string name="creator">Creator</string>
+    <string name="creator_no_browser">No browser available</string>
+    <string name="creator_disclaimer_title">Disclaimer</string>
+    <string name="creator_disclaimer_text">Lots of sound ahead — mind your surroundings and volume. This only lasts for this run; restarting the app restores the website link.</string>
+    <string name="creator_easter_egg_enabled">Ready. Tap the creator again!</string>
 
     <!-- Crash-safe activity launching (SafeActivityLauncher) -->
     <string name="launch_error_title">Can\'t open</string>

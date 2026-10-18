@@ -83,7 +83,7 @@ Source/shaders/           wm_*.frag WatchMaker shaders (compiled by axslcc)
 
 ```bash
 # Clone with the Axmol submodule
-git clone --recurse-submodules git@gitlab.com:ailife8881/clox.git
+git clone --recurse-submodules https://github.com/YzmmQwQ/CloX.git
 
 # Install Android SDK, NDK r25c, CMake 3.22.1, Gradle wrapper JAR
 bash setup-cli.sh

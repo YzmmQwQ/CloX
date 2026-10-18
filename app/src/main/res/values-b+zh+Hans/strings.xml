@@ -933,10 +933,18 @@
     <string name="about_onyx_project">Onyx 项目的一部分</string>
     <string name="about_onyx_description">CloX 是面向 Android 可穿戴设备的 Onyx 开源系统的一部分。</string>
     <string name="about_developers_category">开发者</string>
+    <string name="about_repo_title">项目仓库</string>
     <string name="about_updates_category">更新</string>
     <string name="about_auto_update_title">自动更新检查</string>
     <string name="about_auto_update_summary">启动时检查新版本</string>
     <string name="about_check_updates_btn">检查更新</string>
+
+    <!-- Creator card / easter egg -->
+    <string name="creator">制作者</string>
+    <string name="creator_no_browser">没有可用的浏览器</string>
+    <string name="creator_disclaimer_title">免责声明</string>
+    <string name="creator_disclaimer_text">前方有大量声音，请留意周围环境和音量。仅本次运行有效，重启应用自动恢复网站入口。</string>
+    <string name="creator_easter_egg_enabled">已就绪，再点一下制作者呢？</string>
 
     <!-- Crash-safe activity launching (SafeActivityLauncher) -->
     <string name="launch_error_title">无法打开</string>

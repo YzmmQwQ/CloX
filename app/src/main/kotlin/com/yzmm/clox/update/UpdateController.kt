@@ -42,8 +42,8 @@ class UpdateController(private val context: Context) {
     private var progressText: TextView? = null
 
     private val ota = OTAManager3(context)
-        .setProvider(OTAManager3.Provider.GITLAB)
-        .setRepo("ailife8881", "clox")
+        .setProvider(OTAManager3.Provider.GITHUB)
+        .setRepo("YzmmQwQ", "CloX")
         .setWifiOnly(false)
         .setDownloadMode(OTAManager3.DownloadMode.DOWNLOAD_MODE_DIRECT)
         .setDownloadFileName("clox-update.apk")

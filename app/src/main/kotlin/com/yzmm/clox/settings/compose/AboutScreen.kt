@@ -27,7 +27,7 @@ import com.yzmm.clox.update.UpdateController
 import com.yzmm.clox.util.safeStartActivity
 
 @Composable
-fun AboutScreen() {
+fun AboutScreen(easterEgg: CreatorEasterEggState) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity
 
@@ -77,10 +77,22 @@ fun AboutScreen() {
             }
         }
 
+        CreatorButton(
+            name = "Yzmm",
+            summary = res(R.string.creator),
+            avatarRes = R.drawable.creator_yzmm,
+            state = easterEgg,
+        ) { openUrl("https://yz-mm.top") }
+
         SettingsButton(
             title = res(R.string.about_onyx_project),
             summary = res(R.string.about_onyx_description),
         ) { openUrl("https://codeberg.org/OnyxUI/OnyxUI") }
+
+        SettingsButton(
+            title = res(R.string.about_repo_title),
+            summary = res(R.string.about_repo_url),
+        ) { openUrl("https://github.com/YzmmQwQ/CloX") }
 
         SectionHeader(res(R.string.about_developers_category))
         SettingsButton(

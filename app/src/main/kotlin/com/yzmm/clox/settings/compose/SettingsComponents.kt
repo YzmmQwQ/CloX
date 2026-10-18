@@ -224,6 +224,26 @@ class SettingsListScope internal constructor(
         }
     }
 
+    fun CreatorButton(
+        name: String,
+        summary: String,
+        avatarRes: Int,
+        state: CreatorEasterEggState,
+        onOpen: () -> Unit,
+    ) {
+        list.item {
+            CreatorButtonItem(
+                modifier = itemModifier(),
+                transformation = surface(),
+                name = name,
+                summary = summary,
+                avatarRes = avatarRes,
+                state = state,
+                onOpen = onOpen,
+            )
+        }
+    }
+
     fun SettingsRadio(title: String, selected: Boolean, onSelect: () -> Unit) {
         list.item {
             RadioButton(

@@ -13,7 +13,7 @@ and it runs **WatchMaker, Wear OS, and Huami/Zepp (HSC) watch faces** out of the
 improving on it with a native performance renderer, Material Design 3, edge gestures, and blur
 app animations. If you're using Universal Launcher today, CloX is the upgrade.
 
-**[⬇️ Download the latest release](https://gitlab.com/ailife8881/clox/-/releases)** ·
+**[⬇️ Download the latest release](https://github.com/YzmmQwQ/CloX/releases)** ·
 [Developer guide](docs/DEVELOPMENT.md) · [Integration API](docs/INTEGRATION.md)
 
 ---
@@ -54,7 +54,7 @@ from an empty gallery.
 
 ## Install
 
-1. Open the **[Releases page](https://gitlab.com/ailife8881/clox/-/releases)** and download the
+1. Open the **[Releases page](https://github.com/YzmmQwQ/CloX/releases)** and download the
    latest CloX APK.
 2. Sideload it onto your Android watch (`adb install -r clox.apk`, or copy it to the watch and
    install with a file manager).

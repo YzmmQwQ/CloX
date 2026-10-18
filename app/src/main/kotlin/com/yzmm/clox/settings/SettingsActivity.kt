@@ -27,6 +27,8 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavHostState
 import com.yzmm.clox.applist.AppListPrefs
 import com.yzmm.clox.settings.compose.AboutScreen
+import com.yzmm.clox.settings.compose.CreatorEasterEggOverlay
+import com.yzmm.clox.settings.compose.CreatorEasterEggState
 import com.yzmm.clox.settings.compose.AnimationScreen
 import com.yzmm.clox.settings.compose.AodScreen
 import com.yzmm.clox.settings.compose.AppListScreen
@@ -98,6 +100,7 @@ class SettingsActivity : AppCompatActivity() {
 private fun SettingsApp(openTapActions: Boolean, initialFolderId: String?) {
     val navController = rememberSwipeDismissableNavController()
     val navState = rememberSwipeDismissableNavHostState(rememberSwipeToDismissBoxState())
+    val creatorEasterEgg = remember { CreatorEasterEggState() }
 
     CompositionLocalProvider(
         LocalSettingsNavigator provides { route -> navController.navigate(route) }
@@ -132,9 +135,10 @@ private fun SettingsApp(openTapActions: Boolean, initialFolderId: String?) {
                 }
                 composable(SettingsRoutes.RTOS) { RtosScreen() }
                 composable(SettingsRoutes.DEBUG) { DebugScreen() }
-                composable(SettingsRoutes.ABOUT) { AboutScreen() }
+                composable(SettingsRoutes.ABOUT) { AboutScreen(creatorEasterEgg) }
                 composable(SettingsRoutes.TILE_EDITOR) { TileEditorScreen() }
             }
+            CreatorEasterEggOverlay(creatorEasterEgg)
         }
     }
 
