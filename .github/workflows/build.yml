@@ -117,12 +117,22 @@ jobs:
           version=$(grep -oE 'versionName[[:space:]]+"[^"]+"' app/build.gradle \
                     | head -1 | sed -E 's/.*"([^"]+)"/\1/')
           short_sha=$(git rev-parse --short=8 HEAD)
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            release_tag="${GITHUB_REF_NAME}"
+            release_name="CloX ${version}"
+          else
+            # Unique per commit so re-runs update the same pre-release instead of stacking.
+            release_tag="build-${short_sha}"
+            release_name="CloX ${version} (${short_sha})"
+          fi
           {
             echo "build_type=$build_type"
             echo "task=$task"
             echo "apk_dir=$apk_dir"
             echo "version=$version"
             echo "short_sha=$short_sha"
+            echo "release_tag=$release_tag"
+            echo "release_name=$release_name"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build
@@ -158,11 +168,15 @@ jobs:
           retention-days: 30
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: steps.vars.outputs.build_type == 'release'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.vars.outputs.release_tag }}
+          name: ${{ steps.vars.outputs.release_name }}
           files: dist/*.apk
           generate_release_notes: true
+          # Manual builds become pre-releases; only v* tags are full releases.
+          prerelease: ${{ github.ref_type != 'tag' }}
 
       - name: Write job summary
         run: |
