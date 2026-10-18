@@ -244,24 +244,69 @@ fun NotificationScreen() {
 }
 
 /**
- * Grants notification-listener access via Shizuku/root by appending our
- * component to the existing colon-separated list (never replacing it).
+ * Grants notification-listener access with whatever privilege is available.
+ *
+ * Order: write the secure setting directly if a previous one-tap grant left us with
+ * WRITE_SECURE_SETTINGS; otherwise use `cmd notification allow_listener` (API 30+, the
+ * official shell path) and fall back to appending to `enabled_notification_listeners`.
+ * After a privileged success we also grant WRITE_SECURE_SETTINGS once, so later grants
+ * no longer need Shizuku/root to be running.
  */
 private fun grantNotificationAccessPrivileged(context: Context): Boolean {
-    val component = ComponentName(
+    val flat = ComponentName(
         context, CloXNotificationListenerService::class.java).flattenToString()
+    if (isNotificationListenerEnabled(context)) return true
+
+    if (context.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) ==
+        android.content.pm.PackageManager.PERMISSION_GRANTED) {
+        return writeListenerSetting(context, flat)
+    }
+
+    val value = listenerSettingValue(context, flat)
+    return when (PrivilegeManager.level(context)) {
+        PrivilegeLevel.SHIZUKU -> {
+            val ok = allowListenerViaCmd(
+                allow = { ShizukuOperations.allowNotificationListener(flat) },
+                context = context,
+            ) || ShizukuOperations.writeSettings(
+                "secure", "enabled_notification_listeners", value)
+            if (ok) ShizukuOperations.grantWriteSecureSettings(context.packageName)
+            ok
+        }
+        PrivilegeLevel.ROOT -> {
+            val ok = allowListenerViaCmd(
+                allow = { RootOperations.allowNotificationListener(flat) },
+                context = context,
+            ) || RootOperations.writeSettings(
+                "secure", "enabled_notification_listeners", value)
+            if (ok) RootOperations.grantWriteSecureSettings(context.packageName)
+            ok
+        }
+        PrivilegeLevel.NONE -> false
+    }
+}
+
+private fun allowListenerViaCmd(allow: () -> Boolean, context: Context): Boolean =
+    android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
+        allow() && isNotificationListenerEnabled(context)
+
+private fun writeListenerSetting(context: Context, flat: String): Boolean = try {
+    Settings.Secure.putString(
+        context.contentResolver,
+        "enabled_notification_listeners",
+        listenerSettingValue(context, flat),
+    )
+    true
+} catch (_: Exception) {
+    false
+}
+
+/** Appends [flat] to the existing colon-separated listener list, never replacing it. */
+private fun listenerSettingValue(context: Context, flat: String): String {
     val current = Settings.Secure.getString(
         context.contentResolver, "enabled_notification_listeners").orEmpty()
     val entries = current.split(':').filter { it.isNotBlank() }
-    if (component in entries) return true
-    val value = (entries + component).joinToString(":")
-    return when (PrivilegeManager.level(context)) {
-        PrivilegeLevel.SHIZUKU ->
-            ShizukuOperations.writeSettings("secure", "enabled_notification_listeners", value)
-        PrivilegeLevel.ROOT ->
-            RootOperations.writeSettings("secure", "enabled_notification_listeners", value)
-        PrivilegeLevel.NONE -> false
-    }
+    return if (flat in entries) current else (entries + flat).joinToString(":")
 }
 
 private fun isNotificationListenerEnabled(context: Context): Boolean {

@@ -14,5 +14,7 @@
         <!-- Read the current system wallpaper (app-list live-wallpaper background). On this ROM
              getWallpaperWithFeature requires this priv perm or READ_EXTERNAL_STORAGE. -->
         <permission name="android.permission.READ_WALLPAPER_INTERNAL" />
+        <!-- One-tap notification-access grant writes Settings.Secure directly. -->
+        <permission name="android.permission.WRITE_SECURE_SETTINGS" />
     </privapp-permissions>
 </permissions>

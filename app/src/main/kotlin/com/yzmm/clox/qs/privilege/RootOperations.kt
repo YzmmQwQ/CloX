@@ -30,6 +30,14 @@ object RootOperations {
     fun writeSettings(namespace: String, key: String, value: String): Boolean =
         Shell.cmd("settings put $namespace $key $value").exec().isSuccess
 
+    /** Official shell path for notification-listener access (API 30+). */
+    fun allowNotificationListener(component: String): Boolean =
+        Shell.cmd("cmd notification allow_listener $component").exec().isSuccess
+
+    /** One-time grant so the app can write secure settings itself from then on. */
+    fun grantWriteSecureSettings(pkg: String): Boolean =
+        Shell.cmd("pm grant $pkg android.permission.WRITE_SECURE_SETTINGS").exec().isSuccess
+
     /** Clears Android 13+'s "restricted settings" lock for [pkg] (see ShizukuOperations equivalent). */
     fun clearRestrictedSettings(pkg: String): Boolean =
         Shell.cmd("appops set $pkg ACCESS_RESTRICTED_SETTINGS allow").exec().isSuccess ||
