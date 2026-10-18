@@ -15,6 +15,8 @@
         <item>グリッド2D</item>
         <item>ページ</item>
         <item>重力</item>
+    
+        <item>Appleグリッド</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">

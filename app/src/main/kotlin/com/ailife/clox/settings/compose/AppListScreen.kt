@@ -146,6 +146,12 @@ fun AppListScreen() {
     var gravityFriction by remember {
         mutableStateOf(appListPrefs.getInt("gravity_friction", 3).coerceIn(0, 10))
     }
+    var appleIconSize by remember {
+        mutableStateOf(AppListPrefs.appleIconSize(ctx).coerceIn(0, 120))
+    }
+    var appleLabels by remember {
+        mutableStateOf(AppListPrefs.appleShowLabels(ctx))
+    }
 
     val navigate = LocalSettingsNavigator.current
     var hiddenAppsVisible by remember {
@@ -602,6 +608,30 @@ fun AppListScreen() {
                 onChange = {
                     gravityFriction = it
                     appListPrefs.edit().putInt("gravity_friction", it).apply()
+                },
+            )
+        }
+
+        if (style == AppListPrefs.STYLE_APPLE) {
+            SectionHeader(res(R.string.applist_setting_apple_options_category))
+            SettingsSlider(
+                title = res(R.string.pref_icon_size_title),
+                value = appleIconSize,
+                range = 0..120,
+                valueText = if (appleIconSize == 0) res(R.string.appearance_dpi_default)
+                             else "$appleIconSize",
+                onChange = {
+                    appleIconSize = it
+                    appListPrefs.edit().putInt(AppListPrefs.KEY_APPLE_ICON_SIZE, it).apply()
+                },
+            )
+            SettingsSwitch(
+                title = res(R.string.applist_setting_apple_labels_title),
+                summary = res(R.string.applist_setting_apple_labels_summary),
+                checked = appleLabels,
+                onCheckedChange = {
+                    appleLabels = it
+                    appListPrefs.edit().putBoolean(AppListPrefs.KEY_APPLE_SHOW_LABELS, it).apply()
                 },
             )
         }

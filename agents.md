@@ -47,6 +47,9 @@ Callbacks on `MainActivity`:
 
 ### App list (`AppListFragment`)
 
+- Styles: list / grid / waterfall / honeycomb / grid2d / pages / gravity / **apple**
+  (`AppleGridView` + `AppleGridBackend` — circular icons in a hex spiral, one-finger pan,
+  pinch zoom, labels only when zoomed, long-press context menu)
 - Opens from the crown/home key; the left-swipe entry is opt-in (`app_list_swipe_enabled`, default `false`)
 - Always attached to `fragmentContainer`, positioned off-screen via `translationX = screenW`
 - Opens by springing `translationX` to `0f`, closes by springing back to `screenW`

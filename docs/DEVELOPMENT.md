@@ -146,7 +146,7 @@ live in `settings/compose/`, shared rows/dialogs in `SettingsComponents.kt`, rou
 Settings
 ├── Notifications   — panel styles, alerts, filtering, listener access
 ├── Quick settings  — tiles, appearance, privileges, global overlay
-├── App list        — style + per-style options, icon pack, background
+├── App list        — styles (incl. Apple-style pan/zoom grid), icon pack, background
 ├── Animations      — open/close/gesture-return animations
 ├── Watchface       — selector, sort, auto-change, store/remote/import
 ├── Gestures        — double-tap/long-press, swipe actions, button mapping

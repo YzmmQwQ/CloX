@@ -15,6 +15,8 @@
         <item>Siatka 2D</item>
         <item>Strony</item>
         <item>Grawitacja</item>
+    
+        <item>Siatka Apple</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">

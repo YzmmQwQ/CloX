@@ -15,6 +15,8 @@
         <item>Cuadrícula 2D</item>
         <item>Páginas</item>
         <item>Gravedad</item>
+    
+        <item>Cuadrícula Apple</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">

@@ -293,8 +293,12 @@ class GestureInterceptorLayout @JvmOverloads constructor(
             if (pagesBackendActive && dir == SwipeDirection.LEFT) return true
             // Pages: pass RIGHT only when there's a page to go back to
             if (pagesBackendActive && dir == SwipeDirection.RIGHT && pagesCanScrollRight?.invoke() == true) return true
-            // Grid2D/Honeycomb: RIGHT close only works from left 1/3; right 2/3 passes to child for panning
-            if (grid2dHoneycombActive && dir == SwipeDirection.RIGHT && startX >= width / 3f) return true
+            // Grid2D/Honeycomb/Apple: RIGHT close only works from left 1/3;
+            // the right 2/3 and all LEFT swipes pass to the child for panning.
+            if (grid2dHoneycombActive) {
+                if (dir == SwipeDirection.RIGHT && startX >= width / 3f) return true
+                if (dir == SwipeDirection.LEFT) return true
+            }
         }
         return false
     }

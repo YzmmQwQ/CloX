@@ -19,6 +19,7 @@ object AppListPrefs {
     const val STYLE_GRID2D     = "grid2d"
     const val STYLE_PAGES      = "pages"
     const val STYLE_GRAVITY    = "gravity"
+    const val STYLE_APPLE      = "apple"
 
     // ── Sort ─────────────────────────────────────────────────────────────────
     const val KEY_SORT      = "sort"
@@ -65,6 +66,10 @@ object AppListPrefs {
     const val KEY_HONEYCOMB_3D_CURVE = "honeycomb_3d_curve"
     const val KEY_HONEYCOMB_ROUND_OVERSCROLL = "honeycomb_round_overscroll"
 
+    // ── Apple grid settings ──────────────────────────────────────────────────
+    const val KEY_APPLE_ICON_SIZE = "apple_icon_size"     // dp, 0 = auto
+    const val KEY_APPLE_SHOW_LABELS = "apple_show_labels"
+
     // ── Grid2D sub-settings ──────────────────────────────────────────────────
     const val KEY_GRID2D_COLS      = "grid2d_cols"
     const val KEY_GRID2D_NAMES     = "grid2d_names"
@@ -103,6 +108,9 @@ object AppListPrefs {
     fun wallpaperDim(ctx: Context) = get(ctx).getInt(KEY_WALLPAPER_DIM, 0)
 
     fun style(ctx: Context)    = get(ctx).getString(KEY_STYLE, STYLE_LIST) ?: STYLE_LIST
+
+    fun appleIconSize(ctx: Context) = get(ctx).getInt(KEY_APPLE_ICON_SIZE, 0)
+    fun appleShowLabels(ctx: Context) = get(ctx).getBoolean(KEY_APPLE_SHOW_LABELS, true)
     fun sort(ctx: Context)     = get(ctx).getString(KEY_SORT, SORT_ALPHA)  ?: SORT_ALPHA
     fun iconPack(ctx: Context) = get(ctx).getString(KEY_ICON_PACK, "")     ?: ""
 
