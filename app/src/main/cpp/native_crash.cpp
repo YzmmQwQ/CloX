@@ -48,7 +48,7 @@ constexpr int kNumSignals = sizeof(kSignals) / sizeof(kSignals[0]);
 constexpr int kMaxFrames = 64;
 
 JavaVM*   gVm = nullptr;
-jclass    gHandlerClass = nullptr;        // com.ailife.clox.crash.NativeCrashHandler
+jclass    gHandlerClass = nullptr;        // com.yzmm.clox.crash.NativeCrashHandler
 jmethodID gOnNativeCrash = nullptr;       // static onNativeCrash(String)
 char      gReportPath[512] = {0};
 char      gHeader[1024] = {0};            // version/device lines built in Kotlin
@@ -214,7 +214,7 @@ void crashHandler(int sig, siginfo_t* info, void* /*ucontext*/) {
 // ── install (called once from NativeCrashHandler.install on the Kotlin side) ──
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_crash_NativeCrashHandler_nativeInstall(
+Java_com_yzmm_clox_crash_NativeCrashHandler_nativeInstall(
         JNIEnv* env, jobject thiz, jstring reportPath, jstring header) {
     // `thiz` is the NativeCrashHandler singleton INSTANCE (nativeInstall is a
     // plain member on a Kotlin object, not @JvmStatic) — resolve its class for

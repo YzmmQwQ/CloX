@@ -1,7 +1,7 @@
 # CloX — Developer Guide
 
 Architecture, build, and internals for **CloX**, an Android smartwatch launcher and watchface
-engine (`com.ailife.clox`). For the product overview see the [main README](../README.md). For
+engine (`com.yzmm.clox`). For the product overview see the [main README](../README.md). For
 integrating other apps with CloX see the [Integration Guide](INTEGRATION.md).
 
 ## Architecture
@@ -63,7 +63,7 @@ app/src/main/
 │   ├── overlay/          OverlayController, BlurEngine, QS, Widgets, Notifications
 │   ├── icon/             IconResolver, IconPackLoader
 │   └── settings/         SettingsActivity + PreferenceFragmentCompat screens
-├── kotlin/com/ailife/clox/   MainActivity, public API receivers/providers
+├── kotlin/com/yzmm/clox/   MainActivity, public API receivers/providers
 ├── assets/lua/           main.lua, bridge.lua, wf_*.lua (WatchMaker engine)
 ├── assets/wf_default/    bundled default watchface
 └── cpp/                  JNI bridge (CocosManager, LuaBridge)

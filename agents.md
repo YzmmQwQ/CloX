@@ -9,7 +9,7 @@ Context for AI coding agents (Claude Code, Copilot, etc.) working on this repo.
 | Field | Value |
 |---|---|
 | App name | CloX |
-| Package | `com.ailife.clox` |
+| Package | `com.yzmm.clox` |
 | Language | Kotlin (primary), Lua (Axmol watchface) |
 | Min SDK | 26 / Target 36 |
 | ABI | `arm64-v8a` only |

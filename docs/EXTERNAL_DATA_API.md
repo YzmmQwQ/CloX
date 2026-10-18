@@ -20,7 +20,7 @@ No API key or permission is required. Any installed app can write to the slots.
 
 ## Writing data
 
-**Broadcast action:** `com.ailife.clox.WRITE_DATA`
+**Broadcast action:** `com.yzmm.clox.WRITE_DATA`
 
 **Required extras:**
 
@@ -38,8 +38,8 @@ No API key or permission is required. Any installed app can write to the slots.
 **Kotlin example:**
 
 ```kotlin
-val intent = Intent("com.ailife.clox.WRITE_DATA").apply {
-    setPackage("com.ailife.clox")                 // target CloX specifically
+val intent = Intent("com.yzmm.clox.WRITE_DATA").apply {
+    setPackage("com.yzmm.clox")                 // target CloX specifically
     putExtra("slot", 1)
     putExtra("data", "24.5")
     putExtra("key",  "outdoor_temp")
@@ -50,8 +50,8 @@ context.sendBroadcast(intent)
 **Java example:**
 
 ```java
-Intent intent = new Intent("com.ailife.clox.WRITE_DATA");
-intent.setPackage("com.ailife.clox");
+Intent intent = new Intent("com.yzmm.clox.WRITE_DATA");
+intent.setPackage("com.yzmm.clox");
 intent.putExtra("slot", 1);
 intent.putExtra("data", "24.5");
 intent.putExtra("key",  "outdoor_temp");
@@ -61,14 +61,14 @@ context.sendBroadcast(intent);
 **ADB shell example (testing from command line):**
 
 ```bash
-adb shell 'am broadcast -a com.ailife.clox.WRITE_DATA \
-  -n com.ailife.clox/.cocos.bridge.ExternalDataReceiver \
+adb shell 'am broadcast -a com.yzmm.clox.WRITE_DATA \
+  -n com.yzmm.clox/.cocos.bridge.ExternalDataReceiver \
   --ei slot 1 \
   --es data "hello world" \
   --es key "test"'
 ```
 
-> **Note:** `setPackage("com.ailife.clox")` is recommended so the broadcast is delivered only to CloX, not to any other receiver that might register for the same action.
+> **Note:** `setPackage("com.yzmm.clox")` is recommended so the broadcast is delivered only to CloX, not to any other receiver that might register for the same action.
 
 ---
 

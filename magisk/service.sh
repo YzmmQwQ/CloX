@@ -33,7 +33,7 @@ settings put global hidden_api_blacklist_exemptions "L"
 # flash/upgrade), restart it once so it picks them up. Later boots read the persisted value at
 # launcher spawn, so no restart is needed — and none happens.
 if [ "$before" != "L" ]; then
-  am force-stop com.ailife.clox
+  am force-stop com.yzmm.clox
   log -t CloXMagisk "hidden_api_blacklist_exemptions set — restarted CloX once"
 fi
 

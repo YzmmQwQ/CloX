@@ -11,7 +11,7 @@
   these anim resources. Deployed at /product/overlay via the Magisk module.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.ailife.clox.overlay.transitions">
+    package="com.yzmm.clox.overlay.transitions">
 
     <application android:hasCode="false" />
 

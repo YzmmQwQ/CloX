@@ -41,8 +41,8 @@ val intent = Intent(Intent.ACTION_VIEW).apply {
     setDataAndType(uri, "*/*")
     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     // Target CloX's handler directly to skip the app chooser:
-    setClassName("com.ailife.clox",
-        "com.ailife.clox.watchface.WatchfaceImportHandlerActivity")
+    setClassName("com.yzmm.clox",
+        "com.yzmm.clox.watchface.WatchfaceImportHandlerActivity")
 }
 context.startActivity(intent)
 ```
@@ -56,7 +56,7 @@ app can handle `.watch` files).
 adb push MyCoolFace.watch /sdcard/MyCoolFace.watch
 adb shell 'am start -a android.intent.action.VIEW \
   -d file:///sdcard/MyCoolFace.watch -t "*/*" \
-  -n com.ailife.clox/.watchface.WatchfaceImportHandlerActivity'
+  -n com.yzmm.clox/.watchface.WatchfaceImportHandlerActivity'
 ```
 
 ---

@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace 'com.ailife.clox.frameworkstubs'
+    namespace 'com.yzmm.clox.frameworkstubs'
     compileSdk 36
 
     defaultConfig {

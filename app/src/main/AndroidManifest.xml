@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <!-- Read the current system wallpaper for the app-list live-wallpaper background.
          signature|privileged — granted via the clox_privapp module; MUST stay whitelisted in
-         magisk/system/etc/permissions/privapp-permissions-com.ailife.clox.xml (ROM=enforce,
+         magisk/system/etc/permissions/privapp-permissions-com.yzmm.clox.xml (ROM=enforce,
          missing entry bootloops). -->
     <uses-permission android:name="android.permission.READ_WALLPAPER_INTERNAL"
         tools:ignore="ProtectedPermissions" />
@@ -72,7 +72,7 @@
          (Shizuku-style) — CloX shows no dialog and keeps no grant registry. It controls ONLY the
          watchface directory (see WatchfaceProvider). -->
     <permission
-        android:name="com.ailife.clox.permission.ACCESS_WATCHFACES"
+        android:name="com.yzmm.clox.permission.ACCESS_WATCHFACES"
         android:protectionLevel="dangerous"
         android:label="@string/permission_access_watchfaces_label"
         android:description="@string/permission_access_watchfaces_desc" />
@@ -134,7 +134,7 @@
             android:exported="false"
             android:label="@string/settings_title"
             android:launchMode="singleTask"
-            android:taskAffinity="com.ailife.clox.settings"
+            android:taskAffinity="com.yzmm.clox.settings"
             android:theme="@style/Theme.CloX.Settings" />
 
         <!-- Notification blocked-apps picker -->
@@ -211,7 +211,7 @@
             android:exported="false"
             android:label="@string/pref_wf_remote_title"
             android:launchMode="singleTask"
-            android:taskAffinity="com.ailife.clox.remote"
+            android:taskAffinity="com.yzmm.clox.remote"
             android:theme="@style/Theme.CloX.Settings" />
 
         <!-- Watch face store — own task, shows in recents -->
@@ -220,7 +220,7 @@
             android:exported="false"
             android:label="@string/pref_wf_store_title"
             android:launchMode="singleTask"
-            android:taskAffinity="com.ailife.clox.store"
+            android:taskAffinity="com.yzmm.clox.store"
             android:theme="@style/Theme.CloX.NoActionBar" />
 
         <!-- FileProvider for sharing single .watch files + OTA APK install grants with other apps -->
@@ -242,8 +242,8 @@
             android:authorities="${applicationId}.watchfaces"
             android:exported="true"
             android:grantUriPermissions="true"
-            android:readPermission="com.ailife.clox.permission.ACCESS_WATCHFACES"
-            android:writePermission="com.ailife.clox.permission.ACCESS_WATCHFACES" />
+            android:readPermission="com.yzmm.clox.permission.ACCESS_WATCHFACES"
+            android:writePermission="com.yzmm.clox.permission.ACCESS_WATCHFACES" />
 
         <!-- Second launcher entry: CloX Settings appears as its own icon in the app list -->
         <activity-alias
@@ -324,12 +324,12 @@
             </intent-filter>
         </service>
 
-        <!-- Third-party external data API — receives com.ailife.clox.WRITE_DATA broadcasts -->
+        <!-- Third-party external data API — receives com.yzmm.clox.WRITE_DATA broadcasts -->
         <receiver
             android:name=".cocos.bridge.ExternalDataReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.ailife.clox.WRITE_DATA" />
+                <action android:name="com.yzmm.clox.WRITE_DATA" />
             </intent-filter>
         </receiver>
 

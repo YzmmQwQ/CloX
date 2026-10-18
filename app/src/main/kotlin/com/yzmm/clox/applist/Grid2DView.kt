@@ -1,0 +1,501 @@
+package com.yzmm.clox.applist
+
+import android.animation.ValueAnimator
+import android.content.Context
+import android.util.AttributeSet
+import android.util.Log
+import android.view.GestureDetector
+import android.view.Gravity
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.View
+import android.view.ViewConfiguration
+import android.view.animation.OvershootInterpolator
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.OverScroller
+import android.widget.TextView
+import com.yzmm.clox.applist.ScaledIconCache
+import com.yzmm.clox.applist.model.AppItem
+import com.google.android.material.color.MaterialColors
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.sqrt
+
+class Grid2DView @JvmOverloads constructor(
+    ctx: Context, attrs: AttributeSet? = null
+) : FrameLayout(ctx, attrs) {
+
+    var onAppClick: ((AppItem, View) -> Unit)? = null
+    var onAppLongPress: ((AppItem, View) -> Unit)? = null
+    var enable3d = false
+    /** 3D depth config (curve + min scale). Used when [enable3d] is true. */
+    var effect3DConfig = Effect3DConfig()
+    var showNames = false
+    var columns = 4
+    var iconSizeDp = 0
+    var dragReorderEnabled = false
+    var onOrderChanged: ((List<AppItem>) -> Unit)? = null
+    var showBadge = false
+    var showCount = true
+    private var lastBadgeCounts: Map<String, Int> = emptyMap()
+
+    private val scroller = OverScroller(ctx)
+    private val touchSlop = ViewConfiguration.get(ctx).scaledTouchSlop
+
+    private var velTracker: VelocityTracker? = null
+    private var lastX = 0f; private var lastY = 0f
+    private var scrollX_ = 0f; private var scrollY_ = 0f
+    private var hasBuiltOnce = false   // center only on first build; preserve scroll on rebuilds
+    private var maxScrollX = 0f; private var maxScrollY = 0f
+    private var isPanning = false
+    private var pendingItems: List<AppItem> = emptyList()
+
+    var overscrollStiffness: Int = 5   // 0-10, default 5
+
+    private var overScrollX_ = 0f
+    private var overScrollY_ = 0f
+    private var overScrollAnim: ValueAnimator? = null
+    private val overDamp get() = overscrollStiffness * 0.06f
+    private val maxOverScroll get() = dp(overscrollStiffness * 8).toFloat()
+
+    /**
+     * When enabled, the settled scroll range extends half a screen past the content on every side,
+     * so you can pan a corner icon toward centre and it stays there (springs to that point) instead
+     * of snapping straight back to the content edge — handy for reaching corners on a round screen.
+     */
+    var roundOverscroll = false
+    private val restPadX get() = if (roundOverscroll) width / 2f else 0f
+    private val restPadY get() = if (roundOverscroll) height / 2f else 0f
+    private val minScrollX get() = -restPadX
+    private val minScrollY get() = -restPadY
+    private val maxScrollXR get() = maxScrollX + restPadX
+    private val maxScrollYR get() = maxScrollY + restPadY
+
+    // ── Drag reorder ──────────────────────────────────────────────────────────
+    // orderedViews[i] = the view currently at visual position i
+    // gridLeft/Top[i] = fixed layout left/top of cell i (never changes)
+    private val orderedViews = mutableListOf<View>()
+    private val workingItems = mutableListOf<AppItem>()
+    private val badgeViews   = mutableListOf<TextView>()
+    private val gridLeft = mutableListOf<Float>()
+    private val gridTop = mutableListOf<Float>()
+    private var cellIconPx = 0    // icon size, used to find closest cell center
+
+    private var dragActive = false
+    private var draggingPos = -1
+    private var draggingViewRef: View? = null
+    private var pendingDragIdx = -1
+    private var pendingDownX = 0f; private var pendingDownY = 0f
+
+    private val dragGesture = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onLongPress(e: MotionEvent) {
+            Log.d(TAG, "onLongPress: isPanning=$isPanning dragActive=$dragActive dragReorderEnabled=$dragReorderEnabled items=${orderedViews.size}")
+            if (isPanning || dragActive) return
+            val cx = e.x + scrollX_; val cy = e.y + scrollY_
+            val idx = closestGridPos(cx, cy)
+            Log.d(TAG, "onLongPress: cx=$cx cy=$cy idx=$idx")
+            if (idx < 0 || idx >= orderedViews.size) return
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            pendingDragIdx = idx
+            pendingDownX = e.x; pendingDownY = e.y
+            Log.d(TAG, "onLongPress: pendingDragIdx=$pendingDragIdx set, invoking onAppLongPress")
+            onAppLongPress?.invoke(workingItems[idx], orderedViews[idx])
+        }
+    })
+
+    init {
+        clipChildren = false; clipToPadding = false
+        isMotionEventSplittingEnabled = false
+    }
+
+    private var needsBuild = false
+
+    fun bindItems(items: List<AppItem>) {
+        pendingItems = items
+        android.util.Log.d("CloX/Grid2DView", "bindItems n=${items.size} w=$width h=$height iconSizeDp=$iconSizeDp")
+        // Build immediately if we already have dimensions; otherwise flag it and let onLayout
+        // build once the view is measured.
+        //
+        // (Previously this deferred via a self-removing OnGlobalLayoutListener, but re-fetching
+        // the ViewTreeObserver after a backend rebuild returned a different observer instance, so
+        // removeOnGlobalLayoutListener never detached it — every subsequent global layout then
+        // re-ran the full buildGrid (recreating every cell + badge), saturating the UI thread and
+        // making the app-list open/close janky until the process was restarted.)
+        if (width > 0 && height > 0) { needsBuild = false; buildGrid(items) }
+        // Force a fresh measure/layout pass so onLayout/onSizeChanged is guaranteed to fire and
+        // consume the pending build once this view is sized — don't rely on the addView() that
+        // just happened having already scheduled one.
+        else { needsBuild = true; requestLayout() }
+    }
+
+    private var buildScheduled = false
+
+    /** Build the deferred grid once dimensions are known. needsBuild is cleared before building. */
+    private fun maybeBuildDeferred() {
+        if (needsBuild && width > 0 && height > 0 && pendingItems.isNotEmpty()) {
+            needsBuild = false
+            buildGrid(pendingItems)
+        }
+    }
+
+    /**
+     * Schedule the deferred build to run AFTER the current layout pass, never inside it. buildGrid
+     * adds cells and calls requestLayout(); a requestLayout() issued while a layout traversal is in
+     * progress (i.e. from within onLayout/onSizeChanged) is swallowed, so the freshly-added cells
+     * never get measured and render at 0x0. post() defers the build to the next message loop, after
+     * the traversal completes, so addView()'s requestLayout() schedules a real measure pass.
+     */
+    private fun scheduleDeferredBuild() {
+        if (!needsBuild || buildScheduled) return
+        buildScheduled = true
+        post { buildScheduled = false; maybeBuildDeferred() }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        scheduleDeferredBuild()
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        scheduleDeferredBuild()
+    }
+
+    private fun buildGrid(items: List<AppItem>) {
+        removeAllViews()
+        val cols = ceil(sqrt(items.size.toFloat())).toInt().coerceAtLeast(1)
+        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else (minOf(width, height) / 5).coerceAtLeast(1)
+        val gap = (iconPx * GAP_RATIO + 0.5f).toInt()
+        android.util.Log.d("CloX/Grid2DView", "buildGrid n=${items.size} cols=$cols iconPx=$iconPx gap=$gap w=$width h=$height")
+        if (iconPx <= 0) return
+        cellIconPx = iconPx
+
+        val cellW = iconPx + gap
+        val cellH = cellW
+
+        orderedViews.clear(); workingItems.clear(); gridLeft.clear(); gridTop.clear()
+        badgeViews.clear()
+
+        var maxX = 0; var maxY = 0
+        for ((idx, item) in items.withIndex()) {
+            val col = idx % cols; val row = idx / cols
+            val x = col * cellW + gap / 2; val y = row * cellH + gap / 2
+            maxX = maxX.coerceAtLeast(x + cellW); maxY = maxY.coerceAtLeast(y + cellH)
+
+            val cell = buildCell(item, iconPx) as FrameLayout
+            val badge = NotificationBadge.makeView(context)
+            cell.addView(badge, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.TOP or Gravity.END })
+            badgeViews.add(badge)
+
+            addView(cell, FrameLayout.LayoutParams(iconPx, iconPx).apply {
+                leftMargin = x; topMargin = y
+            })
+            orderedViews.add(cell)
+            gridLeft.add(x.toFloat())
+            gridTop.add(y.toFloat())
+        }
+        workingItems.addAll(items)
+
+        val prevX = scrollX_; val prevY = scrollY_
+        maxScrollX = (maxX - width).toFloat().coerceAtLeast(0f)
+        maxScrollY = (maxY - height).toFloat().coerceAtLeast(0f)
+        // Center on the first build; on later rebuilds (e.g. an app was installed/updated and the
+        // list reloaded) keep the user's scroll position instead of jumping back to center.
+        if (hasBuiltOnce) {
+            scrollX_ = prevX.coerceIn(minScrollX, maxScrollXR); scrollY_ = prevY.coerceIn(minScrollY, maxScrollYR)
+        } else {
+            scrollX_ = maxScrollX / 2f; scrollY_ = maxScrollY / 2f
+            hasBuiltOnce = true
+        }
+        overScrollX_ = 0f; overScrollY_ = 0f; overScrollAnim?.cancel(); overScrollAnim = null
+        applyScroll()
+        android.util.Log.d("CloX/Grid2DView", "buildGrid done childCount=$childCount maxX=$maxX maxY=$maxY scroll=($scrollX_,$scrollY_) enable3d=$enable3d")
+        if (enable3d) post { apply3d() }
+        post {
+            for (i in 0 until minOf(3, childCount)) {
+                val c = getChildAt(i)
+                android.util.Log.d("CloX/Grid2DView", "child[$i] pos=(${c.left},${c.top}) size=${c.width}x${c.height} measured=${c.measuredWidth}x${c.measuredHeight} scale=(${c.scaleX},${c.scaleY}) alpha=${c.alpha} vis=${c.visibility} trans=(${c.translationX},${c.translationY})")
+            }
+            android.util.Log.d("CloX/Grid2DView", "self size=${width}x${height} scale=($scaleX,$scaleY) alpha=$alpha vis=$visibility scrollXY=(${scrollX},${scrollY})")
+        }
+        if (lastBadgeCounts.isNotEmpty()) refreshBadges(lastBadgeCounts)
+        dragActive = false; draggingPos = -1; draggingViewRef = null; pendingDragIdx = -1
+    }
+
+    private fun buildCell(item: AppItem, iconPx: Int): View {
+        val cell = FrameLayout(context).apply {
+            isClickable = true; isFocusable = true; isLongClickable = false
+            background = context.obtainStyledAttributes(
+                intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
+            ).getDrawable(0)
+            clipChildren = false; clipToPadding = false
+            // Tag with package so the launcher can locate this app's icon for the return animation.
+            setTag(com.yzmm.clox.R.id.app_item_package, item.packageName)
+        }
+        cell.addView(ImageView(context).apply {
+            id = com.yzmm.clox.R.id.appIcon
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setImageDrawable(ScaledIconCache.obtain(item.icon, iconPx, "${item.packageName}/${item.activityName}"))
+        }, FrameLayout.LayoutParams(iconPx, iconPx))
+        if (showNames) {
+            cell.addView(TextView(context).apply {
+                text = item.label; maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                gravity = Gravity.CENTER; textSize = 9f
+                setBackgroundColor(context.getColor(com.yzmm.clox.R.color.app_label_scrim))
+                setTextColor(android.graphics.Color.WHITE)
+                val pv = dp(2); val ph = dp(2)
+                setPadding(ph, pv, ph, pv)
+            }, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.BOTTOM })
+        }
+        cell.setOnClickListener {
+            if (!AppContextMenu.isShowing) onAppClick?.invoke(item, cell)
+        }
+        return cell
+    }
+
+    fun refreshBadges(counts: Map<String, Int>) {
+        lastBadgeCounts = counts
+        for (i in badgeViews.indices) {
+            NotificationBadge.bind(badgeViews[i], workingItems.getOrNull(i)?.packageName ?: "", counts, showBadge, showCount)
+        }
+    }
+
+    // ── Touch ─────────────────────────────────────────────────────────────────
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        dragGesture.onTouchEvent(ev)
+        if (dragActive) return true
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                Log.d(TAG, "intercept DOWN: pendingDragIdx=$pendingDragIdx dragReorderEnabled=$dragReorderEnabled")
+                AppContextMenu.dismissCurrent(); pendingDragIdx = -1
+                scroller.forceFinished(true)
+                overScrollAnim?.cancel(); overScrollAnim = null; overScrollX_ = 0f; overScrollY_ = 0f
+                lastX = ev.x; lastY = ev.y; isPanning = false
+                // Right 2/3: block GIL from DOWN so scrolling is always reliable
+                if (ev.x >= width / 3f) parent?.requestDisallowInterceptTouchEvent(true)
+                initVelocity(ev)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (pendingDragIdx >= 0 && dragReorderEnabled) {
+                    // Prevent ancestors (GestureInterceptorLayout) from stealing the stream
+                    // while we wait for the drag threshold to be crossed
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    val dx = ev.x - pendingDownX; val dy = ev.y - pendingDownY
+                    val dist2 = dx * dx + dy * dy
+                    Log.d(TAG, "intercept MOVE: pendingDragIdx=$pendingDragIdx dist2=$dist2 threshold=$DRAG_THRESHOLD_SQ")
+                    if (dist2 > DRAG_THRESHOLD_SQ) {
+                        Log.d(TAG, "intercept MOVE: threshold reached, starting drag")
+                        AppContextMenu.dismissCurrent()
+                        startDragAt(pendingDragIdx, ev.x + scrollX_, ev.y + scrollY_)
+                        pendingDragIdx = -1
+                        return true
+                    }
+                }
+                velTracker?.addMovement(ev)
+                if (!isPanning) {
+                    if (abs(ev.x - lastX) > touchSlop || abs(ev.y - lastY) > touchSlop) {
+                        isPanning = true
+                        parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                if (isPanning) { Log.d(TAG, "intercept MOVE: panning, clearing pendingDragIdx"); pendingDragIdx = -1; return true }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                Log.d(TAG, "intercept UP/CANCEL: pendingDragIdx=$pendingDragIdx")
+                isPanning = false; recycleVelocity(); pendingDragIdx = -1
+            }
+        }
+        return false
+    }
+
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        dragGesture.onTouchEvent(ev)
+
+        if (dragActive) {
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_MOVE -> moveDrag(ev.x + scrollX_, ev.y + scrollY_)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> endDrag()
+            }
+            return true
+        }
+
+        velTracker?.addMovement(ev)
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                scroller.forceFinished(true)
+                overScrollAnim?.cancel(); overScrollAnim = null; overScrollX_ = 0f; overScrollY_ = 0f
+                lastX = ev.x; lastY = ev.y
+                initVelocity(ev); return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!dragActive) {
+                    val dx = ev.x - lastX; val dy = ev.y - lastY
+                    lastX = ev.x; lastY = ev.y
+                    val rawX = scrollX_ - dx; val rawY = scrollY_ - dy
+                    val clampedX = rawX.coerceIn(minScrollX, maxScrollXR); val clampedY = rawY.coerceIn(minScrollY, maxScrollYR)
+                    scrollX_ = clampedX; scrollY_ = clampedY
+                    val exX = (rawX - clampedX) * overDamp; val exY = (rawY - clampedY) * overDamp
+                    overScrollX_ = if (exX != 0f) (overScrollX_ + exX).coerceIn(-maxOverScroll, maxOverScroll) else overScrollX_ * 0.7f
+                    overScrollY_ = if (exY != 0f) (overScrollY_ + exY).coerceIn(-maxOverScroll, maxOverScroll) else overScrollY_ * 0.7f
+                    applyScroll()
+                    if (enable3d) apply3d()
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                velTracker?.computeCurrentVelocity(1000)
+                val vx = -(velTracker?.xVelocity ?: 0f)
+                val vy = -(velTracker?.yVelocity ?: 0f)
+                recycleVelocity(); isPanning = false
+                val overDist = if (overscrollStiffness > 0) dp(overscrollStiffness * 8) else 0
+                val minFling = ViewConfiguration.get(context).scaledMinimumFlingVelocity.toFloat()
+                if (abs(vx) > minFling || abs(vy) > minFling) {
+                    overScrollAnim?.cancel(); overScrollAnim = null
+                    val startX = (scrollX_ + overScrollX_).toInt().coerceIn(minScrollX.toInt() - overDist, maxScrollXR.toInt() + overDist)
+                    val startY = (scrollY_ + overScrollY_).toInt().coerceIn(minScrollY.toInt() - overDist, maxScrollYR.toInt() + overDist)
+                    overScrollX_ = 0f; overScrollY_ = 0f
+                    scroller.fling(startX, startY, vx.toInt(), vy.toInt(),
+                        minScrollX.toInt(), maxScrollXR.toInt(), minScrollY.toInt(), maxScrollYR.toInt(), overDist, overDist)
+                    post(flingRunnable)
+                } else {
+                    springBackOverscroll()
+                }
+            }
+        }
+        return true
+    }
+
+    private val flingRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (scroller.computeScrollOffset()) {
+                val rawX = scroller.currX.toFloat(); val rawY = scroller.currY.toFloat()
+                scrollX_ = rawX.coerceIn(minScrollX, maxScrollXR); scrollY_ = rawY.coerceIn(minScrollY, maxScrollYR)
+                overScrollX_ = rawX - scrollX_; overScrollY_ = rawY - scrollY_
+                applyScroll(); if (enable3d) apply3d(); postOnAnimation(this)
+            } else {
+                overScrollX_ = 0f; overScrollY_ = 0f; applyScroll()
+            }
+        }
+    }
+
+    private fun applyScroll() = scrollTo((scrollX_ + overScrollX_).toInt(), (scrollY_ + overScrollY_).toInt())
+
+    private fun springBackOverscroll() {
+        if (overScrollX_ == 0f && overScrollY_ == 0f) return
+        val startX = overScrollX_; val startY = overScrollY_
+        overScrollAnim = ValueAnimator.ofFloat(1f, 0f).apply {
+            duration = 350
+            interpolator = OvershootInterpolator(2f)
+            addUpdateListener { anim ->
+                val t = anim.animatedValue as Float
+                overScrollX_ = startX * t
+                overScrollY_ = startY * t
+                applyScroll()
+                if (enable3d) apply3d()
+            }
+        }
+        overScrollAnim?.start()
+    }
+
+    private fun apply3d() {
+        val cx = scrollX_ + width / 2f; val cy = scrollY_ + height / 2f
+        val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            if (child === draggingViewRef) continue
+            val dx = child.left + child.translationX + child.width / 2f - cx
+            val dy = child.top + child.translationY + child.height / 2f - cy
+            val ratio = (sqrt(dx * dx + dy * dy) / maxDist)
+            child.scaleX = effect3DConfig.scaleFor(ratio)
+            child.scaleY = effect3DConfig.scaleFor(ratio)
+        }
+    }
+
+    // ── Drag reorder ──────────────────────────────────────────────────────────
+
+    private fun startDragAt(idx: Int, contentX: Float, contentY: Float) {
+        Log.d(TAG, "startDragAt: idx=$idx contentX=$contentX contentY=$contentY")
+        dragActive = true; draggingPos = idx; draggingViewRef = orderedViews[idx]
+        parent?.requestDisallowInterceptTouchEvent(true)
+        draggingViewRef!!.elevation = dp(8).toFloat()
+        draggingViewRef!!.scaleX = 1.15f; draggingViewRef!!.scaleY = 1.15f
+        moveDrag(contentX, contentY)
+    }
+
+    private fun moveDrag(contentX: Float, contentY: Float) {
+        val dv = draggingViewRef ?: return
+        dv.translationX = contentX - dv.left - dv.width / 2f
+        dv.translationY = contentY - dv.top - dv.height / 2f
+
+        val newPos = closestGridPos(contentX, contentY).coerceIn(0, orderedViews.size - 1)
+        if (newPos == draggingPos) return
+
+        val oldPos = draggingPos
+        val v = orderedViews.removeAt(oldPos)
+        val item = workingItems.removeAt(oldPos)
+        orderedViews.add(newPos, v); workingItems.add(newPos, item)
+        draggingPos = newPos
+
+        // Only animate views in the shifted range — the rest are already at their grid positions
+        val lo = minOf(oldPos, newPos); val hi = maxOf(oldPos, newPos)
+        for (j in lo..hi) {
+            if (orderedViews[j] === dv) continue
+            orderedViews[j].animate()
+                .translationX(gridLeft[j] - orderedViews[j].left)
+                .translationY(gridTop[j] - orderedViews[j].top)
+                .setDuration(100)
+                .withEndAction { if (enable3d) apply3d() }
+                .start()
+        }
+        if (enable3d) apply3d()
+    }
+
+    private fun endDrag() {
+        val dv = draggingViewRef ?: return
+        val targetTx = gridLeft[draggingPos] - dv.left
+        val targetTy = gridTop[draggingPos] - dv.top
+        dragActive = false; draggingPos = -1; draggingViewRef = null
+        dv.animate()
+            .translationX(targetTx)
+            .translationY(targetTy)
+            .setDuration(120)
+            .withEndAction {
+                dv.elevation = 0f
+                if (enable3d) apply3d() else { dv.scaleX = 1f; dv.scaleY = 1f }
+            }.start()
+        onOrderChanged?.invoke(workingItems.toList())
+    }
+
+    /** Returns the index of the grid cell whose center is closest to (contentX, contentY). */
+    private fun closestGridPos(contentX: Float, contentY: Float): Int {
+        var best = 0; var bestDist = Float.MAX_VALUE
+        val half = cellIconPx / 2f
+        for (j in gridLeft.indices) {
+            val cx = gridLeft[j] + half; val cy = gridTop[j] + half
+            val d = (contentX - cx) * (contentX - cx) + (contentY - cy) * (contentY - cy)
+            if (d < bestDist) { bestDist = d; best = j }
+        }
+        return best
+    }
+
+    private fun initVelocity(ev: MotionEvent) {
+        velTracker?.recycle(); velTracker = VelocityTracker.obtain(); velTracker?.addMovement(ev)
+    }
+    private fun recycleVelocity() { velTracker?.recycle(); velTracker = null }
+    private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
+
+    companion object {
+        private const val TAG = "CloX/Grid2DView"
+        private const val GAP_RATIO = 0.12f
+        private const val DRAG_THRESHOLD_SQ = 400f
+    }
+}

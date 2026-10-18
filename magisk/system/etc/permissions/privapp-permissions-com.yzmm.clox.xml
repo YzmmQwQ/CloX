@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Whitelists the signature|privileged permissions CloX requests as a /system/priv-app.
+  ro.control_privapp_permissions=enforce on this ROM (set in BOTH /system and /vendor
+  build.prop), so EVERY signature|privileged permission CloX requests MUST be listed
+  here or system_server crash-loops at boot (PMS throws IllegalStateException at init).
+  Any privileged perm added to CloX's AndroidManifest MUST also be added below.
+-->
+<permissions>
+    <privapp-permissions package="com.yzmm.clox">
+        <permission name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS" />
+        <permission name="android.permission.PACKAGE_USAGE_STATS" />
+        <permission name="android.permission.BIND_APPWIDGET" />
+        <!-- Read the current system wallpaper (app-list live-wallpaper background). On this ROM
+             getWallpaperWithFeature requires this priv perm or READ_EXTERNAL_STORAGE. -->
+        <permission name="android.permission.READ_WALLPAPER_INTERNAL" />
+    </privapp-permissions>
+</permissions>

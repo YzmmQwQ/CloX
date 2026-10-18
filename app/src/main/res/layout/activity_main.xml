@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.ailife.clox.gesture.GestureInterceptorLayout
+<com.yzmm.clox.gesture.GestureInterceptorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/gestureRoot"
     android:layout_width="match_parent"
@@ -57,26 +57,26 @@
         android:visibility="gone" />
 
     <!-- Overlays — GONE by default, above all fragments -->
-    <com.ailife.clox.overlay.quicksettings.QuickSettingsOverlay
+    <com.yzmm.clox.overlay.quicksettings.QuickSettingsOverlay
         android:id="@+id/quickSettingsOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <com.ailife.clox.overlay.widgets.WidgetsOverlay
+    <com.yzmm.clox.overlay.widgets.WidgetsOverlay
         android:id="@+id/widgetsOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <com.ailife.clox.overlay.notifications.NotificationOverlay
+    <com.yzmm.clox.overlay.notifications.NotificationOverlay
         android:id="@+id/notificationsOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
 
     <!-- FlashlightOverlay: topmost child, white fill, hidden until triggered -->
-    <com.ailife.clox.overlay.quicksettings.FlashlightOverlay
+    <com.yzmm.clox.overlay.quicksettings.FlashlightOverlay
         android:id="@+id/flashlightOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -117,7 +117,7 @@
                 android:layout_width="88dp"
                 android:layout_height="88dp">
 
-                <com.ailife.clox.watchface.loading.SquircleIconView
+                <com.yzmm.clox.watchface.loading.SquircleIconView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
@@ -143,4 +143,4 @@
         </LinearLayout>
     </FrameLayout>
 
-</com.ailife.clox.gesture.GestureInterceptorLayout>
+</com.yzmm.clox.gesture.GestureInterceptorLayout>

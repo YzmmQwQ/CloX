@@ -22,14 +22,14 @@ still land on the Lua-readable path — no copies, no relocation.
 Access is gated by a single custom permission:
 
 ```xml
-<uses-permission android:name="com.ailife.clox.permission.ACCESS_WATCHFACES" />
+<uses-permission android:name="com.yzmm.clox.permission.ACCESS_WATCHFACES" />
 ```
 
 It is `protectionLevel="dangerous"` — request it **once** at runtime; Android shows the system
 consent prompt and manages the grant in Settings:
 
 ```kotlin
-val PERM = "com.ailife.clox.permission.ACCESS_WATCHFACES"
+val PERM = "com.yzmm.clox.permission.ACCESS_WATCHFACES"
 if (checkSelfPermission(PERM) != PackageManager.PERMISSION_GRANTED) {
     requestPermissions(arrayOf(PERM), REQ_CODE)
 }
@@ -43,17 +43,17 @@ storage.
 
 ## Authority and URIs
 
-**Authority:** `com.ailife.clox.watchfaces`
+**Authority:** `com.yzmm.clox.watchfaces`
 
 | URI | Refers to |
 |-----|-----------|
-| `content://com.ailife.clox.watchfaces` | the whole watchface directory (query lists it) |
-| `content://com.ailife.clox.watchfaces/MyFace.watch` | a top-level face |
-| `content://com.ailife.clox.watchfaces/Sport/MyFace.watch` | a face inside the `Sport` folder |
-| `content://com.ailife.clox.watchfaces/Sport` | a folder |
+| `content://com.yzmm.clox.watchfaces` | the whole watchface directory (query lists it) |
+| `content://com.yzmm.clox.watchfaces/MyFace.watch` | a top-level face |
+| `content://com.yzmm.clox.watchfaces/Sport/MyFace.watch` | a face inside the `Sport` folder |
+| `content://com.yzmm.clox.watchfaces/Sport` | a folder |
 
 ```kotlin
-val base = Uri.parse("content://com.ailife.clox.watchfaces")
+val base = Uri.parse("content://com.yzmm.clox.watchfaces")
 ```
 
 ---

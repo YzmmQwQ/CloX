@@ -99,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="6dp">
 
-                <com.ailife.clox.overlay.quicksettings.BrightnessSlider
+                <com.yzmm.clox.overlay.quicksettings.BrightnessSlider
                     android:id="@+id/brightnessSlider"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

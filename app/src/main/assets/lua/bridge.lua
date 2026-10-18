@@ -32,7 +32,7 @@ function Bridge.sendToAndroid(event, payload)
     -- Android: LuaJavaBridge is registered as a global by Axmol's C++ binding
     if LuaJavaBridge then
         LuaJavaBridge.callStaticMethod(
-            "com/ailife/clox/cocos/LuaBridge",
+            "com/yzmm/clox/cocos/LuaBridge",
             "onLuaEvent",
             { event, p },
             "(Ljava/lang/String;Ljava/lang/String;)V"
@@ -40,7 +40,7 @@ function Bridge.sendToAndroid(event, payload)
     elseif luaoc then
         -- iOS fallback
         luaoc.callStaticMethod(
-            "com/ailife/clox/cocos/LuaBridge",
+            "com/yzmm/clox/cocos/LuaBridge",
             "onLuaEvent",
             { event, p }
         )

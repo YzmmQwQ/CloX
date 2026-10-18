@@ -33,7 +33,7 @@ matches the `faceName` extra and makes it the active watchface immediately.
 
 ```kotlin
 val intent = Intent("com.android.watchengine.changeface").apply {
-    setPackage("com.ailife.clox")   // deliver only to CloX
+    setPackage("com.yzmm.clox")   // deliver only to CloX
     putExtra("faceName", "MyCoolFace")
 }
 context.sendBroadcast(intent)
@@ -43,7 +43,7 @@ context.sendBroadcast(intent)
 
 ```java
 Intent intent = new Intent("com.android.watchengine.changeface");
-intent.setPackage("com.ailife.clox");
+intent.setPackage("com.yzmm.clox");
 intent.putExtra("faceName", "MyCoolFace");
 context.sendBroadcast(intent);
 ```
@@ -52,7 +52,7 @@ context.sendBroadcast(intent);
 
 ```bash
 adb shell 'am broadcast -a com.android.watchengine.changeface \
-  -n com.ailife.clox/.watchface.ChangeFaceReceiver \
+  -n com.yzmm.clox/.watchface.ChangeFaceReceiver \
   --es faceName "MyCoolFace"'
 ```
 

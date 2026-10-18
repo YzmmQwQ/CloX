@@ -13,30 +13,30 @@ extern "C" {
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_CocosManager_nativeInit(
+Java_com_yzmm_clox_cocos_CocosManager_nativeInit(
         JNIEnv *, jobject, jobject /*assetManager*/, jint w, jint h) {
     LOGI("nativeInit: %dx%d", w, h);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_CocosManager_nativeOnResume(JNIEnv *, jobject) {
+Java_com_yzmm_clox_cocos_CocosManager_nativeOnResume(JNIEnv *, jobject) {
     LOGI("nativeOnResume");
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_CocosManager_nativeOnPause(JNIEnv *, jobject) {
+Java_com_yzmm_clox_cocos_CocosManager_nativeOnPause(JNIEnv *, jobject) {
     LOGI("nativeOnPause");
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_CocosManager_nativeOnDestroy(JNIEnv *, jobject) {
+Java_com_yzmm_clox_cocos_CocosManager_nativeOnDestroy(JNIEnv *, jobject) {
     LOGI("nativeOnDestroy");
 }
 
 // Calls a Lua global function by name with a single string argument.
 // Must be called on the GL thread (Axmol's Lua VM is single-threaded).
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_ailife_clox_cocos_LuaBridge_callLuaFunction(
+Java_com_yzmm_clox_cocos_LuaBridge_callLuaFunction(
         JNIEnv *env, jobject, jstring funcName, jstring args) {
     const char *name   = env->GetStringUTFChars(funcName, nullptr);
     const char *argsStr = env->GetStringUTFChars(args, nullptr);
@@ -75,7 +75,7 @@ Java_com_ailife_clox_cocos_LuaBridge_callLuaFunction(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_CocosManager_nativeSetBlurRadius(
+Java_com_yzmm_clox_cocos_CocosManager_nativeSetBlurRadius(
         JNIEnv*, jclass, jfloat radius) {
     BlurPostProcess::g_radius.store(radius, std::memory_order_relaxed);
 }
@@ -85,7 +85,7 @@ Java_com_ailife_clox_cocos_CocosManager_nativeSetBlurRadius(
 // threaded. x/y are Android view pixels (origin top-left, Y down); the Lua
 // side converts them into watch-canvas coordinates.
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_LuaBridge_passTouchNative(
+Java_com_yzmm_clox_cocos_LuaBridge_passTouchNative(
         JNIEnv *, jobject, jfloat x, jfloat y, jint action) {
     LOGI("passTouchNative: action=%d x=%.1f y=%.1f", action, x, y);
     auto *engine = ax::LuaEngine::getInstance();

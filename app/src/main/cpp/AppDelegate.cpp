@@ -192,7 +192,7 @@ void axmol_android_app_init(JNIEnv* /*env*/)
 // classloader and the Android asset manager — work that AxmolActivity normally
 // does via AxmolEngine.init().
 extern "C" JNIEXPORT void JNICALL
-Java_com_ailife_clox_cocos_CocosManager_nativeSetContext(
+Java_com_yzmm_clox_cocos_CocosManager_nativeSetContext(
         JNIEnv* /*env*/, jclass, jobject context, jobject assetManager)
 {
     ax::JniHelper::setClassLoaderFrom(context);

@@ -1,6 +1,6 @@
 # CloX Integration Guide for Developers
 
-CloX (`com.ailife.clox`) is a smartwatch launcher and watchface engine. It exposes a small set of
+CloX (`com.yzmm.clox`) is a smartwatch launcher and watchface engine. It exposes a small set of
 public APIs so other apps — companion apps, transfer tools, IoT bridges, watchface stores — can
 push data, change the active watchface, install new faces, and manage the watchface directory.
 
@@ -25,12 +25,12 @@ All of the above work on **Android 10+** and while CloX is in the background.
 
 | Purpose | Value |
 |---------|-------|
-| App package | `com.ailife.clox` |
+| App package | `com.yzmm.clox` |
 | Change-face broadcast action | `com.android.watchengine.changeface` |
-| External-data broadcast action | `com.ailife.clox.WRITE_DATA` |
-| Watchface directory provider authority | `com.ailife.clox.watchfaces` |
-| Watchface directory permission | `com.ailife.clox.permission.ACCESS_WATCHFACES` |
-| File-import handler | `com.ailife.clox/.watchface.WatchfaceImportHandlerActivity` |
+| External-data broadcast action | `com.yzmm.clox.WRITE_DATA` |
+| Watchface directory provider authority | `com.yzmm.clox.watchfaces` |
+| Watchface directory permission | `com.yzmm.clox.permission.ACCESS_WATCHFACES` |
+| File-import handler | `com.yzmm.clox/.watchface.WatchfaceImportHandlerActivity` |
 
 ---
 
@@ -43,7 +43,7 @@ The one guarded surface is the **watchface directory API** (`WatchfaceProvider`)
 raw read/write over the face files. It is protected by a single custom permission:
 
 ```xml
-<uses-permission android:name="com.ailife.clox.permission.ACCESS_WATCHFACES" />
+<uses-permission android:name="com.yzmm.clox.permission.ACCESS_WATCHFACES" />
 ```
 
 `ACCESS_WATCHFACES` is `protectionLevel="dangerous"`: the requesting app calls
@@ -75,7 +75,7 @@ For broadcasts, always set the target package so the intent is delivered only to
 other app registered for the same action:
 
 ```kotlin
-intent.setPackage("com.ailife.clox")
+intent.setPackage("com.yzmm.clox")
 ```
 
 For the install intent, target the handler component directly if you want to skip the app chooser

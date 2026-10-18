@@ -49,7 +49,7 @@
         </LinearLayout>
 
         <!-- Right: analog clock -->
-        <com.ailife.clox.overlay.widgets.builtin.AnalogClockView
+        <com.yzmm.clox.overlay.widgets.builtin.AnalogClockView
             android:id="@+id/analogClock"
             android:layout_width="0dp"
             android:layout_height="match_parent"

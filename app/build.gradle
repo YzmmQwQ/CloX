@@ -37,7 +37,7 @@ if (axmolPresent) {
 }
 
 android {
-    namespace 'com.ailife.clox'
+    namespace 'com.yzmm.clox'
     compileSdk 37
     ndkVersion "25.2.9519653"
 
@@ -51,7 +51,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.ailife.clox"
+        applicationId "com.yzmm.clox"
         minSdk 26
         targetSdk 36
         versionCode 10

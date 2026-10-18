@@ -145,7 +145,7 @@
             </LinearLayout>
 
             <!-- Wave progress bar -->
-            <com.ailife.clox.overlay.notifications.WaveSeekBar
+            <com.yzmm.clox.overlay.notifications.WaveSeekBar
                 android:id="@+id/mediaProgress"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"

@@ -1,0 +1,304 @@
+package com.yzmm.clox.overlay.quicksettings
+
+import android.content.Context
+import android.graphics.Color
+import android.provider.Settings
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.RecyclerView
+import com.yzmm.clox.R
+import com.yzmm.clox.qs.QsPrefs
+import com.yzmm.clox.qs.QsStateManager
+import com.yzmm.clox.qs.TileState
+import com.yzmm.clox.qs.tile.CustomTileMode
+import com.yzmm.clox.qs.tile.TileLayoutManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+
+class QsTilePageAdapter(
+    private val pages: List<List<String>>,
+    private val columns: Int,       // always 2
+    private val rows: Int,          // 2 or 3
+    private val tileHeightPx: Int,  // fixed tile height in px
+    private val stateManager: QsStateManager,
+    private val scope: CoroutineScope,
+    private val onTileClick: (tileId: String, tile: QsTileView) -> Unit,
+    private val onTileLongClick: (tileId: String) -> Unit
+) : RecyclerView.Adapter<QsTilePageAdapter.PageViewHolder>() {
+
+    inner class PageViewHolder(val container: LinearLayout) : RecyclerView.ViewHolder(container)
+
+    override fun getItemCount() = pages.size
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageViewHolder {
+        val container = LinearLayout(parent.context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        return PageViewHolder(container)
+    }
+
+    override fun onBindViewHolder(holder: PageViewHolder, position: Int) {
+        val container = holder.container
+        container.removeAllViews()
+        val ctx = container.context
+        val tileIds = pages[position]
+        val margin = (5 * ctx.resources.displayMetrics.density).toInt()
+
+        for (rowIdx in 0 until rows) {
+            val row = LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, tileHeightPx
+                ).apply { setMargins(0, if (rowIdx > 0) margin else 0, 0, 0) }
+            }
+
+            for (colIdx in 0 until columns) {
+                val slotIdx = rowIdx * columns + colIdx
+                val tileId = tileIds.getOrNull(slotIdx)
+                val descriptor = if (tileId != null) TileLayoutManager.descriptorFor(tileId, ctx) else null
+
+                if (tileId != null && descriptor != null) {
+                    val tile = QsTileView(ctx).apply {
+                        configure(descriptor.iconRes, descriptor.defaultLabel)
+                        onAction = { onTileClick(tileId, this) }
+                        onLongAction = { onTileLongClick(tileId) }
+                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+                            .apply { setMargins(margin, 0, if (colIdx < columns - 1) margin else 0, 0) }
+                    }
+                    row.addView(tile)
+
+                    // Custom tiles have no StateFlow; apply their state directly. This must NOT fall
+                    // through to the stateless "off" branch below, or it would clobber the state
+                    // applyCustomTileState just read (the first-open-shows-off bug).
+                    if (tileId.startsWith("custom:")) {
+                        applyCustomTileState(tile, tileId, ctx)
+                    } else {
+                        val stateFlow = stateManager.stateFor(tileId)
+                        if (stateFlow != null) {
+                            bindState(tile, tileId, stateFlow.value, ctx)
+                            stateFlow.onEach { state ->
+                                bindState(tile, tileId, state, ctx)
+                            }.launchIn(scope)
+                        } else {
+                            // Stateless tile (e.g. RTOS mode): apply neutral "off" style immediately
+                            val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+                            val solid = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+                            if (solid) tile.applyStateSolid(false) else tile.applyState(false)
+                        }
+                    }
+                } else {
+                    // Invisible placeholder keeps column spacing consistent
+                    row.addView(View(ctx).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+                            .apply { setMargins(margin, 0, if (colIdx < columns - 1) margin else 0, 0) }
+                    })
+                }
+            }
+            container.addView(row)
+        }
+    }
+
+    private fun bindState(tile: QsTileView, tileId: String, state: TileState, ctx: Context) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+        val solidStyle = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+        val colored = prefs.getBoolean(QsPrefs.COLORED_TILES, true)
+
+        // Route to solid or stroke state applicator
+        fun applyTileState(active: Boolean, detail: String? = null, badge: String? = null, color: Int? = null) {
+            if (solidStyle) tile.applyStateSolid(active, detail, badge, color)
+            else tile.applyState(active, detail, badge, color)
+        }
+
+        val useSystem = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
+
+        fun stateColor(key: String, default: String): Int? {
+            if (!colored) return null
+            if (useSystem) return resolveSystemColor(ctx, key)
+            return try { Color.parseColor(prefs.getString(key, default) ?: default) }
+            catch (_: Exception) { null }
+        }
+
+        when (state) {
+            is TileState.WifiState -> {
+                tile.setIconRes(wifiSignalDrawable(state.signalLevel))
+                val detail = when {
+                    state.connected && state.ssid != null -> state.ssid
+                    state.connected -> ctx.getString(R.string.qs_tile_connected)
+                    else -> null
+                }
+                val badge = if (state.connected && state.frequency != null) state.frequency else null
+                val color = when {
+                    state.connected -> stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED)
+                    state.enabled   -> stateColor(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE)
+                    else            -> null
+                }
+                applyTileState(state.enabled, detail, badge, color)
+            }
+
+            is TileState.DataState -> {
+                tile.setIconRes(cellularSignalDrawable(if (state.activelyRouting) state.signalLevel else 0))
+                val detail = when {
+                    state.activelyRouting -> state.operatorName
+                    state.enabled         -> ctx.getString(R.string.qs_tile_not_in_use)
+                    else                  -> null
+                }
+                val badge = if (state.activelyRouting && state.networkType != null) state.networkType else null
+                val color = when {
+                    state.activelyRouting -> stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED)
+                    state.enabled         -> stateColor(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE)
+                    else                  -> null
+                }
+                applyTileState(state.enabled, detail, badge, color)
+            }
+
+            is TileState.BtState -> {
+                val detail = when {
+                    !state.enabled                    -> null
+                    state.connectedDeviceName != null -> state.connectedDeviceName
+                    else                              -> ctx.getString(R.string.qs_tile_on_detail)
+                }
+                val color = when {
+                    state.connectedDeviceName != null ->
+                        stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED)
+                    state.enabled ->
+                        stateColor(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE)
+                    else -> null
+                }
+                applyTileState(state.enabled, detail, null, color)
+            }
+
+            is TileState.VolumeState -> {
+                val pct = if (state.max > 0) "${(state.level * 100f / state.max).toInt()}%" else "--"
+                val detail = when (state.ringerMode) {
+                    android.media.AudioManager.RINGER_MODE_SILENT  -> ctx.getString(R.string.qs_tile_silent)
+                    android.media.AudioManager.RINGER_MODE_VIBRATE -> ctx.getString(R.string.qs_tile_vibrate) + "  $pct"
+                    else -> pct
+                }
+                val active = state.ringerMode != android.media.AudioManager.RINGER_MODE_SILENT && state.level > 0
+                applyTileState(active, detail, null,
+                    if (active) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
+            }
+
+            is TileState.DndState -> {
+                val detail = when (state.ringerMode) {
+                    android.media.AudioManager.RINGER_MODE_SILENT  -> ctx.getString(R.string.qs_tile_silent)
+                    android.media.AudioManager.RINGER_MODE_VIBRATE -> ctx.getString(R.string.qs_tile_vibrate)
+                    else -> null
+                }
+                applyTileState(state.active, detail, null,
+                    if (state.active) stateColor(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE) else null)
+            }
+
+            is TileState.RotateState ->
+                applyTileState(!state.locked, if (!state.locked) ctx.getString(R.string.qs_tile_auto) else ctx.getString(R.string.qs_tile_locked), null, null)
+
+            is TileState.FlashlightState ->
+                applyTileState(state.on, null, null, null)
+
+            is TileState.LocationState ->
+                applyTileState(state.enabled, null, null,
+                    if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
+
+            is TileState.AodState ->
+                applyTileState(state.enabled, if (state.enabled) ctx.getString(R.string.qs_tile_on) else null, null,
+                    if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
+
+            is TileState.AirplaneState ->
+                applyTileState(state.enabled, if (state.enabled) ctx.getString(R.string.qs_tile_on) else ctx.getString(R.string.qs_tile_off), null,
+                    if (state.enabled) stateColor(QsPrefs.COLOR_IDLE, QsPrefs.DEFAULT_COLOR_IDLE) else null)
+
+            is TileState.HotspotState ->
+                applyTileState(state.enabled, if (state.enabled) ctx.getString(R.string.qs_tile_on) else ctx.getString(R.string.qs_tile_off), null,
+                    if (state.enabled) stateColor(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED) else null)
+
+            is TileState.BatteryState -> { /* no battery tile */ }
+        }
+    }
+
+    /**
+     * Resolve a tile state color from the Material3 theme (wallpaper-derived on Android 12+).
+     * Connected → colorPrimary, Idle → colorSecondary, Disconnected → colorError, Off → null
+     */
+    private fun resolveSystemColor(ctx: Context, key: String): Int? {
+        // Map QS state keys to Material3 dynamic color roles:
+        // connected  → colorPrimary   (main wallpaper accent)
+        // idle       → colorTertiary  (contrasting accent, more visually distinct than secondary)
+        // disconnected → colorError   (warning/red)
+        // off        → null           (use default dim ring, no color)
+        val attr = when (key) {
+            QsPrefs.COLOR_CONNECTED    -> androidx.appcompat.R.attr.colorPrimary
+            QsPrefs.COLOR_IDLE         -> com.google.android.material.R.attr.colorTertiary
+            QsPrefs.COLOR_DISCONNECTED -> androidx.appcompat.R.attr.colorError
+            else                       -> return null
+        }
+        return try {
+            val ta = ctx.obtainStyledAttributes(intArrayOf(attr))
+            val color = ta.getColor(0, android.graphics.Color.WHITE)
+            ta.recycle()
+            color
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Apply a custom tile's state to the view. WRITE_SETTINGS tiles reflect their live Settings
+     * value as on/off; LAUNCH_ACTIVITY (and any tile without a resolvable setting) render as a
+     * neutral "off" tile. Always applies a style so the caller never needs a fallback.
+     */
+    fun applyCustomTileState(tile: QsTileView, tileId: String, ctx: Context) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+        val solidOff = prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE) == QsPrefs.TILE_STYLE_SOLID
+        fun applyNeutralOff() { if (solidOff) tile.applyStateSolid(false) else tile.applyState(false) }
+
+        val uuid = tileId.removePrefix("custom:")
+        val config = TileLayoutManager.loadCustomTiles(ctx).firstOrNull { it.uuid == uuid }
+            ?: return applyNeutralOff()
+        if (config.mode != CustomTileMode.WRITE_SETTINGS) return applyNeutralOff()
+        val ns = config.settingsNamespace ?: return applyNeutralOff()
+        val key = config.settingsKey ?: return applyNeutralOff()
+        val active = try {
+            val value = when (ns) {
+                "system" -> Settings.System.getInt(ctx.contentResolver, key, 0)
+                "secure" -> Settings.Secure.getInt(ctx.contentResolver, key, 0)
+                "global" -> Settings.Global.getInt(ctx.contentResolver, key, 0)
+                else -> 0
+            }
+            value != 0
+        } catch (_: Exception) { false }
+
+        val colored = prefs.getBoolean(QsPrefs.COLORED_TILES, true)
+        val useSystem = prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)
+        val color = if (colored && active) {
+            if (useSystem) resolveSystemColor(ctx, QsPrefs.COLOR_CONNECTED)
+            else try { Color.parseColor(prefs.getString(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED)) }
+                 catch (_: Exception) { null }
+        } else null
+
+        val onLabel = ctx.getString(R.string.qs_tile_on)
+        val offLabel = ctx.getString(R.string.qs_tile_off)
+        if (solidOff) tile.applyStateSolid(active, if (active) onLabel else offLabel, null, color)
+        else tile.applyState(active, if (active) onLabel else offLabel, null, color)
+    }
+
+    private fun wifiSignalDrawable(level: Int) = when (level) {
+        1 -> R.drawable.zzzzk_ic_wifi_signal_1
+        2 -> R.drawable.zzzzk_ic_wifi_signal_2
+        3 -> R.drawable.zzzzk_ic_wifi_signal_3
+        4 -> R.drawable.zzzzk_ic_wifi_signal_4
+        else -> R.drawable.zzzzk_ic_wifi_signal_0
+    }
+
+    private fun cellularSignalDrawable(level: Int) = when (level) {
+        1 -> R.drawable.zzzzk_ic_signal_cellular_1
+        2 -> R.drawable.zzzzk_ic_signal_cellular_2
+        3 -> R.drawable.zzzzk_ic_signal_cellular_3
+        4 -> R.drawable.zzzzk_ic_signal_cellular_4
+        else -> R.drawable.zzzzk_ic_signal_cellular_0
+    }
+}
