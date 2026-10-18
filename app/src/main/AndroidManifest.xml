@@ -43,6 +43,8 @@
     <!-- Uninstall apps from context menu -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- End background processes without Shizuku/root -->
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <!-- Haptic feedback on long press -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
@@ -145,6 +147,14 @@
         <activity
             android:name=".overlay.notifications.NotificationBlockedAppsActivity"
             android:exported="false"
+            android:theme="@style/Theme.CloX.Settings" />
+
+        <!-- Background/recent apps, opened from the notification panel -->
+        <activity
+            android:name=".background.BackgroundAppsActivity"
+            android:exported="false"
+            android:label="@string/bg_apps_title"
+            android:excludeFromRecents="true"
             android:theme="@style/Theme.CloX.Settings" />
 
         <!-- Watch face selector -->

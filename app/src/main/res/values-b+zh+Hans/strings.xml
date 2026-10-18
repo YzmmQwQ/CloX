@@ -524,6 +524,14 @@
     <string name="notif_empty">暂无通知</string>
     <string name="notif_dismiss_all_desc">全部清除</string>
 
+    <!-- ── Background apps ──────────────────────────────────────────────── -->
+    <string name="bg_apps_title">后台应用</string>
+    <string name="bg_apps_kill_all">全部结束</string>
+    <string name="bg_apps_note">最近使用的应用，点击应用即可结束。</string>
+    <string name="bg_apps_ended">已结束 %1$d 个应用</string>
+    <string name="bg_apps_empty">没有最近使用的应用</string>
+    <string name="bg_apps_open_desc">后台应用</string>
+
     <!-- ── Volume dialog ────────────────────────────────────────────────── -->
     <string name="dialog_volume_title">音量</string>
 

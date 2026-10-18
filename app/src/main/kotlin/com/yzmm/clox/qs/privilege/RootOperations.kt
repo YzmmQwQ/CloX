@@ -38,6 +38,9 @@ object RootOperations {
     fun grantWriteSecureSettings(pkg: String): Boolean =
         Shell.cmd("pm grant $pkg android.permission.WRITE_SECURE_SETTINGS").exec().isSuccess
 
+    fun forceStop(pkg: String): Boolean =
+        Shell.cmd("am force-stop $pkg").exec().isSuccess
+
     /** Clears Android 13+'s "restricted settings" lock for [pkg] (see ShizukuOperations equivalent). */
     fun clearRestrictedSettings(pkg: String): Boolean =
         Shell.cmd("appops set $pkg ACCESS_RESTRICTED_SETTINGS allow").exec().isSuccess ||

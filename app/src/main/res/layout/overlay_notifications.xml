@@ -99,6 +99,18 @@
             android:elevation="8dp"
             android:visibility="gone" />
 
+        <!-- Background-apps entry -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabBackgroundApps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="88dp"
+            app:srcCompat="@drawable/ic_recents"
+            android:contentDescription="@string/bg_apps_open_desc"
+            android:visibility="gone" />
+
         <!-- Dismiss-all FAB -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabDismissAll"

@@ -125,6 +125,8 @@ object ShizukuOperations {
     fun grantWriteSecureSettings(pkg: String): Boolean =
         exec("pm grant $pkg android.permission.WRITE_SECURE_SETTINGS")
 
+    fun forceStop(pkg: String): Boolean = exec("am force-stop $pkg")
+
     /**
      * Clears Android 13+'s "restricted settings" lock for [pkg] by allowing the
      * ACCESS_RESTRICTED_SETTINGS app-op, so its Accessibility / Notification-listener toggles become
