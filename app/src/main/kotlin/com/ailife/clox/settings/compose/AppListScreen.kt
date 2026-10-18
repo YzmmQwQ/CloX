@@ -112,7 +112,7 @@ fun AppListScreen() {
 
     var honeycomb3d by remember { mutableStateOf(appListPrefs.getBoolean("honeycomb_3d", false)) }
     var honeycomb3dScale by remember {
-        mutableStateOf(appListPrefs.getInt("honeycomb_3d_min_scale", 50).coerceIn(20, 100))
+        mutableStateOf(appListPrefs.getInt("honeycomb_3d_min_scale", 90).coerceIn(20, 100))
     }
     var honeycombIconSize by remember {
         mutableStateOf(appListPrefs.getInt("honeycomb_icon_size", 0).coerceIn(0, 120))

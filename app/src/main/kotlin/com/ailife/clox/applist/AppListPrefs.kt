@@ -133,7 +133,7 @@ object AppListPrefs {
     fun honeycombRoundOverscroll(ctx: Context) = get(ctx).getBoolean(KEY_HONEYCOMB_ROUND_OVERSCROLL, false)
     fun honeycomb3dConfig(ctx: Context) = Effect3DConfig(
         curve = get(ctx).getString(KEY_HONEYCOMB_3D_CURVE, CURVE_LINEAR) ?: CURVE_LINEAR,
-        minScalePercent = get(ctx).getInt(KEY_HONEYCOMB_3D_MIN_SCALE, 65)
+        minScalePercent = get(ctx).getInt(KEY_HONEYCOMB_3D_MIN_SCALE, 90)
     )
 
     fun grid2dCols(ctx: Context)      = get(ctx).getInt(KEY_GRID2D_COLS, 4)

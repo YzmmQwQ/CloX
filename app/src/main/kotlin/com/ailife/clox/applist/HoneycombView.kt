@@ -22,7 +22,7 @@ import android.widget.OverScroller
 import android.widget.TextView
 import com.ailife.clox.applist.model.AppItem
 import kotlin.math.abs
-import kotlin.math.atan
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 
@@ -161,23 +161,29 @@ class HoneycombView @JvmOverloads constructor(
 
     private fun buildGrid(items: List<AppItem>) {
         removeAllViews()
-        var R = 0
-        while (1 + 3 * R * (R + 1) < items.size) R++
 
-        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp) else (minOf(width, height) / 5).coerceAtLeast(1)
-        android.util.Log.d("CloX/HoneycombView", "buildGrid n=${items.size} R=$R iconPx=$iconPx w=$width h=$height")
+        val iconPx = if (iconSizeDp > 0) dp(iconSizeDp)
+        else (minOf(width, height) / 4.5f).toInt().coerceAtLeast(1)
+        android.util.Log.d("CloX/HoneycombView", "buildGrid n=${items.size} iconPx=$iconPx w=$width h=$height")
         if (iconPx <= 0) return
         cellIconPx = iconPx
-        val sqrt3 = 1.7320508f
-        val tile = (1f + GAP_RATIO) * iconPx / sqrt3
 
-        val coords = mutableListOf<Pair<Int, Int>>()
-        for (r in -R..R) {
-            for (q in maxOf(-R, -r - R)..minOf(R, -r + R)) coords.add(q to r)
+        // Apple Watch honeycomb: tightly packed rows that alternate between 3 and 4
+        // icons, each row centred. The rows overlap slightly, which gives the woven
+        // hex look; a full hexagon layout instead leaves uneven gaps at the sides.
+        val stepX = iconPx * H_STEP
+        val stepY = iconPx * V_STEP
+        val raw = ArrayList<Pair<Float, Float>>(items.size)
+        var row = 0
+        while (raw.size < items.size) {
+            val cols = if (row % 2 == 0) 3 else 4
+            val left = -(cols - 1) * stepX / 2f
+            for (col in 0 until cols) {
+                if (raw.size >= items.size) break
+                raw.add(left + col * stepX to row * stepY)
+            }
+            row++
         }
-        coords.sortWith(compareBy({ it.second }, { it.first }))
-
-        val raw = coords.map { (q, r) -> tile * sqrt3 * (q + r / 2f) to tile * 1.5f * r }
         val minX = raw.minOf { it.first }; val maxX_ = raw.maxOf { it.first }
         val minY = raw.minOf { it.second }; val maxY_ = raw.maxOf { it.second }
         val contentW = maxX_ - minX + iconPx; val contentH = maxY_ - minY + iconPx
@@ -379,34 +385,62 @@ class HoneycombView @JvmOverloads constructor(
     }
 
     /**
-     * Apple Watch-style depth: icons shrink with distance from the viewport
-     * centre (existing curve), and their centres are pulled inward with an
-     * arctan length warp. The warp is ~1:1 near the centre, bends rows into
-     * fisheye arcs and stops at the edges instead of piling up.
+     * Apple Watch-style depth, following the layout used by the watchOS honeycomb:
+     * a barely-visible sine push spreads icons at mid radius, scale grows toward the
+     * centre and shrinks toward the edges, and every icon fades out over the last few
+     * dp at the viewport border. Unlike a radial warp this keeps each row straight,
+     * so the bubbles stay on their lattice while scrolling.
      */
     private fun apply3d() {
-        val cx = scrollX_ + overScrollX_ + width / 2f
-        val cy = scrollY_ + overScrollY_ + height / 2f
-        val radius = (minOf(width, height) * 0.55f).coerceAtLeast(1f)
+        if (width == 0 || height == 0) return
+        val vw = width.toFloat(); val vh = height.toFloat()
+        val cx = vw / 2f; val cy = vh / 2f
+        val radius = maxOf(vw, vh) / 2f
+        val maxPush = minOf(cx, cy) * 0.9f
+        val scrollXNow = scrollX_ + overScrollX_
+        val scrollYNow = scrollY_ + overScrollY_
+        val density = resources.displayMetrics.density
+        val fadeStart = 28f * density
+        val fadeEnd = 4f * density
+        val fadeRange = (fadeStart - fadeEnd).coerceAtLeast(1f)
+        val pi = Math.PI.toFloat()
+
         for (i in 0 until childCount) {
             val child = getChildAt(i)
             if (child === draggingViewRef) continue
-            val dx = child.left + child.width / 2f - cx
-            val dy = child.top + child.height / 2f - cy
+            val sx = child.left + child.width / 2f - scrollXNow
+            val sy = child.top + child.height / 2f - scrollYNow
+            val dx = sx - cx
+            val dy = sy - cy
             val dist = sqrt(dx * dx + dy * dy)
+
+            // Lens push: strongest at mid radius, zero at the centre and at maxPush.
+            val push = if (dist in 0.01f..maxPush) {
+                1f + sin(dist / maxPush * pi) * PUSH_STRENGTH
+            } else 1f
+
             val ratio = (dist / radius).coerceIn(0f, 1f)
-            val scale = effect3DConfig.scaleFor(ratio)
+            val baseScale = effect3DConfig.scaleFor(ratio)
+            val centerBoost = 1f + SCALE_CENTER_BOOST * (1f - ratio)
+
+            fun edgeFade(d: Float): Float = when {
+                d >= fadeStart -> 1f
+                d <= fadeEnd -> 0f
+                else -> {
+                    val p = (d - fadeEnd) / fadeRange
+                    p * p * (3f - 2f * p)
+                }
+            }
+            val fade = minOf(
+                edgeFade(sx), edgeFade(vw - sx),
+                edgeFade(sy), edgeFade(vh - sy)
+            )
+
+            val scale = baseScale * centerBoost * fade
             child.scaleX = scale
             child.scaleY = scale
-            if (dist > 0.001f) {
-                val warped = radius / WARP_STRENGTH * atan(WARP_STRENGTH * dist / radius)
-                val factor = warped / dist
-                child.translationX = dx * (factor - 1f)
-                child.translationY = dy * (factor - 1f)
-            } else {
-                child.translationX = 0f
-                child.translationY = 0f
-            }
+            child.translationX = cx + dx * push - sx
+            child.translationY = cy + dy * push - sy
         }
     }
 
@@ -482,9 +516,13 @@ class HoneycombView @JvmOverloads constructor(
     private fun dp(dp: Int) = (dp * resources.displayMetrics.density + 0.5f).toInt()
 
     companion object {
-        private const val GAP_RATIO = 0.12f
+        /** Horizontal centre spacing, as a fraction of the icon diameter (slight gap). */
+        private const val H_STEP = 1.12f
+        /** Vertical row spacing; below 1.0 neighbouring rows tuck into each other. */
+        private const val V_STEP = 0.90f
+        private const val PUSH_STRENGTH = 0.055f
+        private const val SCALE_CENTER_BOOST = 0.14f
         private const val DRAG_THRESHOLD_SQ = 400f
-        private const val WARP_STRENGTH = 1.2f
     }
 }
 
