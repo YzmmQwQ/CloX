@@ -3,6 +3,7 @@ package com.ailife.clox.gesture
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -110,12 +111,50 @@ class GestureHandler(private val ctx: Context, private val window: Window) {
         if (component.isNullOrBlank()) return
         val parts = component.split("/", limit = 2)
         if (parts.size < 2) return
+        val target = ComponentName(parts[0], parts[1])
+        val pm = ctx.packageManager
+
+        // Watch ROMs often ship a camera app even on models without the hardware; launching
+        // it there can wedge the camera HAL and freeze the device. Treat it as a no-op.
+        if (!pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) && isCameraTarget(pm, target)) {
+            android.util.Log.w("CloX/Gesture", "Ignoring camera action on a device without a camera")
+            return
+        }
+
+        val intent = Intent().apply {
+            setComponent(target)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        // The target may have been uninstalled or disabled since it was picked; skip silently
+        // rather than starting an intent that throws and pops an error dialog.
+        val resolvable = try {
+            pm.resolveActivity(intent, 0) != null
+        } catch (_: Exception) {
+            true
+        }
+        if (!resolvable) return
+
         // Drop overlays/app list so the launched app isn't left behind our surfaces.
         onCollapseToWatchface?.invoke()
-        ctx.safeStartActivity(Intent().apply {
-            this.component = ComponentName(parts[0], parts[1])
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        })
+        ctx.safeStartActivity(intent, showError = false)
+    }
+
+    /** Best-effort camera detection for stripping camera launches on headless watches. */
+    private fun isCameraTarget(pm: PackageManager, target: ComponentName): Boolean {
+        if (target.packageName.contains("camera", ignoreCase = true) ||
+            target.className.contains("camera", ignoreCase = true)) return true
+        val label = try {
+            pm.getApplicationLabel(pm.getApplicationInfo(target.packageName, 0)).toString()
+        } catch (_: Exception) {
+            ""
+        }
+        if (label.contains("camera", ignoreCase = true) || label.contains("相机")) return true
+        return try {
+            pm.queryIntentActivities(Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE), 0)
+                .any { it.activityInfo.packageName == target.packageName }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun turnScreenOff() {
