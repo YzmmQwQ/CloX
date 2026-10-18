@@ -47,6 +47,8 @@ Callbacks on `MainActivity`:
 
 ### App list (`AppListFragment`)
 
+- Honeycomb 3D uses an Apple-style arctan radius warp (centres pulled inward, rows bend
+  into fisheye arcs) plus the existing radial size curve; drag reorder is disabled while 3D is on.
 - Opens from the crown/home key; the left-swipe entry is opt-in (`app_list_swipe_enabled`, default `false`)
 - Always attached to `fragmentContainer`, positioned off-screen via `translationX = screenW`
 - Opens by springing `translationX` to `0f`, closes by springing back to `screenW`

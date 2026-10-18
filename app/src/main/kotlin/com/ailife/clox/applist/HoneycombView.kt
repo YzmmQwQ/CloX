@@ -22,6 +22,7 @@ import android.widget.OverScroller
 import android.widget.TextView
 import com.ailife.clox.applist.model.AppItem
 import kotlin.math.abs
+import kotlin.math.atan
 import kotlin.math.sqrt
 
 
@@ -267,7 +268,7 @@ class HoneycombView @JvmOverloads constructor(
                 initVelocity(ev)
             }
             MotionEvent.ACTION_MOVE -> {
-                if (pendingDragIdx >= 0 && dragReorderEnabled) {
+                if (pendingDragIdx >= 0 && dragReorderEnabled && !enable3d) {
                     parent?.requestDisallowInterceptTouchEvent(true)
                     val dx = ev.x - pendingDownX; val dy = ev.y - pendingDownY
                     if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) {
@@ -377,23 +378,42 @@ class HoneycombView @JvmOverloads constructor(
         overScrollAnim?.start()
     }
 
+    /**
+     * Apple Watch-style depth: icons shrink with distance from the viewport
+     * centre (existing curve), and their centres are pulled inward with an
+     * arctan length warp. The warp is ~1:1 near the centre, bends rows into
+     * fisheye arcs and stops at the edges instead of piling up.
+     */
     private fun apply3d() {
-        val cx = scrollX_ + width / 2f; val cy = scrollY_ + height / 2f
-        val maxDist = sqrt((width * width + height * height).toFloat()) / 2f
+        val cx = scrollX_ + overScrollX_ + width / 2f
+        val cy = scrollY_ + overScrollY_ + height / 2f
+        val radius = (minOf(width, height) * 0.55f).coerceAtLeast(1f)
         for (i in 0 until childCount) {
             val child = getChildAt(i)
             if (child === draggingViewRef) continue
-            val dx = child.left + child.translationX + child.width / 2f - cx
-            val dy = child.top + child.translationY + child.height / 2f - cy
-            val ratio = (sqrt(dx * dx + dy * dy) / maxDist)
-            child.scaleX = effect3DConfig.scaleFor(ratio)
-            child.scaleY = effect3DConfig.scaleFor(ratio)
+            val dx = child.left + child.width / 2f - cx
+            val dy = child.top + child.height / 2f - cy
+            val dist = sqrt(dx * dx + dy * dy)
+            val ratio = (dist / radius).coerceIn(0f, 1f)
+            val scale = effect3DConfig.scaleFor(ratio)
+            child.scaleX = scale
+            child.scaleY = scale
+            if (dist > 0.001f) {
+                val warped = radius / WARP_STRENGTH * atan(WARP_STRENGTH * dist / radius)
+                val factor = warped / dist
+                child.translationX = dx * (factor - 1f)
+                child.translationY = dy * (factor - 1f)
+            } else {
+                child.translationX = 0f
+                child.translationY = 0f
+            }
         }
     }
 
     // ── Drag helpers ──────────────────────────────────────────────────────────
 
     private fun startDragAt(idx: Int, contentX: Float, contentY: Float) {
+        if (enable3d) { pendingDragIdx = -1; return }
         dragActive = true; draggingPos = idx; draggingViewRef = orderedViews[idx]
         parent?.requestDisallowInterceptTouchEvent(true)
         draggingViewRef!!.elevation = resources.displayMetrics.density * 8f
@@ -464,6 +484,7 @@ class HoneycombView @JvmOverloads constructor(
     companion object {
         private const val GAP_RATIO = 0.12f
         private const val DRAG_THRESHOLD_SQ = 400f
+        private const val WARP_STRENGTH = 1.2f
     }
 }
 
