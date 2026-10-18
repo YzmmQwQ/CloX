@@ -15,8 +15,6 @@
         <item>그리드 2D</item>
         <item>페이지</item>
         <item>중력</item>
-    
-        <item>Apple 그리드</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">

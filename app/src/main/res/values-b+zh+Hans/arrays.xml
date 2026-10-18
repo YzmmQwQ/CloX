@@ -15,8 +15,6 @@
         <item>2D 网格</item>
         <item>分页</item>
         <item>重力</item>
-    
-        <item>苹果网格</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">

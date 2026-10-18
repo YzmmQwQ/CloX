@@ -186,7 +186,6 @@
         <item>Grid 2D</item>
         <item>Pages</item>
         <item>Gravity</item>
-        <item>Apple Grid</item>
     </string-array>
     <string-array name="app_list_style_values" translatable="false">
         <item>list</item>
@@ -196,7 +195,6 @@
         <item>grid2d</item>
         <item>pages</item>
         <item>gravity</item>
-        <item>apple</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">
@@ -1493,7 +1491,4 @@
     <string name="notif_perm_one_tap_hint">Shizuku/root detected — tap the row above to grant access directly.</string>
     <string name="notif_perm_one_tap_ok">Notification access granted</string>
     <string name="notif_perm_one_tap_failed">Grant failed — opening settings</string>
-    <string name="applist_setting_apple_options_category">Apple grid</string>
-    <string name="applist_setting_apple_labels_title">Show app labels when zoomed</string>
-    <string name="applist_setting_apple_labels_summary">Labels appear when you pinch in past the default zoom.</string>
 </resources>

@@ -25,7 +25,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.ailife.clox.R
 import android.graphics.Rect
 import android.os.Build
-import com.ailife.clox.applist.backends.AppleGridBackend
 import com.ailife.clox.applist.backends.Grid2DBackend
 import com.ailife.clox.rtos.RtosAppGuard
 import com.ailife.clox.applist.model.AppItem
@@ -347,8 +346,7 @@ class AppListFragment : Fragment() {
         backend = newBackend
         lastBoundItems = null   // force bindItems on the fresh backend
         val isPages = style == AppListPrefs.STYLE_PAGES
-        val isGrid2dOrHoneycomb = style == AppListPrefs.STYLE_GRID2D ||
-            style == AppListPrefs.STYLE_HONEYCOMB || style == AppListPrefs.STYLE_APPLE
+        val isGrid2dOrHoneycomb = style == AppListPrefs.STYLE_GRID2D || style == AppListPrefs.STYLE_HONEYCOMB
         val pagesBackend = if (isPages) newBackend as PagesBackend else null
         onPagesBackendActive?.invoke(isPages)
         onSetGrid2dHoneycombActive?.invoke(isGrid2dOrHoneycomb)
@@ -473,7 +471,6 @@ class AppListFragment : Fragment() {
         AppListPrefs.STYLE_GRID2D    -> Grid2DBackend(ctx)
         AppListPrefs.STYLE_PAGES     -> PagesBackend(ctx)
         AppListPrefs.STYLE_GRAVITY   -> GravityBackend(ctx)
-        AppListPrefs.STYLE_APPLE     -> AppleGridBackend(ctx)
         else                         -> ListBackend(ctx)
     }
 

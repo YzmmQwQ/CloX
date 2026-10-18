@@ -15,8 +15,6 @@
         <item>2D格線</item>
         <item>分頁</item>
         <item>重力</item>
-    
-        <item>蘋果網格</item>
     </string-array>
 
     <string-array name="app_list_sort_entries">
