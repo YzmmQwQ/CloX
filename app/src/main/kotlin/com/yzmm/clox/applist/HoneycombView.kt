@@ -3,8 +3,10 @@ package com.yzmm.clox.applist
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapShader
 import android.graphics.Canvas
-import android.graphics.Path
+import android.graphics.Paint
+import android.graphics.Shader
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
@@ -529,11 +531,19 @@ class HoneycombView @JvmOverloads constructor(
 // ── Drawable utils ────────────────────────────────────────────────────────────
 
 fun Drawable.toCircle(sizePx: Int): Drawable {
-    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bmp)
-    val path = Path().apply { addCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, Path.Direction.CW) }
-    canvas.clipPath(path)
-    setBounds(0, 0, sizePx, sizePx)
-    draw(canvas)
-    return BitmapDrawable(null, bmp)
+    val size = sizePx.coerceAtLeast(1)
+    val src = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    (this as? BitmapDrawable)?.let { it.setFilterBitmap(true) }
+    setBounds(0, 0, size, size)
+    draw(Canvas(src))
+
+    // Draw the bitmap through an anti-aliased circular shader instead of
+    // clipPath: clipPath edges are aliased, which showed up as a hard, jagged
+    // ring around every honeycomb icon on the watch's low-DPI display.
+    val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+        shader = BitmapShader(src, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+    }
+    Canvas(out).drawCircle(size / 2f, size / 2f, size / 2f, paint)
+    return BitmapDrawable(null, out).apply { setFilterBitmap(true) }
 }

@@ -334,14 +334,16 @@ fun AppListScreen() {
                     summary = curveEntries.getOrElse(curveValues.indexOf(list3dCurve)) { "linear" },
                 ) { showCurveFor = "list" }
             }
-            SettingsSlider(
+            SettingsSliderFloat(
                 title = res(R.string.pref_icon_size_title),
-                value = listIconSize,
-                range = 0..120,
+                value = listIconSize.toFloat(),
+                range = 0f..120f,
+                steps = 0,
                 valueText = "$listIconSize",
                 onChange = {
-                    listIconSize = it
-                    appListPrefs.edit().putInt("list_icon_size", it).apply()
+                    val v = it.toInt().coerceIn(0, 120)
+                    listIconSize = v
+                    appListPrefs.edit().putInt("list_icon_size", v).apply()
                 },
             )
             SettingsSwitch(
@@ -375,14 +377,16 @@ fun AppListScreen() {
                     appListPrefs.edit().putBoolean("grid_names", it).apply()
                 },
             )
-            SettingsSlider(
+            SettingsSliderFloat(
                 title = res(R.string.pref_icon_size_title),
-                value = gridIconSize,
-                range = 0..120,
+                value = gridIconSize.toFloat(),
+                range = 0f..120f,
+                steps = 0,
                 valueText = "$gridIconSize",
                 onChange = {
-                    gridIconSize = it
-                    appListPrefs.edit().putInt("grid_icon_size", it).apply()
+                    val v = it.toInt().coerceIn(0, 120)
+                    gridIconSize = v
+                    appListPrefs.edit().putInt("grid_icon_size", v).apply()
                 },
             )
             SettingsSwitch(
@@ -423,14 +427,16 @@ fun AppListScreen() {
                     summary = curveEntries.getOrElse(curveValues.indexOf(waterfall3dCurve)) { "linear" },
                 ) { showCurveFor = "waterfall" }
             }
-            SettingsSlider(
+            SettingsSliderFloat(
                 title = res(R.string.pref_icon_size_title),
-                value = waterfallIconSize,
-                range = 0..120,
+                value = waterfallIconSize.toFloat(),
+                range = 0f..120f,
+                steps = 0,
                 valueText = "$waterfallIconSize",
                 onChange = {
-                    waterfallIconSize = it
-                    appListPrefs.edit().putInt("waterfall_icon_size", it).apply()
+                    val v = it.toInt().coerceIn(0, 120)
+                    waterfallIconSize = v
+                    appListPrefs.edit().putInt("waterfall_icon_size", v).apply()
                 },
             )
             SettingsSwitch(
@@ -467,14 +473,16 @@ fun AppListScreen() {
                     },
                 )
             }
-            SettingsSlider(
+            SettingsSliderFloat(
                 title = res(R.string.pref_honeycomb_icon_size_title),
-                value = honeycombIconSize,
-                range = 0..120,
+                value = honeycombIconSize.toFloat(),
+                range = 0f..120f,
+                steps = 0,
                 valueText = "$honeycombIconSize",
                 onChange = {
-                    honeycombIconSize = it
-                    appListPrefs.edit().putInt("honeycomb_icon_size", it).apply()
+                    val v = it.toInt().coerceIn(0, 120)
+                    honeycombIconSize = v
+                    appListPrefs.edit().putInt("honeycomb_icon_size", v).apply()
                 },
             )
             SettingsSwitch(
@@ -518,14 +526,16 @@ fun AppListScreen() {
                     },
                 )
             }
-            SettingsSlider(
+            SettingsSliderFloat(
                 title = res(R.string.pref_grid2d_icon_size_title),
-                value = grid2dIconSize,
-                range = 0..120,
+                value = grid2dIconSize.toFloat(),
+                range = 0f..120f,
+                steps = 0,
                 valueText = "$grid2dIconSize",
                 onChange = {
-                    grid2dIconSize = it
-                    appListPrefs.edit().putInt("grid2d_icon_size", it).apply()
+                    val v = it.toInt().coerceIn(0, 120)
+                    grid2dIconSize = v
+                    appListPrefs.edit().putInt("grid2d_icon_size", v).apply()
                 },
             )
             SettingsSwitch(

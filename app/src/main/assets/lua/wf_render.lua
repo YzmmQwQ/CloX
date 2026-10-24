@@ -44,6 +44,22 @@ local floor, rad, cos, sin = math.floor, math.rad, math.cos, math.sin
 local fu = cc.FileUtils:getInstance()
 local function fileExists(p) return fu:isFileExist(p) end
 
+-- WatchMaker faces ship TTF *and* OTF fonts under fonts/. Axmol's TTF label
+-- loads both, but the original lookup only probed .ttf, so any face whose font
+-- was an .otf silently fell back to the system face. Probe the common case
+-- variants and let the caller use the resolved path.
+local FONT_EXTS = { ".ttf", ".otf", ".TTF", ".OTF" }
+local function resolveFont(base, name)
+    if not name or name == "" then return nil end
+    -- Some XMLs carry the extension in the font attribute; avoid "Foo.ttf.ttf".
+    name = name:gsub("%.[tToO][tT][fF]$", "")
+    for i = 1, #FONT_EXTS do
+        local p = base .. "fonts/" .. name .. FONT_EXTS[i]
+        if fileExists(p) then return p end
+    end
+    return nil
+end
+
 -- On-screen Y sign for authored layer POSITIONS. WM_FORMAT_1.0 §4 documents
 -- Y-up (+1), but real faces render vertically inverted on device — content the
 -- designer placed at the bottom lands at the top — i.e. the format's authored Y
@@ -1105,8 +1121,8 @@ function Builders.text(self, rec)
             if lab then rec.isBM = true end
         end
         if not lab and font ~= "" then
-            local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then
+            local ttf = resolveFont(self.base, font)
+            if ttf then
                 lab = cc.Label:createWithTTF(str, ttf, fontPx(size))
                 if lab then rec.isTTF = true end
             end
@@ -1942,8 +1958,8 @@ function Builders.series(self, rec)
                 return lab, true
             end
         elseif fontName and fontName ~= "" then
-            local ttf = self.base .. "fonts/" .. fontName .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(" ", ttf, fontPx(size)) end
+            local ttf = resolveFont(self.base, fontName)
+            if ttf then lab = cc.Label:createWithTTF(" ", ttf, fontPx(size)) end
         end
         lab = lab or cc.Label:createWithSystemFont(" ", "sans-serif", fontPx(size))
         lab:setTextColor(c4b(colorHex, 100))
@@ -2028,8 +2044,8 @@ function Builders.calendar(self, rec)
                 return lab
             end
         elseif font ~= "" then
-            local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
+            local ttf = resolveFont(self.base, font)
+            if ttf then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
         end
         lab = lab or cc.Label:createWithSystemFont(str, "sans-serif", size)
         lab:setTextColor(c4b(colorHex, 100))
@@ -2543,8 +2559,8 @@ function Builders.text_ring(self, rec)
                     return lab
                 end
             elseif font ~= "" then
-                local ttf = self.base .. "fonts/" .. font .. ".ttf"
-                if fileExists(ttf) then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
+                local ttf = resolveFont(self.base, font)
+                if ttf then lab = cc.Label:createWithTTF(str, ttf, fontPx(size)) end
             end
             lab = lab or cc.Label:createWithSystemFont(str, "sans-serif", fontPx(size))
             lab:setTextColor(c4b(colHex, 100))
@@ -2626,8 +2642,8 @@ function Builders.text_curved(self, rec)
             local fnt = self.base .. "fonts_bm/" .. font:sub(4) .. ".fnt"
             if fileExists(fnt) then lab = cc.Label:createWithBMFont(fnt, s:upper()) end
         elseif font ~= "" then
-            local ttf = self.base .. "fonts/" .. font .. ".ttf"
-            if fileExists(ttf) then lab = cc.Label:createWithTTF(s, ttf, fontPx(size)) end
+            local ttf = resolveFont(self.base, font)
+            if ttf then lab = cc.Label:createWithTTF(s, ttf, fontPx(size)) end
         end
         return lab or cc.Label:createWithSystemFont(s, "sans-serif", fontPx(size))
     end

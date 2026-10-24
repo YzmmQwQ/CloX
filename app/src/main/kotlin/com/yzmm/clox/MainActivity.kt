@@ -2042,6 +2042,14 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 v.translationX = dx.coerceAtLeast(0f)
                 refreshAppListTransparentRegion()
             }
+            appListOpen && direction == SwipeDirection.LEFT -> {
+                // On systems where a left edge swipe is mapped to Back, keep the
+                // gesture in the launcher: slide the list back toward the
+                // watchface instead of letting the system finish the activity.
+                val v = appListFragment?.view ?: return
+                v.translationX = (-dx).coerceIn(0f, screenW)
+                refreshAppListTransparentRegion()
+            }
             !appListOpen && direction == SwipeDirection.LEFT -> {
                 if (!appListSwipeEnabled()) return
                 val v = appListFragment?.view ?: return
@@ -2134,6 +2142,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
                 if (dx > screenW * 0.35f || vx > 700f) closeAppList(vx)
                 else springAppList(0f)
 
+            appListOpen && direction == SwipeDirection.LEFT ->
+                if (-dx > screenW * 0.35f || -vx > 700f) closeAppList(vx)
+                else springAppList(0f)
+
             !appListOpen && direction == SwipeDirection.LEFT -> {
                 if (appListSwipeEnabled()) {
                     if (-dx > screenW * 0.35f || -vx > 700f) openAppList(vx)
@@ -2161,13 +2173,35 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         if (appListFragment?.view == null) return
         appListOpen = true; gestureRoot.appListOpen = true
         appListFragment?.setActive(true)
+        excludeAppListSystemGestures(true)
         springAppList(0f, velocity)
         updateBackEnabled()
         hideSystemBars()   // nav bar may need to appear ("only in app list" mode)
     }
 
+    /**
+     * Keep the system's left-edge Back gesture from stealing the launcher's own
+     * horizontal app-list gesture. The back callback still handles hardware BACK;
+     * this only stops the system from finishing/blacking out the launcher when the
+     * user swipes left inside the list.
+     */
+    private fun excludeAppListSystemGestures(exclude: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val v = appListFragment?.view ?: return
+        v.post {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                v.systemGestureExclusionRects = if (exclude && v.width > 0 && v.height > 0) {
+                    listOf(Rect(0, 0, v.width, v.height))
+                } else {
+                    emptyList()
+                }
+            }
+        }
+    }
+
     private fun closeAppList(velocity: Float = 0f) {
         appListOpen = false; gestureRoot.appListOpen = false
+        excludeAppListSystemGestures(false)
         // face becomes visible the moment the close slide starts — lift the cap now
         dev.axmol.lib.AxmolRenderer.setForceLowFps(false)
         appListFragment?.setActive(false)
