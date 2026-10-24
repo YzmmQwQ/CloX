@@ -880,7 +880,15 @@
     <string name="tile_aod">Always On</string>
     <string name="tile_airplane">Airplane</string>
     <string name="tile_hotspot">Hotspot</string>
+    <string name="tile_battery_saver">Battery Saver</string>
+    <string name="tile_sync">Sync</string>
     <string name="tile_rtos_mode">RTOS Mode</string>
+    <string name="qs_no_tiles">No tiles selected</string>
+    <string name="qs_media">Media</string>
+    <string name="cd_media_previous">Previous track</string>
+    <string name="cd_media_play">Play</string>
+    <string name="cd_media_pause">Pause</string>
+    <string name="cd_media_next">Next track</string>
 
     <!-- ── Button mapping ───────────────────────────────────────────────── -->
     <string name="btn_volume_up">Volume Up</string>

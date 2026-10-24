@@ -7,11 +7,15 @@ import org.json.JSONArray
 
 object TileLayoutManager {
 
-    // Default: WiFi, Data, Bluetooth, Volume — same as old app's 2×2 main grid
-    val defaultActive = listOf("wifi", "data", "bluetooth", "volume")
+    // Default: two pages of the controls people reach for most often.
+    val defaultActive = listOf(
+        "wifi", "data", "bluetooth", "volume",
+        "dnd", "flashlight", "rotate", "aod",
+        "battery_saver", "sync"
+    )
 
-    // Tiles removed from the default set — strip from any saved list on load
-    private val removedFromDefault = setOf("dnd", "rotate", "flashlight")
+    // The original four-tile default; installs that never customised are upgraded.
+    private val legacyDefault = listOf("wifi", "data", "bluetooth", "volume")
 
     fun loadActiveTiles(ctx: Context): List<String> {
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
@@ -21,10 +25,11 @@ object TileLayoutManager {
             (0 until arr.length()).map { arr.getString(it) }
         } catch (_: Exception) { return defaultActive }
 
-        // Migration: strip tiles that were removed from the default set
-        val migrated = loaded.filter { it !in removedFromDefault }
-        if (migrated.size != loaded.size) saveActiveTiles(ctx, migrated)
-        return migrated.ifEmpty { defaultActive }
+        if (loaded == legacyDefault) {
+            saveActiveTiles(ctx, defaultActive)
+            return defaultActive
+        }
+        return loaded.ifEmpty { defaultActive }
     }
 
     fun saveActiveTiles(ctx: Context, ids: List<String>) {
@@ -76,7 +81,9 @@ object TileLayoutManager {
         return null
     }
 
-    // Always 2 columns; rows per page is user-controlled (2 or 3)
+    const val COLUMNS = 3
+
+    // Rows per page is user-controlled (2 or 3); the grid is always three columns.
     fun paginateTiles(ids: List<String>, rows: Int): List<List<String>> =
-        ids.chunked(2 * rows)
+        ids.chunked(COLUMNS * rows)
 }

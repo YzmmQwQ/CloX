@@ -18,6 +18,8 @@ object TileRegistry {
         TileDef("aod",        R.string.tile_aod,         R.drawable.baseline_aod_24),
         TileDef("airplane",   R.string.tile_airplane,    R.drawable.baseline_airplanemode_active_24),
         TileDef("hotspot",    R.string.tile_hotspot,     R.drawable.baseline_wifi_tethering_24),
+        TileDef("battery_saver", R.string.tile_battery_saver, R.drawable.baseline_battery_saver_24),
+        TileDef("sync",       R.string.tile_sync,        R.drawable.baseline_sync_24),
         TileDef("rtos_mode",  R.string.tile_rtos_mode,   R.drawable.baseline_lock_24, hasState = false),
     )
 

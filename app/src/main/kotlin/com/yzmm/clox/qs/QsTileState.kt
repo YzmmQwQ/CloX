@@ -47,5 +47,9 @@ sealed class TileState {
 
     data class HotspotState(val enabled: Boolean) : TileState()
 
+    data class BatterySaverState(val enabled: Boolean) : TileState()
+
+    data class SyncState(val enabled: Boolean) : TileState()
+
     data class BatteryState(val level: Int, val charging: Boolean) : TileState()
 }

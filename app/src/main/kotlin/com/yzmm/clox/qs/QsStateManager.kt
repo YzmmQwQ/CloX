@@ -4,10 +4,12 @@ import android.app.NotificationManager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.content.SyncStatusObserver
 import android.database.ContentObserver
 import android.location.LocationManager
 import android.media.AudioManager
@@ -20,6 +22,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import android.telephony.CellInfoLte
 import android.telephony.CellInfoWcdma
@@ -76,6 +79,15 @@ class QsStateManager(private val ctx: Context) {
     private val _hotspot = MutableStateFlow(TileState.HotspotState(false))
     val hotspot: StateFlow<TileState.HotspotState> = _hotspot.asStateFlow()
 
+    private val _batterySaver = MutableStateFlow(TileState.BatterySaverState(false))
+    val batterySaver: StateFlow<TileState.BatterySaverState> = _batterySaver.asStateFlow()
+
+    private val _sync = MutableStateFlow(TileState.SyncState(false))
+    val sync: StateFlow<TileState.SyncState> = _sync.asStateFlow()
+
+    private val _brightness = MutableStateFlow(128)
+    val brightness: StateFlow<Int> = _brightness.asStateFlow()
+
     private val _battery = MutableStateFlow(TileState.BatteryState(0, false))
     val battery: StateFlow<TileState.BatteryState> = _battery.asStateFlow()
 
@@ -103,6 +115,8 @@ class QsStateManager(private val ctx: Context) {
         "aod"        -> aod
         "airplane"   -> airplane
         "hotspot"    -> hotspot
+        "battery_saver" -> batterySaver
+        "sync"       -> sync
         else         -> null
     }
 
@@ -162,8 +176,23 @@ class QsStateManager(private val ctx: Context) {
         override fun onChange(selfChange: Boolean) { updateRotate() }
     }
 
+    private val batterySaverReceiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: Intent) { updateBatterySaver() }
+    }
+
+    private val brightnessObserver = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean) { updateBrightness() }
+    }
+
+    private val syncObserver = object : SyncStatusObserver {
+        override fun onStatusChanged(which: Int) {
+            if (which and ContentResolver.SYNC_OBSERVER_TYPE_SETTINGS != 0) updateSync()
+        }
+    }
+
     private var wifiCallback: ConnectivityManager.NetworkCallback? = null
     private var dataCallback: ConnectivityManager.NetworkCallback? = null
+    private var syncListener: Any? = null
     @Suppress("DEPRECATION")
     private var phoneStateListener: PhoneStateListener? = null
 
@@ -232,6 +261,19 @@ class QsStateManager(private val ctx: Context) {
             Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION),
             false, rotateObserver)
 
+        // Battery saver
+        ctx.registerReceiver(batterySaverReceiver,
+            IntentFilter(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED))
+
+        // Brightness
+        ctx.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS),
+            false, brightnessObserver)
+
+        // Master sync toggle
+        syncListener = ContentResolver.addStatusChangeListener(
+            ContentResolver.SYNC_OBSERVER_TYPE_SETTINGS, syncObserver)
+
         // Mobile data network callback
         dataCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) { updateData(cmgr) }
@@ -273,6 +315,9 @@ class QsStateManager(private val ctx: Context) {
             updateBattery()
             updateData(cmgr)
             updateAod()
+            updateBatterySaver()
+            updateSync()
+            updateBrightness()
         }
     }
 
@@ -284,6 +329,7 @@ class QsStateManager(private val ctx: Context) {
             updateTime(); updateWifi(); updateBluetooth(); updateVolume()
             updateDnd(); updateRotate(); updateLocation(); updateAirplane()
             updateHotspot(); updateBattery(); updateData(cmgr); updateAod()
+            updateBatterySaver(); updateSync(); updateBrightness()
         }
     }
 
@@ -300,7 +346,11 @@ class QsStateManager(private val ctx: Context) {
         runCatching { ctx.unregisterReceiver(hotspotReceiver) }
         runCatching { ctx.unregisterReceiver(locationReceiver) }
         runCatching { ctx.unregisterReceiver(dndReceiver) }
+        runCatching { ctx.unregisterReceiver(batterySaverReceiver) }
         ctx.contentResolver.unregisterContentObserver(rotateObserver)
+        ctx.contentResolver.unregisterContentObserver(brightnessObserver)
+        syncListener?.let { ContentResolver.removeStatusChangeListener(it) }
+        syncListener = null
         val cmgr = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         wifiCallback?.let { runCatching { cmgr.unregisterNetworkCallback(it) } }
         dataCallback?.let { runCatching { cmgr.unregisterNetworkCallback(it) } }
@@ -478,6 +528,27 @@ class QsStateManager(private val ctx: Context) {
 
     private fun updateAod() {
         _aod.value = TileState.AodState(prefs.getBoolean(AodPrefs.KEY_ENABLED, false))
+    }
+
+    private fun updateBatterySaver() {
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
+        _batterySaver.value = TileState.BatterySaverState(pm.isPowerSaveMode)
+    }
+
+    private fun updateSync() {
+        val enabled = try {
+            ContentResolver.getMasterSyncAutomatically()
+        } catch (_: SecurityException) {
+            false
+        }
+        _sync.value = TileState.SyncState(enabled)
+    }
+
+    private fun updateBrightness() {
+        val value = try {
+            Settings.System.getInt(ctx.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        } catch (_: Exception) { 128 }
+        _brightness.value = value.coerceIn(0, 255)
     }
 
     private fun getNetworkTypeName(type: Int) = when (type) {

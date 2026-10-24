@@ -1927,7 +1927,7 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     // ── Gesture setup ────────────────────────────────────────────────────────
 
     private fun setupGestures() {
-        // Only pass LEFT/RIGHT through when QS (VP2) is active, not other overlays
+        // Only pass LEFT/RIGHT through when QS is active, not other overlays
         gestureRoot.qsOverlayActive = { overlayController.isQsActive() }
         gestureRoot.rtosQsOverlayVisible = { rtosDelegate.isQsVisible }
         // Pass vertical + right swipes through to the notification RecyclerView/ItemTouchHelper.

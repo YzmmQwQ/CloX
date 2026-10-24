@@ -38,7 +38,7 @@ class GestureInterceptorLayout @JvmOverloads constructor(
      * to the child view so the user can pan/scroll instead.
      */
     var grid2dHoneycombActive: Boolean = false
-    /** Returns true when any QS/overlay panel is open — horizontal swipes should pass to VP2 */
+    /** Returns true when any QS/overlay panel is open — swipes pass to the child (pager/list) */
     var qsOverlayActive: (() -> Boolean)? = null
     /** Returns true when ViewPager2 can scroll right (page > 0) — passes right swipe to child. */
     var pagesCanScrollRight: (() -> Boolean)? = null
@@ -263,8 +263,8 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private fun shouldBlock(dir: SwipeDirection): Boolean {
         // While dragging an app icon, block all swipes so the drag owns the touch stream
         if (pagesBackendActive && pagesBackendDragActive?.invoke() == true) return true
-        // QS: let the ViewPager2 handle page swipes and the ScrollView handle vertical
-        // scrolling — its bottom action bar can sit below the fold on short screens.
+        // QS: let the Compose pager handle page swipes and the LazyColumn handle vertical
+        // scrolling — its content can sit below the fold on short screens.
         if (qsOverlayActive?.invoke() == true) {
             if (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT ||
                 dir == SwipeDirection.UP || dir == SwipeDirection.DOWN) return true

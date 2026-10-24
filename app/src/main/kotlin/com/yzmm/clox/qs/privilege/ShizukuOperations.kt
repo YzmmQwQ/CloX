@@ -114,6 +114,10 @@ object ShizukuOperations {
     fun setHotspotEnabled(enabled: Boolean) =
         exec("svc wifi hotspot ${if (enabled) "enable" else "disable"}")
 
+    fun setBatterySaverEnabled(enabled: Boolean): Boolean =
+        exec("settings put global low_power ${if (enabled) 1 else 0}") ||
+        exec("cmd power set-mode ${if (enabled) 1 else 0}")
+
     fun writeSettings(namespace: String, key: String, value: String) =
         exec("settings put $namespace $key $value")
 

@@ -116,6 +116,14 @@ Any swipe dismisses active overlay before any other routing runs (`handleSwipeEn
   `settings/compose/SettingsComponents.kt`; routes in `SettingsRoutes.kt`.
   The old `settings/fragments/*` hosts, `fragment_settings_*.xml`, `preferences_*.xml` and
   `BasePreferenceFragment` have been removed.
+- **The control center is Compose now**: `overlay/quicksettings/QuickSettingsPanel.kt` is a
+  Wear M3 `LazyColumn` with a pinned action bar, inline brightness/volume sliders, an optional
+  media-session card and paged 3-column `ButtonGroup` rows of native `IconToggleButton`s
+  (`variantAnimatedShapes`, so press and checked state morph the button shape; the group grows
+  the touched button and shrinks its neighbours).
+  `QuickSettingsOverlay` keeps the overlay lifecycle and tile handlers and hosts the panel in a
+  `ComposeView`; it installs a local ViewTree lifecycle owner when the panel is created by the
+  global-overlay Service window (which has no Activity).
 - Migrate the remaining non-settings screens incrementally; XML/Fragment UI and Compose coexist
   until a screen is ported.
 

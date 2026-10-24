@@ -562,7 +562,15 @@
     <string name="tile_aod">始终显示</string>
     <string name="tile_airplane">飞行模式</string>
     <string name="tile_hotspot">热点</string>
+    <string name="tile_battery_saver">省电模式</string>
+    <string name="tile_sync">同步</string>
     <string name="tile_rtos_mode">RTOS 模式</string>
+    <string name="qs_no_tiles">未选择控制项</string>
+    <string name="qs_media">媒体</string>
+    <string name="cd_media_previous">上一首</string>
+    <string name="cd_media_play">播放</string>
+    <string name="cd_media_pause">暂停</string>
+    <string name="cd_media_next">下一首</string>
 
     <!-- ── Button mapping ───────────────────────────────────────────────── -->
     <string name="btn_volume_up">音量+</string>

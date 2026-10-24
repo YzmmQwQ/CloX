@@ -12,6 +12,8 @@ enum class TileId(val key: String) {
     AOD("aod"),
     AIRPLANE("airplane"),
     HOTSPOT("hotspot"),
+    BATTERY_SAVER("battery_saver"),
+    SYNC("sync"),
     RTOS_MODE("rtos_mode");
 
     companion object {

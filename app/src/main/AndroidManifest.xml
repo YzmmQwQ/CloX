@@ -40,6 +40,10 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
+    <!-- Master sync toggle in the control center -->
+    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <!-- Granted once via Shizuku/root so later one-tap notification-access writes do not
          need an active privilege connection. Must be whitelisted for the priv-app build. -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"

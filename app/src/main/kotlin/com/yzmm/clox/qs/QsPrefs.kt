@@ -2,7 +2,7 @@ package com.yzmm.clox.qs
 
 object QsPrefs {
     const val QS_ENABLED            = "qs_enabled"
-    const val TILE_ROWS             = "qs_tile_rows"    // rows per page: "2" or "3"; always 2 columns
+    const val TILE_ROWS             = "qs_tile_rows"    // rows per page: "2" or "3"; always 3 columns
     const val COLORED_TILES         = "qs_color_tiles"
     const val USE_SYSTEM_COLOR      = "qs_use_system_color"  // use Material3 dynamic colors
     const val COLOR_CONNECTED       = "qs_color_connected"

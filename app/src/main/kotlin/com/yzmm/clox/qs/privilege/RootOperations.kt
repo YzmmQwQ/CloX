@@ -27,6 +27,10 @@ object RootOperations {
     fun setHotspotEnabled(enabled: Boolean): Boolean =
         Shell.cmd("svc wifi hotspot ${if (enabled) "enable" else "disable"}").exec().isSuccess
 
+    fun setBatterySaverEnabled(enabled: Boolean): Boolean =
+        Shell.cmd("settings put global low_power ${if (enabled) 1 else 0}").exec().isSuccess ||
+        Shell.cmd("cmd power set-mode ${if (enabled) 1 else 0}").exec().isSuccess
+
     fun writeSettings(namespace: String, key: String, value: String): Boolean =
         Shell.cmd("settings put $namespace $key $value").exec().isSuccess
 

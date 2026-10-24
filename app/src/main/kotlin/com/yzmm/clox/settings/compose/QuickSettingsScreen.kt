@@ -46,10 +46,10 @@ fun QuickSettingsScreen() {
     var tileRows by remember { mutableStateOf(prefs.getString(QsPrefs.TILE_ROWS, "2") ?: "2") }
     var flashlightHw by remember { mutableStateOf(prefs.getBoolean(QsPrefs.FLASHLIGHT_HARDWARE, false)) }
     var tileStyle by remember {
-        mutableStateOf(prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_STROKE)
-            ?: QsPrefs.TILE_STYLE_STROKE)
+        mutableStateOf(prefs.getString(QsPrefs.TILE_STYLE, QsPrefs.TILE_STYLE_SOLID)
+            ?: QsPrefs.TILE_STYLE_SOLID)
     }
-    var colorTiles by remember { mutableStateOf(prefs.getBoolean(QsPrefs.COLORED_TILES, true)) }
+    var colorTiles by remember { mutableStateOf(prefs.getBoolean(QsPrefs.COLORED_TILES, false)) }
     var systemColor by remember { mutableStateOf(prefs.getBoolean(QsPrefs.USE_SYSTEM_COLOR, false)) }
     var colorConnected by remember {
         mutableStateOf(prefs.getString(QsPrefs.COLOR_CONNECTED, QsPrefs.DEFAULT_COLOR_CONNECTED)

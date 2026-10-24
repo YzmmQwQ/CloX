@@ -318,7 +318,7 @@ class OverlayController(
 
     fun hasActiveOverlay(): Boolean = activeOverlay != null
 
-    /** True only when the QS panel (with VP2) is the current active overlay. */
+    /** True only when the QS panel is the current active overlay. */
     fun isQsActive(): Boolean = activeOverlay === quickSettings
 
     /** True only when the notification panel is the current active overlay. */
