@@ -847,6 +847,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
         // A panel (notifications / QS / widgets) left open before the screen turned off should
         // not linger on resume — drop it instantly so we land on the watchface.
         if (overlayController.hasActiveOverlay()) overlayController.dismissActiveInstant()
+        if (QuickSettingsShortcut.pending) {
+            QuickSettingsShortcut.pending = false
+            gestureRoot.post { toggleQuickSettings() }
+        }
 
         // Defer non-critical UI operations to after the first frame so the
         // watchface GL surface can render without competing for UI thread time.

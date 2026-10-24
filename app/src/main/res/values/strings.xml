@@ -399,6 +399,7 @@
     <string name="accessibility_service_label">CloX Quick Actions</string>
     <string name="accessibility_service_description">Allows CloX to show the power menu and recent apps from Quick Settings.</string>
     <string name="qs_title">Quick Settings</string>
+    <string name="control_center">Control center</string>
     <string name="qs_enabled_title">Enable Quick Settings</string>
     <string name="qs_enabled_summary">Opens with the side-button action; turns the panel off when disabled</string>
     <string name="qs_sensitivity_title">Gesture sensitivity</string>

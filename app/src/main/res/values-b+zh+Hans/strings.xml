@@ -239,6 +239,7 @@
     <string name="accessibility_service_label">CloX 快捷操作</string>
     <string name="accessibility_service_description">允许 CloX 从快捷设置中显示电源菜单和最近使用的应用。</string>
     <string name="qs_title">快捷设置</string>
+    <string name="control_center">控制中心</string>
     <string name="qs_enabled_title">启用快捷设置</string>
     <string name="qs_enabled_summary">通过侧键动作打开；关闭后控制中心不可用</string>
     <string name="qs_sensitivity_title">手势灵敏度</string>
