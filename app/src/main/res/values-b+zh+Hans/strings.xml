@@ -529,6 +529,7 @@
     <string name="bg_apps_title">后台应用</string>
     <string name="bg_apps_kill_all">全部结束</string>
     <string name="bg_apps_note">最近使用的应用，点击应用即可结束。</string>
+    <string name="bg_apps_hint">轻点打开 · 上滑结束</string>
     <string name="bg_apps_ended">已结束 %1$d 个应用</string>
     <string name="bg_apps_empty">没有最近使用的应用</string>
     <string name="bg_apps_recent">最近使用</string>
