@@ -328,8 +328,7 @@ class QuickSettingsOverlay @JvmOverloads constructor(
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
         btnRecents.setOnClickListener {
-            if (!CloXAccessibilityService.triggerRecents())
-                QsPermissionHelper.ensureAccessibilityEnabled(context)
+            com.yzmm.clox.background.BackgroundAppsActivity.start(context)
         }
         btnFlashlight.setOnClickListener { handleFlashlight(null) }
         btnPower.setOnClickListener {

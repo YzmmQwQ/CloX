@@ -196,7 +196,7 @@
                     android:src="@drawable/ic_recents"
                     android:tint="@color/on_dark_primary"
                     android:padding="12dp"
-                    android:contentDescription="@string/cd_recents"/>
+                    android:contentDescription="@string/bg_apps_open_desc"/>
 
                 <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
 

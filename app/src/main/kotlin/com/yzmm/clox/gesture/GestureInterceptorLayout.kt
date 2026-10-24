@@ -263,9 +263,12 @@ class GestureInterceptorLayout @JvmOverloads constructor(
     private fun shouldBlock(dir: SwipeDirection): Boolean {
         // While dragging an app icon, block all swipes so the drag owns the touch stream
         if (pagesBackendActive && pagesBackendDragActive?.invoke() == true) return true
-        // When QS (or any overlay) is open, let VP2 handle horizontal page swipes
-        if (qsOverlayActive?.invoke() == true &&
-            (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT)) return true
+        // QS: let the ViewPager2 handle page swipes and the ScrollView handle vertical
+        // scrolling — its bottom action bar can sit below the fold on short screens.
+        if (qsOverlayActive?.invoke() == true) {
+            if (dir == SwipeDirection.LEFT || dir == SwipeDirection.RIGHT ||
+                dir == SwipeDirection.UP || dir == SwipeDirection.DOWN) return true
+        }
         // Notification panel: top-opened panels scroll down and collapse on UP at the bottom;
         // right-opened panels keep their original LEFT-to-close behavior.
         if (notificationOverlayActive?.invoke() == true) {

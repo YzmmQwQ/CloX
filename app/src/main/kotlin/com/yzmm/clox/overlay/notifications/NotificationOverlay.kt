@@ -43,7 +43,6 @@ class NotificationOverlay @JvmOverloads constructor(
     private val notifPager: ViewPager2
     private val emptyText: TextView
     private val fabDismissAll: FloatingActionButton
-    private val fabBackgroundApps: FloatingActionButton
 
     private val mediaAdapter: MediaSingleAdapter
     private val listAdapter: NotificationListAdapter
@@ -76,7 +75,6 @@ class NotificationOverlay @JvmOverloads constructor(
         notifPager     = findViewById(R.id.notifPager)
         emptyText      = findViewById(R.id.notifEmptyText)
         fabDismissAll  = findViewById(R.id.fabDismissAll)
-        fabBackgroundApps = findViewById(R.id.fabBackgroundApps)
 
         mediaAdapter = MediaSingleAdapter { showVolumeDialog() }
         listAdapter  = NotificationListAdapter { sbn -> ReplyPopup.show(ctx, sbn) }
@@ -91,9 +89,6 @@ class NotificationOverlay @JvmOverloads constructor(
 
         fabDismissAll.setOnClickListener {
             CloXNotificationListenerService.dismissAllNotifications()
-        }
-        fabBackgroundApps.setOnClickListener {
-            com.yzmm.clox.background.BackgroundAppsActivity.start(ctx)
         }
 
         btnGrant.setOnClickListener { openNotificationListenerSettings() }
@@ -152,7 +147,6 @@ class NotificationOverlay @JvmOverloads constructor(
         notifList.visibility        = View.GONE
         notifPager.visibility       = View.GONE
         fabDismissAll.visibility    = View.GONE
-        fabBackgroundApps.visibility = View.GONE
         emptyText.visibility        = View.VISIBLE
         emptyText.text              = context.getString(R.string.notif_empty)
     }
@@ -207,7 +201,6 @@ class NotificationOverlay @JvmOverloads constructor(
     private fun showContentScreen() {
         permissionScreen.visibility = View.GONE
         contentScreen.visibility    = View.VISIBLE
-        fabBackgroundApps.visibility = View.VISIBLE
         applyViewStyle()   // restores notifList/pager visibility (may have been hidden by RTOS override)
         bindMedia()
     }
