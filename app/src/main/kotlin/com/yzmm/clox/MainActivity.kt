@@ -2252,9 +2252,10 @@ class MainActivity : AppCompatActivity(), AxmolEngine.AxmolEngineListener {
     private lateinit var backCallback: OnBackPressedCallback
 
     private fun setupBackPressHandler() {
-        // Disabled when nothing is dismissible so predictive back shows no preview at idle.
-        // Re-enabled whenever the app list or an overlay becomes active.
-        backCallback = object : OnBackPressedCallback(false) {
+        // Always enabled: on devices where a left swipe is mapped to Back, a disabled
+        // callback lets the system finish the launcher — the task disappears and the
+        // screen goes black. At idle the callback simply consumes the press.
+        backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackStarted(backEvent: BackEventCompat) {
                 Log.d("CloX/Back", "onBackStarted folder=${isFolderOpen()} appListOpen=$appListOpen overlay=${overlayController.hasActiveOverlay()} launchAnim=${activeLaunchAnim != null} reversing=${isLaunchAnimReversing()}")
                 if (activeLaunchAnim != null || isLaunchAnimReversing()) return
